@@ -30,9 +30,9 @@ V1_5::DataProfileInfo toHidl(const aidl::DataProfileInfo& info) {
     return {
             .profileId = V1_0::DataProfileId{info.profileId},
             .apn = info.apn,
-            .protocol = V1_4::PdpProtocolType{info.protocol},
-            .roamingProtocol = V1_4::PdpProtocolType{info.roamingProtocol},
-            .authType = V1_0::ApnAuthType{info.authType},
+            .protocol = static_cast<V1_4::PdpProtocolType>(info.protocol),
+            .roamingProtocol = static_cast<V1_4::PdpProtocolType>(info.roamingProtocol),
+            .authType = static_cast<V1_0::ApnAuthType>(info.authType),
             .user = info.user,
             .password = info.password,
             .type = V1_0::DataProfileInfoType{info.type},

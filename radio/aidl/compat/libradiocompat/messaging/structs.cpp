@@ -94,7 +94,7 @@ V1_0::CdmaSmsMessage toHidl(const aidl::CdmaSmsMessage& msg) {
 
 V1_0::ImsSmsMessage toHidl(const aidl::ImsSmsMessage& msg) {
     return {
-            .tech = V1_0::RadioTechnologyFamily{msg.tech},
+            .tech = static_cast<V1_0::RadioTechnologyFamily>(msg.tech),
             .retry = msg.retry,
             .messageRef = msg.messageRef,
             .cdmaMessage = toHidl(msg.cdmaMessage),

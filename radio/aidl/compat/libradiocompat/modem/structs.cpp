@@ -30,7 +30,7 @@ namespace aidl = ::aidl::android::hardware::radio::modem;
 
 V1_0::NvWriteItem toHidl(const aidl::NvWriteItem& item) {
     return {
-            .itemId = V1_0::NvItem{item.itemId},
+            .itemId = static_cast<V1_0::NvItem>(item.itemId),
             .value = item.value,
     };
 }
