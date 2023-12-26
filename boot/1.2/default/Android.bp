@@ -32,9 +32,6 @@ cc_library_shared {
         "libboot_control",
         "libfstab",
     ],
-    lto: {
-        never: true,
-    },
 }
 
 cc_binary {
@@ -58,7 +55,5 @@ cc_binary {
         "android.hardware.boot@1.1",
         "android.hardware.boot@1.2",
     ],
-    lto: {
-        never: true,
-    },
+
 }

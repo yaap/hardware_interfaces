@@ -22,9 +22,7 @@ cc_library_shared {
         "libutils",
         "android.hardware.boot@1.0",
     ],
-    lto: {
-        never: true,
-    },
+
 }
 
 cc_binary {
@@ -42,7 +40,5 @@ cc_binary {
         "libutils",
         "android.hardware.boot@1.0",
     ],
-    lto: {
-        never: true,
-    },
+
 }
