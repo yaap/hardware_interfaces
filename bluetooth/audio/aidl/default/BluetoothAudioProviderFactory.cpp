@@ -39,6 +39,9 @@ namespace audio {
 static const std::string kLeAudioOffloadProviderName =
     "LE_AUDIO_OFFLOAD_HARDWARE_OFFLOAD_PROVIDER";
 
+static const std::string kHfpOffloadProviderName =
+    "HFP_OFFLOAD_HARDWARE_OFFLOAD_PROVIDER";
+
 BluetoothAudioProviderFactory::BluetoothAudioProviderFactory() {}
 
 ndk::ScopedAStatus BluetoothAudioProviderFactory::openProvider(
@@ -170,6 +173,7 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
     provider_info.name = a2dp_offload_codec_factory_.name;
     for (auto codec : a2dp_offload_codec_factory_.codecs)
       provider_info.codecInfos.push_back(codec->info);
+    return ndk::ScopedAStatus::ok();
   }
 
   if (session_type ==
@@ -180,16 +184,28 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
           SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
     std::vector<CodecInfo> db_codec_info =
         BluetoothAudioCodecs::GetLeAudioOffloadCodecInfo(session_type);
+    // Return provider info supports without checking db_codec_info
+    // This help with various flow implementation for multidirectional support.
+    auto& provider_info = _aidl_return->emplace();
+    provider_info.supportsMultidirectionalCapabilities = true;
+    provider_info.name = kLeAudioOffloadProviderName;
+    provider_info.codecInfos = db_codec_info;
+    return ndk::ScopedAStatus::ok();
+  }
+
+  if (session_type == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH) {
+    std::vector<CodecInfo> db_codec_info =
+        BluetoothAudioCodecs::GetHfpOffloadCodecInfo();
     if (!db_codec_info.empty()) {
       auto& provider_info = _aidl_return->emplace();
-      provider_info.name = kLeAudioOffloadProviderName;
+      provider_info.name = kHfpOffloadProviderName;
       provider_info.codecInfos = db_codec_info;
-      *_aidl_return = provider_info;
       return ndk::ScopedAStatus::ok();
     }
   }
 
-  return ndk::ScopedAStatus::ok();
+  // Unsupported for other sessions
+  return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
 }  // namespace audio

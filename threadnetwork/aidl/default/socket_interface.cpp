@@ -23,6 +23,7 @@
 #include "socket_interface.hpp"
 
 #include <errno.h>
+#include <linux/limits.h>
 #include <openthread/logging.h>
 #include <sys/inotify.h>
 #include <sys/socket.h>
@@ -41,6 +42,8 @@ namespace aidl {
 namespace android {
 namespace hardware {
 namespace threadnetwork {
+
+const char SocketInterface::kLogModuleName[] = "SocketIntface";
 
 SocketInterface::SocketInterface(const ot::Url::Url& aRadioUrl)
     : mReceiveFrameCallback(nullptr),
@@ -157,7 +160,7 @@ void SocketInterface::Read(void) {
     } else if (rval < 0) {
         DieNow(OT_EXIT_ERROR_ERRNO);
     } else {
-        otLogCritPlat("Socket connection is closed by remote.");
+        LogCrit("Socket connection is closed by remote.");
         exit(OT_EXIT_FAILURE);
     }
 }
@@ -192,7 +195,7 @@ void SocketInterface::HandleSocketFrame(otError aError) {
         mReceiveFrameCallback(mReceiveFrameContext);
     } else {
         mReceiveFrameBuffer->DiscardFrame();
-        otLogWarnPlat("Process socket frame failed: %s", otThreadErrorToString(aError));
+        LogWarn("Process socket frame failed: %s", otThreadErrorToString(aError));
     }
 
 exit:
@@ -204,16 +207,16 @@ int SocketInterface::OpenFile(const ot::Url::Url& aRadioUrl) {
     sockaddr_un serverAddress;
 
     VerifyOrExit(sizeof(serverAddress.sun_path) > strlen(aRadioUrl.GetPath()),
-                 otLogCritPlat("Invalid file path length"));
+                 LogCrit("Invalid file path length"));
     strncpy(serverAddress.sun_path, aRadioUrl.GetPath(), sizeof(serverAddress.sun_path));
     serverAddress.sun_family = AF_UNIX;
 
     fd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
-    VerifyOrExit(fd != -1, otLogCritPlat("open(): errno=%s", strerror(errno)));
+    VerifyOrExit(fd != -1, LogCrit("open(): errno=%s", strerror(errno)));
 
     if (connect(fd, reinterpret_cast<struct sockaddr*>(&serverAddress), sizeof(serverAddress)) ==
         -1) {
-        otLogCritPlat("connect(): errno=%s", strerror(errno));
+        LogCrit("connect(): errno=%s", strerror(errno));
         close(fd);
         fd = -1;
     }
@@ -225,9 +228,9 @@ exit:
 void SocketInterface::CloseFile(void) {
     VerifyOrExit(mSockFd != -1);
 
-    VerifyOrExit(0 == close(mSockFd), otLogCritPlat("close(): errno=%s", strerror(errno)));
+    VerifyOrExit(0 == close(mSockFd), LogCrit("close(): errno=%s", strerror(errno)));
     VerifyOrExit(wait(nullptr) != -1 || errno == ECHILD,
-                 otLogCritPlat("wait(): errno=%s", strerror(errno)));
+                 LogCrit("wait(): errno=%s", strerror(errno)));
 
     mSockFd = -1;
 
@@ -254,7 +257,7 @@ void SocketInterface::WaitForSocketFileCreated(const char* aPath) {
     wd = inotify_add_watch(inotifyFd, folderPath.c_str(), IN_CREATE);
     VerifyOrDie(wd != -1, OT_EXIT_ERROR_ERRNO);
 
-    otLogInfoPlat("Waiting for socket file %s be created...", aPath);
+    LogInfo("Waiting for socket file %s be created...", aPath);
 
     while (true) {
         fd_set fds;
@@ -271,7 +274,7 @@ void SocketInterface::WaitForSocketFileCreated(const char* aPath) {
         }
 
         if (FD_ISSET(inotifyFd, &fds)) {
-            char buffer[sizeof(struct inotify_event)];
+            char buffer[sizeof(struct inotify_event) + NAME_MAX + 1];
             ssize_t bytesRead = read(inotifyFd, buffer, sizeof(buffer));
 
             VerifyOrDie(bytesRead >= 0, OT_EXIT_ERROR_ERRNO);
@@ -286,7 +289,7 @@ void SocketInterface::WaitForSocketFileCreated(const char* aPath) {
     close(inotifyFd);
 
 exit:
-    otLogInfoPlat("Socket file: %s is created", aPath);
+    LogInfo("Socket file: %s is created", aPath);
     return;
 }
 

@@ -36,6 +36,9 @@ aidl_interface {
             sdk_version: "module_current",
             min_sdk_version: "Tiramisu",
         },
+        rust: {
+            enabled: true,
+        },
     },
     versions_with_info: [
         {
@@ -50,4 +53,28 @@ aidl_interface {
     ],
     frozen: true,
 
+}
+
+// Note: This should always be one version ahead of the last frozen version
+latest_android_hardware_broadcastradio = "android.hardware.broadcastradio-V2"
+
+cc_defaults {
+    name: "latest_android_hardware_broadcastradio_ndk_static",
+    static_libs: [
+        latest_android_hardware_broadcastradio + "-ndk",
+    ],
+}
+
+java_defaults {
+    name: "latest_android_hardware_broadcastradio_java_static",
+    static_libs: [
+        latest_android_hardware_broadcastradio + "-java",
+    ],
+}
+
+rust_defaults {
+    name: "latest_android_hardware_broadcastradio_rust",
+    rustlibs: [
+        latest_android_hardware_broadcastradio + "-rust",
+    ],
 }

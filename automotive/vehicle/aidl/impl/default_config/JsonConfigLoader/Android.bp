@@ -27,7 +27,7 @@ cc_library {
     defaults: ["VehicleHalDefaults"],
     static_libs: ["VehicleHalUtils"],
     header_libs: [
-        "IVehicleGeneratedHeaders",
+        "IVehicleGeneratedHeaders-V3",
     ],
     shared_libs: ["libjsoncpp"],
 }
@@ -44,11 +44,12 @@ cc_library {
     defaults: ["VehicleHalDefaults"],
     static_libs: ["VehicleHalUtils"],
     header_libs: [
-        "IVehicleGeneratedHeaders",
+        "IVehicleGeneratedHeaders-V3",
         "libbinder_headers",
     ],
     cflags: ["-DENABLE_VEHICLE_HAL_TEST_PROPERTIES"],
     shared_libs: ["libjsoncpp"],
+    host_supported: true,
 }
 
 cc_library_headers {
@@ -59,7 +60,7 @@ cc_library_headers {
     defaults: ["VehicleHalDefaults"],
     static_libs: ["VehicleHalUtils"],
     header_libs: [
-        "IVehicleGeneratedHeaders",
+        "IVehicleGeneratedHeaders-V3",
     ],
     shared_libs: ["libjsoncpp"],
 }

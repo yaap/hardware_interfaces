@@ -71,7 +71,7 @@ impl State {
             let packet_vec: Vec<UciControlPacketHal> = packet.into();
             for hal_packet in packet_vec.into_iter() {
                 serial
-                    .write(&hal_packet.to_vec())
+                    .write(&hal_packet.encode_to_vec().unwrap())
                     .map(|written| written as i32)
                     .map_err(|_| binder::StatusCode::UNKNOWN_ERROR)?;
             }
@@ -180,6 +180,8 @@ impl IUwbChipAsyncServer for UwbChip {
             let mut reader = AsyncFd::new(reader).unwrap();
 
             loop {
+                const MESSAGE_TYPE_MASK: u8 = 0b11100000;
+                const DATA_MESSAGE_TYPE: u8 = 0b000;
                 const UWB_HEADER_SIZE: usize = 4;
                 let mut buffer = vec![0; UWB_HEADER_SIZE];
 
@@ -224,12 +226,22 @@ impl IUwbChipAsyncServer for UwbChip {
                 // Read the remaining header bytes, if truncated.
                 read_exact(reader.get_mut(), &mut buffer[read_len..]).unwrap();
 
-                let length = buffer[3] as usize + UWB_HEADER_SIZE;
+                let common_header = buffer[0];
+                let mt = (common_header & MESSAGE_TYPE_MASK) >> 5;
+                let payload_length = if mt == DATA_MESSAGE_TYPE {
+                    let payload_length_fields: [u8; 2] = buffer[2..=3].try_into().unwrap();
+                    u16::from_le_bytes(payload_length_fields) as usize
+                } else {
+                    buffer[3] as usize
+                };
+
+                let length = payload_length + UWB_HEADER_SIZE;
                 buffer.resize(length, 0);
 
                 // Read the payload bytes.
                 read_exact(reader.get_mut(), &mut buffer[UWB_HEADER_SIZE..]).unwrap();
 
+                log::debug!(" <-- {:?}", buffer);
                 client_callbacks.onUciMessage(&buffer).unwrap();
             }
         });
@@ -284,10 +296,13 @@ impl IUwbChipAsyncServer for UwbChip {
         log::debug!("sendUciMessage");
 
         if let State::Opened { ref mut serial, .. } = &mut *self.state.lock().await {
-            serial
-                .write(data)
-                .map(|written| written as i32)
-                .map_err(|_| binder::StatusCode::UNKNOWN_ERROR.into())
+            log::debug!(" --> {:?}", data);
+            let result = serial
+                .write_all(data)
+                .map(|_| data.len() as i32)
+                .map_err(|_| binder::StatusCode::UNKNOWN_ERROR.into());
+            log::debug!(" status: {:?}", result);
+            result
         } else {
             Err(binder::ExceptionCode::ILLEGAL_STATE.into())
         }

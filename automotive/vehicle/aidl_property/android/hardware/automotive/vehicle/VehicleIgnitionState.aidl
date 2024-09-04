@@ -16,6 +16,12 @@
 
 package android.hardware.automotive.vehicle;
 
+/**
+ * Used to enumerate the different states the ignition of the vehicle can be in.
+ *
+ * Through the use of VehicleAreaConfig#supportedEnumValues, OEMs may specify they only support a
+ * subset of the enums that are defined here.
+ */
 @VintfStability
 @Backing(type="int")
 enum VehicleIgnitionState {
@@ -28,6 +34,10 @@ enum VehicleIgnitionState {
      * Steering wheel is not locked, engine and all accessories are OFF. If
      * car can be in LOCK and OFF state at the same time than HAL must report
      * LOCK state.
+     *
+     * If IGNITION_STATE is implemented on a BEV, then this state must
+     * communicate that the BEV's High Voltage battery is disconnected and thus
+     * the vehicle is OFF.
      */
     OFF,
     /**
@@ -38,6 +48,10 @@ enum VehicleIgnitionState {
     /**
      * Ignition is in state ON. Accessories and instrument cluster available,
      * engine might be running or ready to be started.
+     *
+     * If IGNITION_STATE is implemented on a BEV, then this state must
+     * communicate that the BEV's High Voltage battery is connected and thus the
+     * vehicle is ON.
      */
     ON,
     /**

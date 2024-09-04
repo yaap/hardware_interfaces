@@ -38,7 +38,6 @@ extern "C" binder_exception_t destroyEffect(const std::shared_ptr<IEffect>& inst
                    << " in state: " << toString(state) << ", status: " << status.getDescription();
         return EX_ILLEGAL_STATE;
     }
-    LOG(DEBUG) << __func__ << " instance " << instanceSp.get() << " destroyed";
     return EX_NONE;
 }
 
@@ -236,8 +235,6 @@ ndk::ScopedAStatus EffectImpl::getState(State* state) NO_THREAD_SAFETY_ANALYSIS 
 ndk::ScopedAStatus EffectImpl::command(CommandId command) {
     std::lock_guard lg(mImplMutex);
     RETURN_IF(mState == State::INIT, EX_ILLEGAL_STATE, "instanceNotOpen");
-    LOG(DEBUG) << getEffectName() << __func__ << ": receive command: " << toString(command)
-               << " at state " << toString(mState);
 
     switch (command) {
         case CommandId::START:
@@ -352,8 +349,6 @@ void EffectImpl::process() {
             IEffect::Status status = effectProcessImpl(buffer, buffer, processSamples);
             outputMQ->write(buffer, status.fmqProduced);
             statusMQ->writeBlocking(&status, 1);
-            LOG(VERBOSE) << getEffectName() << __func__ << ": done processing, effect consumed "
-                         << status.fmqConsumed << " produced " << status.fmqProduced;
         }
     }
 }
@@ -363,7 +358,6 @@ IEffect::Status EffectImpl::effectProcessImpl(float* in, float* out, int samples
     for (int i = 0; i < samples; i++) {
         *out++ = *in++;
     }
-    LOG(VERBOSE) << getEffectName() << __func__ << " done processing " << samples << " samples";
     return {STATUS_OK, samples, samples};
 }
 

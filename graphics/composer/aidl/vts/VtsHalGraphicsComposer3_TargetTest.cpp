@@ -1603,15 +1603,21 @@ class GraphicsComposerAidlCommandTest : public GraphicsComposerAidlTest {
                 EXPECT_TRUE(mComposerClient->setActiveConfig(&display, config1).isOk());
                 sendRefreshFrame(display, nullptr);
 
-                const auto displayConfigGroup1 = display.getDisplayConfig(config1);
-                int32_t vsyncPeriod1 = displayConfigGroup1.vsyncPeriod;
-                int32_t configGroup1 = displayConfigGroup1.configGroup;
+                const auto displayConfig1 = display.getDisplayConfig(config1);
+                int32_t vsyncPeriod1 = displayConfig1.vsyncPeriod;
+                int32_t configGroup1 = displayConfig1.configGroup;
 
-                const auto displayConfigGroup2 = display.getDisplayConfig(config2);
-                int32_t vsyncPeriod2 = displayConfigGroup2.vsyncPeriod;
-                int32_t configGroup2 = displayConfigGroup2.configGroup;
+                const auto displayConfig2 = display.getDisplayConfig(config2);
+                int32_t vsyncPeriod2 = displayConfig2.vsyncPeriod;
+                int32_t configGroup2 = displayConfig2.configGroup;
 
                 if (vsyncPeriod1 == vsyncPeriod2) {
+                    return;  // continue
+                }
+
+                if ((!displayConfig1.vrrConfigOpt && displayConfig2.vrrConfigOpt) ||
+                    (displayConfig1.vrrConfigOpt && !displayConfig2.vrrConfigOpt)) {
+                    // switching between vrr to non-vrr modes
                     return;  // continue
                 }
 
@@ -2197,13 +2203,13 @@ TEST_P(GraphicsComposerAidlCommandTest, SetLayerCompositionType) {
 
 TEST_P(GraphicsComposerAidlCommandTest, DisplayDecoration) {
     for (VtsDisplay& display : mDisplays) {
-        auto& writer = getWriter(display.getDisplayId());
+        const auto displayId = display.getDisplayId();
+        auto& writer = getWriter(displayId);
         const auto [layerStatus, layer] =
-                mComposerClient->createLayer(display.getDisplayId(), kBufferSlotCount, &writer);
-        EXPECT_TRUE(layerStatus.isOk());
+                mComposerClient->createLayer(displayId, kBufferSlotCount, &writer);
+        ASSERT_TRUE(layerStatus.isOk());
 
-        const auto [error, support] =
-                mComposerClient->getDisplayDecorationSupport(display.getDisplayId());
+        const auto [error, support] = mComposerClient->getDisplayDecorationSupport(displayId);
 
         const auto format = (error.isOk() && support) ? support->format
                         : aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888;
@@ -2223,9 +2229,9 @@ TEST_P(GraphicsComposerAidlCommandTest, DisplayDecoration) {
 
         configureLayer(display, layer, Composition::DISPLAY_DECORATION, display.getFrameRect(),
                        display.getCrop());
-        writer.setLayerBuffer(display.getDisplayId(), layer, /*slot*/ 0, decorBuffer->handle,
+        writer.setLayerBuffer(displayId, layer, /*slot*/ 0, decorBuffer->handle,
                               /*acquireFence*/ -1);
-        writer.validateDisplay(display.getDisplayId(), ComposerClientWriter::kNoTimestamp,
+        writer.validateDisplay(displayId, ComposerClientWriter::kNoTimestamp,
                                VtsComposerClient::kNoFrameIntervalNs);
         execute();
         if (support) {
@@ -2235,6 +2241,7 @@ TEST_P(GraphicsComposerAidlCommandTest, DisplayDecoration) {
             ASSERT_EQ(1, errors.size());
             EXPECT_EQ(IComposerClient::EX_UNSUPPORTED, errors[0].errorCode);
         }
+        EXPECT_TRUE(mComposerClient->destroyLayer(displayId, layer, &writer).isOk());
     }
 }
 
@@ -2738,7 +2745,7 @@ TEST_P(GraphicsComposerAidlCommandV2Test, SetRefreshRateChangedCallbackDebug_Ena
         const auto displayFilter = [&](auto refreshRateChangedDebugData) {
             bool nonVrrRateMatching = true;
             if (std::optional<VrrConfig> vrrConfigOpt =
-                        display.getDisplayConfig(configId).vrrConfig;
+                        display.getDisplayConfig(configId).vrrConfigOpt;
                 getInterfaceVersion() >= 3 && !vrrConfigOpt) {
                 nonVrrRateMatching = refreshRateChangedDebugData.refreshPeriodNanos ==
                                      refreshRateChangedDebugData.vsyncPeriodNanos;
@@ -2836,10 +2843,7 @@ TEST_P(GraphicsComposerAidlCommandV2Test,
                             .isOk());
 
         forEachTwoConfigs(displayId, [&](int32_t config1, int32_t config2) {
-            const int32_t vsyncPeriod1 = display.getDisplayConfig(config1).vsyncPeriod;
-            const int32_t vsyncPeriod2 = display.getDisplayConfig(config2).vsyncPeriod;
-
-            if (vsyncPeriod1 == vsyncPeriod2) {
+            if (display.isRateSameBetweenConfigs(config1, config2)) {
                 return;  // continue
             }
 
@@ -2854,6 +2858,7 @@ TEST_P(GraphicsComposerAidlCommandV2Test,
                 sendRefreshFrame(display, &timeline);
             }
 
+            const int32_t vsyncPeriod2 = display.getDisplayConfig(config2).vsyncPeriod;
             const auto callbackFilter = [displayId,
                                          vsyncPeriod2](auto refreshRateChangedDebugData) {
                 constexpr int kVsyncThreshold = 1000;
@@ -2872,8 +2877,9 @@ TEST_P(GraphicsComposerAidlCommandV2Test,
             } while (--retryCount > 0);
 
             if (retryCount == 0) {
-                GTEST_FAIL() << "failed to get a callback for the display " << displayId
-                             << " with config " << config2;
+                GTEST_FAIL() << "Failed to get a callback for Display " << displayId
+                             << " switching from " << display.printConfig(config1)
+                             << " to " << display.printConfig(config2);
             }
         });
 
@@ -3002,14 +3008,10 @@ TEST_P(GraphicsComposerAidlCommandV3Test, CreateBatchedCommand) {
         GTEST_SKIP() << "LAYER_LIFECYCLE_BATCH_COMMAND not supported by the implementation";
         return;
     }
-
     auto& writer = getWriter(getPrimaryDisplayId());
-    int64_t layer = 5;
-    writer.setLayerLifecycleBatchCommandType(getPrimaryDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::CREATE);
-    writer.setNewBufferSlotCount(getPrimaryDisplayId(), layer, 1);
-    writer.validateDisplay(getPrimaryDisplayId(), ComposerClientWriter::kNoTimestamp,
-                           VtsComposerClient::kNoFrameIntervalNs);
+    const auto& [status, layer] =
+            mComposerClient->createLayer(getPrimaryDisplayId(), kBufferSlotCount, &writer);
+    EXPECT_TRUE(status.isOk());
     execute();
     ASSERT_TRUE(mReader.takeErrors().empty());
 }
@@ -3019,15 +3021,13 @@ TEST_P(GraphicsComposerAidlCommandV3Test, CreateBatchedCommand_BadDisplay) {
         GTEST_SKIP() << "LAYER_LIFECYCLE_BATCH_COMMAND not supported by the implementation";
         return;
     }
-
-    auto& writer = getWriter(getPrimaryDisplayId());
+    auto& writer = getWriter(getInvalidDisplayId());
     int64_t layer = 5;
     writer.setLayerLifecycleBatchCommandType(getInvalidDisplayId(), layer,
                                              LayerLifecycleBatchCommandType::CREATE);
-    writer.setNewBufferSlotCount(getPrimaryDisplayId(), layer, 1);
-    writer.validateDisplay(getPrimaryDisplayId(), ComposerClientWriter::kNoTimestamp,
-                           VtsComposerClient::kNoFrameIntervalNs);
+    writer.setNewBufferSlotCount(getInvalidDisplayId(), layer, 1);
     execute();
+
     const auto errors = mReader.takeErrors();
     ASSERT_TRUE(errors.size() == 1 && errors[0].errorCode == IComposerClient::EX_BAD_DISPLAY);
 }
@@ -3037,26 +3037,15 @@ TEST_P(GraphicsComposerAidlCommandV3Test, DestroyBatchedCommand) {
         GTEST_SKIP() << "LAYER_LIFECYCLE_BATCH_COMMAND not supported by the implementation";
         return;
     }
-
     auto& writer = getWriter(getPrimaryDisplayId());
-    int64_t layer = 5;
-    writer.setLayerLifecycleBatchCommandType(getPrimaryDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::CREATE);
-    writer.setNewBufferSlotCount(getPrimaryDisplayId(), layer, 1);
-    writer.validateDisplay(getPrimaryDisplayId(), ComposerClientWriter::kNoTimestamp,
-                           VtsComposerClient::kNoFrameIntervalNs);
+    const auto& [status, layer] =
+            mComposerClient->createLayer(getPrimaryDisplayId(), kBufferSlotCount, &writer);
+    EXPECT_TRUE(status.isOk());
     execute();
     ASSERT_TRUE(mReader.takeErrors().empty());
-    writer.setLayerLifecycleBatchCommandType(getPrimaryDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::DESTROY);
-    layer++;
-    writer.setLayerLifecycleBatchCommandType(getPrimaryDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::CREATE);
-    writer.setNewBufferSlotCount(getPrimaryDisplayId(), layer, 1);
-
+    EXPECT_TRUE(mComposerClient->destroyLayer(getPrimaryDisplayId(), layer, &writer).isOk());
     execute();
-    const auto errors = mReader.takeErrors();
-    ASSERT_TRUE(errors.size() == 1 && errors[0].errorCode == IComposerClient::EX_BAD_DISPLAY);
+    ASSERT_TRUE(mReader.takeErrors().empty());
 }
 
 TEST_P(GraphicsComposerAidlCommandV3Test, DestroyBatchedCommand_BadDisplay) {
@@ -3064,25 +3053,20 @@ TEST_P(GraphicsComposerAidlCommandV3Test, DestroyBatchedCommand_BadDisplay) {
         GTEST_SKIP() << "LAYER_LIFECYCLE_BATCH_COMMAND not supported by the implementation";
         return;
     }
-
     auto& writer = getWriter(getPrimaryDisplayId());
-    int64_t layer = 5;
-    writer.setLayerLifecycleBatchCommandType(getPrimaryDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::CREATE);
-    writer.setNewBufferSlotCount(getPrimaryDisplayId(), layer, 1);
-    writer.validateDisplay(getPrimaryDisplayId(), ComposerClientWriter::kNoTimestamp,
-                           VtsComposerClient::kNoFrameIntervalNs);
-    execute();
-    ASSERT_TRUE(mReader.takeErrors().empty());
-    writer.setLayerLifecycleBatchCommandType(getInvalidDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::DESTROY);
-    layer++;
-    writer.setLayerLifecycleBatchCommandType(getInvalidDisplayId(), layer,
-                                             LayerLifecycleBatchCommandType::CREATE);
-    writer.setNewBufferSlotCount(getPrimaryDisplayId(), layer, 1);
+    const auto& [status, layer] =
+            mComposerClient->createLayer(getPrimaryDisplayId(), kBufferSlotCount, &writer);
 
+    EXPECT_TRUE(status.isOk());
     execute();
     ASSERT_TRUE(mReader.takeErrors().empty());
+
+    auto& invalid_writer = getWriter(getInvalidDisplayId());
+    invalid_writer.setLayerLifecycleBatchCommandType(getInvalidDisplayId(), layer,
+                                                     LayerLifecycleBatchCommandType::DESTROY);
+    execute();
+    const auto errors = mReader.takeErrors();
+    ASSERT_TRUE(errors.size() == 1 && errors[0].errorCode == IComposerClient::EX_BAD_DISPLAY);
 }
 
 TEST_P(GraphicsComposerAidlCommandV3Test, NoCreateDestroyBatchedCommandIncorrectLayer) {

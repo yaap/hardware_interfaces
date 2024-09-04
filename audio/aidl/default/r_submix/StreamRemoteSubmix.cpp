@@ -134,12 +134,19 @@ void StreamRemoteSubmix::shutdown() {
     *latencyMs = getDelayInUsForFrameCount(getStreamPipeSizeInFrames()) / 1000;
     LOG(VERBOSE) << __func__ << ": Latency " << *latencyMs << "ms";
     mCurrentRoute->exitStandby(mIsInput);
-    RETURN_STATUS_IF_ERROR(mIsInput ? inRead(buffer, frameCount, actualFrameCount)
-                                    : outWrite(buffer, frameCount, actualFrameCount));
+    ::android::status_t status = mIsInput ? inRead(buffer, frameCount, actualFrameCount)
+                                          : outWrite(buffer, frameCount, actualFrameCount);
+    if ((status != ::android::OK && mIsInput) ||
+        ((status != ::android::OK && status != ::android::DEAD_OBJECT) && !mIsInput)) {
+        return status;
+    }
+    mFramesSinceStart += *actualFrameCount;
+    if (!mIsInput && status != ::android::DEAD_OBJECT) return ::android::OK;
+    // Input streams always need to block, output streams need to block when there is no sink.
+    // When the sink exists, more sophisticated blocking algorithm is implemented by MonoPipe.
     const long bufferDurationUs =
             (*actualFrameCount) * MICROS_PER_SECOND / mContext.getSampleRate();
     const auto totalDurationUs = (::android::uptimeNanos() - mStartTimeNs) / NANOS_PER_MICROSECOND;
-    mFramesSinceStart += *actualFrameCount;
     const long totalOffsetUs =
             mFramesSinceStart * MICROS_PER_SECOND / mContext.getSampleRate() - totalDurationUs;
     LOG(VERBOSE) << __func__ << ": totalOffsetUs " << totalOffsetUs;
@@ -186,14 +193,17 @@ size_t StreamRemoteSubmix::getStreamPipeSizeInFrames() {
     if (sink != nullptr) {
         if (sink->isShutdown()) {
             sink.clear();
-            LOG(DEBUG) << __func__ << ": pipe shutdown, ignoring the write";
+            if (++mWriteShutdownCount < kMaxErrorLogs) {
+                LOG(DEBUG) << __func__ << ": pipe shutdown, ignoring the write. (limited logging)";
+            }
             *actualFrameCount = frameCount;
-            return ::android::OK;
+            return ::android::DEAD_OBJECT;  // Induce wait in `transfer`.
         }
     } else {
         LOG(FATAL) << __func__ << ": without a pipe!";
         return ::android::UNKNOWN_ERROR;
     }
+    mWriteShutdownCount = 0;
 
     LOG(VERBOSE) << __func__ << ": " << mDeviceAddress.toString() << ", " << frameCount
                  << " frames";
@@ -260,7 +270,7 @@ size_t StreamRemoteSubmix::getStreamPipeSizeInFrames() {
     // about to read from audio source
     sp<MonoPipeReader> source = mCurrentRoute->getSource();
     if (source == nullptr) {
-        if (++mReadErrorCount < kMaxReadErrorLogs) {
+        if (++mReadErrorCount < kMaxErrorLogs) {
             LOG(ERROR) << __func__
                        << ": no audio pipe yet we're trying to read! (not all errors will be "
                           "logged)";
@@ -275,8 +285,9 @@ size_t StreamRemoteSubmix::getStreamPipeSizeInFrames() {
     char* buff = (char*)buffer;
     size_t actuallyRead = 0;
     long remainingFrames = frameCount;
-    const int64_t deadlineTimeNs = ::android::uptimeNanos() +
-                                   getDelayInUsForFrameCount(frameCount) * NANOS_PER_MICROSECOND;
+    const int64_t deadlineTimeNs =
+            ::android::uptimeNanos() +
+            getDelayInUsForFrameCount(frameCount) * NANOS_PER_MICROSECOND / 2;
     while (remainingFrames > 0) {
         ssize_t framesRead = source->read(buff, remainingFrames);
         LOG(VERBOSE) << __func__ << ": frames read " << framesRead;

@@ -16,6 +16,7 @@
  */
 
 package {
+    default_team: "trendy_team_connectivity_telemetry",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "hardware_interfaces_license"
@@ -42,12 +43,12 @@ cc_fuzz {
     ],
     static_libs: [
         "android.hardware.automotive.can@libnetdevice",
-        "android.hardware.automotive@libc++fs",
         "libnl++",
     ],
     fuzz_config: {
         cc: [
-            "android-media-fuzzing-reports@google.com",
+            "chrisweir@google.com",
+            "twasilczyk@google.com",
         ],
         componentid: 533764,
         hotlists: [

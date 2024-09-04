@@ -28,12 +28,8 @@ aidl_interface {
     name: "android.hardware.graphics.composer3",
     host_supported: true,
     vendor_available: true,
-    vndk: {
-        enabled: true,
-        support_system_process: true,
-    },
+    double_loadable: true,
     frozen: true,
-    vndk_use_version: "1",
     srcs: [
         "android/hardware/graphics/composer3/*.aidl",
     ],
@@ -51,9 +47,6 @@ aidl_interface {
             enabled: false,
         },
         ndk: {
-            vndk: {
-                enabled: true,
-            },
         },
         rust: {
             enabled: true,

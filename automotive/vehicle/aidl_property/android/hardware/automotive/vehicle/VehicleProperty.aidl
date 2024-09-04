@@ -59,6 +59,8 @@ enum VehicleProperty {
     /**
      * Manufacturer of vehicle
      *
+     * This property must communicate the vehicle's public brand name.
+     *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @access VehiclePropertyAccess.READ
      * @version 2
@@ -67,6 +69,8 @@ enum VehicleProperty {
             + 0x00100000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:STRING
     /**
      * Model of vehicle
+     *
+     * This property must communicate the vehicle's public model name.
      *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @access VehiclePropertyAccess.READ
@@ -87,6 +91,11 @@ enum VehicleProperty {
     /**
      * Fuel capacity of the vehicle in milliliters
      *
+     * This property must communicate the maximum amount of the fuel that can be stored in the
+     * vehicle in milliliters. This property does not apply to electric vehicles. That is, if
+     * INFO_FUEL_TYPE only contains FuelType::FUEL_TYPE_ELECTRIC, this property must not be
+     * implemented. For EVs, implement INFO_EV_BATTERY_CAPACITY.
+     *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @access VehiclePropertyAccess.READ
      * @unit VehicleUnit.MILLILITER
@@ -102,7 +111,7 @@ enum VehicleProperty {
      *   An FHEV (Fully Hybrid Electric Vehicle) must not include FuelType::FUEL_TYPE_ELECTRIC in
      *   INFO_FUEL_TYPE's INT32_VEC value. So INFO_FUEL_TYPE can be populated as such:
      *     int32Values = { FuelType::FUEL_TYPE_UNLEADED }
-     *   On the other hand, a PHEV (Partially Hybrid Electric Vehicle) is plug in rechargeable, and
+     *   On the other hand, a PHEV (Plug-in Hybrid Electric Vehicle) is plug in rechargeable, and
      *   hence should include FuelType::FUEL_TYPE_ELECTRIC in INFO_FUEL_TYPE's INT32_VEC value. So
      *   INFO_FUEL_TYPE can be populated as such:
      *     int32Values = { FuelType::FUEL_TYPE_UNLEADED, FuelType::FUEL_TYPE_ELECTRIC }
@@ -115,12 +124,13 @@ enum VehicleProperty {
     INFO_FUEL_TYPE = 0x0105 + 0x10000000 + 0x01000000
             + 0x00410000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:INT32_VEC
     /**
-     * Nominal battery capacity for EV or hybrid vehicle
+     * Nominal usable battery capacity for EV or hybrid vehicle
      *
-     * Returns the nominal battery capacity, if EV or hybrid. This is the battery capacity when the
-     * vehicle is new. This value might be different from EV_CURRENT_BATTERY_CAPACITY because
-     * EV_CURRENT_BATTERY_CAPACITY returns the real-time battery capacity taking into account
-     * factors such as battery aging and temperature dependency.
+     * Returns the nominal battery capacity, if EV or hybrid. This is the total usable battery
+     * capacity when the vehicle is new. This value might be different from
+     * EV_CURRENT_BATTERY_CAPACITY because EV_CURRENT_BATTERY_CAPACITY returns the real-time usable
+     * battery capacity taking into account factors such as battery aging and temperature
+     * dependency.
      *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @access VehiclePropertyAccess.READ
@@ -132,6 +142,9 @@ enum VehicleProperty {
     /**
      * List of connectors this EV may use
      *
+     * If the vehicle has multiple charging ports, this property must return all possible connector
+     * types that can be used by at least one charging port on the vehicle.
+     *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @data_enum EvConnectorType
      * @access VehiclePropertyAccess.READ
@@ -142,6 +155,11 @@ enum VehicleProperty {
     /**
      * Fuel door location
      *
+     * This property must communicate the location of the fuel door on the vehicle. This property
+     * does not apply to electric vehicles. That is, if INFO_FUEL_TYPE only contains
+     * FuelType::FUEL_TYPE_ELECTRIC, this property must not be implemented. For EVs, implement
+     * INFO_EV_PORT_LOCATION or INFO_MULTI_EV_PORT_LOCATIONS.
+     *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @data_enum PortLocationType
      * @access VehiclePropertyAccess.READ
@@ -151,6 +169,11 @@ enum VehicleProperty {
             + 0x00400000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:INT32
     /**
      * EV port location
+     *
+     * This property must communicate the location of the charging port on the EV using the
+     * PortLocationType enum. If there are multiple ports available on the vehicle, this property
+     * must return the port that allows the fastest charging. To communicate all port locations,
+     * use INFO_MULTI_EV_PORT_LOCATIONS.
      *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @access VehiclePropertyAccess.READ
@@ -196,7 +219,10 @@ enum VehicleProperty {
      * Port locations are defined in PortLocationType.
      * For example, a car has one port in front left and one port in rear left:
      *   int32Values[0] = PortLocationType::FRONT_LEFT
-     *   int32Values[0] = PortLocationType::REAR_LEFT
+     *   int32Values[1] = PortLocationType::REAR_LEFT
+     *
+     * If only one port exists on the vehicle, this property's value should list just one element.
+     * See INFO_EV_PORT_LOCATION for describing just one port location.
      *
      * @change_mode VehiclePropertyChangeMode.STATIC
      * @access VehiclePropertyAccess.READ
@@ -249,6 +275,10 @@ enum VehicleProperty {
      *
      * Angle is in degrees.  Left is negative.
      *
+     * This property is independent of the angle of the steering wheel. This property must
+     * communicate the angle of the front wheels with respect to the vehicle, not the angle of the
+     * steering wheel.
+     *
      * @change_mode VehiclePropertyChangeMode.CONTINUOUS
      * @access VehiclePropertyAccess.READ
      * @unit VehicleUnit.DEGREES
@@ -260,6 +290,10 @@ enum VehicleProperty {
      * Rear bicycle model steering angle for vehicle
      *
      * Angle is in degrees.  Left is negative.
+     *
+     * This property is independent of the angle of the steering wheel. This property must
+     * communicate the angle of the rear wheels with respect to the vehicle, not the angle of the
+     * steering wheel.
      *
      * @change_mode VehiclePropertyChangeMode.CONTINUOUS
      * @access VehiclePropertyAccess.READ
@@ -350,9 +384,14 @@ enum VehicleProperty {
     WHEEL_TICK = 0x0306 + 0x10000000 + 0x01000000
             + 0x00510000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:INT64_VEC
     /**
-     * Fuel remaining in the vehicle, in milliliters
+     * Fuel level in milliliters
      *
-     * Value may not exceed INFO_FUEL_CAPACITY
+     * This property must communicate the current amount of fuel remaining in the vehicle in
+     * milliliters. This property does not apply to electric vehicles. That is, if INFO_FUEL_TYPE
+     * only contains FuelType::FUEL_TYPE_ELECTRIC, this property must not be implemented. For EVs,
+     * implement EV_BATTERY_LEVEL.
+     *
+     * Value may not exceed INFO_FUEL_CAPACITY.
      *
      * @change_mode VehiclePropertyChangeMode.CONTINUOUS
      * @access VehiclePropertyAccess.READ
@@ -363,6 +402,11 @@ enum VehicleProperty {
             + 0x00600000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:FLOAT
     /**
      * Fuel door open
+     *
+     * This property must communicate whether the fuel door on the vehicle is open or not. This
+     * property does not apply to electric vehicles. That is, if INFO_FUEL_TYPE only contains
+     * FuelType::FUEL_TYPE_ELECTRIC, this property must not be implemented. For EVs, implement
+     * EV_CHARGE_PORT_OPEN.
      *
      * This property is defined as VehiclePropertyAccess.READ_WRITE, but OEMs have the option to
      * implement it as VehiclePropertyAccess.READ only.
@@ -389,12 +433,13 @@ enum VehicleProperty {
     EV_BATTERY_LEVEL = 0x0309 + 0x10000000 + 0x01000000
             + 0x00600000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:FLOAT
     /**
-     * Current battery capacity for EV or hybrid vehicle
+     * Current usable battery capacity for EV or hybrid vehicle
      *
      * Returns the actual value of battery capacity, if EV or hybrid. This property captures the
-     * real-time battery capacity taking into account factors such as battery aging and temperature
-     * dependency. Therefore, this value might be different from INFO_EV_BATTERY_CAPACITY because
-     * INFO_EV_BATTERY_CAPACITY returns the nominal battery capacity from when the vehicle was new.
+     * real-time usable battery capacity taking into account factors such as battery aging and
+     * temperature dependency. Therefore, this value might be different from
+     * INFO_EV_BATTERY_CAPACITY because INFO_EV_BATTERY_CAPACITY returns the nominal battery
+     * capacity from when the vehicle was new.
      *
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ
@@ -405,6 +450,9 @@ enum VehicleProperty {
             0x030D + VehiclePropertyGroup.SYSTEM + VehicleArea.GLOBAL + VehiclePropertyType.FLOAT,
     /**
      * EV charge port open
+     *
+     * If the vehicle has multiple charging ports, this property must return true if any of the
+     * charge ports are open.
      *
      * This property is defined as VehiclePropertyAccess.READ_WRITE, but OEMs have the option to
      * implement it as VehiclePropertyAccess.READ only.
@@ -418,6 +466,9 @@ enum VehicleProperty {
             + 0x00200000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:BOOLEAN
     /**
      * EV charge port connected
+     *
+     * If the vehicle has multiple charging ports, this property must return true if any of the
+     * charge ports are connected.
      *
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ
@@ -625,8 +676,12 @@ enum VehicleProperty {
      * The maxInt32Value and minInt32Value in VehicleAreaConfig must be defined. All values between
      * minInt32Value and maxInt32Value must be supported. The minInt32Value must be 0.
      *
-     * The maxInt32Value indicates the maximum amount of energy regenerated from braking. The
-     * minInt32Value indicates no regenerative braking.
+     * The maxInt32Value indicates the setting for the maximum amount of energy regenerated from
+     * braking. The minInt32Value indicates the setting for no regenerative braking.
+     *
+     * This property is a more granular form of EV_REGENERATIVE_BRAKING_STATE. It allows the user to
+     * set a more specific level of regenerative braking if the states in EvRegenerativeBrakingState
+     * are not granular enough for the OEM.
      *
      * This property is defined as VehiclePropertyAccess.READ_WRITE, but OEMs have the option to
      * implement it as VehiclePropertyAccess.READ only.
@@ -772,7 +827,7 @@ enum VehicleProperty {
      * @access VehiclePropertyAccess.READ
      * @data_enum ElectronicStabilityControlState
      * @data_enum ErrorState
-     * @version 2
+     * @version 3
      */
     ELECTRONIC_STABILITY_CONTROL_STATE =
             0x040F + VehiclePropertyGroup.SYSTEM + VehicleArea.GLOBAL + VehiclePropertyType.INT32,
@@ -868,10 +923,18 @@ enum VehicleProperty {
     HVAC_TEMPERATURE_CURRENT = 0x0502 + 0x10000000 + 0x05000000
             + 0x00600000, // VehiclePropertyGroup:SYSTEM,VehicleArea:SEAT,VehiclePropertyType:FLOAT
     /**
-     * HVAC, target temperature set.
+     * HVAC target temperature set in Celsius.
      *
-     * The configArray is used to indicate the valid values for HVAC in Fahrenheit and Celsius.
-     * Android might use it in the HVAC app UI.
+     * The minFloatValue and maxFloatValue in VehicleAreaConfig must be defined.
+     *
+     * The minFloatValue indicates the minimum temperature setting in Celsius.
+     * The maxFloatValue indicates the maximum temperature setting in Celsius.
+     *
+     * If all the values between minFloatValue and maxFloatValue are not supported, the configArray
+     * can be used to list the valid temperature values that can be set. It also describes a lookup
+     * table to convert the temperature from Celsius to Fahrenheit and vice versa for this vehicle.
+     * The configArray must be defined if standard unit conversion is not supported on this vehicle.
+     *
      * The configArray is set as follows:
      *      configArray[0] = [the lower bound of the supported temperature in Celsius] * 10.
      *      configArray[1] = [the upper bound of the supported temperature in Celsius] * 10.
@@ -879,14 +942,35 @@ enum VehicleProperty {
      *      configArray[3] = [the lower bound of the supported temperature in Fahrenheit] * 10.
      *      configArray[4] = [the upper bound of the supported temperature in Fahrenheit] * 10.
      *      configArray[5] = [the increment in Fahrenheit] * 10.
+     *
+     * The minFloatValue and maxFloatValue in VehicleAreaConfig must be equal to configArray[0] and
+     * configArray[1] respectively.
+     *
      * For example, if the vehicle supports temperature values as:
      *      [16.0, 16.5, 17.0 ,..., 28.0] in Celsius
-     *      [60.5, 61.5, 62.5 ,..., 85.5] in Fahrenheit.
-     * The configArray should be configArray = {160, 280, 5, 605, 825, 10}.
+     *      [60.5, 61.5, 62.5 ,..., 84.5] in Fahrenheit
+     * The configArray should be configArray = {160, 280, 5, 605, 845, 10}.
      *
-     * If the vehicle supports HVAC_TEMPERATURE_VALUE_SUGGESTION, the application can use
-     * that property to get the suggested value before setting HVAC_TEMPERATURE_SET. Otherwise,
-     * the application may choose the value in HVAC_TEMPERATURE_SET configArray by itself.
+     * Ideally, the ratio of the Celsius increment to the Fahrenheit increment should be as close to
+     * the actual ratio of 1 degree Celsius to 1.8 degrees Fahrenheit.
+     *
+     * There must be a one to one mapping of all Celsius values to Fahrenheit values defined by the
+     * configArray. The configArray will be used by clients to convert this property's temperature
+     * from Celsius to Fahrenheit. Also, it will let clients know what Celsius value to set the
+     * property to achieve their desired Fahreneheit value for the system. If the ECU does not have
+     * a one to one mapping of all Celsius values to Fahrenheit values, then the config array should
+     * only define the list of Celsius and Fahrenheit values that do have a one to one mapping.
+     *
+     * For example, if the ECU supports Celsius values from 16 to 28 and Fahrenheit values from 60
+     * to 85 both with an increment of 1, then one possible configArray would be {160, 280, 10, 600,
+     * 840, 20}. In this case, 85 would not be a supported temperature.
+     *
+     * Any value set in between a valid value should be rounded to the closest valid value.
+     *
+     * It is highly recommended that the OEM also implement the HVAC_TEMPERATURE_VALUE_SUGGESTION
+     * vehicle property because it provides applications a simple method for determining temperature
+     * values that can be set for this vehicle and for converting values between Celsius and
+     * Fahrenheit.
      *
      * This property is defined as VehiclePropertyAccess.READ_WRITE, but OEMs have the option to
      * implement it as VehiclePropertyAccess.READ only.
@@ -1295,7 +1379,22 @@ enum VehicleProperty {
      *
      * An application calls set(VehiclePropValue propValue) with the requested value and unit for
      * the value. OEMs need to return the suggested values in floatValues[2] and floatValues[3] by
-     * onPropertyEvent() callbacks.
+     * onPropertyEvent() callbacks. The suggested values must conform to the values that can be
+     * derived from the HVAC_TEMPERATURE_SET configArray. In other words, the suggested values and
+     * the table of values from the configArray should be the same. It is recommended for the OEM to
+     * add custom logic in their VHAL implementation in order to avoid making requests to the HVAC
+     * ECU.
+     *
+     * The logic can be as follows:
+     * For converting the temperature from celsius to fahrenheit use the following:
+     * // Given tempC and the configArray
+     * float minTempC = configArray[0] / 10.0;
+     * float temperatureIncrementCelsius = configArray[2] / 10.0;
+     * float minTempF = configArray[3] / 10.0;
+     * float temperatureIncrementFahrenheit = configArray[5] / 10.0;
+     * // Round to the closest increment
+     * int numIncrements = round((tempC - minTempC) / temperatureIncrementCelsius);
+     * tempF = temperatureIncrementFahrenheit * numIncrements + minTempF;
      *
      * For example, when a user uses the voice assistant to set HVAC temperature to 66.2 in
      * Fahrenheit.
@@ -1557,6 +1656,11 @@ enum VehicleProperty {
     /**
      * Outside temperature
      *
+     * This property must communicate the temperature reading of the environment outside the
+     * vehicle. If there are multiple sensors for measuring the outside temperature, this property
+     * should be populated with the mean or a meaningful weighted average of the readings that will
+     * best represent the temperature of the outside environment.
+     *
      * @change_mode VehiclePropertyChangeMode.CONTINUOUS
      * @access VehiclePropertyAccess.READ
      * @unit VehicleUnit.CELSIUS
@@ -1630,8 +1734,13 @@ enum VehicleProperty {
      * change display brightness from Settings, but that must not be reflected
      * to other displays.
      *
+     * If this is writable, writing this property must cause an on property
+     * change event even if the new display brightness is the same as the
+     * current value.
+     *
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ_WRITE
+     * @access VehiclePropertyAccess.READ
      * @version 2
      */
     DISPLAY_BRIGHTNESS = 0x0A03 + 0x10000000 + 0x01000000
@@ -1648,8 +1757,23 @@ enum VehicleProperty {
      * implemented. If both are available, PER_DISPLAY_BRIGHTNESS is used by
      * AAOS.
      *
+     * If this is supported, PER_DISPLAY_MAX_BRIGHTNESS must be supported to represent the max
+     * display brightness for each display. Otherwise, the max display brightness is by default 1.
+     * The VehicleAreaConfig.maxInt32Value must not be used to represent max display brightness,
+     * because maxInt32Value is defined to be the max value for all the elements inside the integer
+     * value, which includes display port and brightness. So it is not meaningful.
+     *
      * The display port uniquely identifies a physical connector on the device
      * for display output, ranging from 0 to 255.
+     *
+     * Writing this property must cause an on property change event that
+     * contains the same [display port, brightness] tuple even if the new
+     * display brightness is the same as the current value.
+     *
+     * To get the display brightness for a specific display port, the
+     * GetValueRequest must contain a VehiclePropValue, which contains one
+     * int32Value: displayPort. Getting this property without specifying the
+     * the display port is undefined behavior.
      *
      * int32Values[0] : display port
      * int32Values[1] : brightness
@@ -2909,7 +3033,7 @@ enum VehicleProperty {
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ_WRITE
      * @access VehiclePropertyAccess.READ
-     * @version 3
+     * @version 2
      */
     SEAT_AIRBAG_ENABLED =
             0x0B9E + VehiclePropertyGroup.SYSTEM + VehicleArea.SEAT + VehiclePropertyType.BOOLEAN,
@@ -2932,7 +3056,7 @@ enum VehicleProperty {
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ
      * @data_enum VehicleAirbagLocation
-     * @version 2
+     * @version 3
      */
     SEAT_AIRBAGS_DEPLOYED =
             0x0BA5 + VehiclePropertyGroup.SYSTEM + VehicleArea.SEAT + VehiclePropertyType.INT32,
@@ -3182,9 +3306,9 @@ enum VehicleProperty {
     WINDOW_MOVE = 0x0BC1 + 0x10000000 + 0x03000000
             + 0x00400000, // VehiclePropertyGroup:SYSTEM,VehicleArea:WINDOW,VehiclePropertyType:INT32
     /**
-     * Window Lock
+     * Window Child Lock
      *
-     * True indicates windows are locked and can't be moved.
+     * True indicates the window is child-locked.
      *
      * This property is defined as VehiclePropertyAccess.READ_WRITE, but OEMs have the option to
      * implement it as VehiclePropertyAccess.READ only.
@@ -4822,6 +4946,10 @@ enum VehicleProperty {
      *
      * Returns the current charging state of the car.
      *
+     * If the vehicle has a target charge percentage other than 100, this property must return
+     * EvChargeState::STATE_FULLY_CHARGED when the battery charge level has reached the target
+     * level. See EV_CHARGE_PERCENT_LIMIT for more context.
+     *
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ
      * @data_enum EvChargeState
@@ -4861,10 +4989,13 @@ enum VehicleProperty {
             + 0x00400000, // VehiclePropertyGroup:SYSTEM,VehicleArea:GLOBAL,VehiclePropertyType:INT32
 
     /**
-     * Regenerative braking or one-pedal drive state of the car
+     * Regenerative braking or one-pedal drive setting of the car
      *
-     * Returns the current state associated with the regenerative braking
-     * setting in the car
+     * Returns the current setting associated with the regenerative braking setting in the car
+     *
+     * If the OEM requires more setting than those provided in EvRegenerativeBrakingState, the
+     * EV_BRAKE_REGENERATION_LEVEL property can be used instead, which provides a more granular
+     * way of providing the same information.
      *
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ
@@ -5087,6 +5218,27 @@ enum VehicleProperty {
      * @version 3
      */
     CAMERA_SERVICE_CURRENT_STATE = 0x0F4D + VehiclePropertyGroup.SYSTEM + VehicleArea.GLOBAL
+            + VehiclePropertyType.INT32_VEC,
+
+    /**
+     * Property to represent max brightness of the displays which are controlled separately.
+     *
+     * This is only used if PER_DISPLAY_BRIGHTNESS is supported.
+     *
+     * The display port uniquely identifies a physical connector on the device
+     * for display output, ranging from 0 to 255.
+     *
+     * int32Values[0] : display port number
+     * int32Values[1] : max brightness for display port number specified at int32Values[0]
+     * int32Values[2] : display port number
+     * int32Values[3] : max brightness for display port number specified at int32Values[2]
+     * ...
+     *
+     * @change_mode VehiclePropertyChangeMode.STATIC
+     * @access VehiclePropertyAccess.READ
+     * @version 3
+     */
+    PER_DISPLAY_MAX_BRIGHTNESS = 0x0F4E + VehiclePropertyGroup.SYSTEM + VehicleArea.GLOBAL
             + VehiclePropertyType.INT32_VEC,
 
     /***********************************************************************************************
@@ -5868,7 +6020,7 @@ enum VehicleProperty {
      * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.READ_WRITE
      * @access VehiclePropertyAccess.READ
-     * @version 2
+     * @version 3
      */
     DRIVER_DISTRACTION_WARNING_ENABLED =
             0x101F + VehiclePropertyGroup.SYSTEM + VehicleArea.GLOBAL + VehiclePropertyType.BOOLEAN,

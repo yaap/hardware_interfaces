@@ -41,6 +41,7 @@
 #include <regex>
 #include <typeinfo>
 #include "utils/Errors.h"
+#include <nativebase/nativebase.h>
 
 using ::aidl::android::hardware::camera::common::CameraDeviceStatus;
 using ::aidl::android::hardware::camera::common::TorchModeStatus;
@@ -694,8 +695,8 @@ void CameraAidlTest::verifyCameraCharacteristics(const CameraMetadata& chars) {
     retcode = find_camera_metadata_ro_entry(metadata, ANDROID_LENS_POSE_REFERENCE, &entry);
     if (0 == retcode && entry.count > 0) {
         uint8_t poseReference = entry.data.u8[0];
-        ASSERT_TRUE(poseReference <= ANDROID_LENS_POSE_REFERENCE_UNDEFINED &&
-                    poseReference >= ANDROID_LENS_POSE_REFERENCE_PRIMARY_CAMERA);
+        ASSERT_TRUE(poseReference <= ANDROID_LENS_POSE_REFERENCE_AUTOMOTIVE &&
+                poseReference >= ANDROID_LENS_POSE_REFERENCE_PRIMARY_CAMERA);
     }
 
     retcode =
@@ -1204,18 +1205,21 @@ void CameraAidlTest::verifyManualFlashStrengthControlCharacteristics(
     int torchDefRetCode = find_camera_metadata_ro_entry(staticMeta,
             ANDROID_FLASH_TORCH_STRENGTH_DEFAULT_LEVEL, &torchDefEntry);
     if (torch_supported) {
+        int expectedEntryCount;
         if(singleMaxRetCode == 0 && singleDefRetCode == 0 && torchMaxRetCode == 0 &&
                 torchDefRetCode == 0) {
             singleMaxLevel = *singleMaxEntry.data.i32;
             singleDefLevel = *singleDefEntry.data.i32;
             torchMaxLevel = *torchMaxEntry.data.i32;
             torchDefLevel = *torchDefEntry.data.i32;
-            ASSERT_TRUE((singleMaxEntry.count == singleDefEntry.count == torchMaxEntry.count
-                    == torchDefEntry.count == 1));
+            expectedEntryCount = 1;
         } else {
-            ASSERT_TRUE((singleMaxEntry.count == singleDefEntry.count == torchMaxEntry.count
-                    == torchDefEntry.count == 0));
+            expectedEntryCount = 0;
         }
+        ASSERT_EQ(singleMaxEntry.count, expectedEntryCount);
+        ASSERT_EQ(singleDefEntry.count, expectedEntryCount);
+        ASSERT_EQ(torchMaxEntry.count, expectedEntryCount);
+        ASSERT_EQ(torchDefEntry.count, expectedEntryCount);
         // if the device supports this feature default levels should be greater than 0
         if (singleMaxLevel > 1) {
             ASSERT_GT(torchMaxLevel, 1);
@@ -2337,8 +2341,8 @@ void CameraAidlTest::processCaptureRequestInternal(uint64_t bufferUsage,
                     /* We don't look at halStreamConfig.streams[0].consumerUsage
                      * since that is 0 for output streams
                      */
-                    android_convertGralloc1To0Usage(
-                            static_cast<uint64_t>(halStreams[0].producerUsage), bufferUsage),
+                    ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
+                            static_cast<uint64_t>(halStreams[0].producerUsage), bufferUsage)),
                     halStreams[0].overrideFormat, &handle);
 
             outputBuffer = {halStreams[0].id, bufferId,       ::android::makeToAidl(handle),
@@ -2865,9 +2869,9 @@ void CameraAidlTest::processPreviewStabilizationCaptureRequestInternal(
                                   /* We don't look at halStreamConfig.streams[0].consumerUsage
                                    * since that is 0 for output streams
                                    */
-                                  android_convertGralloc1To0Usage(
+                                  ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
                                           static_cast<uint64_t>(halStreams[0].producerUsage),
-                                          GRALLOC1_CONSUMER_USAGE_HWCOMPOSER),
+                                          GRALLOC1_CONSUMER_USAGE_HWCOMPOSER)),
                                   halStreams[0].overrideFormat, &buffer_handle);
             outputBuffer = {halStreams[0].id, bufferId,       ::android::makeToAidl(buffer_handle),
                             BufferStatus::OK, NativeHandle(), NativeHandle()};
@@ -3848,9 +3852,9 @@ void CameraAidlTest::processColorSpaceRequest(
                                         NativeHandle(), BufferStatus::OK,
                                         NativeHandle(), NativeHandle()};
                 } else {
-                    auto usage = android_convertGralloc1To0Usage(
+                    auto usage = ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
                             static_cast<uint64_t>(halStream.producerUsage),
-                            static_cast<uint64_t>(halStream.consumerUsage));
+                            static_cast<uint64_t>(halStream.consumerUsage)));
                     allocateGraphicBuffer(previewStream.width, previewStream.height, usage,
                                             halStream.overrideFormat, &buffer_handle);
 
@@ -4006,9 +4010,9 @@ void CameraAidlTest::processZoomSettingsOverrideRequests(
                                 NativeHandle(),   NativeHandle()};
             } else {
                 allocateGraphicBuffer(previewStream.width, previewStream.height,
-                                      android_convertGralloc1To0Usage(
+                                      ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
                                               static_cast<uint64_t>(halStreams[0].producerUsage),
-                                              static_cast<uint64_t>(halStreams[0].consumerUsage)),
+                                              static_cast<uint64_t>(halStreams[0].consumerUsage))),
                                       halStreams[0].overrideFormat, &buffers[i]);
                 outputBuffer = {halStreams[0].id, bufferId + i,   ::android::makeToAidl(buffers[i]),
                                 BufferStatus::OK, NativeHandle(), NativeHandle()};

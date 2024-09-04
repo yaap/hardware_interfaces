@@ -178,8 +178,8 @@ int64_t getId(const ProgramSelector& sel, const IdentifierType& type, int64_t de
     return getId(sel, type);
 }
 
-vector<int> getAllIds(const ProgramSelector& sel, const IdentifierType& type) {
-    vector<int> ret;
+vector<int64_t> getAllIds(const ProgramSelector& sel, const IdentifierType& type) {
+    vector<int64_t> ret;
 
     // iterate through primaryId and secondaryIds
     for (auto it = begin(sel); it != end(sel); it++) {
@@ -296,7 +296,12 @@ bool isValid(const ProgramSelector& sel) {
          sel.primaryId.type > IdentifierType::VENDOR_END)) {
         return false;
     }
-    return isValid(sel.primaryId);
+    for (auto it = begin(sel); it != end(sel); it++) {
+        if (!isValid(*it)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 ProgramIdentifier makeIdentifier(IdentifierType type, int64_t value) {

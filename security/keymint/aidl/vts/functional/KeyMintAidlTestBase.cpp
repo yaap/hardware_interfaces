@@ -20,8 +20,13 @@
 #include <fstream>
 #include <unordered_set>
 #include <vector>
+#include "aidl/android/hardware/security/keymint/AttestationKey.h"
+#include "aidl/android/hardware/security/keymint/ErrorCode.h"
+#include "keymint_support/authorization_set.h"
+#include "keymint_support/keymint_tags.h"
 
 #include <android-base/logging.h>
+#include <android-base/strings.h>
 #include <android/binder_manager.h>
 #include <android/content/pm/IPackageManagerNative.h>
 #include <cppbor_parse.h>
@@ -245,6 +250,13 @@ bool KeyMintAidlTestBase::isSecondImeiIdAttestationRequired() {
     return AidlVersion() >= 3 && property_get_int32("ro.vendor.api_level", 0) > __ANDROID_API_T__;
 }
 
+bool KeyMintAidlTestBase::isRkpOnly() {
+    if (SecLevel() == SecurityLevel::STRONGBOX) {
+        return property_get_bool("remote_provisioning.strongbox.rkp_only", false);
+    }
+    return property_get_bool("remote_provisioning.tee.rkp_only", false);
+}
+
 bool KeyMintAidlTestBase::Curve25519Supported() {
     // Strongbox never supports curve 25519.
     if (SecLevel() == SecurityLevel::STRONGBOX) {
@@ -295,6 +307,40 @@ void KeyMintAidlTestBase::SetUp() {
     }
 }
 
+ErrorCode KeyMintAidlTestBase::GenerateKey(const AuthorizationSet& key_desc) {
+    return GenerateKey(key_desc, &key_blob_, &key_characteristics_);
+}
+
+ErrorCode KeyMintAidlTestBase::GenerateKey(const AuthorizationSet& key_desc,
+                                           vector<uint8_t>* key_blob,
+                                           vector<KeyCharacteristics>* key_characteristics) {
+    std::optional<AttestationKey> attest_key = std::nullopt;
+    vector<Certificate> attest_cert_chain;
+    // If an attestation is requested, but the system is RKP-only, we need to supply an explicit
+    // attestation key. Else the result is a key without an attestation.
+    if (isRkpOnly() && key_desc.Contains(TAG_ATTESTATION_CHALLENGE)) {
+        skipAttestKeyTestIfNeeded();
+        AuthorizationSet attest_key_desc =
+                AuthorizationSetBuilder().EcdsaKey(EcCurve::P_256).AttestKey().SetDefaultValidity();
+        attest_key.emplace();
+        vector<KeyCharacteristics> attest_key_characteristics;
+        auto error = GenerateAttestKey(attest_key_desc, std::nullopt, &attest_key.value().keyBlob,
+                                       &attest_key_characteristics, &attest_cert_chain);
+        EXPECT_EQ(error, ErrorCode::OK);
+        EXPECT_EQ(attest_cert_chain.size(), 1);
+        attest_key.value().issuerSubjectName = make_name_from_str("Android Keystore Key");
+    }
+
+    ErrorCode error =
+            GenerateKey(key_desc, attest_key, key_blob, key_characteristics, &cert_chain_);
+
+    if (error == ErrorCode::OK && attest_cert_chain.size() > 0) {
+        cert_chain_.push_back(attest_cert_chain[0]);
+    }
+
+    return error;
+}
+
 ErrorCode KeyMintAidlTestBase::GenerateKey(const AuthorizationSet& key_desc,
                                            const optional<AttestationKey>& attest_key,
                                            vector<uint8_t>* key_blob,
@@ -333,36 +379,6 @@ ErrorCode KeyMintAidlTestBase::GenerateKey(const AuthorizationSet& key_desc,
     }
 
     return GetReturnErrorCode(result);
-}
-
-ErrorCode KeyMintAidlTestBase::GenerateKey(const AuthorizationSet& key_desc,
-                                           const optional<AttestationKey>& attest_key) {
-    return GenerateKey(key_desc, attest_key, &key_blob_, &key_characteristics_, &cert_chain_);
-}
-
-ErrorCode KeyMintAidlTestBase::GenerateKeyWithSelfSignedAttestKey(
-        const AuthorizationSet& attest_key_desc, const AuthorizationSet& key_desc,
-        vector<uint8_t>* key_blob, vector<KeyCharacteristics>* key_characteristics,
-        vector<Certificate>* cert_chain) {
-    skipAttestKeyTest();
-    AttestationKey attest_key;
-    vector<Certificate> attest_cert_chain;
-    vector<KeyCharacteristics> attest_key_characteristics;
-    // Generate a key with self signed attestation.
-    auto error = GenerateAttestKey(attest_key_desc, std::nullopt, &attest_key.keyBlob,
-                                   &attest_key_characteristics, &attest_cert_chain);
-    if (error != ErrorCode::OK) {
-        return error;
-    }
-
-    attest_key.issuerSubjectName = make_name_from_str("Android Keystore Key");
-    // Generate a key, by passing the above self signed attestation key as attest key.
-    error = GenerateKey(key_desc, attest_key, key_blob, key_characteristics, cert_chain);
-    if (error == ErrorCode::OK) {
-        // Append the attest_cert_chain to the attested cert_chain to yield a valid cert chain.
-        cert_chain->push_back(attest_cert_chain[0]);
-    }
-    return error;
 }
 
 ErrorCode KeyMintAidlTestBase::ImportKey(const AuthorizationSet& key_desc, KeyFormat format,
@@ -1573,7 +1589,7 @@ ErrorCode KeyMintAidlTestBase::GenerateAttestKey(const AuthorizationSet& key_des
     // with any other key purpose, but the original VTS tests incorrectly did exactly that.
     // This means that a device that launched prior to Android T (API level 33) may
     // accept or even require KeyPurpose::SIGN too.
-    if (property_get_int32("ro.board.first_api_level", 0) < __ANDROID_API_T__) {
+    if (get_vsr_api_level() < __ANDROID_API_T__) {
         AuthorizationSet key_desc_plus_sign = key_desc;
         key_desc_plus_sign.push_back(TAG_PURPOSE, KeyPurpose::SIGN);
 
@@ -1663,7 +1679,7 @@ bool KeyMintAidlTestBase::shouldSkipAttestKeyTest(void) const {
 
 // Skip a test that involves use of the ATTEST_KEY feature in specific configurations
 // where ATTEST_KEY is not supported (for either StrongBox or TEE).
-void KeyMintAidlTestBase::skipAttestKeyTest(void) const {
+void KeyMintAidlTestBase::skipAttestKeyTestIfNeeded() const {
     if (shouldSkipAttestKeyTest()) {
         GTEST_SKIP() << "Test using ATTEST_KEY is not applicable on waivered device";
     }
@@ -2024,7 +2040,7 @@ AssertionResult ChainSignaturesAreValid(const vector<Certificate>& chain,
         }
     }
 
-    if (KeyMintAidlTestBase::dump_Attestations) std::cout << cert_data.str();
+    if (KeyMintAidlTestBase::dump_Attestations) std::cout << "cert chain:\n" << cert_data.str();
     return AssertionSuccess();
 }
 
@@ -2320,6 +2336,67 @@ std::optional<int32_t> keymint_feature_value(bool strongbox) {
         }
     }
     return result;
+}
+
+namespace {
+
+std::string TELEPHONY_CMD_GET_IMEI = "cmd phone get-imei ";
+
+/*
+ * Run a shell command and collect the output of it. If any error, set an empty string as the
+ * output.
+ */
+std::string exec_command(const std::string& command) {
+    char buffer[128];
+    std::string result = "";
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) {
+        LOG(ERROR) << "popen failed.";
+        return result;
+    }
+
+    // read till end of process:
+    while (!feof(pipe)) {
+        if (fgets(buffer, 128, pipe) != NULL) {
+            result += buffer;
+        }
+    }
+
+    pclose(pipe);
+    return result;
+}
+
+}  // namespace
+
+/*
+ * Get IMEI using Telephony service shell command. If any error while executing the command
+ * then empty string will be returned as output.
+ */
+std::string get_imei(int slot) {
+    std::string cmd = TELEPHONY_CMD_GET_IMEI + std::to_string(slot);
+    std::string output = exec_command(cmd);
+
+    if (output.empty()) {
+        LOG(ERROR) << "Command failed. Cmd: " << cmd;
+        return "";
+    }
+
+    vector<std::string> out =
+            ::android::base::Tokenize(::android::base::Trim(output), "Device IMEI:");
+
+    if (out.size() != 1) {
+        LOG(ERROR) << "Error in parsing the command output. Cmd: " << cmd;
+        return "";
+    }
+
+    std::string imei = ::android::base::Trim(out[0]);
+    if (imei.compare("null") == 0) {
+        LOG(WARNING) << "Failed to get IMEI from Telephony service: value is null. Cmd: " << cmd;
+        return "";
+    }
+
+    return imei;
 }
 
 }  // namespace test

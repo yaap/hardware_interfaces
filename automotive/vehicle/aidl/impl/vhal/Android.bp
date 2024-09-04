@@ -15,6 +15,7 @@
  */
 
 package {
+    default_team: "trendy_team_aaos_framework",
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
@@ -65,7 +66,7 @@ cc_library {
     ],
     header_libs: [
         "IVehicleHardware",
-        "IVehicleGeneratedHeaders",
+        "IVehicleGeneratedHeaders-V3",
     ],
     shared_libs: [
         "libbinder_ndk",

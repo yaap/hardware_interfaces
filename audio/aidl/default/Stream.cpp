@@ -21,6 +21,7 @@
 #include <Utils.h>
 #include <android-base/logging.h>
 #include <android/binder_ibinder_platform.h>
+#include <cutils/properties.h>
 #include <utils/SystemClock.h>
 #include <utils/Trace.h>
 
@@ -182,17 +183,19 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
     switch (command.getTag()) {
         case Tag::halReservedExit: {
             const int32_t cookie = command.get<Tag::halReservedExit>();
+            StreamInWorkerLogic::Status status = Status::CONTINUE;
             if (cookie == (mContext->getInternalCommandCookie() ^ getTid())) {
                 mDriver->shutdown();
                 setClosed();
+                status = Status::EXIT;
             } else {
                 LOG(WARNING) << __func__ << ": EXIT command has a bad cookie: " << cookie;
             }
             if (cookie != 0) {  // This is an internal command, no need to reply.
-                return Status::EXIT;
-            } else {
-                break;
+                return status;
             }
+            // `cookie == 0` can only occur in the context of a VTS test, need to reply.
+            break;
         }
         case Tag::getStatus:
             populateReply(&reply, mIsConnected);
@@ -314,7 +317,11 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
 bool StreamInWorkerLogic::read(size_t clientSize, StreamDescriptor::Reply* reply) {
     ATRACE_CALL();
     StreamContext::DataMQ* const dataMQ = mContext->getDataMQ();
-    const size_t byteCount = std::min({clientSize, dataMQ->availableToWrite(), mDataBufferSize});
+    StreamContext::DataMQ::Error fmqError = StreamContext::DataMQ::Error::NONE;
+    std::string fmqErrorMsg;
+    const size_t byteCount = std::min(
+            {clientSize, dataMQ->availableToWrite(&fmqError, &fmqErrorMsg), mDataBufferSize});
+    CHECK(fmqError == StreamContext::DataMQ::Error::NONE) << fmqErrorMsg;
     const bool isConnected = mIsConnected;
     const size_t frameSize = mContext->getFrameSize();
     size_t actualFrameCount = 0;
@@ -406,17 +413,19 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
     switch (command.getTag()) {
         case Tag::halReservedExit: {
             const int32_t cookie = command.get<Tag::halReservedExit>();
+            StreamOutWorkerLogic::Status status = Status::CONTINUE;
             if (cookie == (mContext->getInternalCommandCookie() ^ getTid())) {
                 mDriver->shutdown();
                 setClosed();
+                status = Status::EXIT;
             } else {
                 LOG(WARNING) << __func__ << ": EXIT command has a bad cookie: " << cookie;
             }
             if (cookie != 0) {  // This is an internal command, no need to reply.
-                return Status::EXIT;
-            } else {
-                break;
+                return status;
             }
+            // `cookie == 0` can only occur in the context of a VTS test, need to reply.
+            break;
         }
         case Tag::getStatus:
             populateReply(&reply, mIsConnected);
@@ -586,7 +595,10 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
 bool StreamOutWorkerLogic::write(size_t clientSize, StreamDescriptor::Reply* reply) {
     ATRACE_CALL();
     StreamContext::DataMQ* const dataMQ = mContext->getDataMQ();
-    const size_t readByteCount = dataMQ->availableToRead();
+    StreamContext::DataMQ::Error fmqError = StreamContext::DataMQ::Error::NONE;
+    std::string fmqErrorMsg;
+    const size_t readByteCount = dataMQ->availableToRead(&fmqError, &fmqErrorMsg);
+    CHECK(fmqError == StreamContext::DataMQ::Error::NONE) << fmqErrorMsg;
     const size_t frameSize = mContext->getFrameSize();
     bool fatal = false;
     int32_t latency = mContext->getNominalLatencyMs();
@@ -652,16 +664,34 @@ ndk::ScopedAStatus StreamCommonImpl::initInstance(
          isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::input>(),
                               AudioInputFlags::FAST)) ||
         (flags.getTag() == AudioIoFlags::Tag::output &&
-         isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
-                              AudioOutputFlags::FAST))) {
+         (isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
+                               AudioOutputFlags::FAST) ||
+          isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
+                               AudioOutputFlags::SPATIALIZER)))) {
         // FAST workers should be run with a SCHED_FIFO scheduler, however the host process
         // might be lacking the capability to request it, thus a failure to set is not an error.
         pid_t workerTid = mWorker->getTid();
         if (workerTid > 0) {
-            struct sched_param param;
-            param.sched_priority = 3;  // Must match SchedulingPolicyService.PRIORITY_MAX (Java).
+            constexpr int32_t kRTPriorityMin = 1;  // SchedulingPolicyService.PRIORITY_MIN (Java).
+            constexpr int32_t kRTPriorityMax = 3;  // SchedulingPolicyService.PRIORITY_MAX (Java).
+            int priorityBoost = kRTPriorityMax;
+            if (flags.getTag() == AudioIoFlags::Tag::output &&
+                isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
+                                     AudioOutputFlags::SPATIALIZER)) {
+                const int32_t sptPrio =
+                        property_get_int32("audio.spatializer.priority", kRTPriorityMin);
+                if (sptPrio >= kRTPriorityMin && sptPrio <= kRTPriorityMax) {
+                    priorityBoost = sptPrio;
+                } else {
+                    LOG(WARNING) << __func__ << ": invalid spatializer priority: " << sptPrio;
+                    return ndk::ScopedAStatus::ok();
+                }
+            }
+            struct sched_param param = {
+                    .sched_priority = priorityBoost,
+            };
             if (sched_setscheduler(workerTid, SCHED_FIFO | SCHED_RESET_ON_FORK, &param) != 0) {
-                PLOG(WARNING) << __func__ << ": failed to set FIFO scheduler for a fast thread";
+                PLOG(WARNING) << __func__ << ": failed to set FIFO scheduler and priority";
             }
         } else {
             LOG(WARNING) << __func__ << ": invalid worker tid: " << workerTid;

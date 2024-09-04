@@ -47,7 +47,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.lang.reflect.Field;
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,6 +95,8 @@ public final class EmuMetadataGenerator {
     private static final String CHECK_FILE_PATH =
             "${ANDROID_BUILD_TOP}/hardware/interfaces/automotive/vehicle/aidl/emu_metadata/"
             + "android.hardware.automotive.vehicle-types-meta.json";
+    private static final List<String> ANNOTATIONS =
+            List.of("@change_mode", "@access", "@version", "@data_enum", "@unit");
 
     // Emulator can display at least this many characters before cutting characters.
     private static final int MAX_PROPERTY_NAME_LENGTH = 30;
@@ -139,6 +143,7 @@ public final class EmuMetadataGenerator {
         public String name;
         public Integer value;
         public final List<String> dataEnums = new ArrayList<>();
+        public String description = "";
 
         ValueField(String name, Integer value) {
             this.name = name;
@@ -311,17 +316,38 @@ public final class EmuMetadataGenerator {
 
             int propertyId = parseIntEnumField(propertyDef);
             // We use the first paragraph as the property's name
-            String propertyDescription = doc.getDescription().toText().split("\n\n")[0];
-            String name = propertyDescription;
-            if (propertyDescription.indexOf("\n") != -1
-                    || propertyDescription.length() > MAX_PROPERTY_NAME_LENGTH) {
+            String propertyDescription = doc.getDescription().toText();
+            String firstLine = propertyDescription.split("\n\n")[0];
+            String name = firstLine;
+            if (firstLine.indexOf("\n") != -1 || firstLine.length() > MAX_PROPERTY_NAME_LENGTH) {
                 // The description is too long, we just use the property name.
                 name = propertyName;
             }
+
             ValueField field = new ValueField(name, propertyId);
+            String fieldDescription = "";
+            for (String line : propertyDescription.split("\n")) {
+                String stripped = line.strip();
+                // If this is an empty line, starts a new paragraph.
+                if (stripped.isEmpty()) {
+                    fieldDescription += "\n";
+                }
+                // Ignore annotation lines.
+                for (int j = 0; j < ANNOTATIONS.size(); j++) {
+                    if (stripped.startsWith(ANNOTATIONS.get(j))) {
+                        continue;
+                    }
+                }
+                // If this is a new line, we concat it with the previous line with a space.
+                if (!fieldDescription.isEmpty()
+                        && fieldDescription.charAt(fieldDescription.length() - 1) != '\n') {
+                    fieldDescription += " ";
+                }
+                fieldDescription += stripped;
+            }
+            field.description = fieldDescription.strip();
 
             List<JavadocBlockTag> blockTags = doc.getBlockTags();
-            List<Integer> dataEnums = new ArrayList<>();
             for (int j = 0; j < blockTags.size(); j++) {
                 String commentTagName = blockTags.get(j).getTagName();
                 String commentTagContent = blockTags.get(j).getContent().toText();
@@ -343,6 +369,16 @@ public final class EmuMetadataGenerator {
                     parsedArgs.inputDir, parsedArgs.pkgDir, parsedArgs.pkgName, dataEnumType);
             enumTypes.add(dataEnum);
         }
+
+        // Sort the enum types based on their packageName, name.
+        // Make sure VehicleProperty is always at the first.
+        Collections.sort(enumTypes.subList(1, enumTypes.size()), (Enum enum1, Enum enum2) -> {
+            var collator = Collator.getInstance();
+            if (enum1.packageName.equals(enum2.packageName)) {
+                return collator.compare(enum1.name, enum2.name);
+            }
+            return collator.compare(enum1.packageName, enum2.packageName);
+        });
 
         // Output enumTypes as JSON to output.
         JSONArray jsonEnums = new JSONArray();
@@ -370,6 +406,9 @@ public final class EmuMetadataGenerator {
                     // entry.
                     jsonValueField.put("data_enum", valueField.dataEnums.get(0));
                 }
+                if (!valueField.description.isEmpty()) {
+                    jsonValueField.put("description", valueField.description);
+                }
                 values.put(jsonValueField);
             }
 
@@ -379,6 +418,7 @@ public final class EmuMetadataGenerator {
         try (FileOutputStream outputStream = new FileOutputStream(parsedArgs.output)) {
             outputStream.write(jsonEnums.toString(4).getBytes());
         }
+
         System.out.println("Input at folder: " + parsedArgs.inputDir
                 + " successfully parsed. Output at: " + parsedArgs.output);
 

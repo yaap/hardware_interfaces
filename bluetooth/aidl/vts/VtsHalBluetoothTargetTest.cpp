@@ -154,6 +154,9 @@ class ThroughputLogger {
 
 // The main test class for Bluetooth HAL.
 class BluetoothAidlTest : public ::testing::TestWithParam<std::string> {
+  std::chrono::time_point<std::chrono::system_clock>
+      time_after_initialize_complete;
+
  public:
   void SetUp() override {
     // currently test passthrough mode only
@@ -184,12 +187,16 @@ class BluetoothAidlTest : public ::testing::TestWithParam<std::string> {
     event_cb_count = 0;
     acl_cb_count = 0;
     sco_cb_count = 0;
+    std::chrono::time_point<std::chrono::system_clock>
+        timeout_after_initialize =
+            std::chrono::system_clock::now() + kWaitForInitTimeout;
 
     ASSERT_TRUE(hci->initialize(hci_cb).isOk());
     auto future = initialized_promise.get_future();
     auto timeout_status = future.wait_for(kWaitForInitTimeout);
     ASSERT_EQ(timeout_status, std::future_status::ready);
     ASSERT_TRUE(future.get());
+    ASSERT_GE(timeout_after_initialize, time_after_initialize_complete);
   }
 
   void TearDown() override {
@@ -241,6 +248,10 @@ class BluetoothAidlTest : public ::testing::TestWithParam<std::string> {
     ~BluetoothHciCallbacks() override = default;
 
     ndk::ScopedAStatus initializationComplete(Status status) override {
+      if (status == Status::SUCCESS) {
+        parent_.time_after_initialize_complete =
+            std::chrono::system_clock::now();
+      }
       parent_.initialized_promise.set_value(status == Status::SUCCESS);
       ALOGV("%s (status = %d)", __func__, static_cast<int>(status));
       return ScopedAStatus::ok();
@@ -1082,6 +1093,37 @@ TEST_P(BluetoothAidlTest, Vsr_Bluetooth4_2Requirements) {
   ASSERT_TRUE(le_features &
               static_cast<uint64_t>(LLFeaturesBits::LE_EXTENDED_ADVERTISING));
 
+}
+
+/**
+ * VSR-5.3.14-012 MUST support at least eight LE concurrent connections with
+ *                three in peripheral role.
+ */
+// @VsrTest = 5.3.14-012
+TEST_P(BluetoothAidlTest, Vsr_BlE_Connection_Requirement) {
+  std::vector<uint8_t> version_event;
+  send_and_wait_for_cmd_complete(ReadLocalVersionInformationBuilder::Create(),
+                                 version_event);
+  auto version_view = ReadLocalVersionInformationCompleteView::Create(
+      CommandCompleteView::Create(EventView::Create(PacketView<true>(
+          std::make_shared<std::vector<uint8_t>>(version_event)))));
+  ASSERT_TRUE(version_view.IsValid());
+  ASSERT_EQ(::bluetooth::hci::ErrorCode::SUCCESS, version_view.GetStatus());
+  auto version = version_view.GetLocalVersionInformation();
+  if (version.hci_version_ < ::bluetooth::hci::HciVersion::V_5_0) {
+    // This test does not apply to controllers below 5.0
+    return;
+  };
+
+  int max_connections = ::android::base::GetIntProperty(
+      "bluetooth.core.le.max_number_of_concurrent_connections", -1);
+  if (max_connections == -1) {
+    // With the property not set the default minimum of 8 will be used
+    ALOGI("Max number of LE concurrent connections isn't set");
+    return;
+  }
+  ALOGI("Max number of LE concurrent connections = %d", max_connections);
+  ASSERT_GE(max_connections, 8);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(BluetoothAidlTest);
