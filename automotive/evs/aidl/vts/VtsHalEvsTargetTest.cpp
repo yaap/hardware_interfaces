@@ -317,12 +317,20 @@ TEST_P(EvsAidlTest, CameraOpenClean) {
             // Verify methods for extended info
             const auto id = 0xFFFFFFFF;  // meaningless id
             std::vector<uint8_t> values;
+            bool isSupported = false;
             auto status = pCam->setExtendedInfo(id, values);
             if (isLogicalCam) {
                 EXPECT_TRUE(!status.isOk() && status.getServiceSpecificError() ==
                                                       static_cast<int>(EvsResult::NOT_SUPPORTED));
             } else {
-                EXPECT_TRUE(status.isOk());
+                if (status.isOk()) {
+                    // 0xFFFFFFFF is valid for EVS HAL implementation under
+                    // test.
+                    isSupported = true;
+                } else {
+                    EXPECT_TRUE(status.getServiceSpecificError() ==
+                                static_cast<int>(EvsResult::INVALID_ARG));
+                }
             }
 
             status = pCam->getExtendedInfo(id, &values);
@@ -330,7 +338,12 @@ TEST_P(EvsAidlTest, CameraOpenClean) {
                 EXPECT_TRUE(!status.isOk() && status.getServiceSpecificError() ==
                                                       static_cast<int>(EvsResult::NOT_SUPPORTED));
             } else {
-                EXPECT_TRUE(status.isOk());
+                if (isSupported) {
+                    EXPECT_TRUE(status.isOk());
+                } else {
+                    EXPECT_TRUE(!status.isOk() && status.getServiceSpecificError() ==
+                                                    static_cast<int>(EvsResult::INVALID_ARG));
+                }
             }
 
             // Explicitly close the camera so resources are released right away

@@ -7,7 +7,7 @@ owner: Vendor
 prop {
     prop_name: "persist.vendor.face.virtual.type"
     type: String
-    scope: Internal
+    scope: Public
     access: ReadWrite
     enum_values: "IR|RGB"
     api_name: "type"
@@ -17,7 +17,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.strength"
     type: String
-    scope: Internal
+    scope: Public
     access: ReadWrite
     enum_values: "convenience|weak|strong"
     api_name: "strength"
@@ -27,7 +27,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.enrollments"
     type: IntegerList
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "enrollments"
 }
@@ -36,7 +36,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.features"
     type: IntegerList
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "features"
 }
@@ -46,7 +46,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.enrollment_hit"
     type: Integer
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "enrollment_hit"
 }
@@ -60,7 +60,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.next_enrollment"
     type: String
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "next_enrollment"
 }
@@ -69,7 +69,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.authenticator_id"
     type: Long
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "authenticator_id"
 }
@@ -78,7 +78,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.challenge"
     type: Long
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "challenge"
 }
@@ -87,7 +87,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.lockout"
     type: Boolean
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "lockout"
 }
@@ -96,7 +96,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_authenticate_fails"
     type: Boolean
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_authenticate_fails"
 }
@@ -105,18 +105,9 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_detect_interaction_fails"
     type: Boolean
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_detect_interaction_fails"
-}
-
-# force all enroll operations to fail
-prop {
-    prop_name: "vendor.face.virtual.operation_enroll_fails"
-    type: Boolean
-    scope: Internal
-    access: ReadWrite
-    api_name: "operation_enroll_fails"
 }
 
 # add a latency to authentication operations
@@ -125,7 +116,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_authenticate_latency"
     type: IntegerList
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_authenticate_latency"
 }
@@ -134,7 +125,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_detect_interaction_latency"
     type: IntegerList
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_detect_interaction_latency"
 }
@@ -143,7 +134,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_enroll_latency"
     type: IntegerList
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_enroll_latency"
 }
@@ -153,7 +144,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_authenticate_duration"
     type: Integer
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_authenticate_duration"
 }
@@ -162,7 +153,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_authenticate_error"
     type: Integer
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_authenticate_error"
 }
@@ -171,7 +162,7 @@ prop {
 prop {
     prop_name: "vendor.face.virtual.operation_authenticate_acquired"
     type: String
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "operation_authenticate_acquired"
 }
@@ -180,7 +171,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.lockout_enable"
     type: Boolean
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "lockout_enable"
 }
@@ -189,7 +180,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.lockout_timed_enable"
     type: Boolean
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "lockout_timed_enable"
 }
@@ -198,7 +189,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.lockout_timed_threshold"
     type: Integer
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "lockout_timed_threshold"
 }
@@ -207,7 +198,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.lockout_timed_duration"
     type: Integer
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "lockout_timed_duration"
 }
@@ -216,7 +207,7 @@ prop {
 prop {
     prop_name: "persist.vendor.face.virtual.lockout_permanent_threshold"
     type: Integer
-    scope: Internal
+    scope: Public
     access: ReadWrite
     api_name: "lockout_permanent_threshold"
 }

@@ -10,6 +10,8 @@ package {
 aidl_interface {
     name: "android.hardware.security.see",
     unstable: false,
+    // TODO Remove this owner field when this interface is moved out of /staging
+    owner: "google_while_staging",
     host_supported: true,
     srcs: [
         "android/hardware/security/see/hwcrypto/*.aidl",

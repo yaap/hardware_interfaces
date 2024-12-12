@@ -17,7 +17,6 @@ package android.hardware.security.see.storage;
 
 import android.hardware.security.see.storage.CreationMode;
 import android.hardware.security.see.storage.FileMode;
-import android.hardware.security.see.storage.ReadIntegrity;
 
 parcelable OpenOptions {
     /** Controls creation behavior of the to-be-opened file. See `CreationMode` docs for details. */
@@ -27,25 +26,8 @@ parcelable OpenOptions {
     FileMode accessMode = FileMode.READ_WRITE;
 
     /**
-     * Set to acknowledge possible files tampering.
-     *
-     * If unacknowledged tampering is detected, the operation will fail with an ERR_FS_*
-     * service-specific code.
-     */
-    ReadIntegrity readIntegrity = ReadIntegrity.NO_TAMPER;
-
-    /**
      * If this file already exists, discard existing content and open
      * it as a new file. No semantic change if the file does not exist.
      */
     boolean truncateOnOpen;
-
-    /**
-     * Allow writes to succeed while the filesystem is in the middle of an A/B update.
-     *
-     * If the A/B update fails, the operation will be rolled back. This rollback will not
-     * cause subsequent operations fail with any ERR_FS_* code nor will need to be
-     * acknowledged by setting the `readIntegrity`.
-     */
-    boolean allowWritesDuringAbUpdate = false;
 }

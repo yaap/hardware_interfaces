@@ -82,6 +82,10 @@ class EffectContext {
 
     virtual ::android::hardware::EventFlag* getStatusEventFlag();
 
+    virtual RetCode enable();
+    virtual RetCode disable();
+    virtual RetCode reset();
+
   protected:
     int mVersion = 0;
     size_t mInputFrameSize = 0;

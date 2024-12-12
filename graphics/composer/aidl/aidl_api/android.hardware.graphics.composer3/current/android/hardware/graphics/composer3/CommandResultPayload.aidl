@@ -41,4 +41,5 @@ union CommandResultPayload {
   android.hardware.graphics.composer3.ReleaseFences releaseFences;
   android.hardware.graphics.composer3.PresentOrValidate presentOrValidateResult;
   android.hardware.graphics.composer3.ClientTargetPropertyWithBrightness clientTargetProperty;
+  android.hardware.graphics.composer3.DisplayLuts displayLuts;
 }

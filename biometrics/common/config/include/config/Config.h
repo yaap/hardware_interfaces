@@ -100,7 +100,11 @@ class Config {
         } else if (std::holds_alternative<OptIntVec>(v)) {
             for (auto x : std::get<OptIntVec>(v))
                 if (x.has_value()) os << x.value() << " ";
+        } else if (std::holds_alternative<OptString>(v)) {
+            OptString ov = std::get<OptString>(v);
+            if (ov.has_value()) os << ov.value();
         }
+
         return os.str();
     }
     std::string toString() const {

@@ -60,7 +60,7 @@ class DeviceCb : public BnCameraDeviceCallback {
     bool processCaptureResultLocked(const CaptureResult& results,
                                     std::vector<PhysicalCameraMetadata> physicalCameraMetadata);
     ScopedAStatus notifyHelper(const std::vector<NotifyMsg>& msgs,
-                               const std::vector<std::pair<bool, nsecs_t>>& readoutTimestamps);
+                               const std::vector<nsecs_t>& readoutTimestamps);
 
     CameraAidlTest* mParent;  // Parent object
 

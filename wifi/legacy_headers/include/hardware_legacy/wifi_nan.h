@@ -2972,10 +2972,16 @@ typedef struct {
     u16 publish_subscribe_id;
 
     /*
-       This Id is the Peer Instance that is passed as
-       part of earlier MatchInd/FollowupInd message.
+      Same as the bootstrapping_instance_id
     */
     u32 service_instance_id;
+
+    /*
+      Unique Instance Id corresponding to a service/session.
+      This is similar to the publish_id generated on the
+      publisher side
+    */
+    u32 bootstrapping_instance_id;
 
     /* Discovery MAC addr of the peer/initiator */
     u8 peer_disc_mac_addr[NAN_MAC_ADDR_LEN];

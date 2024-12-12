@@ -714,11 +714,14 @@ TEST_P(SensorsAidlTest, CallInitializeTwice) {
         return;  // Exit early if setting up the new environment failed
     }
 
+    size_t numNonOneShotAndNonSpecialSensors = getNonOneShotAndNonSpecialSensors().size();
     activateAllSensors(true);
     // Verify that the old environment does not receive any events
     EXPECT_EQ(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), 0);
-    // Verify that the new event queue receives sensor events
-    EXPECT_GE(newEnv.get()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    if (numNonOneShotAndNonSpecialSensors > 0) {
+        // Verify that the new event queue receives sensor events
+        EXPECT_GE(newEnv.get()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    }
     activateAllSensors(false);
 
     // Cleanup the test environment
@@ -733,7 +736,9 @@ TEST_P(SensorsAidlTest, CallInitializeTwice) {
 
     // Ensure that the original environment is receiving events
     activateAllSensors(true);
-    EXPECT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    if (numNonOneShotAndNonSpecialSensors > 0) {
+        EXPECT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    }
     activateAllSensors(false);
 }
 
@@ -743,7 +748,11 @@ TEST_P(SensorsAidlTest, CleanupConnectionsOnInitialize) {
     // Verify that events are received
     constexpr useconds_t kCollectionTimeoutUs = 1000 * 1000;  // 1s
     constexpr int32_t kNumEvents = 1;
-    ASSERT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+
+    size_t numNonOneShotAndNonSpecialSensors = getNonOneShotAndNonSpecialSensors().size();
+    if (numNonOneShotAndNonSpecialSensors > 0) {
+        ASSERT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    }
 
     // Clear the active sensor handles so they are not disabled during TearDown
     auto handles = mSensorHandles;
@@ -757,7 +766,9 @@ TEST_P(SensorsAidlTest, CleanupConnectionsOnInitialize) {
     // Verify no events are received until sensors are re-activated
     ASSERT_EQ(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), 0);
     activateAllSensors(true);
-    ASSERT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    if (numNonOneShotAndNonSpecialSensors > 0) {
+        ASSERT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
+    }
 
     // Disable sensors
     activateAllSensors(false);

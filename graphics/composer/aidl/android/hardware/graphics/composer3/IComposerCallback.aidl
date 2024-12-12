@@ -16,6 +16,7 @@
 
 package android.hardware.graphics.composer3;
 
+import android.hardware.drm.HdcpLevels;
 import android.hardware.graphics.common.DisplayHotplugEvent;
 import android.hardware.graphics.composer3.RefreshRateChangedDebugData;
 import android.hardware.graphics.composer3.VsyncPeriodChangeTimeline;
@@ -139,4 +140,12 @@ interface IComposerCallback {
      * @param event is the type of event that occurred.
      */
     void onHotplugEvent(long display, DisplayHotplugEvent event);
+
+    /**
+     * Notify the client the HDCP levels of the display changed.
+     *
+     * @param display is the display whose HDCP levels have changed.
+     * @param levels is the new HDCP levels.
+     */
+    oneway void onHdcpLevelsChanged(long display, in HdcpLevels levels);
 }

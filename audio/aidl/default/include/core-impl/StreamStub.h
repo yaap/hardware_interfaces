@@ -23,6 +23,8 @@ namespace aidl::android::hardware::audio::core {
 class StreamStub : public StreamCommonImpl {
   public:
     StreamStub(StreamContext* context, const Metadata& metadata);
+    ~StreamStub();
+
     // Methods of 'DriverInterface'.
     ::android::status_t init() override;
     ::android::status_t drain(StreamDescriptor::DrainMode) override;
@@ -42,6 +44,10 @@ class StreamStub : public StreamCommonImpl {
     const bool mIsInput;
     bool mIsInitialized = false;  // Used for validating the state machine logic.
     bool mIsStandby = true;       // Used for validating the state machine logic.
+
+    // Used by the worker thread.
+    int64_t mStartTimeNs = 0;
+    long mFramesSinceStart = 0;
 };
 
 class StreamInStub final : public StreamIn, public StreamStub {

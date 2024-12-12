@@ -95,7 +95,7 @@ class VtsVehicleCallback final : public ISubscriptionCallback {
             std::lock_guard<std::mutex> lockGuard(mLock);
             for (auto& value : values) {
                 int32_t propId = value->getPropId();
-                mEvents[propId].push_back(std::move(value->clone()));
+                mEvents[propId].push_back(value->clone());
             }
         }
         mEventCond.notify_one();
@@ -122,7 +122,7 @@ class VtsVehicleCallback final : public ISubscriptionCallback {
             return events;
         }
         for (const auto& eventPtr : mEvents[propId]) {
-            events.push_back(std::move(eventPtr->clone()));
+            events.push_back(eventPtr->clone());
         }
         return events;
     }

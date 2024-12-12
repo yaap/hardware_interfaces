@@ -246,8 +246,14 @@ ndk::ScopedAStatus EffectImpl::command(CommandId command) {
             startThread();
             break;
         case CommandId::STOP:
-        case CommandId::RESET:
             RETURN_OK_IF(mState == State::IDLE);
+            mState = State::IDLE;
+            RETURN_IF(notifyEventFlag(mDataMqNotEmptyEf) != RetCode::SUCCESS, EX_ILLEGAL_STATE,
+                      "notifyEventFlagNotEmptyFailed");
+            stopThread();
+            RETURN_IF_ASTATUS_NOT_OK(commandImpl(command), "commandImplFailed");
+            break;
+        case CommandId::RESET:
             mState = State::IDLE;
             RETURN_IF(notifyEventFlag(mDataMqNotEmptyEf) != RetCode::SUCCESS, EX_ILLEGAL_STATE,
                       "notifyEventFlagNotEmptyFailed");
@@ -266,8 +272,22 @@ ndk::ScopedAStatus EffectImpl::command(CommandId command) {
 
 ndk::ScopedAStatus EffectImpl::commandImpl(CommandId command) {
     RETURN_IF(!mImplContext, EX_NULL_POINTER, "nullContext");
-    if (command == CommandId::RESET) {
-        mImplContext->resetBuffer();
+    switch (command) {
+        case CommandId::START:
+            mImplContext->enable();
+            break;
+        case CommandId::STOP:
+            mImplContext->disable();
+            break;
+        case CommandId::RESET:
+            mImplContext->disable();
+            mImplContext->reset();
+            mImplContext->resetBuffer();
+            break;
+        default:
+            LOG(ERROR) << __func__ << " commandId " << toString(command) << " not supported";
+            return ndk::ScopedAStatus::fromExceptionCodeWithMessage(EX_ILLEGAL_ARGUMENT,
+                                                                    "commandIdNotSupported");
     }
     return ndk::ScopedAStatus::ok();
 }

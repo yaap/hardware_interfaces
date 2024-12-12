@@ -509,7 +509,7 @@ IVehicleServer::DumpResult DefaultVehicleHalServer::setValueCommand(
     int64_t timestamp;
     int32_t areaId = 0;
     if (options[1] == "--setint") {
-        updatedPropValue = std::move(createVehiclePropValue(VehiclePropertyType::INT32, 1));
+        updatedPropValue = createVehiclePropValue(VehiclePropertyType::INT32, 1);
         if (!android::base::ParseInt(options[3], &intValue)) {
             result.buffer += "failed to parse value as int: \"" + options[3] + "\"\n";
             result.buffer += getHelpInfo();
@@ -517,7 +517,7 @@ IVehicleServer::DumpResult DefaultVehicleHalServer::setValueCommand(
         }
         updatedPropValue->value.int32Values[0] = intValue;
     } else if (options[1] == "--setbool") {
-        updatedPropValue = std::move(createVehiclePropValue(VehiclePropertyType::BOOLEAN, 1));
+        updatedPropValue = createVehiclePropValue(VehiclePropertyType::BOOLEAN, 1);
         if (options[3] == "true" || options[3] == "True") {
             updatedPropValue->value.int32Values[0] = 1;
         } else if (options[3] == "false" || options[3] == "False") {
@@ -529,7 +529,7 @@ IVehicleServer::DumpResult DefaultVehicleHalServer::setValueCommand(
             return result;
         }
     } else {
-        updatedPropValue = std::move(createVehiclePropValue(VehiclePropertyType::FLOAT, 1));
+        updatedPropValue = createVehiclePropValue(VehiclePropertyType::FLOAT, 1);
         if (!android::base::ParseFloat(options[3], &floatValue)) {
             result.buffer += "failed to parse value as float: \"" + options[3] + "\"\n";
             result.buffer += getHelpInfo();

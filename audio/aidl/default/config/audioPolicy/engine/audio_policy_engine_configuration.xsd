@@ -105,6 +105,7 @@
                         <xs:element name="AttributesGroup" type="AttributesGroup" minOccurs="1" maxOccurs="unbounded"/>
                     </xs:sequence>
                     <xs:attribute name="name" type="xs:string" use="required"/>
+                    <xs:attribute name="id" type="xs:int" use="required"/>
                 </xs:complexType>
             </xs:element>
         </xs:sequence>
@@ -188,6 +189,19 @@
         </xs:sequence>
     </xs:complexType>
     <xs:complexType name="valueType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Criterion type is provided as a tuple of 'human readable' string (referred as the
+                literal part, that will allow to express 'human readable' rules, numerical value
+                associated in order to improve performances of the parameter framework library used,
+                and an optional android type.
+                This android type is reserved for device type mapping with parameter framework
+                representation on a bitfield (Only one bit is expected to represent a device) and
+                android representation of a type that may use several bits.
+                The lookup table will allow wrap android device type to parameter framework device
+                types data model.
+            </xs:documentation>
+        </xs:annotation>
         <xs:attribute name="literal" type="xs:string" use="required"/>
         <xs:attribute name="numerical" type="xs:long" use="required"/>
         <xs:attribute name="android_type" type="longDecimalOrHexType" use="optional"/>

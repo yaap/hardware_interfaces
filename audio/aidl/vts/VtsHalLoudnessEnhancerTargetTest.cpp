@@ -23,6 +23,7 @@
 
 using namespace android;
 
+using aidl::android::hardware::audio::common::getChannelCount;
 using aidl::android::hardware::audio::effect::Descriptor;
 using aidl::android::hardware::audio::effect::getEffectTypeUuidLoudnessEnhancer;
 using aidl::android::hardware::audio::effect::IEffect;
@@ -31,7 +32,6 @@ using aidl::android::hardware::audio::effect::LoudnessEnhancer;
 using aidl::android::hardware::audio::effect::Parameter;
 using android::hardware::audio::common::testing::detail::TestExecutionTracer;
 
-static constexpr float kMaxAudioSample = 1;
 static constexpr int kZeroGain = 0;
 static constexpr int kMaxGain = std::numeric_limits<int>::max();
 static constexpr int kMinGain = std::numeric_limits<int>::min();
@@ -50,7 +50,7 @@ class LoudnessEnhancerEffectHelper : public EffectHelper {
         Parameter::Specific specific = getDefaultParamSpecific();
         Parameter::Common common = createParamCommon(
                 0 /* session */, 1 /* ioHandle */, 44100 /* iSampleRate */, 44100 /* oSampleRate */,
-                kInputFrameCount /* iFrameCount */, kOutputFrameCount /* oFrameCount */);
+                kFrameCount /* iFrameCount */, kFrameCount /* oFrameCount */);
         ASSERT_NO_FATAL_FAILURE(open(mEffect, common, specific, &mOpenEffectReturn, EX_NONE));
         ASSERT_NE(nullptr, mEffect);
         mVersion = EffectFactoryHelper::getHalVersion(mFactory);
@@ -110,7 +110,7 @@ class LoudnessEnhancerEffectHelper : public EffectHelper {
                                            << "\ngetParam:" << getParam.toString();
     }
 
-    static const long kInputFrameCount = 0x100, kOutputFrameCount = 0x100;
+    static const long kFrameCount = 256;
     IEffect::OpenEffectReturn mOpenEffectReturn;
     std::shared_ptr<IFactory> mFactory;
     std::shared_ptr<IEffect> mEffect;
@@ -153,8 +153,14 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
   public:
     LoudnessEnhancerDataTest() {
         std::tie(mFactory, mDescriptor) = GetParam();
-        generateInputBuffer();
-        mOutputBuffer.resize(kBufferSize);
+        size_t channelCount =
+                getChannelCount(AudioChannelLayout::make<AudioChannelLayout::layoutMask>(
+                        AudioChannelLayout::LAYOUT_STEREO));
+        mBufferSizeInFrames = kFrameCount * channelCount;
+        mInputBuffer.resize(mBufferSizeInFrames);
+        generateInputBuffer(mInputBuffer, 0, true, channelCount, kMaxAudioSampleValue);
+
+        mOutputBuffer.resize(mBufferSizeInFrames);
     }
 
     void SetUp() override {
@@ -170,14 +176,6 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
         TearDownLoudnessEnhancer();
-    }
-
-    // Fill inputBuffer with random values between -kMaxAudioSample to kMaxAudioSample
-    void generateInputBuffer() {
-        for (size_t i = 0; i < kBufferSize; i++) {
-            mInputBuffer.push_back(((static_cast<float>(std::rand()) / RAND_MAX) * 2 - 1) *
-                                   kMaxAudioSample);
-        }
     }
 
     // Add gains to the mInputBuffer and store processed output to mOutputBuffer
@@ -215,7 +213,7 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
     }
 
     void assertSequentialGains(const std::vector<int>& gainValues, bool isIncreasing) {
-        std::vector<float> baseOutput(kBufferSize);
+        std::vector<float> baseOutput(mBufferSizeInFrames);
 
         // Process a reference output buffer with 0 gain which gives compressed input values
         binder_exception_t expected;
@@ -252,7 +250,7 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
 
     std::vector<float> mInputBuffer;
     std::vector<float> mOutputBuffer;
-    static constexpr float kBufferSize = 128;
+    size_t mBufferSizeInFrames;
 };
 
 TEST_P(LoudnessEnhancerDataTest, IncreasingGains) {
@@ -291,10 +289,10 @@ TEST_P(LoudnessEnhancerDataTest, MaximumGain) {
     setParameters(kMaxGain, expected);
     ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput());
 
-    // Validate that mOutputBuffer reaches to kMaxAudioSample for INT_MAX gain
+    // Validate that mOutputBuffer reaches to kMaxAudioSampleValue for INT_MAX gain
     for (size_t i = 0; i < mOutputBuffer.size(); i++) {
         if (mInputBuffer[i] != 0) {
-            EXPECT_NEAR(kMaxAudioSample, abs(mOutputBuffer[i]), kAbsError);
+            EXPECT_NEAR(kMaxAudioSampleValue, abs(mOutputBuffer[i]), kAbsError);
         } else {
             ASSERT_EQ(mOutputBuffer[i], mInputBuffer[i]);
         }

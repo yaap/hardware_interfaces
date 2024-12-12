@@ -43,7 +43,7 @@ cc_test {
         "vhalclient_defaults",
     ],
     header_libs: [
-        "IVehicleGeneratedHeaders-V3",
+        "IVehicleGeneratedHeaders-V4",
     ],
     test_suites: [
         "general-tests",

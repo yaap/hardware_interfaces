@@ -35,7 +35,7 @@ class VirtualHalTest : public ::testing::Test {
   protected:
     void SetUp() override {
         mHal = ndk::SharedRefBase::make<Fingerprint>();
-        mVhal = ndk::SharedRefBase::make<VirtualHal>(mHal.get());
+        mVhal = ndk::SharedRefBase::make<VirtualHal>(mHal);
         ASSERT_TRUE(mVhal != nullptr);
         mHal->resetConfigToDefault();
     }

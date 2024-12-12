@@ -93,6 +93,14 @@ vintf_compatibility_matrix {
 
 }
 
+// Device framework compatibility matrix (common to all FCM versions)
+// Reference: https://source.android.com/docs/core/architecture/vintf/comp-matrices
+vintf_compatibility_matrix {
+    name: "framework_compatibility_matrix.device.xml",
+    stem: "compatibility_matrix.device.xml",
+    type: "device_fcm",
+}
+
 // Phony target that installs all system compatibility matrix files
 SYSTEM_MATRIX_DEPS = [
     "framework_compatibility_matrix.5.xml",
@@ -106,6 +114,29 @@ SYSTEM_MATRIX_DEPS = [
 phony {
     name: "system_compatibility_matrix.xml",
     required: SYSTEM_MATRIX_DEPS,
+    product_variables: {
+        release_aidl_use_unfrozen: {
+            required: [
+                "framework_compatibility_matrix.202504.xml",
+            ],
+        },
+    },
+}
+
+// Product Compatibility Matrix
+vintf_compatibility_matrix {
+    name: "product_compatibility_matrix.xml",
+    stem: "compatibility_matrix.xml",
+    product_specific: true,
+    type: "product_fcm",
+}
+
+// Phony target that installs all framework compatibility matrix files (system + product)
+FRAMEWORK_MATRIX_DEPS = SYSTEM_MATRIX_DEPS + ["product_compatibility_matrix.xml"]
+
+phony {
+    name: "framework_compatibility_matrix.xml",
+    required: FRAMEWORK_MATRIX_DEPS,
     product_variables: {
         release_aidl_use_unfrozen: {
             required: [

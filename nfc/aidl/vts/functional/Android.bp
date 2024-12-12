@@ -38,7 +38,7 @@ cc_test {
         "libbinder_ndk",
     ],
     static_libs: [
-        "android.hardware.nfc-V1-ndk",
+        "android.hardware.nfc-V2-ndk",
     ],
     test_suites: [
         "general-tests",
@@ -49,6 +49,7 @@ cc_test {
 cc_test {
     name: "VtsNfcBehaviorChangesTest",
     defaults: [
+        "aconfig_lib_cc_shared_link.defaults",
         "VtsHalTargetTestDefaults",
         "use_libaidlvintf_gtest_helper_static",
     ],
@@ -65,13 +66,14 @@ cc_test {
         "system/nfc/utils/include",
     ],
     shared_libs: [
+        "liblog",
         "libbinder",
         "libbinder_ndk",
         "libnativehelper",
         "libstatssocket",
     ],
     static_libs: [
-        "android.hardware.nfc-V1-ndk",
+        "android.hardware.nfc-V2-ndk",
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",
         "android.hardware.nfc@1.2",

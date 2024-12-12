@@ -34,11 +34,11 @@
 package android.hardware.drm;
 @Backing(type="int") @VintfStability
 enum SecurityLevel {
-  UNKNOWN = 0,
-  SW_SECURE_CRYPTO = 1,
-  SW_SECURE_DECODE = 2,
-  HW_SECURE_CRYPTO = 3,
-  HW_SECURE_DECODE = 4,
-  HW_SECURE_ALL = 5,
-  DEFAULT = 6,
+  UNKNOWN,
+  SW_SECURE_CRYPTO,
+  SW_SECURE_DECODE,
+  HW_SECURE_CRYPTO,
+  HW_SECURE_DECODE,
+  HW_SECURE_ALL,
+  DEFAULT,
 }

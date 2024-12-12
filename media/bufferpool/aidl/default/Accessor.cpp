@@ -444,7 +444,7 @@ void Accessor::evictorThread(
         std::map<const std::weak_ptr<Accessor>, nsecs_t, std::owner_less<>> &accessors,
         std::mutex &mutex,
         std::condition_variable &cv) {
-    std::list<const std::weak_ptr<Accessor>> evictList;
+    std::list<std::weak_ptr<Accessor>> evictList;
     while (true) {
         int expired = 0;
         int evicted = 0;

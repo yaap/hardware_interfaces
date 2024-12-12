@@ -40,6 +40,7 @@ std::shared_ptr<IWifiChip> getWifiChip(const char* instance_name);
 std::shared_ptr<IWifiStaIface> getWifiStaIface(const char* instance_name);
 std::shared_ptr<IWifiNanIface> getWifiNanIface(const char* instance_name);
 std::shared_ptr<IWifiApIface> getWifiApIface(const char* instance_name);
+std::shared_ptr<IWifiApIface> getWifiApIface(std::shared_ptr<IWifiChip> wifi_chip);
 std::shared_ptr<IWifiApIface> getBridgedWifiApIface(const char* instance_name);
 std::shared_ptr<IWifiApIface> getBridgedWifiApIface(std::shared_ptr<IWifiChip> wifi_chip);
 // Configure the chip in a mode to support the creation of the provided iface type.

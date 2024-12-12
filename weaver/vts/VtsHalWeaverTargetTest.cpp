@@ -221,7 +221,10 @@ void WeaverTest::FindFreeSlots() {
         }
     }
     // Starting in Android 14, the system will always use at least one Weaver slot if Weaver is
-    // supported at all.  Make sure we saw at least one.
+    // supported at all.  This is true even if an LSKF hasn't been set yet, since Weaver is used to
+    // protect the initial binding of each user's synthetic password to ensure that binding can be
+    // securely deleted if an LSKF is set later.  Make sure we saw at least one slot, as otherwise
+    // the Weaver implementation must have a bug that makes it not fully usable by Android.
     ASSERT_FALSE(used_slots.empty())
             << "Could not determine which Weaver slots are in use by the system";
 

@@ -29,7 +29,7 @@ aidl_interface {
     host_supported: true,
     vendor_available: true,
     double_loadable: true,
-    frozen: true,
+    frozen: false,
     srcs: [
         "android/hardware/graphics/composer3/*.aidl",
     ],
@@ -37,6 +37,7 @@ aidl_interface {
     imports: [
         "android.hardware.graphics.common-V5",
         "android.hardware.common-V2",
+        "android.hardware.drm.common-V1",
     ],
     backend: {
         cpp: {

@@ -41,6 +41,9 @@ class GrpcVehicleProxyServer : public proto::VehicleServer::Service {
   public:
     GrpcVehicleProxyServer(std::string serverAddr, std::unique_ptr<IVehicleHardware>&& hardware);
 
+    GrpcVehicleProxyServer(std::vector<std::string> serverAddrs,
+                           std::unique_ptr<IVehicleHardware>&& hardware);
+
     ::grpc::Status GetAllPropertyConfig(
             ::grpc::ServerContext* context, const ::google::protobuf::Empty* request,
             ::grpc::ServerWriter<proto::VehiclePropConfig>* stream) override;
@@ -116,7 +119,7 @@ class GrpcVehicleProxyServer : public proto::VehicleServer::Service {
         static std::atomic<uint64_t> connection_id_counter_;
     };
 
-    std::string mServiceAddr;
+    std::vector<std::string> mServiceAddrs;
     std::unique_ptr<::grpc::Server> mServer{nullptr};
     std::unique_ptr<IVehicleHardware> mHardware;
 

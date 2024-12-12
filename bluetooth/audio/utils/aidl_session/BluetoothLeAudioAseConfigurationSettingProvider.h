@@ -73,19 +73,22 @@ class AudioSetConfigurationProviderJson {
           flat_codec_specific_params);
 
   static void populateAseConfiguration(
-      LeAudioAseConfiguration& ase,
+      const std::string& name, LeAudioAseConfiguration& ase,
       const le_audio::AudioSetSubConfiguration* flat_subconfig,
       const le_audio::QosConfiguration* qos_cfg);
 
   static void populateAseQosConfiguration(
       LeAudioAseQosConfiguration& qos,
-      const le_audio::QosConfiguration* qos_cfg, LeAudioAseConfiguration& ase);
+      const le_audio::QosConfiguration* qos_cfg, LeAudioAseConfiguration& ase,
+      uint8_t ase_channel_cnt);
 
   static AseDirectionConfiguration SetConfigurationFromFlatSubconfig(
+      const std::string& name,
       const le_audio::AudioSetSubConfiguration* flat_subconfig,
       const le_audio::QosConfiguration* qos_cfg, CodecLocation location);
 
   static void processSubconfig(
+      const std::string& name,
       const le_audio::AudioSetSubConfiguration* subconfig,
       const le_audio::QosConfiguration* qos_cfg,
       std::vector<std::optional<AseDirectionConfiguration>>&

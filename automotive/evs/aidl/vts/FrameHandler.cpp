@@ -50,12 +50,12 @@ NativeHandle dupNativeHandle(const NativeHandle& handle, bool doDup) {
         }
     } else {
         for (auto i = 0; i < handle.fds.size(); ++i) {
-            dup.fds[i] = std::move(handle.fds[i].dup());
+            dup.fds[i] = handle.fds[i].dup();
         }
     }
     dup.ints = handle.ints;
 
-    return std::move(dup);
+    return dup;
 }
 
 HardwareBuffer dupHardwareBuffer(const HardwareBuffer& buffer, bool doDup) {
@@ -64,7 +64,7 @@ HardwareBuffer dupHardwareBuffer(const HardwareBuffer& buffer, bool doDup) {
             .handle = dupNativeHandle(buffer.handle, doDup),
     };
 
-    return std::move(dup);
+    return dup;
 }
 
 BufferDesc dupBufferDesc(const BufferDesc& src, bool doDup) {
@@ -77,7 +77,7 @@ BufferDesc dupBufferDesc(const BufferDesc& src, bool doDup) {
             .metadata = src.metadata,
     };
 
-    return std::move(dup);
+    return dup;
 }
 
 bool comparePayload(const EvsEventDesc& l, const EvsEventDesc& r) {

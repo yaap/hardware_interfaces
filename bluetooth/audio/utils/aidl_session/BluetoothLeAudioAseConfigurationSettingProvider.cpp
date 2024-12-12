@@ -240,18 +240,31 @@ std::map<uint32_t, uint32_t> audio_channel_allocation_map = {
      CodecSpecificConfigurationLtv::AudioChannelAllocation::RIGHT_SURROUND},
 };
 
+// Set configuration and scenario files with fallback default
 static const std::vector<
     std::pair<const char* /*schema*/, const char* /*content*/>>
-    kLeAudioSetConfigs = {{"/vendor/etc/aidl/le_audio/"
-                           "aidl_audio_set_configurations.bfbs",
-                           "/vendor/etc/aidl/le_audio/"
-                           "aidl_audio_set_configurations.json"}};
+    kLeAudioSetConfigs = {
+        {"/vendor/etc/aidl/le_audio/"
+         "aidl_audio_set_configurations.bfbs",
+         "/vendor/etc/aidl/le_audio/"
+         "aidl_audio_set_configurations.json"},
+
+        {"/vendor/etc/aidl/le_audio/"
+         "aidl_audio_set_configurations.bfbs",
+         "/vendor/etc/aidl/le_audio/"
+         "aidl_default_audio_set_configurations.json"},
+};
 static const std::vector<
     std::pair<const char* /*schema*/, const char* /*content*/>>
     kLeAudioSetScenarios = {{"/vendor/etc/aidl/le_audio/"
                              "aidl_audio_set_scenarios.bfbs",
                              "/vendor/etc/aidl/le_audio/"
-                             "aidl_audio_set_scenarios.json"}};
+                             "aidl_audio_set_scenarios.json"},
+
+                            {"/vendor/etc/aidl/le_audio/"
+                             "aidl_audio_set_scenarios.bfbs",
+                             "/vendor/etc/aidl/le_audio/"
+                             "aidl_default_audio_set_scenarios.json"}};
 
 /* Implementation */
 
@@ -374,7 +387,7 @@ void AudioSetConfigurationProviderJson::populateConfigurationData(
 }
 
 void AudioSetConfigurationProviderJson::populateAseConfiguration(
-    LeAudioAseConfiguration& ase,
+    const std::string& name, LeAudioAseConfiguration& ase,
     const le_audio::AudioSetSubConfiguration* flat_subconfig,
     const le_audio::QosConfiguration* qos_cfg) {
   // Target latency
@@ -411,20 +424,36 @@ void AudioSetConfigurationProviderJson::populateAseConfiguration(
   }
   // Codec configuration data
   populateConfigurationData(ase, flat_subconfig->codec_configuration());
+  // Populate the config name for easier debug
+  auto meta = std::vector<std::optional<MetadataLtv>>();
+  MetadataLtv::VendorSpecific cfg_name;
+  cfg_name.opaqueValue = std::vector<uint8_t>(name.begin(), name.end());
+  meta.push_back(cfg_name);
+  ase.metadata = meta;
 }
 
 void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
     LeAudioAseQosConfiguration& qos, const le_audio::QosConfiguration* qos_cfg,
-    LeAudioAseConfiguration& ase) {
+    LeAudioAseConfiguration& ase, uint8_t ase_channel_cnt) {
   std::optional<CodecSpecificConfigurationLtv::CodecFrameBlocksPerSDU>
       frameBlock = std::nullopt;
   std::optional<CodecSpecificConfigurationLtv::FrameDuration> frameDuration =
       std::nullopt;
-  std::optional<CodecSpecificConfigurationLtv::AudioChannelAllocation>
-      allocation = std::nullopt;
   std::optional<CodecSpecificConfigurationLtv::OctetsPerCodecFrame> octet =
       std::nullopt;
 
+  // Hack to put back allocation
+  CodecSpecificConfigurationLtv::AudioChannelAllocation allocation =
+      CodecSpecificConfigurationLtv::AudioChannelAllocation();
+  if (ase_channel_cnt == 1) {
+    allocation.bitmask |=
+        CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_CENTER;
+
+  } else {
+    allocation.bitmask |=
+        CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT |
+        CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT;
+  }
   for (auto& cfg_ltv : ase.codecConfiguration) {
     auto tag = cfg_ltv.getTag();
     if (tag == CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU) {
@@ -433,11 +462,12 @@ void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
     } else if (tag == CodecSpecificConfigurationLtv::frameDuration) {
       frameDuration =
           cfg_ltv.get<CodecSpecificConfigurationLtv::frameDuration>();
-    } else if (tag == CodecSpecificConfigurationLtv::audioChannelAllocation) {
-      allocation =
-          cfg_ltv.get<CodecSpecificConfigurationLtv::audioChannelAllocation>();
     } else if (tag == CodecSpecificConfigurationLtv::octetsPerCodecFrame) {
       octet = cfg_ltv.get<CodecSpecificConfigurationLtv::octetsPerCodecFrame>();
+    } else if (tag == CodecSpecificConfigurationLtv::audioChannelAllocation) {
+      // Change to the old hack allocation
+      cfg_ltv.set<CodecSpecificConfigurationLtv::audioChannelAllocation>(
+          allocation);
     }
   }
 
@@ -445,9 +475,8 @@ void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
   if (frameBlock.has_value()) frameBlockValue = frameBlock.value().value;
 
   // Populate maxSdu
-  if (allocation.has_value() && octet.has_value()) {
-    auto channel_count = std::bitset<32>(allocation.value().bitmask).count();
-    qos.maxSdu = channel_count * octet.value().value * frameBlockValue;
+  if (octet.has_value()) {
+    qos.maxSdu = ase_channel_cnt * octet.value().value * frameBlockValue;
   }
   // Populate sduIntervalUs
   if (frameDuration.has_value()) {
@@ -468,6 +497,7 @@ void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
 // Parse into AseDirectionConfiguration
 AseDirectionConfiguration
 AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
+    const std::string& name,
     const le_audio::AudioSetSubConfiguration* flat_subconfig,
     const le_audio::QosConfiguration* qos_cfg, CodecLocation location) {
   AseDirectionConfiguration direction_conf;
@@ -477,10 +507,11 @@ AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
   LeAudioDataPathConfiguration path;
 
   // Translate into LeAudioAseConfiguration
-  populateAseConfiguration(ase, flat_subconfig, qos_cfg);
+  populateAseConfiguration(name, ase, flat_subconfig, qos_cfg);
 
   // Translate into LeAudioAseQosConfiguration
-  populateAseQosConfiguration(qos, qos_cfg, ase);
+  populateAseQosConfiguration(qos, qos_cfg, ase,
+                              flat_subconfig->ase_channel_cnt());
 
   // Translate location to data path id
   switch (location) {
@@ -510,13 +541,18 @@ AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
 // Parse into AseDirectionConfiguration and the ConfigurationFlags
 // and put them in the given list.
 void AudioSetConfigurationProviderJson::processSubconfig(
+    const std::string& name,
     const le_audio::AudioSetSubConfiguration* subconfig,
     const le_audio::QosConfiguration* qos_cfg,
     std::vector<std::optional<AseDirectionConfiguration>>&
         directionAseConfiguration,
     CodecLocation location) {
-  directionAseConfiguration.push_back(
-      SetConfigurationFromFlatSubconfig(subconfig, qos_cfg, location));
+  auto ase_cnt = subconfig->ase_cnt();
+  auto config =
+      SetConfigurationFromFlatSubconfig(name, subconfig, qos_cfg, location);
+  directionAseConfiguration.push_back(config);
+  // Put the same setting again.
+  if (ase_cnt == 2) directionAseConfiguration.push_back(config);
 }
 
 void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
@@ -587,11 +623,11 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
     /* Load subconfigurations */
     for (auto subconfig : *codec_cfg->subconfigurations()) {
       if (subconfig->direction() == kLeAudioDirectionSink) {
-        processSubconfig(subconfig, qos_sink_cfg, sinkAseConfiguration,
-                         location);
+        processSubconfig(flat_cfg->name()->str(), subconfig, qos_sink_cfg,
+                         sinkAseConfiguration, location);
       } else {
-        processSubconfig(subconfig, qos_source_cfg, sourceAseConfiguration,
-                         location);
+        processSubconfig(flat_cfg->name()->str(), subconfig, qos_source_cfg,
+                         sourceAseConfiguration, location);
       }
     }
   } else {
@@ -742,9 +778,6 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(
 
   LOG(DEBUG) << "Updating " << flat_scenarios->size() << " scenarios.";
   for (auto const& scenario : *flat_scenarios) {
-    LOG(DEBUG) << "Scenario " << scenario->name()->c_str()
-               << " configs: " << scenario->configurations()->size();
-
     if (!scenario->configurations()) continue;
     std::string scenario_name = scenario->name()->c_str();
     AudioContext context;
@@ -758,6 +791,9 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(
       context = AudioContext(game_context);
     else if (scenario_name == "VoiceAssistants")
       context = AudioContext(voice_assistants_context);
+    LOG(DEBUG) << "Scenario " << scenario->name()->c_str()
+               << " configs: " << scenario->configurations()->size()
+               << " context: " << context.toString();
 
     for (auto it = scenario->configurations()->begin();
          it != scenario->configurations()->end(); ++it) {
@@ -790,14 +826,22 @@ bool AudioSetConfigurationProviderJson::LoadContent(
     std::vector<std::pair<const char* /*schema*/, const char* /*content*/>>
         scenario_files,
     CodecLocation location) {
+  bool is_loaded_config = false;
   for (auto [schema, content] : config_files) {
-    if (!LoadConfigurationsFromFiles(schema, content, location)) return false;
+    if (LoadConfigurationsFromFiles(schema, content, location)) {
+      is_loaded_config = true;
+      break;
+    }
   }
 
+  bool is_loaded_scenario = false;
   for (auto [schema, content] : scenario_files) {
-    if (!LoadScenariosFromFiles(schema, content)) return false;
+    if (LoadScenariosFromFiles(schema, content)) {
+      is_loaded_scenario = true;
+      break;
+    }
   }
-  return true;
+  return is_loaded_config && is_loaded_scenario;
 }
 
 }  // namespace audio

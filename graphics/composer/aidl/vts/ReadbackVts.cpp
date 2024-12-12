@@ -16,6 +16,7 @@
 
 #include "ReadbackVts.h"
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
+#include <cmath>
 #include "RenderEngineVts.h"
 #include "renderengine/ExternalTexture.h"
 #include "renderengine/impl/ExternalTexture.h"
@@ -106,37 +107,72 @@ LayerSettings TestLayer::toRenderEngineLayerSettings() {
     return layerSettings;
 }
 
-int32_t ReadbackHelper::GetBytesPerPixel(common::PixelFormat pixelFormat) {
+int32_t ReadbackHelper::GetBitsPerChannel(common::PixelFormat pixelFormat) {
     switch (pixelFormat) {
+        case common::PixelFormat::RGBA_1010102:
+            return 10;
         case common::PixelFormat::RGBA_8888:
-            return 4;
         case common::PixelFormat::RGB_888:
-            return 3;
+            return 8;
         default:
             return -1;
     }
 }
 
-void ReadbackHelper::fillBuffer(uint32_t width, uint32_t height, uint32_t stride, void* bufferData,
+int32_t ReadbackHelper::GetAlphaBits(common::PixelFormat pixelFormat) {
+    switch (pixelFormat) {
+        case common::PixelFormat::RGBA_8888:
+            return 8;
+        case common::PixelFormat::RGBA_1010102:
+            return 2;
+        case common::PixelFormat::RGB_888:
+            return 0;
+        default:
+            return -1;
+    }
+}
+
+void ReadbackHelper::fillBuffer(uint32_t width, uint32_t height, uint32_t stride,
+                                int32_t bytesPerPixel, void* bufferData,
                                 common::PixelFormat pixelFormat,
                                 std::vector<Color> desiredPixelColors) {
     ASSERT_TRUE(pixelFormat == common::PixelFormat::RGB_888 ||
-                pixelFormat == common::PixelFormat::RGBA_8888);
-    int32_t bytesPerPixel = GetBytesPerPixel(pixelFormat);
+                pixelFormat == common::PixelFormat::RGBA_8888 ||
+                pixelFormat == common::PixelFormat::RGBA_1010102);
+    int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
+    int32_t alphaBits = GetAlphaBits(pixelFormat);
+    ASSERT_NE(-1, alphaBits);
+    ASSERT_NE(-1, bitsPerChannel);
     ASSERT_NE(-1, bytesPerPixel);
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            auto pixel = row * static_cast<int32_t>(width) + col;
+
+    uint32_t maxValue = (1 << bitsPerChannel) - 1;
+    uint32_t maxAlphaValue = (1 << alphaBits) - 1;
+    for (uint32_t row = 0; row < height; row++) {
+        for (uint32_t col = 0; col < width; col++) {
+            auto pixel = row * width + col;
             Color srcColor = desiredPixelColors[static_cast<size_t>(pixel)];
 
-            int offset = (row * static_cast<int32_t>(stride) + col) * bytesPerPixel;
-            uint8_t* pixelColor = (uint8_t*)bufferData + offset;
-            pixelColor[0] = static_cast<uint8_t>(std::round(255.0f * srcColor.r));
-            pixelColor[1] = static_cast<uint8_t>(std::round(255.0f * srcColor.g));
-            pixelColor[2] = static_cast<uint8_t>(std::round(255.0f * srcColor.b));
+            uint32_t offset = (row * stride + col) * static_cast<uint32_t>(bytesPerPixel);
 
-            if (bytesPerPixel == 4) {
-                pixelColor[3] = static_cast<uint8_t>(std::round(255.0f * srcColor.a));
+            uint32_t* pixelStart = (uint32_t*)((uint8_t*)bufferData + offset);
+
+            uint32_t red = static_cast<uint32_t>(std::round(maxValue * srcColor.r));
+            uint32_t green = static_cast<uint32_t>(std::round(maxValue * srcColor.g));
+            uint32_t blue = static_cast<uint32_t>(std::round(maxValue * srcColor.b));
+
+            // Boo we're not word aligned so special case this.
+            if (pixelFormat == common::PixelFormat::RGB_888) {
+                uint8_t* pixelColor = (uint8_t*)pixelStart;
+                pixelColor[0] = static_cast<uint8_t>(red);
+                pixelColor[1] = static_cast<uint8_t>(green);
+                pixelColor[2] = static_cast<uint8_t>(blue);
+            } else {
+                uint32_t alpha = static_cast<uint32_t>(std::round(maxAlphaValue * srcColor.a));
+                uint32_t color = (alpha << (32 - alphaBits)) |
+                                 (blue << (32 - alphaBits - bitsPerChannel)) |
+                                 (green << (32 - alphaBits - bitsPerChannel * 2)) |
+                                 (red << (32 - alphaBits - bitsPerChannel * 3));
+                *pixelStart = color;
             }
         }
     }
@@ -165,7 +201,8 @@ void ReadbackHelper::fillColorsArea(std::vector<Color>& expectedColors, int32_t 
 bool ReadbackHelper::readbackSupported(const common::PixelFormat& pixelFormat,
                                        const common::Dataspace& dataspace) {
     if (pixelFormat != common::PixelFormat::RGB_888 &&
-        pixelFormat != common::PixelFormat::RGBA_8888) {
+        pixelFormat != common::PixelFormat::RGBA_8888 &&
+        pixelFormat != common::PixelFormat::RGBA_1010102) {
         return false;
     }
     if (std::find(dataspaces.begin(), dataspaces.end(), dataspace) == dataspaces.end()) {
@@ -175,36 +212,110 @@ bool ReadbackHelper::readbackSupported(const common::PixelFormat& pixelFormat,
 }
 
 void ReadbackHelper::compareColorBuffers(const std::vector<Color>& expectedColors, void* bufferData,
-                                         const uint32_t stride, const uint32_t width,
-                                         const uint32_t height, common::PixelFormat pixelFormat) {
-    const int32_t bytesPerPixel = ReadbackHelper::GetBytesPerPixel(pixelFormat);
-    ASSERT_NE(-1, bytesPerPixel);
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            auto pixel = row * static_cast<int32_t>(width) + col;
-            int offset = (row * static_cast<int32_t>(stride) + col) * bytesPerPixel;
-            uint8_t* pixelColor = (uint8_t*)bufferData + offset;
+                                         const uint32_t stride, int32_t bytesPerPixel,
+                                         const uint32_t width, const uint32_t height,
+                                         common::PixelFormat pixelFormat) {
+    int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
+    int32_t alphaBits = GetAlphaBits(pixelFormat);
+    ASSERT_GT(bytesPerPixel, 0);
+    ASSERT_NE(-1, alphaBits);
+    ASSERT_NE(-1, bitsPerChannel);
+    uint32_t maxValue = (1 << bitsPerChannel) - 1;
+    uint32_t maxAlphaValue = (1 << alphaBits) - 1;
+    for (uint32_t row = 0; row < height; row++) {
+        for (uint32_t col = 0; col < width; col++) {
+            auto pixel = row * width + col;
             const Color expectedColor = expectedColors[static_cast<size_t>(pixel)];
-            ASSERT_EQ(std::round(255.0f * expectedColor.r), pixelColor[0]);
-            ASSERT_EQ(std::round(255.0f * expectedColor.g), pixelColor[1]);
-            ASSERT_EQ(std::round(255.0f * expectedColor.b), pixelColor[2]);
+
+            uint32_t offset = (row * stride + col) * static_cast<uint32_t>(bytesPerPixel);
+            uint32_t* pixelStart = (uint32_t*)((uint8_t*)bufferData + offset);
+
+            uint32_t expectedRed = static_cast<uint32_t>(std::round(maxValue * expectedColor.r));
+            uint32_t expectedGreen = static_cast<uint32_t>(std::round(maxValue * expectedColor.g));
+            uint32_t expectedBlue = static_cast<uint32_t>(std::round(maxValue * expectedColor.b));
+
+            // Boo we're not word aligned so special case this.
+            if (pixelFormat == common::PixelFormat::RGB_888) {
+                uint8_t* pixelColor = (uint8_t*)pixelStart;
+                ASSERT_EQ(pixelColor[0], static_cast<uint8_t>(expectedRed))
+                        << "Red channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(pixelColor[1], static_cast<uint8_t>(expectedGreen))
+                        << "Green channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(pixelColor[2], static_cast<uint8_t>(expectedBlue))
+                        << "Blue channel mismatch at (" << row << ", " << col << ")";
+            } else {
+                uint32_t expectedAlpha =
+                        static_cast<uint32_t>(std::round(maxAlphaValue * expectedColor.a));
+
+                uint32_t actualRed =
+                        (*pixelStart >> (32 - alphaBits - bitsPerChannel * 3)) & maxValue;
+                uint32_t actualGreen =
+                        (*pixelStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
+                uint32_t actualBlue = (*pixelStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
+                uint32_t actualAlpha = (*pixelStart >> (32 - alphaBits)) & maxAlphaValue;
+
+                ASSERT_EQ(expectedRed, actualRed)
+                        << "Red channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(expectedGreen, actualGreen)
+                        << "Green channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(expectedBlue, actualBlue)
+                        << "Blue channel mismatch at (" << row << ", " << col << ")";
+            }
         }
     }
 }
 
 void ReadbackHelper::compareColorBuffers(void* expectedBuffer, void* actualBuffer,
-                                         const uint32_t stride, const uint32_t width,
-                                         const uint32_t height, common::PixelFormat pixelFormat) {
-    const int32_t bytesPerPixel = ReadbackHelper::GetBytesPerPixel(pixelFormat);
-    ASSERT_NE(-1, bytesPerPixel);
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            int offset = (row * static_cast<int32_t>(stride) + col) * bytesPerPixel;
-            uint8_t* expectedColor = (uint8_t*)expectedBuffer + offset;
-            uint8_t* actualColor = (uint8_t*)actualBuffer + offset;
-            ASSERT_EQ(expectedColor[0], actualColor[0]);
-            ASSERT_EQ(expectedColor[1], actualColor[1]);
-            ASSERT_EQ(expectedColor[2], actualColor[2]);
+                                         const uint32_t stride, int32_t bytesPerPixel,
+                                         const uint32_t width, const uint32_t height,
+                                         common::PixelFormat pixelFormat) {
+    int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
+    int32_t alphaBits = GetAlphaBits(pixelFormat);
+    ASSERT_GT(bytesPerPixel, 0);
+    ASSERT_NE(-1, alphaBits);
+    ASSERT_NE(-1, bitsPerChannel);
+    uint32_t maxValue = (1 << bitsPerChannel) - 1;
+    uint32_t maxAlphaValue = (1 << alphaBits) - 1;
+    for (uint32_t row = 0; row < height; row++) {
+        for (uint32_t col = 0; col < width; col++) {
+            uint32_t offset = (row * stride + col) * static_cast<uint32_t>(bytesPerPixel);
+            uint32_t* expectedStart = (uint32_t*)((uint8_t*)expectedBuffer + offset);
+            uint32_t* actualStart = (uint32_t*)((uint8_t*)actualBuffer + offset);
+
+            // Boo we're not word aligned so special case this.
+            if (pixelFormat == common::PixelFormat::RGB_888) {
+                uint8_t* expectedPixel = (uint8_t*)expectedStart;
+                uint8_t* actualPixel = (uint8_t*)actualStart;
+                ASSERT_EQ(actualPixel[0], expectedPixel[0])
+                        << "Red channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(actualPixel[1], expectedPixel[1])
+                        << "Green channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(actualPixel[2], expectedPixel[2])
+                        << "Blue channel mismatch at (" << row << ", " << col << ")";
+            } else {
+                uint32_t expectedRed =
+                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 3)) & maxValue;
+                uint32_t expectedGreen =
+                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
+                uint32_t expectedBlue =
+                        (*expectedStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
+                uint32_t expectedAlpha = (*expectedStart >> (32 - alphaBits)) & maxAlphaValue;
+
+                uint32_t actualRed =
+                        (*actualStart >> (32 - alphaBits - bitsPerChannel * 3)) & maxValue;
+                uint32_t actualGreen =
+                        (*actualStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
+                uint32_t actualBlue =
+                        (*actualStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
+                uint32_t actualAlpha = (*actualStart >> (32 - alphaBits)) & maxAlphaValue;
+
+                ASSERT_EQ(expectedRed, actualRed)
+                        << "Red channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(expectedGreen, actualGreen)
+                        << "Green channel mismatch at (" << row << ", " << col << ")";
+                ASSERT_EQ(expectedBlue, actualBlue)
+                        << "Blue channel mismatch at (" << row << ", " << col << ")";
+            }
         }
     }
 }
@@ -258,12 +369,13 @@ void ReadbackBuffer::checkReadbackBuffer(const std::vector<Color>& expectedColor
     auto status = mGraphicBuffer->lockAsync(mUsage, mAccessRegion, &bufData, dup(bufferFence.get()),
                                             &bytesPerPixel, &bytesPerStride);
     EXPECT_EQ(::android::OK, status);
-    ASSERT_TRUE(mPixelFormat == PixelFormat::RGB_888 || mPixelFormat == PixelFormat::RGBA_8888);
+    ASSERT_TRUE(mPixelFormat == PixelFormat::RGB_888 || mPixelFormat == PixelFormat::RGBA_8888 ||
+                mPixelFormat == PixelFormat::RGBA_1010102);
     const uint32_t stride = (bytesPerPixel > 0 && bytesPerStride > 0)
                                     ? static_cast<uint32_t>(bytesPerStride / bytesPerPixel)
                                     : mGraphicBuffer->getStride();
-    ReadbackHelper::compareColorBuffers(expectedColors, bufData, stride, mWidth, mHeight,
-                                        mPixelFormat);
+    ReadbackHelper::compareColorBuffers(expectedColors, bufData, stride, bytesPerPixel, mWidth,
+                                        mHeight, mPixelFormat);
     status = mGraphicBuffer->unlock();
     EXPECT_EQ(::android::OK, status);
 }
@@ -353,8 +465,8 @@ void TestBufferLayer::fillBuffer(std::vector<Color>& expectedColors) {
                                     ? static_cast<uint32_t>(bytesPerStride / bytesPerPixel)
                                     : mGraphicBuffer->getStride();
     EXPECT_EQ(::android::OK, status);
-    ASSERT_NO_FATAL_FAILURE(ReadbackHelper::fillBuffer(mWidth, mHeight, stride, bufData,
-                                                       mPixelFormat, expectedColors));
+    ASSERT_NO_FATAL_FAILURE(ReadbackHelper::fillBuffer(mWidth, mHeight, stride, bytesPerPixel,
+                                                       bufData, mPixelFormat, expectedColors));
 
     const auto unlockStatus = mGraphicBuffer->unlockAsync(&mFillFence);
     ASSERT_EQ(::android::OK, unlockStatus);

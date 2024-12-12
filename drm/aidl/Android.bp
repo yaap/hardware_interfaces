@@ -14,6 +14,7 @@ aidl_interface {
     stability: "vintf",
     imports: [
         "android.hardware.common-V2",
+        "android.hardware.drm.common-V1",
     ],
     backend: {
         cpp: {
@@ -30,7 +31,10 @@ aidl_interface {
     versions_with_info: [
         {
             version: "1",
-            imports: ["android.hardware.common-V2"],
+            imports: [
+                "android.hardware.common-V2",
+                "android.hardware.drm.common-V1",
+            ],
         },
     ],
 

@@ -348,6 +348,13 @@ FakeVehicleHardware::FakeVehicleHardware()
 
 FakeVehicleHardware::FakeVehicleHardware(std::string defaultConfigDir,
                                          std::string overrideConfigDir, bool forceOverride)
+    : FakeVehicleHardware(defaultConfigDir, overrideConfigDir, forceOverride,
+                          /*s2rS2dConfig=*/
+                          GetIntProperty(POWER_STATE_REQ_CONFIG_PROPERTY, /*default_value=*/0)) {}
+
+FakeVehicleHardware::FakeVehicleHardware(std::string defaultConfigDir,
+                                         std::string overrideConfigDir, bool forceOverride,
+                                         int32_t s2rS2dConfig)
     : mValuePool(std::make_unique<VehiclePropValuePool>()),
       mServerSidePropStore(new VehiclePropertyStore(mValuePool)),
       mDefaultConfigDir(defaultConfigDir),
@@ -360,7 +367,7 @@ FakeVehicleHardware::FakeVehicleHardware(std::string defaultConfigDir,
       mPendingGetValueRequests(this),
       mPendingSetValueRequests(this),
       mForceOverride(forceOverride) {
-    init();
+    init(s2rS2dConfig);
 }
 
 FakeVehicleHardware::~FakeVehicleHardware() {
@@ -388,7 +395,7 @@ std::unordered_map<int32_t, ConfigDeclaration> FakeVehicleHardware::loadConfigDe
     return configsByPropId;
 }
 
-void FakeVehicleHardware::init() {
+void FakeVehicleHardware::init(int32_t s2rS2dConfig) {
     maybeGetGrpcServiceInfo(&mPowerControllerServiceAddress);
 
     for (auto& [_, configDeclaration] : loadConfigDeclarations()) {
@@ -396,8 +403,7 @@ void FakeVehicleHardware::init() {
         VehiclePropertyStore::TokenFunction tokenFunction = nullptr;
 
         if (cfg.prop == toInt(VehicleProperty::AP_POWER_STATE_REQ)) {
-            int config = GetIntProperty(POWER_STATE_REQ_CONFIG_PROPERTY, /*default_value=*/0);
-            cfg.configArray[0] = config;
+            cfg.configArray[0] = s2rS2dConfig;
         } else if (cfg.prop == OBD2_FREEZE_FRAME) {
             tokenFunction = [](const VehiclePropValue& propValue) { return propValue.timestamp; };
         }
@@ -1047,6 +1053,10 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
     VhalResult<void> isAdasPropertyAvailableResult;
     VhalResult<bool> isCruiseControlTypeStandardResult;
     switch (propId) {
+        case toInt(VehicleProperty::DISPLAY_BRIGHTNESS):
+        case toInt(VehicleProperty::PER_DISPLAY_BRIGHTNESS):
+            ALOGD("DISPLAY_BRIGHTNESS: %s", value.toString().c_str());
+            return {};
         case toInt(VehicleProperty::AP_POWER_STATE_REPORT):
             *isSpecialValue = true;
             return setApPowerStateReport(value);
@@ -1902,6 +1912,37 @@ Result<int32_t> FakeVehicleHardware::parsePropId(const std::vector<std::string>&
     return safelyParseInt<int32_t>(index, propIdStr);
 }
 
+// Parses areaId option ("-a"). It can be an Integer or a string in the form of "AREA_1" or
+// "AREA_1 | AREA_2 | ..."
+Result<int32_t> FakeVehicleHardware::parseAreaId(const std::vector<std::string>& options,
+                                                 size_t index, int32_t propId) {
+    const std::string& areaIdStr = options[index];
+    auto result = safelyParseInt<int32_t>(index, areaIdStr);
+    if (result.ok()) {
+        return result;
+    }
+
+    // Check for pattern matching "AREA_1 | AREA_2 | AREA_3".
+    std::regex pattern(R"(^\w+(?:( )?\|( )?\w+)*$)");
+    std::smatch match;
+    int32_t areaId = 0;
+    if (!std::regex_match(areaIdStr, match, pattern)) {
+        return result;
+    }
+    pattern = R"(\w+)";
+
+    std::sregex_iterator end;
+    for (std::sregex_iterator it(areaIdStr.begin(), areaIdStr.end(), pattern); it != end; it++) {
+        // Parse each areas contained in this areaId.
+        auto result = stringToArea(it->str(), propId);
+        if (!result.ok()) {
+            return result;
+        }
+        areaId |= result.value();
+    }
+    return areaId;
+}
+
 std::string FakeVehicleHardware::dumpSpecificProperty(const std::vector<std::string>& options) {
     if (auto result = checkArgumentsSize(options, /*minSize=*/2); !result.ok()) {
         return getErrorMsg(result);
@@ -1958,6 +1999,7 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
     prop.status = VehiclePropertyStatus::AVAILABLE;
     optionIndex++;
     std::unordered_set<std::string> parsedOptions;
+    int32_t areaIdIndex = -1;
 
     while (optionIndex < options.size()) {
         std::string argType = options[optionIndex];
@@ -2032,13 +2074,7 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
             if (argValuesSize != 1) {
                 return Error() << "Expect exact one value when using \"-a\"\n";
             }
-            auto int32Result = safelyParseInt<int32_t>(currentIndex, argValues[0]);
-            if (!int32Result.ok()) {
-                return Error() << StringPrintf("Area ID: \"%s\" is not a valid int: %s\n",
-                                               argValues[0].c_str(),
-                                               getErrorMsg(int32Result).c_str());
-            }
-            prop.areaId = int32Result.value();
+            areaIdIndex = currentIndex;
         } else if (EqualsIgnoreCase(argType, "-t")) {
             if (argValuesSize != 1) {
                 return Error() << "Expect exact one value when using \"-t\"\n";
@@ -2053,6 +2089,17 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
         } else {
             return Error() << StringPrintf("Unknown option: %s\n", argType.c_str());
         }
+    }
+
+    if (areaIdIndex != -1) {
+        auto int32Result = parseAreaId(options, areaIdIndex, prop.prop);
+        if (!int32Result.ok()) {
+            return Error() << StringPrintf(
+                           "Area ID: \"%s\" is not a valid int or "
+                           "one or more area names: %s\n",
+                           options[areaIdIndex].c_str(), getErrorMsg(int32Result).c_str());
+        }
+        prop.areaId = int32Result.value();
     }
 
     return prop;

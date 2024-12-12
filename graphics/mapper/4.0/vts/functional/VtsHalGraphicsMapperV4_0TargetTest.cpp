@@ -719,6 +719,38 @@ TEST_P(GraphicsMapperHidlTest, LockUnlockBasic) {
 }
 
 /**
+ * Test IMapper::lock and IMapper::unlock with no CPU usage requested.
+ */
+TEST_P(GraphicsMapperHidlTest, LockUnlockNoCPUUsage) {
+    const auto& info = mDummyDescriptorInfo;
+
+    const native_handle_t* bufferHandle;
+    uint32_t stride;
+    ASSERT_NO_FATAL_FAILURE(
+            bufferHandle = mGralloc->allocate(info, true, Tolerance::kToleranceStrict, &stride));
+
+    // lock buffer with 0 usage
+    const IMapper::Rect region{0, 0, static_cast<int32_t>(info.width),
+                               static_cast<int32_t>(info.height)};
+
+    hidl_handle acquireFenceHandle;
+
+    auto buffer = const_cast<native_handle_t*>(bufferHandle);
+    mGralloc->getMapper()->lock(buffer, 0, region, acquireFenceHandle,
+                                [&](const auto& tmpError, const auto& /*tmpData*/) {
+                                    EXPECT_EQ(Error::BAD_VALUE, tmpError)
+                                            << "Locking with 0 access succeeded";
+                                });
+
+    mGralloc->getMapper()->unlock(buffer, [&](const auto& tmpError, const auto&) {
+        EXPECT_EQ(Error::BAD_BUFFER, tmpError)
+                << "Unlocking not locked buffer succeeded";
+    });
+
+    mGralloc->freeBuffer(bufferHandle);
+}
+
+/**
  *  Test multiple operations associated with different color formats
  */
 TEST_P(GraphicsMapperHidlTest, Lock_YCRCB_420_SP) {

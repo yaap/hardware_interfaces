@@ -37,6 +37,15 @@ aidl_interface {
         java: {
             enabled: false,
         },
+        ndk: {
+            enabled: true,
+        },
+        cpp: {
+            enabled: false,
+        },
+        rust: {
+            enabled: false,
+        },
     },
     frozen: true,
     versions_with_info: [

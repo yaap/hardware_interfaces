@@ -10,9 +10,13 @@ cc_library {
     //   SPDX-license-identifier-Apache-2.0
     name: "android.hardware.biometrics.common.thread",
     export_include_dirs: ["include"],
-    vendor: true,
+    vendor_available: true,
     srcs: [
         "WorkerThread.cpp",
+    ],
+    apex_available: [
+        "//apex_available:anyapex",
+        "//apex_available:platform",
     ],
 }
 

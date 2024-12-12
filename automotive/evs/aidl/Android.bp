@@ -44,6 +44,9 @@ aidl_interface {
         ndk: {
             min_sdk_version: "29",
         },
+        rust: {
+            enabled: true,
+        },
     },
     versions_with_info: [
         {

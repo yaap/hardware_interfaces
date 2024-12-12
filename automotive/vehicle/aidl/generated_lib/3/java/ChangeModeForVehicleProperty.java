@@ -28,6 +28,10 @@ import java.util.Map;
 
 public final class ChangeModeForVehicleProperty {
 
+    // Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+    private static final int PER_DISPLAY_MAX_BRIGHTNESS = 0x11410F4E;
+    // End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+
     public static final Map<Integer, Integer> values = Map.ofEntries(
         Map.entry(VehicleProperty.INFO_VIN, VehiclePropertyChangeMode.STATIC),
         Map.entry(VehicleProperty.INFO_MAKE, VehiclePropertyChangeMode.STATIC),
@@ -294,7 +298,10 @@ public final class ChangeModeForVehicleProperty {
         Map.entry(VehicleProperty.CROSS_TRAFFIC_MONITORING_ENABLED, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.CROSS_TRAFFIC_MONITORING_WARNING_STATE, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_ENABLED, VehiclePropertyChangeMode.ON_CHANGE),
-        Map.entry(VehicleProperty.LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyChangeMode.ON_CHANGE)
+        Map.entry(VehicleProperty.LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyChangeMode.ON_CHANGE),
+        // Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+        Map.entry(PER_DISPLAY_MAX_BRIGHTNESS, VehiclePropertyChangeMode.STATIC)
+        // End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
     );
 
 }

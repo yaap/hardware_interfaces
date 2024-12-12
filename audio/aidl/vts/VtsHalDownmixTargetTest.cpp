@@ -96,8 +96,7 @@ class DownmixEffectHelper : public EffectHelper {
         Parameter::Specific specific = getDefaultParamSpecific();
         Parameter::Common common = EffectHelper::createParamCommon(
                 0 /* session */, 1 /* ioHandle */, 44100 /* iSampleRate */, 44100 /* oSampleRate */,
-                kInputFrameCount /* iFrameCount */, kOutputFrameCount /* oFrameCount */,
-                inputChannelLayout,
+                kFrameCount /* iFrameCount */, kFrameCount /* oFrameCount */, inputChannelLayout,
                 AudioChannelLayout::make<AudioChannelLayout::layoutMask>(
                         AudioChannelLayout::LAYOUT_STEREO));
         ASSERT_NO_FATAL_FAILURE(open(mEffect, common, specific, &mOpenEffectReturn, EX_NONE));
@@ -139,31 +138,15 @@ class DownmixEffectHelper : public EffectHelper {
     }
 
     void setDataTestParams(int32_t layoutType) {
-        mInputBuffer.resize(kBufferSize);
-
         // Get the number of channels used
         mInputChannelCount = getChannelCount(
                 AudioChannelLayout::make<AudioChannelLayout::layoutMask>(layoutType));
+        mInputBufferSize = kFrameCount * mInputChannelCount;
+        mInputBuffer.resize(mInputBufferSize);
 
         // In case of downmix, output is always configured to stereo layout.
-        mOutputBufferSize = (mInputBuffer.size() / mInputChannelCount) * kOutputChannelCount;
+        mOutputBufferSize = kFrameCount * kOutputChannelCount;
         mOutputBuffer.resize(mOutputBufferSize);
-    }
-
-    // Generate mInputBuffer values between -kMaxDownmixSample to kMaxDownmixSample
-    void generateInputBuffer(size_t position, bool isStrip) {
-        size_t increment;
-        if (isStrip)
-            // Fill input at all the channels
-            increment = 1;
-        else
-            // Fill input at only one channel
-            increment = mInputChannelCount;
-
-        for (size_t i = position; i < mInputBuffer.size(); i += increment) {
-            mInputBuffer[i] =
-                    ((static_cast<float>(std::rand()) / RAND_MAX) * 2 - 1) * kMaxDownmixSample;
-        }
     }
 
     bool isLayoutValid(int32_t inputLayout) {
@@ -173,7 +156,12 @@ class DownmixEffectHelper : public EffectHelper {
         return true;
     }
 
-    static constexpr long kInputFrameCount = 100, kOutputFrameCount = 100;
+    static const long kFrameCount = 256;
+    static constexpr float kMaxDownmixSample = 1;
+    static constexpr int kOutputChannelCount = 2;
+    // Mask for layouts greater than MAX_INPUT_CHANNELS_SUPPORTED
+    static constexpr int32_t kMaxChannelMask =
+            ~((1 << ChannelMix<AUDIO_CHANNEL_OUT_STEREO>::MAX_INPUT_CHANNELS_SUPPORTED) - 1);
     std::shared_ptr<IFactory> mFactory;
     Descriptor mDescriptor;
     std::shared_ptr<IEffect> mEffect;
@@ -183,12 +171,7 @@ class DownmixEffectHelper : public EffectHelper {
     std::vector<float> mOutputBuffer;
     size_t mInputChannelCount;
     size_t mOutputBufferSize;
-    static constexpr size_t kBufferSize = 128;
-    static constexpr float kMaxDownmixSample = 1;
-    static constexpr int kOutputChannelCount = 2;
-    // Mask for layouts greater than MAX_INPUT_CHANNELS_SUPPORTED
-    static constexpr int32_t kMaxChannelMask =
-            ~((1 << ChannelMix<AUDIO_CHANNEL_OUT_STEREO>::MAX_INPUT_CHANNELS_SUPPORTED) - 1);
+    size_t mInputBufferSize;
 };
 
 /**
@@ -366,7 +349,8 @@ TEST_P(DownmixFoldDataTest, DownmixProcessData) {
 
     for (int32_t channel : supportedChannels) {
         size_t position = std::distance(supportedChannels.begin(), supportedChannels.find(channel));
-        generateInputBuffer(position, false /*isStripe*/);
+        generateInputBuffer(mInputBuffer, position, false /*isStripe*/,
+                            mInputChannelCount /*channelCount*/, kMaxDownmixSample);
         ASSERT_NO_FATAL_FAILURE(
                 processAndWriteToOutput(mInputBuffer, mOutputBuffer, mEffect, &mOpenEffectReturn));
         validateOutput(channel, position);
@@ -401,9 +385,9 @@ class DownmixStripDataTest : public ::testing::TestWithParam<DownmixStripDataTes
     void TearDown() override { TearDownDownmix(); }
 
     void validateOutput() {
-        ASSERT_EQ(kBufferSize, mInputBuffer.size());
-        ASSERT_GE(kBufferSize, mOutputBufferSize);
-        for (size_t i = 0, j = 0; i < kBufferSize && j < mOutputBufferSize;
+        ASSERT_EQ(mInputBufferSize, mInputBuffer.size());
+        ASSERT_GE(mInputBufferSize, mOutputBufferSize);
+        for (size_t i = 0, j = 0; i < mInputBufferSize && j < mOutputBufferSize;
              i += mInputChannelCount, j += kOutputChannelCount) {
             ASSERT_EQ(mOutputBuffer[j], mInputBuffer[i]);
             ASSERT_EQ(mOutputBuffer[j + 1], mInputBuffer[i + 1]);
@@ -418,7 +402,8 @@ TEST_P(DownmixStripDataTest, DownmixProcessData) {
     ASSERT_NO_FATAL_FAILURE(setParameters(Downmix::Type::STRIP));
 
     // Generate input buffer, call process and compare outputs
-    generateInputBuffer(0 /*position*/, true /*isStripe*/);
+    generateInputBuffer(mInputBuffer, 0 /*position*/, true /*isStripe*/,
+                        mInputChannelCount /*channelCount*/, kMaxDownmixSample);
     ASSERT_NO_FATAL_FAILURE(
             processAndWriteToOutput(mInputBuffer, mOutputBuffer, mEffect, &mOpenEffectReturn));
     validateOutput();

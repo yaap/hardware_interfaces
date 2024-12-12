@@ -337,6 +337,9 @@ inline std::string propIdToString(int32_t propId) {
 // This is for debug purpose only.
 android::base::Result<int32_t> stringToPropId(const std::string& propName);
 
+// This is for debug purpose only. Converts an area's name to its enum definition.
+android::base::Result<int32_t> stringToArea(const std::string& areaName, int32_t propId);
+
 template <typename T>
 void roundToNearestResolution(std::vector<T>& arrayToSanitize, float resolution) {
     if (resolution == 0) {

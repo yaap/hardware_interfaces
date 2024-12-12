@@ -10,6 +10,7 @@ package {
 
 aidl_interface {
     name: "android.hardware.camera.provider",
+    host_supported: true,
     vendor_available: true,
     srcs: [
         "android/hardware/camera/provider/*.aidl",
@@ -26,6 +27,9 @@ aidl_interface {
         },
         cpp: {
             enabled: false,
+        },
+        rust: {
+            enabled: true,
         },
     },
     versions_with_info: [

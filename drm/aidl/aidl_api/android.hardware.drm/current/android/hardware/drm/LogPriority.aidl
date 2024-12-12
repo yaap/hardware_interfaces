@@ -34,12 +34,12 @@
 package android.hardware.drm;
 @Backing(type="int") @VintfStability
 enum LogPriority {
-  UNKNOWN = 0,
-  DEFAULT = 1,
-  VERBOSE = 2,
-  DEBUG = 3,
-  INFO = 4,
-  WARN = 5,
-  ERROR = 6,
-  FATAL = 7,
+  UNKNOWN,
+  DEFAULT,
+  VERBOSE,
+  DEBUG,
+  INFO,
+  WARN,
+  ERROR,
+  FATAL,
 }

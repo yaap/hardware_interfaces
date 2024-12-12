@@ -70,26 +70,60 @@ V1_0::Carrier toHidl(const aidl::Carrier& carrier) {
     };
 }
 
-aidl::CarrierRestrictions toAidl(const V1_0::CarrierRestrictions& cr) {
+static aidl::CarrierInfo toCarrierInfo(const aidl::Carrier& carrier) {
     return {
-            .allowedCarriers = toAidl(cr.allowedCarriers),
-            .excludedCarriers = toAidl(cr.excludedCarriers),
+            .mcc = carrier.mcc,
+            .mnc = carrier.mnc,
+    };
+}
+
+static std::vector<aidl::CarrierInfo> toCarrierInfos(const std::vector<aidl::Carrier>& carriers) {
+    std::vector<aidl::CarrierInfo> infos(carriers.size());
+    for (size_t i = 0; i < carriers.size(); i++) {
+        infos[i] = toCarrierInfo(carriers[i]);
+    }
+    return infos;
+}
+
+V1_0::Carrier toHidl(const aidl::CarrierInfo& carrierInfo) {
+    return {
+            .mcc = carrierInfo.mcc,
+            .mnc = carrierInfo.mnc,
+    };
+}
+
+aidl::CarrierRestrictions toAidl(const V1_0::CarrierRestrictions& cr) {
+    auto allowedCarriers = toAidl(cr.allowedCarriers);
+    auto excludedCarriers = toAidl(cr.excludedCarriers);
+    return {
+            .allowedCarriers = allowedCarriers,
+            .excludedCarriers = excludedCarriers,
             .allowedCarriersPrioritized = true,
+            .allowedCarrierInfoList = toCarrierInfos(allowedCarriers),
+            .excludedCarrierInfoList = toCarrierInfos(excludedCarriers),
     };
 }
 
 aidl::CarrierRestrictions toAidl(const V1_4::CarrierRestrictionsWithPriority& cr) {
+    auto allowedCarriers = toAidl(cr.allowedCarriers);
+    auto excludedCarriers = toAidl(cr.excludedCarriers);
     return {
-            .allowedCarriers = toAidl(cr.allowedCarriers),
-            .excludedCarriers = toAidl(cr.excludedCarriers),
+            .allowedCarriers = allowedCarriers,
+            .excludedCarriers = excludedCarriers,
             .allowedCarriersPrioritized = cr.allowedCarriersPrioritized,
+            .allowedCarrierInfoList = toCarrierInfos(allowedCarriers),
+            .excludedCarrierInfoList = toCarrierInfos(excludedCarriers),
     };
 }
 
 V1_4::CarrierRestrictionsWithPriority toHidl(const aidl::CarrierRestrictions& cr) {
     return {
-            .allowedCarriers = toHidl(cr.allowedCarriers),
-            .excludedCarriers = toHidl(cr.excludedCarriers),
+            .allowedCarriers = (cr.allowedCarriers.size() > cr.allowedCarrierInfoList.size())
+                                       ? toHidl(cr.allowedCarriers)
+                                       : toHidl(cr.allowedCarrierInfoList),
+            .excludedCarriers = (cr.excludedCarriers.size() > cr.excludedCarrierInfoList.size())
+                                        ? toHidl(cr.excludedCarriers)
+                                        : toHidl(cr.excludedCarrierInfoList),
             .allowedCarriersPrioritized = cr.allowedCarriersPrioritized,
     };
 }

@@ -8,10 +8,9 @@ package {
     default_applicable_licenses: ["hardware_interfaces_license"],
 }
 
-cc_binary {
-    name: "android.hardware.biometrics.fingerprint-service.example",
-    vendor: true,
-    relative_install_path: "hw",
+cc_library_static {
+    name: "android.hardware.biometrics.fingerprint-service.lib",
+    vendor_available: true,
     local_include_dirs: ["include"],
     srcs: [
         "FakeLockoutTracker.cpp",
@@ -30,15 +29,42 @@ cc_binary {
         "libbinder_ndk",
         "liblog",
     ],
-    static_libs: [
+    whole_static_libs: [
         "libandroid.hardware.biometrics.fingerprint.VirtualProps",
         "libbase",
-        "android.hardware.biometrics.fingerprint-V5-ndk",
+        "android.hardware.biometrics.fingerprint.virtualhal-ndk",
+        "android.hardware.biometrics.fingerprint-V4-ndk",
         "android.hardware.biometrics.common-V4-ndk",
         "android.hardware.biometrics.common.thread",
         "android.hardware.biometrics.common.util",
         "android.hardware.biometrics.common.config",
         "android.hardware.keymaster-V4-ndk",
+    ],
+    product_variables: {
+        debuggable: {
+            cflags: ["-DFPS_DEBUGGABLE"],
+        },
+    },
+    apex_available: [
+        "com.android.hardware.biometrics.fingerprint.virtual",
+        "//apex_available:platform",
+    ],
+}
+
+cc_binary {
+    name: "android.hardware.biometrics.fingerprint-service.example",
+    system_ext_specific: true,
+    relative_install_path: "hw",
+    local_include_dirs: ["include"],
+    srcs: [
+    ],
+    stl: "c++_static",
+    shared_libs: [
+        "libbinder_ndk",
+        "liblog",
+    ],
+    whole_static_libs: [
+        "android.hardware.biometrics.fingerprint-service.lib",
     ],
     installable: false, // install APEX instead
     product_variables: {
@@ -46,6 +72,37 @@ cc_binary {
             cflags: ["-DFPS_DEBUGGABLE"],
         },
     },
+    apex_available: [
+        "com.android.hardware.biometrics.fingerprint.virtual",
+    ],
+}
+
+cc_binary {
+    name: "android.hardware.biometrics.fingerprint-service.default",
+    //system_ext_specific: true,
+    vendor: true,
+    relative_install_path: "hw",
+    init_rc: ["fingerprint-default.rc"],
+    vintf_fragments: ["fingerprint-default.xml"],
+    local_include_dirs: ["include"],
+    srcs: [
+    ],
+    stl: "c++_static",
+    shared_libs: [
+        "libbinder_ndk",
+        "liblog",
+    ],
+    whole_static_libs: [
+        "android.hardware.biometrics.fingerprint-service.lib",
+    ],
+    product_variables: {
+        debuggable: {
+            cflags: ["-DFPS_DEBUGGABLE"],
+        },
+    },
+    apex_available: [
+        "//apex_available:platform",
+    ],
 }
 
 cc_test {
@@ -63,14 +120,13 @@ cc_test {
     ],
     static_libs: [
         "libandroid.hardware.biometrics.fingerprint.VirtualProps",
-        "android.hardware.biometrics.fingerprint-V5-ndk",
+        "android.hardware.biometrics.fingerprint-V4-ndk",
         "android.hardware.biometrics.common-V4-ndk",
         "android.hardware.keymaster-V4-ndk",
         "android.hardware.biometrics.common.util",
         "android.hardware.biometrics.common.config",
         "android.hardware.biometrics.common.thread",
     ],
-    vendor: true,
     test_suites: ["general-tests"],
     require_root: true,
 }
@@ -91,14 +147,13 @@ cc_test {
     ],
     static_libs: [
         "libandroid.hardware.biometrics.fingerprint.VirtualProps",
-        "android.hardware.biometrics.fingerprint-V5-ndk",
+        "android.hardware.biometrics.fingerprint-V4-ndk",
         "android.hardware.biometrics.common-V4-ndk",
         "android.hardware.keymaster-V4-ndk",
         "android.hardware.biometrics.common.util",
         "android.hardware.biometrics.common.config",
         "android.hardware.biometrics.common.thread",
     ],
-    vendor: true,
     test_suites: ["general-tests"],
     require_root: true,
 }
@@ -117,14 +172,13 @@ cc_test {
     ],
     static_libs: [
         "libandroid.hardware.biometrics.fingerprint.VirtualProps",
-        "android.hardware.biometrics.fingerprint-V5-ndk",
+        "android.hardware.biometrics.fingerprint-V4-ndk",
         "android.hardware.biometrics.common-V4-ndk",
         "android.hardware.keymaster-V4-ndk",
         "android.hardware.biometrics.common.util",
         "android.hardware.biometrics.common.thread",
         "android.hardware.biometrics.common.config",
     ],
-    vendor: true,
     test_suites: ["general-tests"],
     require_root: true,
 }
@@ -145,14 +199,13 @@ cc_test {
     ],
     static_libs: [
         "libandroid.hardware.biometrics.fingerprint.VirtualProps",
-        "android.hardware.biometrics.fingerprint-V5-ndk",
+        "android.hardware.biometrics.fingerprint-V4-ndk",
         "android.hardware.biometrics.common-V4-ndk",
         "android.hardware.keymaster-V4-ndk",
         "android.hardware.biometrics.common.util",
         "android.hardware.biometrics.common.thread",
         "android.hardware.biometrics.common.config",
     ],
-    vendor: true,
     test_suites: ["general-tests"],
     require_root: true,
 }
@@ -178,7 +231,8 @@ cc_test {
     ],
     static_libs: [
         "libandroid.hardware.biometrics.fingerprint.VirtualProps",
-        "android.hardware.biometrics.fingerprint-V5-ndk",
+        "android.hardware.biometrics.fingerprint-V4-ndk",
+        "android.hardware.biometrics.fingerprint.virtualhal-ndk",
         "android.hardware.biometrics.common-V4-ndk",
         "android.hardware.keymaster-V4-ndk",
         "android.hardware.biometrics.common.util",
@@ -190,7 +244,6 @@ cc_test {
             cflags: ["-DFPS_DEBUGGABLE"],
         },
     },
-    vendor: true,
     test_suites: ["general-tests"],
     require_root: true,
 }
@@ -198,39 +251,34 @@ cc_test {
 sysprop_library {
     name: "android.hardware.biometrics.fingerprint.VirtualProps",
     srcs: ["fingerprint.sysprop"],
-    property_owner: "Vendor",
-    vendor: true,
+    property_owner: "Platform",
+    vendor_available: true,
+    apex_available: [
+        "com.android.hardware.biometrics.fingerprint.virtual",
+        "//apex_available:platform",
+    ],
 }
 
 prebuilt_etc {
-    name: "fingerprint-example.rc",
-    src: "fingerprint-example.rc",
-    installable: false,
-}
-
-prebuilt_etc {
-    name: "fingerprint-example.xml",
-    src: "fingerprint-example.xml",
-    sub_dir: "vintf",
+    name: "fingerprint-virtual.rc",
+    src: "fingerprint-virtual.rc",
     installable: false,
 }
 
 apex {
     name: "com.android.hardware.biometrics.fingerprint.virtual",
     manifest: "apex_manifest.json",
-    file_contexts: "apex_file_contexts",
+    file_contexts: ":com.android.biometrics.virtual.fingerprint-file_contexts",
     key: "com.android.hardware.key",
     certificate: ":com.android.hardware.certificate",
     updatable: false,
-    vendor: true,
+    system_ext_specific: true,
 
     binaries: [
         "android.hardware.biometrics.fingerprint-service.example",
     ],
     prebuilts: [
         // init_rc
-        "fingerprint-example.rc",
-        // vintf_fragment
-        "fingerprint-example.xml",
+        "fingerprint-virtual.rc",
     ],
 }

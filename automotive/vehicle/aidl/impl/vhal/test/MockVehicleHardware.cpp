@@ -45,7 +45,18 @@ MockVehicleHardware::~MockVehicleHardware() {
 
 std::vector<VehiclePropConfig> MockVehicleHardware::getAllPropertyConfigs() const {
     std::scoped_lock<std::mutex> lockGuard(mLock);
+    mGetAllPropertyConfigsCalled = true;
     return mPropertyConfigs;
+}
+
+std::optional<VehiclePropConfig> MockVehicleHardware::getPropertyConfig(int32_t propId) const {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    for (const auto& config : mPropertyConfigs) {
+        if (config.prop == propId) {
+            return config;
+        }
+    }
+    return std::nullopt;
 }
 
 StatusCode MockVehicleHardware::setValues(std::shared_ptr<const SetValuesCallback> callback,
@@ -334,6 +345,11 @@ void MockVehicleHardware::sendOnPropertySetErrorEvent(
         const std::vector<SetValueErrorEvent>& errorEvents) {
     std::scoped_lock<std::mutex> lockGuard(mLock);
     (*mPropertySetErrorCallback)(errorEvents);
+}
+
+bool MockVehicleHardware::getAllPropertyConfigsCalled() {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    return mGetAllPropertyConfigsCalled;
 }
 
 }  // namespace vehicle

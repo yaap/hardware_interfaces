@@ -501,7 +501,7 @@
             {
                 "name": "AP_POWER_STATE_REQ",
                 "value": 289475072,
-                "description": "Property to control power state of application processor\nIt is assumed that AP's power state is controlled by a separate power controller.\nFor configuration information, VehiclePropConfig.configArray must have bit flag combining values in VehicleApPowerStateConfigFlag.\nint32Values[0] : VehicleApPowerStateReq enum value int32Values[1] : additional parameter relevant for each state, 0 if not used."
+                "description": "Property to control power state of application processor\nIt is assumed that AP's power state is controlled by a separate power controller.\nFor configuration information, VehiclePropConfig.configArray must have bit flag combining values in VehicleApPowerStateConfigFlag.\nconfigArray[0] : Bit flag combining values in VehicleApPowerStateConfigFlag, 0x0 if not used, 0x1 for enabling suspend to ram, 0x2 for supporting powering on AP from off state after timeout. 0x4 for enabling suspend to disk,\nint32Values[0] : VehicleApPowerStateReq enum value int32Values[1] : additional parameter relevant for each state, 0 if not used."
             },
             {
                 "name": "AP_POWER_STATE_REPORT",

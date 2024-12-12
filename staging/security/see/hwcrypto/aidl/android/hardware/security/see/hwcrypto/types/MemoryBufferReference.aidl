@@ -18,6 +18,7 @@ package android.hardware.security.see.hwcrypto.types;
 /*
  * Structure representing a section of a memory buffer.
  */
+@RustDerive(Copy=true, Clone=true)
 parcelable MemoryBufferReference {
     /*
      * Start of the memory buffer section measured from the start of the memory buffer set for this

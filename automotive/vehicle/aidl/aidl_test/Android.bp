@@ -40,7 +40,7 @@ cc_test {
 cc_test {
     name: "VehiclePropertyAnnotationCppTest",
     srcs: ["VehiclePropertyAnnotationCppTest.cpp"],
-    header_libs: ["IVehicleGeneratedHeaders-V3"],
+    header_libs: ["IVehicleGeneratedHeaders-V4"],
     defaults: ["VehicleHalInterfaceDefaults"],
     test_suites: ["general-tests"],
 }
@@ -49,11 +49,11 @@ android_test {
     name: "VehiclePropertyAnnotationJavaTest",
     srcs: [
         "VehiclePropertyAnnotationJavaTest.java",
-        ":IVehicleGeneratedJavaFiles-V3",
+        ":IVehicleGeneratedJavaFiles-V4",
     ],
     static_libs: [
         "android.hardware.automotive.vehicle-V3-java",
-        "android.hardware.automotive.vehicle.property-V3-java",
+        "android.hardware.automotive.vehicle.property-V4-java",
         "androidx.test.runner",
         "truth",
     ],

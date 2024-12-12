@@ -137,13 +137,15 @@ int32_t TvInputAidlTest::getNumNotIn(vector<int32_t>& nums) {
 }
 
 bool TvInputAidlTest::isValidHandle(NativeHandle& handle) {
-    if (handle.fds.empty()) {
+    if (handle.fds.empty() && handle.ints.empty()) {
         return false;
     }
-    for (size_t i = 0; i < handle.fds.size(); i++) {
-        int fd = handle.fds[i].get();
-        if (fcntl(fd, F_GETFL) < 0) {
-            return false;
+    if (!(handle.fds.empty())) {
+        for (size_t i = 0; i < handle.fds.size(); i++) {
+            int fd = handle.fds[i].get();
+            if (fcntl(fd, F_GETFL) < 0) {
+                return false;
+            }
         }
     }
     return true;

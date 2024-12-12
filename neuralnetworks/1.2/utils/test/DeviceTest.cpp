@@ -54,6 +54,10 @@ constexpr V1_0::PerformanceInfo kNoPerformanceInfo = {
         .execTime = std::numeric_limits<float>::max(),
         .powerUsage = std::numeric_limits<float>::max()};
 
+// FIXME: This function causes Clang to hang indefinitely when building with
+// -O1. Turn off optimization as a temporary workaround.
+// http://b/296850773
+#pragma clang optimize off
 template <typename... Args>
 auto makeCallbackReturn(Args&&... args) {
     return [argPack = std::make_tuple(std::forward<Args>(args)...)](const auto& cb) {
@@ -61,6 +65,7 @@ auto makeCallbackReturn(Args&&... args) {
         return Void();
     };
 }
+#pragma clang optimize on
 
 sp<MockDevice> createMockDevice() {
     const auto mockDevice = MockDevice::create();

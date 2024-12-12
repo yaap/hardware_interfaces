@@ -34,9 +34,9 @@
 package android.hardware.drm;
 @Backing(type="int") @VintfStability
 enum EventType {
-  PROVISION_REQUIRED = 0,
-  KEY_NEEDED = 1,
-  KEY_EXPIRED = 2,
-  VENDOR_DEFINED = 3,
-  SESSION_RECLAIMED = 4,
+  PROVISION_REQUIRED,
+  KEY_NEEDED,
+  KEY_EXPIRED,
+  VENDOR_DEFINED,
+  SESSION_RECLAIMED,
 }

@@ -24,9 +24,8 @@ cc_library_static {
         "libcutils",
     ],
     apex_available: [
+        "//apex_available:anyapex",
         "//apex_available:platform",
-        "com.android.neuralnetworks",
-        "com.android.media.swcodec",
     ],
     min_sdk_version: "29",
 }

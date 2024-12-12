@@ -104,7 +104,7 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     uint32_t boot_patch_level();
     bool isDeviceIdAttestationRequired();
     bool isSecondImeiIdAttestationRequired();
-    bool isRkpOnly();
+    std::optional<bool> isRkpOnly();
 
     bool Curve25519Supported();
 
@@ -356,7 +356,6 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     bool is_strongbox_enabled(void) const;
     bool is_chipset_allowed_km4_strongbox(void) const;
     bool shouldSkipAttestKeyTest(void) const;
-    void skipAttestKeyTestIfNeeded() const;
 
     void assert_mgf_digests_present_or_not_in_key_characteristics(
             const vector<KeyCharacteristics>& key_characteristics,

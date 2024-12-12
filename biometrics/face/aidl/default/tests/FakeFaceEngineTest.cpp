@@ -21,6 +21,7 @@
 #include <aidl/android/hardware/biometrics/face/BnSessionCallback.h>
 #include <android-base/logging.h>
 
+#include "Face.h"
 #include "FakeFaceEngine.h"
 #include "util/Util.h"
 
@@ -141,12 +142,12 @@ class FakeFaceEngineTest : public ::testing::Test {
     }
 
     void TearDown() override {
-        FaceHalProperties::enrollments({});
-        FaceHalProperties::challenge({});
-        FaceHalProperties::features({});
-        FaceHalProperties::authenticator_id({});
-        FaceHalProperties::strength("");
-        FaceHalProperties::operation_detect_interaction_latency({});
+        Face::cfg().setopt<OptIntVec>("enrollments", {});
+        Face::cfg().set<std::int64_t>("challenge", 0);
+        Face::cfg().setopt<OptIntVec>("features", {});
+        Face::cfg().set<std::int64_t>("authenticator_id", 0);
+        Face::cfg().set<std::string>("strength", "");
+        Face::cfg().setopt<OptIntVec>("operation_detect_interaction_latency", {});
     }
 
     FakeFaceEngine mEngine;
@@ -160,81 +161,83 @@ TEST_F(FakeFaceEngineTest, one_eq_one) {
 
 TEST_F(FakeFaceEngineTest, GenerateChallenge) {
     mEngine.generateChallengeImpl(mCallback.get());
-    ASSERT_EQ(FaceHalProperties::challenge().value(), mCallback->mLastChallenge);
+    ASSERT_EQ(Face::cfg().get<std::int64_t>("challenge"), mCallback->mLastChallenge);
 }
 
 TEST_F(FakeFaceEngineTest, RevokeChallenge) {
-    auto challenge = FaceHalProperties::challenge().value_or(10);
+    auto challenge = Face::cfg().get<std::int64_t>("challenge");
     mEngine.revokeChallengeImpl(mCallback.get(), challenge);
-    ASSERT_FALSE(FaceHalProperties::challenge().has_value());
+    ASSERT_FALSE(Face::cfg().get<std::int64_t>("challenge"));
     ASSERT_EQ(challenge, mCallback->mLastChallengeRevoked);
 }
 
 TEST_F(FakeFaceEngineTest, ResetLockout) {
-    FaceHalProperties::lockout(true);
+    Face::cfg().set<bool>("lockout", true);
     mEngine.resetLockoutImpl(mCallback.get(), {});
     ASSERT_FALSE(mCallback->mLockoutPermanent);
-    ASSERT_FALSE(FaceHalProperties::lockout().value_or(true));
+    ASSERT_FALSE(Face::cfg().get<bool>("lockout"));
 }
 
 TEST_F(FakeFaceEngineTest, AuthenticatorId) {
-    FaceHalProperties::authenticator_id(50);
+    Face::cfg().set<std::int64_t>("authenticator_id", 50);
     mEngine.getAuthenticatorIdImpl(mCallback.get());
     ASSERT_EQ(50, mCallback->mLastAuthenticatorId);
     ASSERT_FALSE(mCallback->mAuthenticatorIdInvalidated);
 }
 
 TEST_F(FakeFaceEngineTest, GetAuthenticatorIdWeakReturnsZero) {
-    FaceHalProperties::strength("weak");
-    FaceHalProperties::authenticator_id(500);
+    Face::cfg().set<std::string>("strength", "weak");
+    Face::cfg().set<std::int64_t>("authenticator_id", 500);
     mEngine.getAuthenticatorIdImpl(mCallback.get());
     ASSERT_EQ(0, mCallback->mLastAuthenticatorId);
     ASSERT_FALSE(mCallback->mAuthenticatorIdInvalidated);
 }
 
 TEST_F(FakeFaceEngineTest, AuthenticatorIdInvalidate) {
-    FaceHalProperties::authenticator_id(500);
+    Face::cfg().set<std::int64_t>("authenticator_id", 500);
     mEngine.invalidateAuthenticatorIdImpl(mCallback.get());
-    ASSERT_NE(500, FaceHalProperties::authenticator_id().value());
+    ASSERT_NE(500, Face::cfg().get<std::int64_t>("authenticator_id"));
     ASSERT_TRUE(mCallback->mAuthenticatorIdInvalidated);
 }
 
 TEST_F(FakeFaceEngineTest, Enroll) {
-    FaceHalProperties::next_enrollment("1,0:1000-[21,5,6,7,1],1100-[1118,1108,1]:true");
+    Face::cfg().set<std::string>("next_enrollment",
+                                 "1,0:1000-[21,5,6,7,1],1100-[1118,1108,1]:true");
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.enrollImpl(mCallback.get(), hat, {} /*enrollmentType*/, {} /*features*/,
                        mCancel.get_future());
-    ASSERT_FALSE(FaceHalProperties::next_enrollment().has_value());
-    ASSERT_EQ(1, FaceHalProperties::enrollments().size());
-    ASSERT_EQ(1, FaceHalProperties::enrollments()[0].value());
+    ASSERT_FALSE(Face::cfg().getopt<OptString>("next_enrollment").has_value());
+    ASSERT_EQ(1, Face::cfg().getopt<OptIntVec>("enrollments").size());
+    ASSERT_EQ(1, Face::cfg().getopt<OptIntVec>("enrollments")[0].value());
     ASSERT_EQ(1, mCallback->mLastEnrolled);
     ASSERT_EQ(0, mCallback->mRemaining);
 }
 
 TEST_F(FakeFaceEngineTest, EnrollFails) {
-    FaceHalProperties::next_enrollment("1,0:1000-[21,5,6,7,1],1100-[1118,1108,1]:false");
+    Face::cfg().set<std::string>("next_enrollment",
+                                 "1,0:1000-[21,5,6,7,1],1100-[1118,1108,1]:false");
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.enrollImpl(mCallback.get(), hat, {} /*enrollmentType*/, {} /*features*/,
                        mCancel.get_future());
-    ASSERT_FALSE(FaceHalProperties::next_enrollment().has_value());
-    ASSERT_EQ(0, FaceHalProperties::enrollments().size());
+    ASSERT_FALSE(Face::cfg().getopt<OptString>("next_enrollment").has_value());
+    ASSERT_EQ(0, Face::cfg().getopt<OptIntVec>("enrollments").size());
 }
 
 TEST_F(FakeFaceEngineTest, EnrollCancel) {
-    FaceHalProperties::next_enrollment("1:2000-[21,8,9],300:false");
+    Face::cfg().set<std::string>("next_enrollment", "1:2000-[21,8,9],300:false");
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mCancel.set_value();
     mEngine.enrollImpl(mCallback.get(), hat, {} /*enrollmentType*/, {} /*features*/,
                        mCancel.get_future());
     ASSERT_EQ(Error::CANCELED, mCallback->mError);
     ASSERT_EQ(-1, mCallback->mLastEnrolled);
-    ASSERT_EQ(0, FaceHalProperties::enrollments().size());
-    ASSERT_TRUE(FaceHalProperties::next_enrollment().has_value());
+    ASSERT_EQ(0, Face::cfg().getopt<OptIntVec>("enrollments").size());
+    ASSERT_FALSE(Face::cfg().get<std::string>("next_enrollment").empty());
 }
 
 TEST_F(FakeFaceEngineTest, Authenticate) {
-    FaceHalProperties::enrollments({100});
-    FaceHalProperties::enrollment_hit(100);
+    Face::cfg().setopt<OptIntVec>("enrollments", {100});
+    Face::cfg().set<std::int32_t>("enrollment_hit", 100);
     mEngine.authenticateImpl(mCallback.get(), 0 /* operationId*/, mCancel.get_future());
 
     ASSERT_EQ(100, mCallback->mLastAuthenticated);
@@ -242,32 +245,32 @@ TEST_F(FakeFaceEngineTest, Authenticate) {
 }
 
 TEST_F(FakeFaceEngineTest, AuthenticateCancel) {
-    FaceHalProperties::enrollments({100});
-    FaceHalProperties::enrollment_hit(100);
+    Face::cfg().setopt<OptIntVec>("enrollments", {100});
+    Face::cfg().set<std::int32_t>("enrollment_hit", 100);
     mCancel.set_value();
     mEngine.authenticateImpl(mCallback.get(), 0 /* operationId*/, mCancel.get_future());
     ASSERT_EQ(Error::CANCELED, mCallback->mError);
 }
 
 TEST_F(FakeFaceEngineTest, AuthenticateFailedForUnEnrolled) {
-    FaceHalProperties::enrollments({3});
-    FaceHalProperties::enrollment_hit(100);
+    Face::cfg().setopt<OptIntVec>("enrollments", {3});
+    Face::cfg().set<std::int32_t>("enrollment_hit", 100);
     mEngine.authenticateImpl(mCallback.get(), 0 /* operationId*/, mCancel.get_future());
     ASSERT_EQ(Error::TIMEOUT, mCallback->mError);
     ASSERT_TRUE(mCallback->mAuthenticateFailed);
 }
 
 TEST_F(FakeFaceEngineTest, DetectInteraction) {
-    FaceHalProperties::enrollments({100});
-    FaceHalProperties::enrollment_hit(100);
+    Face::cfg().setopt<OptIntVec>("enrollments", {100});
+    Face::cfg().set<std::int32_t>("enrollment_hit", 100);
     ASSERT_EQ(0, mCallback->mInteractionDetectedCount);
     mEngine.detectInteractionImpl(mCallback.get(), mCancel.get_future());
     ASSERT_EQ(1, mCallback->mInteractionDetectedCount);
 }
 
 TEST_F(FakeFaceEngineTest, DetectInteractionCancel) {
-    FaceHalProperties::enrollments({100});
-    FaceHalProperties::enrollment_hit(100);
+    Face::cfg().setopt<OptIntVec>("enrollments", {100});
+    Face::cfg().set<std::int32_t>("enrollment_hit", 100);
     mCancel.set_value();
     mEngine.detectInteractionImpl(mCallback.get(), mCancel.get_future());
     ASSERT_EQ(Error::CANCELED, mCallback->mError);
@@ -279,7 +282,7 @@ TEST_F(FakeFaceEngineTest, GetFeatureEmpty) {
 }
 
 TEST_F(FakeFaceEngineTest, SetFeature) {
-    FaceHalProperties::enrollments({1});
+    Face::cfg().setopt<OptIntVec>("enrollments", {1});
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_ATTENTION, true);
     auto features = mCallback->mFeatures;
@@ -294,7 +297,7 @@ TEST_F(FakeFaceEngineTest, SetFeature) {
 }
 
 TEST_F(FakeFaceEngineTest, ToggleFeature) {
-    FaceHalProperties::enrollments({1});
+    Face::cfg().setopt<OptIntVec>("enrollments", {1});
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_ATTENTION, true);
     mEngine.getFeaturesImpl(mCallback.get());
@@ -310,7 +313,7 @@ TEST_F(FakeFaceEngineTest, ToggleFeature) {
 }
 
 TEST_F(FakeFaceEngineTest, TurningOffNonExistentFeatureDoesNothing) {
-    FaceHalProperties::enrollments({1});
+    Face::cfg().setopt<OptIntVec>("enrollments", {1});
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_ATTENTION, false);
     mEngine.getFeaturesImpl(mCallback.get());
@@ -319,7 +322,7 @@ TEST_F(FakeFaceEngineTest, TurningOffNonExistentFeatureDoesNothing) {
 }
 
 TEST_F(FakeFaceEngineTest, SetMultipleFeatures) {
-    FaceHalProperties::enrollments({1});
+    Face::cfg().setopt<OptIntVec>("enrollments", {1});
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_ATTENTION, true);
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_DIVERSE_POSES, true);
@@ -335,7 +338,7 @@ TEST_F(FakeFaceEngineTest, SetMultipleFeatures) {
 }
 
 TEST_F(FakeFaceEngineTest, SetMultipleFeaturesAndTurnOffSome) {
-    FaceHalProperties::enrollments({1});
+    Face::cfg().setopt<OptIntVec>("enrollments", {1});
     keymaster::HardwareAuthToken hat{.mac = {2, 4}};
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_ATTENTION, true);
     mEngine.setFeatureImpl(mCallback.get(), hat, Feature::REQUIRE_DIVERSE_POSES, true);
@@ -352,7 +355,7 @@ TEST_F(FakeFaceEngineTest, SetMultipleFeaturesAndTurnOffSome) {
 }
 
 TEST_F(FakeFaceEngineTest, Enumerate) {
-    FaceHalProperties::enrollments({120, 3});
+    Face::cfg().setopt<OptIntVec>("enrollments", {120, 3});
     mEngine.enumerateEnrollmentsImpl(mCallback.get());
     auto enrolls = mCallback->mLastEnrollmentsEnumerated;
     ASSERT_FALSE(enrolls.empty());
@@ -361,7 +364,7 @@ TEST_F(FakeFaceEngineTest, Enumerate) {
 }
 
 TEST_F(FakeFaceEngineTest, RemoveEnrollments) {
-    FaceHalProperties::enrollments({120, 3, 100});
+    Face::cfg().setopt<OptIntVec>("enrollments", {120, 3, 100});
     mEngine.removeEnrollmentsImpl(mCallback.get(), {120, 100});
     mEngine.enumerateEnrollmentsImpl(mCallback.get());
     auto enrolls = mCallback->mLastEnrollmentsEnumerated;
@@ -372,9 +375,9 @@ TEST_F(FakeFaceEngineTest, RemoveEnrollments) {
 }
 
 TEST_F(FakeFaceEngineTest, ResetLockoutWithAuth) {
-    FaceHalProperties::lockout(true);
-    FaceHalProperties::enrollments({33});
-    FaceHalProperties::enrollment_hit(33);
+    Face::cfg().set<bool>("lockout", true);
+    Face::cfg().setopt<OptIntVec>("enrollments", {33});
+    Face::cfg().set<std::int32_t>("enrollment_hit", 33);
     auto cancelFuture = mCancel.get_future();
     mEngine.authenticateImpl(mCallback.get(), 0 /* operationId*/, cancelFuture);
 
@@ -382,28 +385,30 @@ TEST_F(FakeFaceEngineTest, ResetLockoutWithAuth) {
 
     mEngine.resetLockoutImpl(mCallback.get(), {} /* hat */);
     ASSERT_FALSE(mCallback->mLockoutPermanent);
-    FaceHalProperties::enrollment_hit(33);
+    Face::cfg().set<std::int32_t>("enrollment_hit", 33);
     mEngine.authenticateImpl(mCallback.get(), 0 /* operationId*/, cancelFuture);
     ASSERT_EQ(33, mCallback->mLastAuthenticated);
     ASSERT_FALSE(mCallback->mAuthenticateFailed);
 }
 
 TEST_F(FakeFaceEngineTest, LatencyDefault) {
-    FaceHalProperties::operation_detect_interaction_latency({});
-    ASSERT_EQ(DEFAULT_LATENCY,
-              mEngine.getLatency(FaceHalProperties::operation_detect_interaction_latency()));
+    Face::cfg().setopt<OptIntVec>("operation_detect_interaction_latency", {});
+    ASSERT_EQ(DEFAULT_LATENCY, mEngine.getLatency(Face::cfg().getopt<OptIntVec>(
+                                       "operation_detect_interaction_latency")));
 }
 
 TEST_F(FakeFaceEngineTest, LatencyFixed) {
-    FaceHalProperties::operation_detect_interaction_latency({10});
-    ASSERT_EQ(10, mEngine.getLatency(FaceHalProperties::operation_detect_interaction_latency()));
+    Face::cfg().setopt<OptIntVec>("operation_detect_interaction_latency", {10});
+    ASSERT_EQ(10, mEngine.getLatency(
+                          Face::cfg().getopt<OptIntVec>("operation_detect_interaction_latency")));
 }
 
 TEST_F(FakeFaceEngineTest, LatencyRandom) {
-    FaceHalProperties::operation_detect_interaction_latency({1, 1000});
+    Face::cfg().setopt<OptIntVec>("operation_detect_interaction_latency", {1, 1000});
     std::set<int32_t> latencySet;
     for (int i = 0; i < 100; i++) {
-        auto x = mEngine.getLatency(FaceHalProperties::operation_detect_interaction_latency());
+        auto x = mEngine.getLatency(
+                Face::cfg().getopt<OptIntVec>("operation_detect_interaction_latency"));
         ASSERT_TRUE(x >= 1 && x <= 1000);
         latencySet.insert(x);
     }

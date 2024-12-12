@@ -32,8 +32,8 @@ interface IFile {
      *     the sequence of bytes at [offset, offset + size) in the file
      *
      * May return service-specific errors:
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that the `readIntegrity` the
-     *       file was opened with does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     byte[] read(long size, long offset);
 
@@ -47,8 +47,8 @@ interface IFile {
      *     the number of bytes written successfully
      *
      * May return service-specific errors:
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that the `readIntegrity` the
-     *       file was opened with does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     long write(long offset, in byte[] buffer);
 
@@ -56,8 +56,8 @@ interface IFile {
      * Reads this file's size.
      *
      * May return service-specific errors:
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that the `readIntegrity` the
-     *       file was opened with does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     long getSize();
 
@@ -71,8 +71,8 @@ interface IFile {
      *     the file's new size
      *
      * May return service-specific errors:
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that the `readIntegrity` the
-     *       file was opened with does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     void setSize(long newSize);
 
@@ -88,8 +88,8 @@ interface IFile {
      *   - ERR_NOT_FOUND if no file exists at @destPath and @destCreateMode is `NO_CREATE`
      *   - ERR_ALREADY_EXISTS if a file already exists at @destPath and @destCreateMode is
      *       `CREATE_EXCLUSIVE`
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that the `readIntegrity` the
-     *       file was opened with does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     void rename(in @utf8InCpp String destPath, in CreationMode destCreateMode);
 }

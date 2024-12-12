@@ -21,7 +21,7 @@ Creates the next compatibility matrix.
 import argparse
 import os
 import pathlib
-import shutil
+import re
 import subprocess
 import textwrap
 
@@ -44,6 +44,7 @@ class Bump(object):
 
         self.current_level = cmdline_args.current_level
         self.current_letter = cmdline_args.current_letter
+        self.current_version = cmdline_args.platform_version
         self.current_module_name = f"framework_compatibility_matrix.{self.current_level}.xml"
         self.current_xml = self.interfaces_dir / f"compatibility_matrices/compatibility_matrix.{self.current_level}.xml"
         self.device_module_name = "framework_compatibility_matrix.device.xml"
@@ -58,12 +59,13 @@ class Bump(object):
         self.copy_matrix()
         self.edit_android_bp()
         self.edit_android_mk()
+        self.bump_libvintf()
 
     def bump_kernel_configs(self):
         check_call([
             self.top / "kernel/configs/tools/bump.py",
-            self.current_letter,
-            self.next_letter,
+            self.current_letter.lower(),
+            self.next_letter.lower(),
         ])
 
     def copy_matrix(self):
@@ -87,7 +89,7 @@ class Bump(object):
         next_kernel_configs = check_output(
             """grep -rh name: | sed -E 's/^.*"(.*)".*/\\1/g'""",
             cwd=self.top / "kernel/configs" /
-            self.next_letter,
+            self.next_letter.lower(),
             text=True,
             shell=True,
         ).splitlines()
@@ -109,6 +111,25 @@ class Bump(object):
             "kernel_configs", "-a", " ".join(next_kernel_configs), android_bp
         ])
 
+        # update the SYSTEM_MATRIX_DEPS variable and the phony module's
+        # product_variables entry.
+        lines = []
+        with open(android_bp) as f:
+            for line in f:
+              if f"    \"{self.device_module_name}\",\n" in line:
+                  lines.append(f"    \"{self.current_module_name}\",\n")
+
+              if f"                \"{self.current_module_name}\",\n" in line:
+                  lines.append(f"                \"{self.next_module_name}\",\n")
+              else:
+                  lines.append(line)
+
+        with open(android_bp, "w") as f:
+            f.write("".join(lines))
+
+
+    # This Android.mk file may be deprecated soon and the functionality is
+    # replaced by the soong phony module system_compatibility_matrix.xml.
     def edit_android_mk(self):
         android_mk = self.interfaces_dir / "compatibility_matrices/Android.mk"
         lines = []
@@ -128,21 +149,69 @@ class Bump(object):
         with open(android_mk, "w") as f:
             f.write("".join(lines))
 
+    def bump_libvintf(self):
+        if not self.current_version:
+            print("Skip libvintf update...")
+            return
+        try:
+            check_call(["grep", "-h",
+                        f"{self.current_letter.upper()} = {self.current_level}",
+                        "system/libvintf/include/vintf/Level.h"])
+        except subprocess.CalledProcessError:
+            print("Adding new API level to libvintf")
+            add_lines_above("system/libvintf/analyze_matrix/analyze_matrix.cpp",
+                            "        case Level::UNSPECIFIED:",
+                            textwrap.indent(textwrap.dedent(f"""\
+                                    case Level::{self.current_letter.upper()}:
+                                        return "Android {self.current_version} ({self.current_letter.upper()})";"""),
+                            "    "*2))
+            add_lines_above("system/libvintf/include/vintf/Level.h",
+                            "    // To add new values:",
+                            f"    {self.current_letter.upper()} = {self.current_level},")
+            add_lines_above("system/libvintf/include/vintf/Level.h",
+                            "        Level::UNSPECIFIED,",
+                            f"        Level::{self.current_letter.upper()},")
+            add_lines_above("system/libvintf/RuntimeInfo.cpp",
+                            "            // Add more levels above this line.",
+                            textwrap.indent(textwrap.dedent(f"""\
+                                        case {self.current_version}: {{
+                                            ret = Level::{self.current_letter.upper()};
+                                        }} break;"""),
+                            "    "*3))
+
+
+def add_lines_above(file, pattern, lines):
+    with open(file, 'r+') as f:
+        text = f.read()
+        split_text = re.split(rf"\n{pattern}\n", text)
+        if len(split_text) != 2:
+            # Only one pattern must be found, otherwise the source must be
+            # changed unexpectedly.
+            raise Exception(
+                f'Pattern "{pattern}" not found or multiple patterns found in {file}')
+        f.seek(0)
+        f.write(f"\n{lines}\n{pattern}\n".join(split_text))
+        f.truncate()
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("current_level",
                         type=str,
-                        help="VINTF level of the current version (e.g. 9)")
+                        help="VINTF level of the current version (e.g. 202404)")
     parser.add_argument("next_level",
                         type=str,
-                        help="VINTF level of the next version (e.g. 10)")
+                        help="VINTF level of the next version (e.g. 202504)")
     parser.add_argument("current_letter",
                         type=str,
                         help="Letter of the API level of the current version (e.g. v)")
     parser.add_argument("next_letter",
                         type=str,
                         help="Letter of the API level of the next version (e.g. w)")
+    parser.add_argument("platform_version",
+                        type=str,
+                        nargs="?",
+                        help="Android release version number number (e.g. 15)")
     cmdline_args = parser.parse_args()
 
     Bump(cmdline_args).run()

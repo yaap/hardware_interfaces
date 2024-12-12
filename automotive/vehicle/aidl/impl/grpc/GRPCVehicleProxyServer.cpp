@@ -40,7 +40,11 @@ static std::shared_ptr<::grpc::ServerCredentials> getServerCredentials() {
 
 GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
                                                std::unique_ptr<IVehicleHardware>&& hardware)
-    : mServiceAddr(std::move(serverAddr)), mHardware(std::move(hardware)) {
+    : GrpcVehicleProxyServer(std::vector<std::string>({serverAddr}), std::move(hardware)){};
+
+GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::vector<std::string> serverAddrs,
+                                               std::unique_ptr<IVehicleHardware>&& hardware)
+    : mServiceAddrs(std::move(serverAddrs)), mHardware(std::move(hardware)) {
     mHardware->registerOnPropertyChangeEvent(
             std::make_unique<const IVehicleHardware::PropertyChangeCallback>(
                     [this](std::vector<aidlvhal::VehiclePropValue> values) {
@@ -65,10 +69,13 @@ GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
                                                  const proto::VehiclePropValueRequests* requests,
                                                  proto::SetValueResults* results) {
     std::vector<aidlvhal::SetValueRequest> aidlRequests;
+    std::unordered_set<int64_t> requestIds;
     for (const auto& protoRequest : requests->requests()) {
         auto& aidlRequest = aidlRequests.emplace_back();
-        aidlRequest.requestId = protoRequest.request_id();
+        int64_t requestId = protoRequest.request_id();
+        aidlRequest.requestId = requestId;
         proto_msg_converter::protoToAidl(protoRequest.value(), &aidlRequest.value);
+        requestIds.insert(requestId);
     }
     auto waitMtx = std::make_shared<std::mutex>();
     auto waitCV = std::make_shared<std::condition_variable>();
@@ -76,19 +83,27 @@ GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
     auto tmpResults = std::make_shared<proto::SetValueResults>();
     auto aidlStatus = mHardware->setValues(
             std::make_shared<const IVehicleHardware::SetValuesCallback>(
-                    [waitMtx, waitCV, complete,
-                     tmpResults](std::vector<aidlvhal::SetValueResult> setValueResults) {
-                        for (const auto& aidlResult : setValueResults) {
-                            auto& protoResult = *tmpResults->add_results();
-                            protoResult.set_request_id(aidlResult.requestId);
-                            protoResult.set_status(
-                                    static_cast<proto::StatusCode>(aidlResult.status));
-                        }
+                    [waitMtx, waitCV, complete, tmpResults,
+                     &requestIds](std::vector<aidlvhal::SetValueResult> setValueResults) {
+                        bool receivedAllResults = false;
                         {
                             std::lock_guard lck(*waitMtx);
-                            *complete = true;
+                            for (const auto& aidlResult : setValueResults) {
+                                auto& protoResult = *tmpResults->add_results();
+                                int64_t requestIdForResult = aidlResult.requestId;
+                                protoResult.set_request_id(requestIdForResult);
+                                protoResult.set_status(
+                                        static_cast<proto::StatusCode>(aidlResult.status));
+                                requestIds.erase(requestIdForResult);
+                            }
+                            if (requestIds.empty()) {
+                                receivedAllResults = true;
+                                *complete = true;
+                            }
                         }
-                        waitCV->notify_all();
+                        if (receivedAllResults) {
+                            waitCV->notify_all();
+                        }
                     }),
             aidlRequests);
     if (aidlStatus != aidlvhal::StatusCode::OK) {
@@ -110,10 +125,13 @@ GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
                                                  const proto::VehiclePropValueRequests* requests,
                                                  proto::GetValueResults* results) {
     std::vector<aidlvhal::GetValueRequest> aidlRequests;
+    std::unordered_set<int64_t> requestIds;
     for (const auto& protoRequest : requests->requests()) {
         auto& aidlRequest = aidlRequests.emplace_back();
-        aidlRequest.requestId = protoRequest.request_id();
+        int64_t requestId = protoRequest.request_id();
+        aidlRequest.requestId = requestId;
         proto_msg_converter::protoToAidl(protoRequest.value(), &aidlRequest.prop);
+        requestIds.insert(requestId);
     }
     auto waitMtx = std::make_shared<std::mutex>();
     auto waitCV = std::make_shared<std::condition_variable>();
@@ -121,23 +139,31 @@ GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
     auto tmpResults = std::make_shared<proto::GetValueResults>();
     auto aidlStatus = mHardware->getValues(
             std::make_shared<const IVehicleHardware::GetValuesCallback>(
-                    [waitMtx, waitCV, complete,
-                     tmpResults](std::vector<aidlvhal::GetValueResult> getValueResults) {
-                        for (const auto& aidlResult : getValueResults) {
-                            auto& protoResult = *tmpResults->add_results();
-                            protoResult.set_request_id(aidlResult.requestId);
-                            protoResult.set_status(
-                                    static_cast<proto::StatusCode>(aidlResult.status));
-                            if (aidlResult.prop) {
-                                auto* valuePtr = protoResult.mutable_value();
-                                proto_msg_converter::aidlToProto(*aidlResult.prop, valuePtr);
-                            }
-                        }
+                    [waitMtx, waitCV, complete, tmpResults,
+                     &requestIds](std::vector<aidlvhal::GetValueResult> getValueResults) {
+                        bool receivedAllResults = false;
                         {
                             std::lock_guard lck(*waitMtx);
-                            *complete = true;
+                            for (const auto& aidlResult : getValueResults) {
+                                auto& protoResult = *tmpResults->add_results();
+                                int64_t requestIdForResult = aidlResult.requestId;
+                                protoResult.set_request_id(requestIdForResult);
+                                protoResult.set_status(
+                                        static_cast<proto::StatusCode>(aidlResult.status));
+                                if (aidlResult.prop) {
+                                    auto* valuePtr = protoResult.mutable_value();
+                                    proto_msg_converter::aidlToProto(*aidlResult.prop, valuePtr);
+                                }
+                                requestIds.erase(requestIdForResult);
+                            }
+                            if (requestIds.empty()) {
+                                receivedAllResults = true;
+                                *complete = true;
+                            }
                         }
-                        waitCV->notify_all();
+                        if (receivedAllResults) {
+                            waitCV->notify_all();
+                        }
                     }),
             aidlRequests);
     if (aidlStatus != aidlvhal::StatusCode::OK) {
@@ -200,6 +226,7 @@ GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
     auto dumpResult = mHardware->dump(dumpOptionStrings);
     result->set_caller_should_dump_state(dumpResult.callerShouldDumpState);
     result->set_buffer(dumpResult.buffer);
+    result->set_refresh_property_configs(dumpResult.refreshPropertyConfigs);
     return ::grpc::Status::OK;
 }
 
@@ -254,7 +281,9 @@ GrpcVehicleProxyServer& GrpcVehicleProxyServer::Start() {
     }
     ::grpc::ServerBuilder builder;
     builder.RegisterService(this);
-    builder.AddListeningPort(mServiceAddr, getServerCredentials());
+    for (const std::string& serviceAddr : mServiceAddrs) {
+        builder.AddListeningPort(serviceAddr, getServerCredentials());
+    }
     mServer = builder.BuildAndStart();
     CHECK(mServer) << __func__ << ": failed to create the GRPC server, "
                    << "please make sure the configuration and permissions are correct";

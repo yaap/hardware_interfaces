@@ -29,12 +29,10 @@ cc_test {
         "VehicleHalUtils",
         "libgmock",
         "libgtest",
+        "libjsoncpp",
     ],
     header_libs: [
-        "IVehicleGeneratedHeaders-V3",
-    ],
-    shared_libs: [
-        "libjsoncpp",
+        "IVehicleGeneratedHeaders-V4",
     ],
     data: [
         ":VehicleHalDefaultProperties_JSON",
@@ -52,15 +50,13 @@ cc_test {
         "VehicleHalUtils",
         "libgmock",
         "libgtest",
+        "libjsoncpp",
     ],
     cflags: [
         "-DENABLE_VEHICLE_HAL_TEST_PROPERTIES",
     ],
     header_libs: [
-        "IVehicleGeneratedHeaders-V3",
-    ],
-    shared_libs: [
-        "libjsoncpp",
+        "IVehicleGeneratedHeaders-V4",
     ],
     data: [
         ":VehicleHalDefaultProperties_JSON",

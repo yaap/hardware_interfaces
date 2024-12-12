@@ -28,7 +28,7 @@ using ndk::SpAIBinder;
 static const std::string kInstance = std::string() + IVibrator::descriptor + "/default";
 
 TEST(Ndk, CallRootMethod) {
-    SpAIBinder vibBinder = SpAIBinder(AServiceManager_getService(kInstance.c_str()));
+    SpAIBinder vibBinder = SpAIBinder(AServiceManager_waitForService(kInstance.c_str()));
     ASSERT_NE(nullptr, vibBinder.get());
     std::shared_ptr<IVibrator> vib = IVibrator::fromBinder(vibBinder);
     ASSERT_NE(nullptr, vib.get());
@@ -38,7 +38,7 @@ TEST(Ndk, CallRootMethod) {
 TEST(Ndk, CallExtMethod) {
     // normally you would want to cache this
     //
-    SpAIBinder vibBinder = SpAIBinder(AServiceManager_getService(kInstance.c_str()));
+    SpAIBinder vibBinder = SpAIBinder(AServiceManager_waitForService(kInstance.c_str()));
     ASSERT_NE(nullptr, vibBinder.get());
     std::shared_ptr<IVibrator> vib = IVibrator::fromBinder(vibBinder);
     ASSERT_NE(nullptr, vib.get());

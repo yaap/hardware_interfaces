@@ -61,7 +61,7 @@ static const SbcCapabilities kDefaultOffloadSbcCapability = {
 
 static const AacCapabilities kDefaultOffloadAacCapability = {
     .objectType = {AacObjectType::MPEG2_LC},
-    .sampleRateHz = {44100},
+    .sampleRateHz = {44100, 48000},
     .channelMode = {ChannelMode::STEREO},
     .variableBitRateSupported = true,
     .bitsPerSample = {16}};

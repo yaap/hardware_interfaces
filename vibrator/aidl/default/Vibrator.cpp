@@ -27,9 +27,12 @@ namespace vibrator {
 static constexpr int32_t COMPOSE_DELAY_MAX_MS = 1000;
 static constexpr int32_t COMPOSE_SIZE_MAX = 256;
 static constexpr int32_t COMPOSE_PWLE_SIZE_MAX = 127;
+static constexpr int32_t COMPOSE_PWLE_V2_SIZE_MAX = 16;
 
 static constexpr float Q_FACTOR = 11.0;
 static constexpr int32_t COMPOSE_PWLE_PRIMITIVE_DURATION_MAX_MS = 16383;
+static constexpr int32_t COMPOSE_PWLE_V2_PRIMITIVE_DURATION_MAX_MS = 1000;
+static constexpr int32_t COMPOSE_PWLE_V2_PRIMITIVE_DURATION_MIN_MS = 20;
 static constexpr float PWLE_LEVEL_MIN = 0.0;
 static constexpr float PWLE_LEVEL_MAX = 1.0;
 static constexpr float PWLE_FREQUENCY_RESOLUTION_HZ = 1.0;
@@ -39,14 +42,30 @@ static constexpr float PWLE_FREQUENCY_MAX_HZ = 160.0;
 static constexpr float PWLE_BW_MAP_SIZE =
         1 + ((PWLE_FREQUENCY_MAX_HZ - PWLE_FREQUENCY_MIN_HZ) / PWLE_FREQUENCY_RESOLUTION_HZ);
 
+// Service specific error code used for vendor vibration effects.
+static constexpr int32_t ERROR_CODE_INVALID_DURATION = 1;
+
 ndk::ScopedAStatus Vibrator::getCapabilities(int32_t* _aidl_return) {
     LOG(VERBOSE) << "Vibrator reporting capabilities";
-    *_aidl_return = IVibrator::CAP_ON_CALLBACK | IVibrator::CAP_PERFORM_CALLBACK |
-                    IVibrator::CAP_AMPLITUDE_CONTROL | IVibrator::CAP_EXTERNAL_CONTROL |
-                    IVibrator::CAP_EXTERNAL_AMPLITUDE_CONTROL | IVibrator::CAP_COMPOSE_EFFECTS |
-                    IVibrator::CAP_ALWAYS_ON_CONTROL | IVibrator::CAP_GET_RESONANT_FREQUENCY |
-                    IVibrator::CAP_GET_Q_FACTOR | IVibrator::CAP_FREQUENCY_CONTROL |
-                    IVibrator::CAP_COMPOSE_PWLE_EFFECTS;
+    std::lock_guard lock(mMutex);
+    if (mCapabilities == 0) {
+        if (!getInterfaceVersion(&mVersion).isOk()) {
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_ILLEGAL_STATE));
+        }
+        mCapabilities = IVibrator::CAP_ON_CALLBACK | IVibrator::CAP_PERFORM_CALLBACK |
+                        IVibrator::CAP_AMPLITUDE_CONTROL | IVibrator::CAP_EXTERNAL_CONTROL |
+                        IVibrator::CAP_EXTERNAL_AMPLITUDE_CONTROL | IVibrator::CAP_COMPOSE_EFFECTS |
+                        IVibrator::CAP_ALWAYS_ON_CONTROL | IVibrator::CAP_GET_RESONANT_FREQUENCY |
+                        IVibrator::CAP_GET_Q_FACTOR | IVibrator::CAP_FREQUENCY_CONTROL |
+                        IVibrator::CAP_COMPOSE_PWLE_EFFECTS;
+
+        if (mVersion >= 3) {
+            mCapabilities |= (IVibrator::CAP_PERFORM_VENDOR_EFFECTS |
+                              IVibrator::CAP_COMPOSE_PWLE_EFFECTS_V2);
+        }
+    }
+
+    *_aidl_return = mCapabilities;
     return ndk::ScopedAStatus::ok();
 }
 
@@ -99,6 +118,47 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength strength,
     }
 
     *_aidl_return = kEffectMillis;
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus Vibrator::performVendorEffect(
+        const VendorEffect& effect, const std::shared_ptr<IVibratorCallback>& callback) {
+    LOG(VERBOSE) << "Vibrator perform vendor effect";
+    int32_t capabilities = 0;
+    if (!getCapabilities(&capabilities).isOk()) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    if ((capabilities & IVibrator::CAP_PERFORM_VENDOR_EFFECTS) == 0) {
+        return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+    }
+    EffectStrength strength = effect.strength;
+    if (strength != EffectStrength::LIGHT && strength != EffectStrength::MEDIUM &&
+        strength != EffectStrength::STRONG) {
+        return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_ILLEGAL_ARGUMENT));
+    }
+    float scale = effect.scale;
+    if (scale <= 0) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    float vendorScale = effect.vendorScale;
+    if (vendorScale <= 0) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+
+    int32_t durationMs = 0;
+    if (!effect.vendorData.getInt("DURATION_MS", &durationMs) || durationMs <= 0) {
+        return ndk::ScopedAStatus::fromServiceSpecificError(ERROR_CODE_INVALID_DURATION);
+    }
+
+    if (callback != nullptr) {
+        std::thread([callback, durationMs] {
+            LOG(VERBOSE) << "Starting perform on another thread for durationMs:" << durationMs;
+            usleep(durationMs * 1000);
+            LOG(VERBOSE) << "Notifying perform vendor effect complete";
+            callback->onComplete();
+        }).detach();
+    }
+
     return ndk::ScopedAStatus::ok();
 }
 
@@ -405,6 +465,122 @@ ndk::ScopedAStatus Vibrator::composePwle(const std::vector<PrimitivePwle> &compo
         usleep(totalDuration * 1000);
         if (callback != nullptr) {
             LOG(VERBOSE) << "Notifying compose PWLE complete";
+            callback->onComplete();
+        }
+    }).detach();
+
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus Vibrator::getPwleV2FrequencyToOutputAccelerationMap(
+        std::vector<PwleV2OutputMapEntry>* _aidl_return) {
+    std::vector<PwleV2OutputMapEntry> frequencyToOutputAccelerationMap;
+
+    std::vector<std::pair<float, float>> frequencyToOutputAccelerationData = {
+            {30.0f, 0.01f},  {46.0f, 0.09f},  {50.0f, 0.1f},   {55.0f, 0.12f},  {62.0f, 0.66f},
+            {83.0f, 0.82f},  {85.0f, 0.85f},  {92.0f, 1.05f},  {107.0f, 1.63f}, {115.0f, 1.72f},
+            {123.0f, 1.81f}, {135.0f, 2.23f}, {144.0f, 2.47f}, {145.0f, 2.5f},  {150.0f, 3.0f},
+            {175.0f, 2.51f}, {181.0f, 2.41f}, {190.0f, 2.28f}, {200.0f, 2.08f}, {204.0f, 1.96f},
+            {205.0f, 1.9f},  {224.0f, 1.7f},  {235.0f, 1.5f},  {242.0f, 1.46f}, {253.0f, 1.41f},
+            {263.0f, 1.39f}, {65.0f, 1.38f},  {278.0f, 1.37f}, {294.0f, 1.35f}, {300.0f, 1.34f}};
+    for (const auto& entry : frequencyToOutputAccelerationData) {
+        frequencyToOutputAccelerationMap.push_back(
+                PwleV2OutputMapEntry(/*frequency=*/entry.first,
+                                     /*maxOutputAcceleration=*/entry.second));
+    }
+
+    *_aidl_return = frequencyToOutputAccelerationMap;
+
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus Vibrator::getPwleV2PrimitiveDurationMaxMillis(int32_t* maxDurationMs) {
+    *maxDurationMs = COMPOSE_PWLE_V2_PRIMITIVE_DURATION_MAX_MS;
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus Vibrator::getPwleV2CompositionSizeMax(int32_t* maxSize) {
+    *maxSize = COMPOSE_PWLE_V2_SIZE_MAX;
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus Vibrator::getPwleV2PrimitiveDurationMinMillis(int32_t* minDurationMs) {
+    *minDurationMs = COMPOSE_PWLE_V2_PRIMITIVE_DURATION_MIN_MS;
+    return ndk::ScopedAStatus::ok();
+}
+
+float getPwleV2FrequencyMinHz(std::vector<PwleV2OutputMapEntry> frequencyToOutputAccelerationMap) {
+    if (frequencyToOutputAccelerationMap.empty()) {
+        return 0.0f;
+    }
+
+    float minFrequency = frequencyToOutputAccelerationMap[0].frequencyHz;
+
+    for (const auto& entry : frequencyToOutputAccelerationMap) {
+        if (entry.frequencyHz < minFrequency) {
+            minFrequency = entry.frequencyHz;
+        }
+    }
+
+    return minFrequency;
+}
+
+float getPwleV2FrequencyMaxHz(std::vector<PwleV2OutputMapEntry> frequencyToOutputAccelerationMap) {
+    if (frequencyToOutputAccelerationMap.empty()) {
+        return 0.0f;
+    }
+
+    float maxFrequency = frequencyToOutputAccelerationMap[0].frequencyHz;
+
+    for (const auto& entry : frequencyToOutputAccelerationMap) {
+        if (entry.frequencyHz > maxFrequency) {
+            maxFrequency = entry.frequencyHz;
+        }
+    }
+
+    return maxFrequency;
+}
+
+ndk::ScopedAStatus Vibrator::composePwleV2(const std::vector<PwleV2Primitive>& composite,
+                                           const std::shared_ptr<IVibratorCallback>& callback) {
+    int32_t capabilities = 0;
+    if (!getCapabilities(&capabilities).isOk()) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    if ((capabilities & IVibrator::CAP_COMPOSE_PWLE_EFFECTS_V2) == 0) {
+        return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+    }
+
+    int compositionSizeMax;
+    getPwleV2CompositionSizeMax(&compositionSizeMax);
+    if (composite.size() <= 0 || composite.size() > compositionSizeMax) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+
+    int32_t totalEffectDuration = 0;
+    std::vector<PwleV2OutputMapEntry> frequencyToOutputAccelerationMap;
+    getPwleV2FrequencyToOutputAccelerationMap(&frequencyToOutputAccelerationMap);
+    float minFrequency = getPwleV2FrequencyMinHz(frequencyToOutputAccelerationMap);
+    float maxFrequency = getPwleV2FrequencyMaxHz(frequencyToOutputAccelerationMap);
+
+    for (auto& e : composite) {
+        if (e.timeMillis < 0.0f || e.timeMillis > COMPOSE_PWLE_V2_PRIMITIVE_DURATION_MAX_MS) {
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+        if (e.amplitude < 0.0f || e.amplitude > 1.0f) {
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+        if (e.frequencyHz < minFrequency || e.frequencyHz > maxFrequency) {
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+        totalEffectDuration += e.timeMillis;
+    }
+
+    std::thread([totalEffectDuration, callback] {
+        LOG(VERBOSE) << "Starting composePwleV2 on another thread";
+        usleep(totalEffectDuration * 1000);
+        if (callback != nullptr) {
+            LOG(VERBOSE) << "Notifying compose PWLE V2 complete";
             callback->onComplete();
         }
     }).detach();

@@ -79,17 +79,18 @@ public final class EmuMetadataGenerator {
             + "either this or input_files must be specified\n" + INPUT_FILES_OPTION
             + ": one or more Java files, this is used to decide the input "
             + "directory\n" + PACKAGE_NAME_OPTION
-            + ": the optional package name for the interface, by default is " + DEFAULT_PACKAGE_NAME
-            + "\n" + OUTPUT_JSON_OPTION + ": The output JSON file\n" + OUTPUT_EMPTY_FILE_OPTION
-            + ": Only used for check_mode, this file will be created if "
+            + ": the optional package name for the interface, by default is "
+            + DEFAULT_PACKAGE_NAME + "\n" + OUTPUT_JSON_OPTION + ": The output JSON file\n"
+            + OUTPUT_EMPTY_FILE_OPTION + ": Only used for check_mode, this file will be created if "
             + "check  passed\n" + CHECK_AGAINST_OPTION
             + ": An optional JSON file to check against. If specified, the "
-            + "generated output file will be checked against this file, if they are not the same, "
+            + ("generated output file will be checked against this file, if they are not the "
+                    + "same, ")
             + "the script will fail, otherwise, the output_empty_file will be created\n"
             + "For example: \n"
             + "EnumMetadataGenerator --input_dir out/soong/.intermediates/hardware/"
             + "interfaces/automotive/vehicle/aidl_property/android.hardware.automotive.vehicle."
-            + "property-V3-java-source/gen/ --package_name android.hardware.automotive.vehicle "
+            + "property-V4-java-source/gen/ --package_name android.hardware.automotive.vehicle "
             + "--output_json /tmp/android.hardware.automotive.vehicle-types-meta.json";
     private static final String VEHICLE_PROPERTY_FILE = "VehicleProperty.java";
     private static final String CHECK_FILE_PATH =

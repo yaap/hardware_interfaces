@@ -172,10 +172,12 @@ class ReadbackHelper {
 
     static Dataspace getDataspaceForColorMode(ColorMode mode);
 
-    static int32_t GetBytesPerPixel(PixelFormat pixelFormat);
+    static int32_t GetBitsPerChannel(PixelFormat pixelFormat);
+    static int32_t GetAlphaBits(PixelFormat pixelFormat);
 
-    static void fillBuffer(uint32_t width, uint32_t height, uint32_t stride, void* bufferData,
-                           PixelFormat pixelFormat, std::vector<Color> desiredPixelColors);
+    static void fillBuffer(uint32_t width, uint32_t height, uint32_t stride, int32_t bytesPerPixel,
+                           void* bufferData, PixelFormat pixelFormat,
+                           std::vector<Color> desiredPixelColors);
 
     static void clearColors(std::vector<Color>& expectedColors, int32_t width, int32_t height,
                             int32_t displayWidth);
@@ -189,11 +191,12 @@ class ReadbackHelper {
     static const std::vector<Dataspace> dataspaces;
 
     static void compareColorBuffers(const std::vector<Color>& expectedColors, void* bufferData,
-                                    const uint32_t stride, const uint32_t width,
-                                    const uint32_t height, PixelFormat pixelFormat);
-    static void compareColorBuffers(void* expectedBuffer, void* actualBuffer, const uint32_t stride,
+                                    const uint32_t stride, int32_t bytesPerPixel,
                                     const uint32_t width, const uint32_t height,
                                     PixelFormat pixelFormat);
+    static void compareColorBuffers(void* expectedBuffer, void* actualBuffer, const uint32_t stride,
+                                    int32_t bytesPerPixel, const uint32_t width,
+                                    const uint32_t height, PixelFormat pixelFormat);
 };
 
 class ReadbackBuffer {

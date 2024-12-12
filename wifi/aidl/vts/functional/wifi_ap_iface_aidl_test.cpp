@@ -37,12 +37,21 @@ class WifiApIfaceAidlTest : public testing::TestWithParam<std::string> {
                 "/system/bin/cmd wifi get-softap-supported-features",
                 "wifi_softap_bridged_ap_supported");
         stopWifiService(getInstanceName());
+
+        wifi_chip_ = getWifiChip(getInstanceName());
+        ASSERT_NE(nullptr, wifi_chip_.get());
+
+        bool isApSupported = doesChipSupportConcurrencyType(wifi_chip_, IfaceConcurrencyType::AP);
+        if (!isApSupported) {
+            GTEST_SKIP() << "AP interfaces are not supported";
+        }
     }
 
     void TearDown() override { stopWifiService(getInstanceName()); }
 
   protected:
     bool isBridgedSupport_ = false;
+    std::shared_ptr<IWifiChip> wifi_chip_;
     const char* getInstanceName() { return GetParam().c_str(); }
 };
 
@@ -50,7 +59,7 @@ class WifiApIfaceAidlTest : public testing::TestWithParam<std::string> {
  * SetMacAddress
  */
 TEST_P(WifiApIfaceAidlTest, SetMacAddress) {
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
     std::array<uint8_t, 6> mac = {0x12, 0x22, 0x33, 0x52, 0x10, 0x44};
     EXPECT_TRUE(wifi_ap_iface->setMacAddress(mac).isOk());
@@ -60,7 +69,7 @@ TEST_P(WifiApIfaceAidlTest, SetMacAddress) {
  * SetCountryCode
  */
 TEST_P(WifiApIfaceAidlTest, SetCountryCode) {
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
 
     const std::array<uint8_t, 2> country_code = {0x55, 0x53};
@@ -71,7 +80,7 @@ TEST_P(WifiApIfaceAidlTest, SetCountryCode) {
  * GetFactoryMacAddress
  */
 TEST_P(WifiApIfaceAidlTest, GetFactoryMacAddress) {
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
 
     std::array<uint8_t, 6> mac;
@@ -84,7 +93,7 @@ TEST_P(WifiApIfaceAidlTest, GetFactoryMacAddress) {
  * GetBridgedInstances - non-bridged mode
  */
 TEST_P(WifiApIfaceAidlTest, GetBridgedInstances) {
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
 
     std::vector<std::string> instances;
@@ -99,7 +108,7 @@ TEST_P(WifiApIfaceAidlTest, GetBridgedInstances_Bridged) {
     if (!isBridgedSupport_) {
         GTEST_SKIP() << "Missing Bridged AP support";
     }
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getBridgedWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getBridgedWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
 
     std::vector<std::string> instances;
@@ -111,7 +120,7 @@ TEST_P(WifiApIfaceAidlTest, GetBridgedInstances_Bridged) {
  * ResetToFactoryMacAddress - non-bridged mode
  */
 TEST_P(WifiApIfaceAidlTest, ResetToFactoryMacAddress) {
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
     EXPECT_TRUE(wifi_ap_iface->resetToFactoryMacAddress().isOk());
 }
@@ -123,7 +132,7 @@ TEST_P(WifiApIfaceAidlTest, ResetToFactoryMacAddress_Bridged) {
     if (!isBridgedSupport_) {
         GTEST_SKIP() << "Missing Bridged AP support";
     }
-    std::shared_ptr<IWifiApIface> wifi_ap_iface = getBridgedWifiApIface(getInstanceName());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getBridgedWifiApIface(wifi_chip_);
     ASSERT_NE(nullptr, wifi_ap_iface.get());
     EXPECT_TRUE(wifi_ap_iface->resetToFactoryMacAddress().isOk());
 }

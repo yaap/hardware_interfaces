@@ -34,8 +34,8 @@
 package android.hardware.wifi.hostapd;
 @Backing(type="int") @VintfStability
 enum BandMask {
-  BAND_2_GHZ = 1,
-  BAND_5_GHZ = 2,
-  BAND_6_GHZ = 4,
-  BAND_60_GHZ = 8,
+  BAND_2_GHZ = (1 << 0) /* 1 */,
+  BAND_5_GHZ = (1 << 1) /* 2 */,
+  BAND_6_GHZ = (1 << 2) /* 4 */,
+  BAND_60_GHZ = (1 << 3) /* 8 */,
 }

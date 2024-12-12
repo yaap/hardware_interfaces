@@ -208,4 +208,15 @@ int32_t GraphicsComposerCallback::getInvalidRefreshRateDebugEnabledCallbackCount
     }
 }
 
+::ndk::ScopedAStatus GraphicsComposerCallback::onHdcpLevelsChanged(
+        int64_t in_display, const ::aidl::android::hardware::drm::HdcpLevels&) {
+    std::scoped_lock lock(mMutex);
+
+    const auto it = std::find(mDisplays.begin(), mDisplays.end(), in_display);
+    if (it != mDisplays.end()) {
+        mHdcpLevelChangedCount++;
+    }
+    return ::ndk::ScopedAStatus::ok();
+}
+
 }  // namespace aidl::android::hardware::graphics::composer3::vts

@@ -30,6 +30,7 @@ bootstrap_go_package {
         "kernel-config-soong-rules",
         "soong",
         "soong-android",
+        "soong-selinux",
     ],
     srcs: [
         "vintf_compatibility_matrix.go",

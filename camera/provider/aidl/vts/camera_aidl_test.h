@@ -346,6 +346,8 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
 
     static Status isOfflineSessionSupported(const camera_metadata_t* staticMeta);
 
+    static bool isReadoutTimestampSupported(const camera_metadata_t* staticMeta);
+
     static Status getPhysicalCameraIds(const camera_metadata_t* staticMeta,
                                        std::unordered_set<std::string>* physicalIds /*out*/);
 
@@ -456,8 +458,6 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
     struct InFlightRequest {
         // Set by notify() SHUTTER call.
         nsecs_t shutterTimestamp;
-
-        bool shutterReadoutTimestampValid;
         nsecs_t shutterReadoutTimestamp;
 
         bool errorCodeValid;
@@ -523,7 +523,6 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
 
         InFlightRequest()
             : shutterTimestamp(0),
-              shutterReadoutTimestampValid(false),
               shutterReadoutTimestamp(0),
               errorCodeValid(false),
               errorCode(ErrorCode::ERROR_BUFFER),
@@ -541,7 +540,6 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
         InFlightRequest(ssize_t numBuffers, bool hasInput, bool partialResults,
                         int32_t partialCount, std::shared_ptr<ResultMetadataQueue> queue = nullptr)
             : shutterTimestamp(0),
-              shutterReadoutTimestampValid(false),
               shutterReadoutTimestamp(0),
               errorCodeValid(false),
               errorCode(ErrorCode::ERROR_BUFFER),
@@ -561,7 +559,6 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
                         const std::unordered_set<std::string>& extraPhysicalResult,
                         std::shared_ptr<ResultMetadataQueue> queue = nullptr)
             : shutterTimestamp(0),
-              shutterReadoutTimestampValid(false),
               shutterReadoutTimestamp(0),
               errorCodeValid(false),
               errorCode(ErrorCode::ERROR_BUFFER),
@@ -630,6 +627,8 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
     std::string mProviderType;
 
     HandleImporter mHandleImporter;
+
+    bool mSupportReadoutTimestamp;
 
     friend class DeviceCb;
     friend class SimpleDeviceCb;

@@ -136,6 +136,9 @@ cc_test {
     name: "VtsHalHapticGeneratorTargetTest",
     defaults: ["VtsHalAudioEffectTargetTestDefaults"],
     srcs: ["VtsHalHapticGeneratorTargetTest.cpp"],
+    shared_libs: [
+        "libaudioutils",
+    ],
 }
 
 cc_test {

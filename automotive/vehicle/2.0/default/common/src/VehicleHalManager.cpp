@@ -583,12 +583,12 @@ std::vector<std::string> VehicleHalManager::getOptionValues(const hidl_vec<hidl_
     while (*index < options.size()) {
         std::string option = options[*index];
         if (kSetPropOptions.find(option) != kSetPropOptions.end()) {
-            return std::move(values);
+            return values;
         }
         values.push_back(option);
         (*index)++;
     }
-    return std::move(values);
+    return values;
 }
 
 bool VehicleHalManager::parseSetPropOptions(int fd, const hidl_vec<hidl_string>& options,

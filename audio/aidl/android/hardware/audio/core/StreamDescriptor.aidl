@@ -386,14 +386,23 @@ parcelable StreamDescriptor {
          * For input streams: the moment when data at the specified stream position
          *   was acquired (i.e. capture position).
          *
-         * The observable position must never be reset by the HAL module.
-         * The data type of the frame counter is large enough to support
-         * continuous counting for years of operation.
+         * The observable position must never be reset by the HAL module,
+         * providing an abstraction of continuous audio data flow. The data
+         * type of the frame counter is large enough to support continuous
+         * counting for years of operation.
          */
         Position observable;
         /**
          * Used only for MMap streams to provide the hardware read / write
          * position for audio data in the shared memory buffer 'audio.mmap'.
+         * Similar to the observable position, the 'Position::UNKNOWN' value
+         * can be returned when the HAL module is unable to retrieve the current
+         * position.
+         *
+         * The hardware position must never be reset by the HAL module,
+         * providing an abstraction of continuous audio data flow. The data
+         * type of the frame counter is large enough to support continuous
+         * counting for years of operation.
          */
         Position hardware;
         /**

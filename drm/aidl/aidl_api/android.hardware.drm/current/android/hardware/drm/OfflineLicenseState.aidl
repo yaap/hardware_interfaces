@@ -34,7 +34,7 @@
 package android.hardware.drm;
 @Backing(type="int") @VintfStability
 enum OfflineLicenseState {
-  UNKNOWN = 0,
-  USABLE = 1,
-  INACTIVE = 2,
+  UNKNOWN,
+  USABLE,
+  INACTIVE,
 }

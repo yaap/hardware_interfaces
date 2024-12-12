@@ -50,4 +50,8 @@ enum WpaDriverCapabilitiesMask {
      * TLS V1.3
      */
     TLS_V1_3 = 1 << 6,
+    /**
+     * RSN Overriding
+     */
+    RSN_OVERRIDING = 1 << 7,
 }

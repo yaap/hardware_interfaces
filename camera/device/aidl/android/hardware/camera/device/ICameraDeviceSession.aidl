@@ -575,6 +575,11 @@ interface ICameraDeviceSession {
      * This can be called at any point after 'processCaptureRequest' in response
      * to camera clients disabling an active repeating request.
      *
+     * Note: The frame number parameter is the latest possible frame number at which the
+     * ongoing repeating request will end. It is possible that the repeating request may end
+     * before the specified frame number due to reasons such as the camera client abandoning
+     * buffers, which is timing dependent.
+     *
      * Performance requirements:
      * The call must not be blocked for extensive periods and should be extremely lightweight. There
      * must be no frame rate degradation or frame jitter introduced.

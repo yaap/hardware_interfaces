@@ -60,7 +60,7 @@ ndk::ScopedAStatus CustomVibrator::perform(VendorEffect effect,
 ndk::SpAIBinder CustomVibrator::createBinder() {
     auto binder = BnCustomVibrator::createBinder();
     // e.g. AIBinder_setInheritRt(binder.get(), true);
-    // e.g. AIBinder_setMinSchedulerPolicy(binder.get(), SCHED_NORMAL, 20);
+    // e.g. AIBinder_setMinSchedulerPolicy(binder.get(), SCHED_NORMAL, -2);
     // e.g. AIBinder_setRequestingSid(binder.get(), true);
     return binder;
 }

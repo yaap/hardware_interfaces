@@ -27,9 +27,9 @@ oneway interface IRadioConfigIndication {
     /**
      * Indicates SIM slot status change.
      *
-     * This indication must be sent by the modem whenever there is any slot status change, even the
-     * slot is inactive. For example, this indication must be triggered if a SIM card is inserted
-     * into an inactive slot.
+     * This indication must be sent by the modem whenever there is any slot status change, even if
+     * the slot is inactive. For example, this indication must be triggered if a SIM card is
+     * inserted into an inactive slot.
      *
      * @param type Type of radio indication
      * @param slotStatus new slot status info with size equals to the number of physical slots on
@@ -39,7 +39,7 @@ oneway interface IRadioConfigIndication {
             in android.hardware.radio.RadioIndicationType type, in SimSlotStatus[] slotStatus);
 
     /**
-     * The logical slots supporting simultaneous cellular calling has changed.
+     * The logical slots supporting simultaneous cellular calling have changed.
      *
      * @param enabledLogicalSlots The slots that have simultaneous cellular calling enabled. If
      * there is a call active on logical slot X, then a simultaneous cellular call is only possible

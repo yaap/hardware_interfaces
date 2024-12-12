@@ -55,6 +55,9 @@ union HapticGenerator {
   parcelable HapticScale {
     int id;
     android.hardware.audio.effect.HapticGenerator.VibratorScale scale = android.hardware.audio.effect.HapticGenerator.VibratorScale.MUTE;
+    float scaleFactor = (-1.0f) /* -1.000000f */;
+    float adaptiveScaleFactor = (-1.0f) /* -1.000000f */;
+    const float UNDEFINED_SCALE_FACTOR = (-1.0f) /* -1.000000f */;
   }
   @VintfStability
   parcelable VibratorInformation {

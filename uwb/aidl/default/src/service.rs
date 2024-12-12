@@ -1,8 +1,6 @@
 use android_hardware_uwb::aidl::android::hardware::uwb::IUwb::{self, IUwb as _};
 use android_hardware_uwb::binder;
 
-use tokio::runtime::Runtime;
-
 use std::env;
 use std::panic;
 
@@ -25,13 +23,12 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("UWB HAL starting up");
 
-    // Create the tokio runtime
-    let rt = Runtime::new()?;
+    let rt = tokio::runtime::Runtime::new()?;
 
     let chips = env::args()
         .skip(1) // Skip binary name
         .enumerate()
-        .map(|(i, arg)| uwb_chip::UwbChip::new(i.to_string(), arg));
+        .map(|(i, arg)| rt.block_on(uwb_chip::UwbChip::new(i.to_string(), arg)));
 
     binder::add_service(
         &format!("{}/default", IUwb::BpUwb::get_descriptor()),

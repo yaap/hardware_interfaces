@@ -21,6 +21,7 @@
 
 #include <android-base/logging.h>
 
+#include "Face.h"
 #include "FakeLockoutTracker.h"
 #include "util/Util.h"
 
@@ -103,19 +104,21 @@ class FakeLockoutTrackerTest : public ::testing::Test {
     static constexpr int32_t LOCKOUT_TIMED_DURATION = 100;
 
     void SetUp() override {
-        FaceHalProperties::lockout_timed_threshold(LOCKOUT_TIMED_THRESHOLD);
-        FaceHalProperties::lockout_timed_duration(LOCKOUT_TIMED_DURATION);
-        FaceHalProperties::lockout_permanent_threshold(LOCKOUT_PERMANENT_THRESHOLD);
+        Face::cfg().set<std::int32_t>("lockout_timed_threshold", LOCKOUT_TIMED_THRESHOLD);
+        Face::cfg().set<std::int32_t>("lockout_timed_duration", LOCKOUT_TIMED_DURATION);
+        Face::cfg().set<std::int32_t>("lockout_permanent_threshold", LOCKOUT_PERMANENT_THRESHOLD);
+        Face::cfg().set<bool>("lockout_enable", false);
+        Face::cfg().set<bool>("lockout", false);
         mCallback = ndk::SharedRefBase::make<TestSessionCallback>();
     }
 
     void TearDown() override {
         // reset to default
-        FaceHalProperties::lockout_timed_threshold(5);
-        FaceHalProperties::lockout_timed_duration(20);
-        FaceHalProperties::lockout_permanent_threshold(10000);
-        FaceHalProperties::lockout_enable(false);
-        FaceHalProperties::lockout(false);
+        Face::cfg().set<std::int32_t>("lockout_timed_threshold", 5);
+        Face::cfg().set<std::int32_t>("lockout_timed_duration", 20);
+        Face::cfg().set<std::int32_t>("lockout_permanent_threshold", 10000);
+        Face::cfg().set<bool>("lockout_enable", false);
+        Face::cfg().set<bool>("lockout", false);
     }
 
     FakeLockoutTracker mLockoutTracker;
@@ -123,7 +126,7 @@ class FakeLockoutTrackerTest : public ::testing::Test {
 };
 
 TEST_F(FakeLockoutTrackerTest, addFailedAttemptDisable) {
-    FaceHalProperties::lockout_enable(false);
+    Face::cfg().set<bool>("lockout_enable", false);
     for (int i = 0; i < LOCKOUT_TIMED_THRESHOLD + 1; i++)
         mLockoutTracker.addFailedAttempt(mCallback.get());
     ASSERT_EQ(mLockoutTracker.getMode(), FakeLockoutTracker::LockoutMode::kNone);
@@ -131,7 +134,7 @@ TEST_F(FakeLockoutTrackerTest, addFailedAttemptDisable) {
 }
 
 TEST_F(FakeLockoutTrackerTest, addFailedAttemptPermanent) {
-    FaceHalProperties::lockout_enable(true);
+    Face::cfg().set<bool>("lockout_enable", true);
     ASSERT_FALSE(mLockoutTracker.checkIfLockout(mCallback.get()));
     for (int i = 0; i < LOCKOUT_PERMANENT_THRESHOLD - 1; i++)
         mLockoutTracker.addFailedAttempt(mCallback.get());
@@ -145,8 +148,8 @@ TEST_F(FakeLockoutTrackerTest, addFailedAttemptPermanent) {
 }
 
 TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockoutTimed) {
-    FaceHalProperties::lockout_enable(true);
-    FaceHalProperties::lockout_timed_enable(true);
+    Face::cfg().set<bool>("lockout_enable", true);
+    Face::cfg().set<bool>("lockout_timed_enable", true);
     ASSERT_FALSE(mLockoutTracker.checkIfLockout(mCallback.get()));
     for (int i = 0; i < LOCKOUT_TIMED_THRESHOLD; i++)
         mLockoutTracker.addFailedAttempt(mCallback.get());
@@ -168,8 +171,8 @@ TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockoutTimed) {
 }
 
 TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockout_TimedThenPermanent) {
-    FaceHalProperties::lockout_enable(true);
-    FaceHalProperties::lockout_timed_enable(true);
+    Face::cfg().set<bool>("lockout_enable", true);
+    Face::cfg().set<bool>("lockout_timed_enable", true);
     ASSERT_FALSE(mLockoutTracker.checkIfLockout(mCallback.get()));
     for (int i = 0; i < LOCKOUT_TIMED_THRESHOLD; i++)
         mLockoutTracker.addFailedAttempt(mCallback.get());
@@ -182,8 +185,8 @@ TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockout_TimedThenPermanent) {
 }
 
 TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockoutTimedTwice) {
-    FaceHalProperties::lockout_enable(true);
-    FaceHalProperties::lockout_timed_enable(true);
+    Face::cfg().set<bool>("lockout_enable", true);
+    Face::cfg().set<bool>("lockout_timed_enable", true);
     ASSERT_FALSE(mLockoutTracker.checkIfLockout(mCallback.get()));
     ASSERT_EQ(0, mCallback->mLockoutTimed);
     for (int i = 0; i < LOCKOUT_TIMED_THRESHOLD; i++)
@@ -198,7 +201,7 @@ TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockoutTimedTwice) {
 }
 
 TEST_F(FakeLockoutTrackerTest, resetLockout) {
-    FaceHalProperties::lockout_enable(true);
+    Face::cfg().set<bool>("lockout_enable", true);
     ASSERT_EQ(mLockoutTracker.getMode(), FakeLockoutTracker::LockoutMode::kNone);
     for (int i = 0; i < LOCKOUT_PERMANENT_THRESHOLD; i++)
         mLockoutTracker.addFailedAttempt(mCallback.get());

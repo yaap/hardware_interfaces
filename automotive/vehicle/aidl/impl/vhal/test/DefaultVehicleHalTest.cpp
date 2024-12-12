@@ -650,6 +650,8 @@ TEST_F(DefaultVehicleHalTest, testGetPropConfigs) {
 
     auto hardware = std::make_unique<MockVehicleHardware>();
     hardware->setPropertyConfigs(testConfigs);
+    // Store the pointer for testing. We are sure it is valid.
+    MockVehicleHardware* hardwarePtr = hardware.get();
     auto vhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
     std::shared_ptr<IVehicle> client = IVehicle::fromBinder(vhal->asBinder());
 
@@ -658,6 +660,7 @@ TEST_F(DefaultVehicleHalTest, testGetPropConfigs) {
 
     ASSERT_TRUE(status.isOk()) << "getPropConfigs failed: " << status.getMessage();
     ASSERT_EQ(output.payloads, testConfigs);
+    ASSERT_FALSE(hardwarePtr->getAllPropertyConfigsCalled());
 }
 
 TEST_F(DefaultVehicleHalTest, testGetPropConfigsInvalidArg) {
@@ -704,6 +707,34 @@ TEST_F(DefaultVehicleHalTest, testGetValuesSmall) {
     ASSERT_TRUE(maybeGetValueResults.has_value()) << "no results in callback";
     EXPECT_EQ(maybeGetValueResults.value().payloads, expectedResults) << "results mismatch";
     EXPECT_EQ(countClients(), static_cast<size_t>(1));
+    ASSERT_FALSE(getHardware()->getAllPropertyConfigsCalled());
+}
+
+TEST_F(DefaultVehicleHalTest, testGetValuesSmall_AfterGetAllPropConfigs) {
+    GetValueRequests requests;
+    std::vector<GetValueResult> expectedResults;
+    std::vector<GetValueRequest> expectedHardwareRequests;
+
+    // If we already called getAllPropConfigs, the configs will be cached.
+    VehiclePropConfigs output;
+    getClient()->getAllPropConfigs(&output);
+
+    ASSERT_TRUE(getValuesTestCases(10, requests, expectedResults, expectedHardwareRequests).ok());
+
+    getHardware()->addGetValueResponses(expectedResults);
+
+    auto status = getClient()->getValues(getCallbackClient(), requests);
+
+    ASSERT_TRUE(status.isOk()) << "getValues failed: " << status.getMessage();
+
+    EXPECT_EQ(getHardware()->nextGetValueRequests(), expectedHardwareRequests)
+            << "requests to hardware mismatch";
+
+    auto maybeGetValueResults = getCallback()->nextGetValueResults();
+    ASSERT_TRUE(maybeGetValueResults.has_value()) << "no results in callback";
+    EXPECT_EQ(maybeGetValueResults.value().payloads, expectedResults) << "results mismatch";
+    EXPECT_EQ(countClients(), static_cast<size_t>(1));
+    ASSERT_TRUE(getHardware()->getAllPropertyConfigsCalled());
 }
 
 TEST_F(DefaultVehicleHalTest, testGetValuesLarge) {
@@ -1016,6 +1047,34 @@ TEST_F(DefaultVehicleHalTest, testSetValuesSmall) {
     ASSERT_TRUE(maybeSetValueResults.has_value()) << "no results in callback";
     ASSERT_EQ(maybeSetValueResults.value().payloads, expectedResults) << "results mismatch";
     EXPECT_EQ(countClients(), static_cast<size_t>(1));
+    ASSERT_FALSE(getHardware()->getAllPropertyConfigsCalled());
+}
+
+TEST_F(DefaultVehicleHalTest, testSetValuesSmall_AfterGetAllPropConfigs) {
+    SetValueRequests requests;
+    std::vector<SetValueResult> expectedResults;
+    std::vector<SetValueRequest> expectedHardwareRequests;
+
+    // If we already called getAllPropConfigs, the configs will be cached.
+    VehiclePropConfigs output;
+    getClient()->getAllPropConfigs(&output);
+
+    ASSERT_TRUE(setValuesTestCases(10, requests, expectedResults, expectedHardwareRequests).ok());
+
+    getHardware()->addSetValueResponses(expectedResults);
+
+    auto status = getClient()->setValues(getCallbackClient(), requests);
+
+    ASSERT_TRUE(status.isOk()) << "setValues failed: " << status.getMessage();
+
+    EXPECT_EQ(getHardware()->nextSetValueRequests(), expectedHardwareRequests)
+            << "requests to hardware mismatch";
+
+    auto maybeSetValueResults = getCallback()->nextSetValueResults();
+    ASSERT_TRUE(maybeSetValueResults.has_value()) << "no results in callback";
+    ASSERT_EQ(maybeSetValueResults.value().payloads, expectedResults) << "results mismatch";
+    EXPECT_EQ(countClients(), static_cast<size_t>(1));
+    ASSERT_TRUE(getHardware()->getAllPropertyConfigsCalled());
 }
 
 TEST_F(DefaultVehicleHalTest, testSetValuesLarge) {

@@ -37,6 +37,7 @@ V1_0::SimApdu toHidl(const ::aidl::android::hardware::radio::sim::SimApdu& apdu)
 
 ::aidl::android::hardware::radio::sim::Carrier toAidl(const V1_0::Carrier& carrier);
 V1_0::Carrier toHidl(const ::aidl::android::hardware::radio::sim::Carrier& carrier);
+V1_0::Carrier toHidl(const ::aidl::android::hardware::radio::sim::CarrierInfo& carrierInfo);
 
 ::aidl::android::hardware::radio::sim::CarrierRestrictions  //
 toAidl(const V1_0::CarrierRestrictions& cr);

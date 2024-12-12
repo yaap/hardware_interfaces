@@ -76,3 +76,13 @@ prebuilt_etc {
     sub_dir: "vintf",
     installable: false,
 }
+
+filegroup {
+    name: "android.hardware.net.nlinterceptor-service.rc",
+    srcs: ["nlinterceptor.rc"],
+}
+
+filegroup {
+    name: "android.hardware.net.nlinterceptor.xml",
+    srcs: ["nlinterceptor.xml"],
+}

@@ -97,9 +97,13 @@ class Sensors : public BnSensors, public ISensorsEventCallback {
             return;
         }
         if (mEventQueue->write(&events.front(), events.size())) {
+            if (mEventQueueFlag == nullptr) {
+                // Don't take the wake lock if we can't wake the receiver to avoid holding it
+                // indefinitely.
+                return;
+            }
             mEventQueueFlag->wake(
                     static_cast<uint32_t>(BnSensors::EVENT_QUEUE_FLAG_BITS_READ_AND_PROCESS));
-
             if (wakeup) {
                 // Keep track of the number of outstanding WAKE_UP events in order to properly hold
                 // a wake lock until the framework has secured a wake lock

@@ -39,6 +39,7 @@ cc_library_static {
     shared_libs: [
         "libui",
         "server_configurable_flags",
+        "libtracing_perfetto",
     ],
     static_libs: [
         "android.hardware.graphics.composer@2.1-vts",

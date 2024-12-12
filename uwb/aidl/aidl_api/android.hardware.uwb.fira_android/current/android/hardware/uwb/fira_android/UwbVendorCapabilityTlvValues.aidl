@@ -34,6 +34,8 @@
 package android.hardware.uwb.fira_android;
 @Backing(type="long") @VintfStability
 enum UwbVendorCapabilityTlvValues {
+  ANTENNA_MODE_OMNI = 1,
+  ANTENNA_MODE_DIRECTIONAL = (1 << 1) /* 2 */,
   UWB_CONFIG_0 = 0,
   UWB_CONFIG_1 = 1,
   PULSE_SHAPE_SYMMETRICAL_ROOT_RAISED_COSINE = 0,

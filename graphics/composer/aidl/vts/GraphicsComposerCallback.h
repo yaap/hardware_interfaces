@@ -65,6 +65,8 @@ class GraphicsComposerCallback : public BnComposerCallback {
             const RefreshRateChangedDebugData&) override;
     virtual ::ndk::ScopedAStatus onHotplugEvent(int64_t in_display,
                                                 common::DisplayHotplugEvent) override;
+    virtual ::ndk::ScopedAStatus onHdcpLevelsChanged(
+            int64_t in_display, const ::aidl::android::hardware::drm::HdcpLevels&) override;
 
     mutable std::mutex mMutex;
     // the set of all currently connected displays
@@ -88,6 +90,7 @@ class GraphicsComposerCallback : public BnComposerCallback {
     int32_t mInvalidVsyncPeriodChangeCount GUARDED_BY(mMutex) = 0;
     int32_t mInvalidSeamlessPossibleCount GUARDED_BY(mMutex) = 0;
     int32_t mInvalidRefreshRateDebugEnabledCallbackCount GUARDED_BY(mMutex) = 0;
+    int32_t mHdcpLevelChangedCount GUARDED_BY(mMutex) = 0;
 };
 
 }  // namespace aidl::android::hardware::graphics::composer3::vts

@@ -19,6 +19,7 @@
 #include "FakeLockoutTracker.h"
 #include <android-base/logging.h>
 #include <face.sysprop.h>
+#include "Face.h"
 #include "util/Util.h"
 
 using namespace ::android::face::virt;
@@ -36,15 +37,15 @@ void FakeLockoutTracker::reset(bool dueToTimerExpire) {
 }
 
 void FakeLockoutTracker::addFailedAttempt(ISessionCallback* cb) {
-    bool lockoutEnabled = FaceHalProperties::lockout_enable().value_or(false);
-    bool timedLockoutenabled = FaceHalProperties::lockout_timed_enable().value_or(false);
+    bool lockoutEnabled = Face::cfg().get<bool>("lockout_enable");
+    bool timedLockoutenabled = Face::cfg().get<bool>("lockout_timed_enable");
     if (lockoutEnabled) {
         mFailedCount++;
         mTimedFailedCount++;
         mLastFailedTime = Util::getSystemNanoTime();
-        int32_t lockoutTimedThreshold = FaceHalProperties::lockout_timed_threshold().value_or(3);
+        int32_t lockoutTimedThreshold = Face::cfg().get<std::int32_t>("lockout_timed_threshold");
         int32_t lockoutPermanetThreshold =
-                FaceHalProperties::lockout_permanent_threshold().value_or(5);
+                Face::cfg().get<std::int32_t>("lockout_permanent_threshold");
         if (mFailedCount >= lockoutPermanetThreshold) {
             mCurrentMode = LockoutMode::kPermanent;
             LOG(ERROR) << "FakeLockoutTracker: lockoutPermanent";
@@ -68,7 +69,7 @@ FakeLockoutTracker::LockoutMode FakeLockoutTracker::getMode() {
 }
 
 int32_t FakeLockoutTracker::getTimedLockoutDuration() {
-    return FaceHalProperties::lockout_timed_duration().value_or(10 * 1000);
+    return Face::cfg().get<std::int32_t>("lockout_timed_duration");
 }
 
 int64_t FakeLockoutTracker::getLockoutTimeLeft() {

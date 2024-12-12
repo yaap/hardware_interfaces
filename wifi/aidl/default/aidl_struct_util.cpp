@@ -3394,6 +3394,7 @@ bool convertAidlNanBootstrappingIndicationResponseToLegacy(
     *legacy_request = {};
 
     legacy_request->service_instance_id = aidl_request.bootstrappingInstanceId;
+    legacy_request->bootstrapping_instance_id = aidl_request.bootstrappingInstanceId;
     legacy_request->rsp_code = aidl_request.acceptRequest ? NAN_BOOTSTRAPPING_REQUEST_ACCEPT
                                                           : NAN_BOOTSTRAPPING_REQUEST_REJECT;
     legacy_request->publish_subscribe_id = static_cast<uint8_t>(aidl_request.discoverySessionId);

@@ -319,6 +319,24 @@ double Utils::distanceMeters(double lat1, double lon1, double lat2, double lon2)
     return d * 1000;  // meters
 }
 
+// Returns true iff the device has the specified feature.
+bool Utils::deviceSupportsFeature(const char* feature) {
+    bool device_supports_feature = false;
+    FILE* p = popen("/system/bin/pm list features", "re");
+    if (p) {
+        char* line = NULL;
+        size_t len = 0;
+        while (getline(&line, &len, p) > 0) {
+            if (strstr(line, feature)) {
+                device_supports_feature = true;
+                break;
+            }
+        }
+        pclose(p);
+    }
+    return device_supports_feature;
+}
+
 }  // namespace common
 }  // namespace gnss
 }  // namespace hardware

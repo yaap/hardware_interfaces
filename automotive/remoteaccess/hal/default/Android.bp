@@ -51,15 +51,22 @@ cc_defaults {
 cc_binary {
     name: "android.hardware.automotive.remoteaccess@V2-default-service",
     defaults: ["remote-access-hal-defaults"],
-    vintf_fragments: ["remoteaccess-default-service.xml"],
     init_rc: ["remoteaccess-default-service.rc"],
+    vintf_fragment_modules: ["remoteaccess-default-service.xml"],
+
 }
 
 cc_binary {
     name: "android.hardware.automotive.remoteaccess@V2-tcu-test-service",
     defaults: ["remote-access-hal-defaults"],
-    vintf_fragments: ["remoteaccess-default-service.xml"],
     init_rc: ["remoteaccess-tcu-test-service.rc"],
+    vintf_fragment_modules: ["remoteaccess-default-service.xml"],
+}
+
+vintf_fragment {
+    name: "remoteaccess-default-service.xml",
+    src: "remoteaccess-default-service.xml",
+    vendor: true,
 }
 
 cc_library {

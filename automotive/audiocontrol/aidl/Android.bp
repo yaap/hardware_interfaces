@@ -62,12 +62,12 @@ aidl_interface {
         },
 
     ],
-    frozen: true,
+    frozen: false,
 
 }
 
 // Note: This should always be one version ahead of the last frozen version
-latest_android_hardware_automotive_audiocontrol = "android.hardware.automotive.audiocontrol-V4"
+latest_android_hardware_automotive_audiocontrol = "android.hardware.automotive.audiocontrol-V5"
 
 cc_defaults {
     name: "latest_android_hardware_automotive_audiocontrol_cpp_static",

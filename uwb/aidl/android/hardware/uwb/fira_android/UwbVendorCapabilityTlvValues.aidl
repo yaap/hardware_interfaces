@@ -25,6 +25,12 @@ package android.hardware.uwb.fira_android;
 @Backing(type="long")
 enum UwbVendorCapabilityTlvValues {
     /*********************************************
+     * Protocol agnostic
+     ********************************************/
+    ANTENNA_MODE_OMNI = 1,
+    ANTENNA_MODE_DIRECTIONAL = 1 << 1,
+
+    /*********************************************
      * CCC specific
      ********************************************/
     UWB_CONFIG_0 = 0,

@@ -40,5 +40,6 @@ parcelable Processing {
   union Type {
     android.media.audio.common.AudioStreamType streamType = android.media.audio.common.AudioStreamType.INVALID;
     android.media.audio.common.AudioSource source;
+    android.media.audio.common.AudioDevice device;
   }
 }

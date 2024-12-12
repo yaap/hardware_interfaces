@@ -25,7 +25,8 @@ namespace aidl::android::hardware::audio::core {
 
 class StreamPrimary : public StreamAlsa {
   public:
-    StreamPrimary(StreamContext* context, const Metadata& metadata);
+    StreamPrimary(StreamContext* context, const Metadata& metadata,
+                  const std::vector<::aidl::android::media::audio::common::AudioDevice>& devices);
 
     ::android::status_t start() override;
     ::android::status_t transfer(void* buffer, size_t frameCount, size_t* actualFrameCount,
@@ -39,6 +40,11 @@ class StreamPrimary : public StreamAlsa {
     int64_t mStartTimeNs = 0;
     long mFramesSinceStart = 0;
     bool mSkipNextTransfer = false;
+
+  private:
+    static std::pair<int, int> getCardAndDeviceId(
+            const std::vector<::aidl::android::media::audio::common::AudioDevice>& devices);
+    const std::pair<int, int> mCardAndDeviceId;
 };
 
 class StreamInPrimary final : public StreamIn, public StreamSwitcher, public StreamInHwGainHelper {

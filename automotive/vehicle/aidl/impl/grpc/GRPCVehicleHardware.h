@@ -20,6 +20,7 @@
 #include <VehicleHalTypes.h>
 #include <VehicleUtils.h>
 #include <android-base/result.h>
+#include <android-base/thread_annotations.h>
 
 #include "VehicleServer.grpc.pb.h"
 #include "VehicleServer.pb.h"
@@ -33,6 +34,7 @@
 #include <shared_mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace android::hardware::automotive::vehicle::virtualization {
@@ -43,13 +45,14 @@ class GRPCVehicleHardware : public IVehicleHardware {
   public:
     explicit GRPCVehicleHardware(std::string service_addr);
 
-    // Only used for unit testing.
-    explicit GRPCVehicleHardware(std::unique_ptr<proto::VehicleServer::StubInterface> stub);
-
     ~GRPCVehicleHardware();
 
     // Get all the property configs.
     std::vector<aidlvhal::VehiclePropConfig> getAllPropertyConfigs() const override;
+
+    // Get the config for the specified propId.
+    std::optional<aidl::android::hardware::automotive::vehicle::VehiclePropConfig>
+    getPropertyConfig(int32_t propId) const override;
 
     // Set property values asynchronously. Server could return before the property set requests
     // are sent to vehicle bus or before property set confirmation is received. The callback is
@@ -94,7 +97,7 @@ class GRPCVehicleHardware : public IVehicleHardware {
     std::unique_ptr<const PropertyChangeCallback> mOnPropChange;
 
   private:
-    void ValuePollingLoop();
+    friend class GRPCVehicleHardwareUnitTest;
 
     std::string mServiceAddr;
     std::shared_ptr<::grpc::Channel> mGrpcChannel;
@@ -106,6 +109,31 @@ class GRPCVehicleHardware : public IVehicleHardware {
     std::mutex mShutdownMutex;
     std::condition_variable mShutdownCV;
     std::atomic<bool> mShuttingDownFlag{false};
+
+    mutable std::mutex mLatestUpdateTimestampsMutex;
+
+    // A map from [propId, areaId] to the latest timestamp this property is updated.
+    // The key is a tuple, the first element is the external timestamp (timestamp set by VHAL
+    // server), the second element is the Android timestamp (elapsedRealtimeNano).
+    mutable std::unordered_map<PropIdAreaId, std::pair<int64_t, int64_t>,
+                               PropIdAreaIdHash> mLatestUpdateTimestamps
+            GUARDED_BY(mLatestUpdateTimestampsMutex);
+
+    // Only used for unit testing.
+    GRPCVehicleHardware(std::unique_ptr<proto::VehicleServer::StubInterface> stub,
+                        bool startValuePollingLoop);
+
+    void ValuePollingLoop();
+    void pollValue();
+
+    aidlvhal::StatusCode getValuesWithRetry(const std::vector<aidlvhal::GetValueRequest>& requests,
+                                            std::vector<aidlvhal::GetValueResult>* results,
+                                            size_t retryCount) const;
+
+    // Check the external timestamp of propValue against the latest updated external timestamp, if
+    // this is an outdated value, return false. Otherwise, update the external timestamp to the
+    // Android timestamp and return true.
+    bool setAndroidTimestamp(aidlvhal::VehiclePropValue* propValue) const;
 };
 
 }  // namespace android::hardware::automotive::vehicle::virtualization

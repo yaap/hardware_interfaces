@@ -35,6 +35,7 @@ package android.hardware.uwb.fira_android;
 @Backing(type="int") @VintfStability
 enum UwbVendorCapabilityTlvTypes {
   SUPPORTED_POWER_STATS_QUERY = 0xC0,
+  SUPPORTED_ANTENNA_MODES = 0xC1,
   CCC_SUPPORTED_CHAPS_PER_SLOT = 0xA0,
   CCC_SUPPORTED_SYNC_CODES = 0xA1,
   CCC_SUPPORTED_HOPPING_CONFIG_MODES_AND_SEQUENCES = 0xA2,

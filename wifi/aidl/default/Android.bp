@@ -113,9 +113,14 @@ cc_library_static {
     export_include_dirs: ["."],
 }
 
+vintf_fragment {
+    name: "android.hardware.wifi-service.xml",
+    src: "android.hardware.wifi-service.xml",
+    vendor: true,
+}
+
 cc_binary {
     name: "android.hardware.wifi-service",
-    vintf_fragments: ["android.hardware.wifi-service.xml"],
     relative_install_path: "hw",
     proprietary: true,
     cppflags: [
@@ -138,11 +143,11 @@ cc_binary {
     ],
     static_libs: ["android.hardware.wifi-service-lib"],
     init_rc: ["android.hardware.wifi-service.rc"],
+    vintf_fragment_modules: ["android.hardware.wifi-service.xml"],
 }
 
 cc_binary {
     name: "android.hardware.wifi-service-lazy",
-    vintf_fragments: ["android.hardware.wifi-service.xml"],
     overrides: ["android.hardware.wifi-service"],
     cflags: ["-DLAZY_SERVICE"],
     relative_install_path: "hw",
@@ -167,6 +172,7 @@ cc_binary {
     ],
     static_libs: ["android.hardware.wifi-service-lib"],
     init_rc: ["android.hardware.wifi-service-lazy.rc"],
+    vintf_fragment_modules: ["android.hardware.wifi-service.xml"],
 }
 
 cc_test {
@@ -218,4 +224,9 @@ filegroup {
 filegroup {
     name: "default-android.hardware.wifi-service.xml",
     srcs: ["android.hardware.wifi-service.xml"],
+}
+
+filegroup {
+    name: "default-android.hardware.wifi-service-lazy.rc",
+    srcs: ["android.hardware.wifi-service-lazy.rc"],
 }

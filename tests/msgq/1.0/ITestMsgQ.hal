@@ -18,8 +18,8 @@ package android.hardware.tests.msgq@1.0;
 
 interface ITestMsgQ {
     enum EventFlagBits : uint32_t {
-        FMQ_NOT_EMPTY = 1 << 0,
-        FMQ_NOT_FULL  = 1 << 1,
+        FMQ_NOT_FULL = 1 << 0,
+        FMQ_NOT_EMPTY  = 1 << 1,
     };
 
     /**

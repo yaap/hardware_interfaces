@@ -17,8 +17,8 @@
 package android.hardware.radio.config;
 
 /**
- * Phone capability which describes the data connection capability of modem.
- * It's used to evaluate possible phone config change, for example from single
+ * Phone capability which describes the data connection capability of the modem.
+ * It's used to evaluate a possible phone config change, for example, from single
  * SIM device to multi-SIM device.
  * @hide
  */
@@ -27,21 +27,18 @@ package android.hardware.radio.config;
 parcelable PhoneCapability {
     const byte UNKNOWN = -1;
     /**
-     * maxActiveData defines how many logical modems can have
-     * PS attached simultaneously. For example, for L+L modem it
-     * should be 2.
+     * maxActiveData defines how many logical modems can have PS attached simultaneously. For
+     * example, for a L+L modem, it should be 2.
      */
     byte maxActiveData;
     /**
-     * maxActiveData defines how many logical modems can have
-     * internet PDN connections simultaneously. For example, for L+L
-     * DSDS modem it’s 1, and for DSDA modem it’s 2.
+     * maxActiveInternetData defines how many logical modems can have internet PDN connections
+     * simultaneously. For example, for a L+L DSDS modem, it’s 1, and for a DSDA modem, it’s 2.
      */
     byte maxActiveInternetData;
     /**
-     * Whether modem supports both internet PDN up so
-     * that we can do ping test before tearing down the
-     * other one.
+     * Whether the modem supports both internet PDNs up, so that we can do a ping test on one PDN
+     * before tearing down the other PDN.
      */
     boolean isInternetLingeringSupported;
     /**
@@ -49,9 +46,8 @@ parcelable PhoneCapability {
      */
     byte[] logicalModemIds;
     /**
-     * maxActiveVoice defines how many logical modems can have
-     * cellular voice calls simultaneously. For example, for cellular DSDA
-     * with simultaneous calling support, it should be 2.
+     * maxActiveVoice defines how many logical modems can have cellular voice calls simultaneously.
+     * For example, for cellular DSDA with simultaneous calling support, it should be 2.
      */
     byte maxActiveVoice = UNKNOWN;
 }

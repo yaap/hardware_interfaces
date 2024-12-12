@@ -28,8 +28,6 @@ cc_test {
         "VehicleHalUtils",
         "FakeVehicleHalValueGenerators",
         "FakeObd2Frame",
-    ],
-    shared_libs: [
         "libjsoncpp",
     ],
     data: [

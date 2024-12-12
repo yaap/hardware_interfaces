@@ -34,7 +34,7 @@
 package android.hardware.wifi.hostapd;
 @Backing(type="int") @VintfStability
 enum Generation {
-  WIFI_STANDARD_UNKNOWN = -1,
+  WIFI_STANDARD_UNKNOWN = (-1) /* -1 */,
   WIFI_STANDARD_LEGACY = 0,
   WIFI_STANDARD_11N = 1,
   WIFI_STANDARD_11AC = 2,

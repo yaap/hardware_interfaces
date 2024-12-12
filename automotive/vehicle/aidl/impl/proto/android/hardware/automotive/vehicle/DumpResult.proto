@@ -25,4 +25,6 @@ message DumpResult {
     bool caller_should_dump_state = 1;
     /* The dumped information for the caller to print. */
     string buffer = 2;
+    /* To pass if DefaultVehicleHal should refresh the property configs. */
+    bool refresh_property_configs = 3;
 }

@@ -36,6 +36,7 @@ package android.hardware.graphics.composer3;
 parcelable OverlayProperties {
   android.hardware.graphics.composer3.OverlayProperties.SupportedBufferCombinations[] combinations;
   boolean supportMixedColorSpaces;
+  @nullable android.hardware.graphics.composer3.LutProperties[] lutProperties;
   parcelable SupportedBufferCombinations {
     android.hardware.graphics.common.PixelFormat[] pixelFormats;
     android.hardware.graphics.common.Dataspace[] standards;

@@ -21,8 +21,8 @@ package android.hardware.radio.config;
 @JavaDerive(toString=true)
 parcelable SimPortInfo {
     /**
-     * Integrated Circuit Card IDentifier (ICCID) is unique identifier of the SIM card. File is
-     * located in the SIM card at EFiccid (0x2FE2) as per ETSI 102.221. The ICCID is defined by
+     * Integrated Circuit Card IDentifier (ICCID) is the unique identifier of the SIM card. The file
+     * is located in the SIM card at EFiccid (0x2FE2) as per ETSI 102.221. The ICCID is defined by
      * the ITU-T recommendation E.118 ISO/IEC 7816.
      *
      * This data is applicable only when cardState is CardStatus.STATE_PRESENT.
@@ -33,13 +33,13 @@ parcelable SimPortInfo {
      */
     String iccId;
     /**
-     * Logical slot id is identifier of the active slot
+     * The identifier of the active slot.
      */
     int logicalSlotId;
     /**
      * Port active status in the slot.
-     * Inactive means logical modem is no longer associated to the port.
-     * Active means logical modem is associated to the port.
+     * Inactive means that the logical modem is no longer associated to the port.
+     * Active means that the logical modem is associated to the port.
      */
     boolean portActive;
 }

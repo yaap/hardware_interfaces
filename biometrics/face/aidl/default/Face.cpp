@@ -34,9 +34,7 @@ using namespace ::android::face::virt;
 namespace aidl::android::hardware::biometrics::face {
 
 const int kSensorId = 4;
-const common::SensorStrength kSensorStrength = FakeFaceEngine::GetSensorStrength();
 const int kMaxEnrollmentsPerUser = 5;
-const FaceSensorType kSensorType = FakeFaceEngine::GetSensorType();
 const bool kHalControlsPreview = true;
 const std::string kHwComponentId = "faceSensor";
 const std::string kHardwareVersion = "vendor/model/revision";
@@ -62,13 +60,13 @@ ndk::ScopedAStatus Face::getSensorProps(std::vector<SensorProps>* return_val) {
 
     common::CommonProps commonProps;
     commonProps.sensorId = kSensorId;
-    commonProps.sensorStrength = kSensorStrength;
+    commonProps.sensorStrength = FakeFaceEngine::GetSensorStrength();
     commonProps.maxEnrollmentsPerUser = kMaxEnrollmentsPerUser;
     commonProps.componentInfo = {std::move(hw_component_info), std::move(sw_component_info)};
 
     SensorProps props;
     props.commonProps = std::move(commonProps);
-    props.sensorType = kSensorType;
+    props.sensorType = FakeFaceEngine::GetSensorType();
     props.halControlsPreview = kHalControlsPreview;
     props.enrollPreviewWidth = 1080;
     props.enrollPreviewHeight = 1920;
@@ -141,6 +139,30 @@ binder_status_t Face::handleShellCommand(int in, int out, int err, const char** 
     return STATUS_OK;
 }
 
+const char* Face::type2String(FaceSensorType type) {
+    switch (type) {
+        case FaceSensorType::RGB:
+            return "rgb";
+        case FaceSensorType::IR:
+            return "ir";
+        default:
+            return "unknown";
+    }
+}
+
+const char* Face::strength2String(common::SensorStrength strength) {
+    switch (strength) {
+        case common::SensorStrength::STRONG:
+            return "STRONG";
+        case common::SensorStrength::WEAK:
+            return "WEAK";
+        case common::SensorStrength::CONVENIENCE:
+            return "CONVENIENCE";
+        default:
+            return "unknown";
+    }
+}
+
 void Face::onHelp(int fd) {
     dprintf(fd, "Virtual Face HAL commands:\n");
     dprintf(fd, "         help: print this help\n");
@@ -167,7 +189,6 @@ void Face::resetConfigToDefault() {
     RESET_CONFIG_O(lockout);
     RESET_CONFIG_O(operation_authenticate_fails);
     RESET_CONFIG_O(operation_detect_interaction_fails);
-    RESET_CONFIG_O(operation_enroll_fails);
     RESET_CONFIG_V(operation_authenticate_latency);
     RESET_CONFIG_V(operation_detect_interaction_latency);
     RESET_CONFIG_V(operation_enroll_latency);

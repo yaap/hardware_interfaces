@@ -151,7 +151,7 @@ void KeyMintAttestationFuzzer::process() {
 
 extern "C" int LLVMFuzzerInitialize(int /* *argc */, char /* ***argv */) {
     ::ndk::SpAIBinder binder(AServiceManager_waitForService(kServiceName.c_str()));
-    gKeyMint = std::move(IKeyMintDevice::fromBinder(binder));
+    gKeyMint = IKeyMintDevice::fromBinder(binder);
     LOG_ALWAYS_FATAL_IF(!gKeyMint, "Failed to get IKeyMintDevice instance.");
     return 0;
 }

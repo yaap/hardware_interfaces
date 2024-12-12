@@ -26,7 +26,7 @@
 #define LOG_TAG "FingerprintVirtualHalAidl"
 
 namespace aidl::android::hardware::biometrics::fingerprint {
-
+using AcquiredInfoAndVendorCode = virtualhal::AcquiredInfoAndVendorCode;
 using Tag = AcquiredInfoAndVendorCode::Tag;
 
 ::ndk::ScopedAStatus VirtualHal::setEnrollments(const std::vector<int32_t>& enrollments) {
@@ -41,8 +41,7 @@ using Tag = AcquiredInfoAndVendorCode::Tag;
     return ndk::ScopedAStatus::ok();
 }
 
-::ndk::ScopedAStatus VirtualHal::setNextEnrollment(
-        const ::aidl::android::hardware::biometrics::fingerprint::NextEnrollment& next_enrollment) {
+::ndk::ScopedAStatus VirtualHal::setNextEnrollment(const NextEnrollment& next_enrollment) {
     Fingerprint::cfg().sourcedFromAidl();
     std::ostringstream os;
     os << next_enrollment.id << ":";
@@ -333,4 +332,10 @@ OptIntVec VirtualHal::acquiredInfoVec2OptIntVec(
     return ndk::ScopedAStatus::ok();
 }
 
+::ndk::ScopedAStatus VirtualHal::getFingerprintHal(
+        std::shared_ptr<::aidl::android::hardware::biometrics::fingerprint::IFingerprint>* pFp) {
+    LOG(INFO) << " calling getFingerprintHal in VirtualHal.cpp";
+    *pFp = mFp;
+    return ndk::ScopedAStatus::ok();
+}
 }  // namespace aidl::android::hardware::biometrics::fingerprint

@@ -199,8 +199,8 @@ size_t ConfigManager::readCameraCapabilities(const XMLElement* const aCapElem, C
 
             CameraParam aParam;
             if (ConfigManagerUtil::convertToEvsCameraParam(nameAttr, aParam)) {
-                aCamera->controls.insert_or_assign(
-                        aParam, std::move(std::make_tuple(minVal, maxVal, stepVal)));
+                aCamera->controls.insert_or_assign(aParam,
+                                                   std::make_tuple(minVal, maxVal, stepVal));
             }
 
             ctrlElem = ctrlElem->NextSiblingElement("control");
@@ -583,8 +583,8 @@ bool ConfigManager::readConfigDataFromBinary() {
         CameraCtrl* ptr = reinterpret_cast<CameraCtrl*>(p);
         for (size_t idx = 0; idx < sz; ++idx) {
             CameraCtrl temp = *ptr++;
-            aCamera->controls.insert_or_assign(
-                    temp.cid, std::move(std::make_tuple(temp.min, temp.max, temp.step)));
+            aCamera->controls.insert_or_assign(temp.cid,
+                                               std::make_tuple(temp.min, temp.max, temp.step));
         }
         p = reinterpret_cast<char*>(ptr);
 
@@ -689,8 +689,8 @@ bool ConfigManager::readConfigDataFromBinary() {
         CameraCtrl* ptr = reinterpret_cast<CameraCtrl*>(p);
         for (size_t idx = 0; idx < sz; ++idx) {
             CameraCtrl temp = *ptr++;
-            aCamera->controls.insert_or_assign(
-                    temp.cid, std::move(std::make_tuple(temp.min, temp.max, temp.step)));
+            aCamera->controls.insert_or_assign(temp.cid,
+                                               std::make_tuple(temp.min, temp.max, temp.step));
         }
         p = reinterpret_cast<char*>(ptr);
 

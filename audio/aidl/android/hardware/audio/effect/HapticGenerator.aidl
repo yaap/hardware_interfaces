@@ -56,13 +56,51 @@ union HapticGenerator {
     @VintfStability
     parcelable HapticScale {
         /**
+         * Representation of undefined scale factor, applied by default for backwards compatibility.
+         */
+        const float UNDEFINED_SCALE_FACTOR = -1.0f;
+
+        /**
          * Audio track ID.
          */
         int id;
+
         /**
          * Haptic intensity.
+         *
+         * This represents haptics scale as fixed levels defined by VibrationScale. If the field
+         * scaleFactor is defined then this will be ignored in favor of scaleFactor, otherwise this
+         * will be used to define the intensity for the haptics.
          */
         VibratorScale scale = VibratorScale.MUTE;
+
+        /**
+         * Haptic scale factor.
+         *
+         * This is a continuous scale representation of VibratorScale, allowing flexible number of
+         * scale levels. If this field is defined then it will be used to define the intensity of
+         * the haptics, instead of the old VibratorScale field. If this field is undefined then the
+         * old VibratorScale field will be used.
+         *
+         * The value zero represents the same as VibratorScale.MUTE and the value one represents
+         * VibratorScale.NONE. Values in (0,1) should scale down, and values > 1 should scale up
+         * within hardware bounds. Negative values will be ignored.
+         */
+        float scaleFactor = -1.0f; // UNDEFINED_SCALE_FACTOR
+
+        /**
+         * Haptic adaptive scale factor.
+         *
+         * This is an additional scale value that should be applied on top of the vibrator scale to
+         * adapt to the device current state. This should be applied to linearly scale the haptic
+         * data after scale/scaleFactor is applied.
+         *
+         * The value zero mutes the haptics, even if the scale/scaleFactor are not set to MUTE/zero.
+         * The value one will not scale the haptics, and can be used as a constant for no-op.
+         * Values in (0,1) should scale down. Values > 1 should scale up within hardware bounds.
+         * Negative values will be ignored.
+         */
+        float adaptiveScaleFactor = -1.0f; // UNDEFINED_SCALE_FACTOR
     }
 
     /**

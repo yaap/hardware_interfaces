@@ -162,7 +162,9 @@ package audio.policy.V1_0 {
   public static class ProductStrategies.ProductStrategy {
     ctor public ProductStrategies.ProductStrategy();
     method public java.util.List<audio.policy.V1_0.AttributesGroup> getAttributesGroup();
+    method public int getId();
     method public String getName();
+    method public void setId(int);
     method public void setName(String);
   }
 

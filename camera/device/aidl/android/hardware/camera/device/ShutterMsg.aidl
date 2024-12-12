@@ -40,6 +40,9 @@ parcelable ShutterMsg {
      * as timestamp, and for a rolling shutter sensor, the value must be
      * timestamp + exposureTime + t_crop_top where t_crop_top is the exposure time
      * skew of the cropped lines on the top.
+     *
+     * If ANDROID_SENSOR_READOUT_TIMESTAMP is set to NOT_SUPPORTED, this field
+     * will be ignored by the camera framework.
      */
     long readoutTimestamp;
 }

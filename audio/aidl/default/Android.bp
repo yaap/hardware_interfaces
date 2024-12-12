@@ -54,6 +54,7 @@ cc_library {
         "AidlConversionXsdc.cpp",
         "AudioPolicyConfigXmlConverter.cpp",
         "Bluetooth.cpp",
+        "CapEngineConfigXmlConverter.cpp",
         "Config.cpp",
         "Configuration.cpp",
         "EngineConfigXmlConverter.cpp",
@@ -83,14 +84,17 @@ cc_library {
         "usb/UsbAlsaMixerControl.cpp",
     ],
     generated_sources: [
+        "audio_policy_capengine_configuration_aidl_default",
         "audio_policy_configuration_aidl_default",
         "audio_policy_engine_configuration_aidl_default",
     ],
     generated_headers: [
+        "audio_policy_capengine_configuration_aidl_default",
         "audio_policy_configuration_aidl_default",
         "audio_policy_engine_configuration_aidl_default",
     ],
     export_generated_headers: [
+        "audio_policy_capengine_configuration_aidl_default",
         "audio_policy_configuration_aidl_default",
         "audio_policy_engine_configuration_aidl_default",
     ],
@@ -203,6 +207,7 @@ cc_defaults {
     ],
     vendor: true,
     shared_libs: [
+        "libaudio_aidl_conversion_common_ndk",
         "libaudioaidlcommon",
         "libaudioutils",
         "libbase",
@@ -224,6 +229,7 @@ cc_defaults {
         "-Wextra",
         "-Werror",
         "-Wthread-safety",
+        "-DBACKEND_NDK",
     ],
 }
 

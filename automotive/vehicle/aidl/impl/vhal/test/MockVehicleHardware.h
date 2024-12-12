@@ -47,6 +47,8 @@ class MockVehicleHardware final : public IVehicleHardware {
 
     std::vector<aidl::android::hardware::automotive::vehicle::VehiclePropConfig>
     getAllPropertyConfigs() const override;
+    std::optional<aidl::android::hardware::automotive::vehicle::VehiclePropConfig>
+    getPropertyConfig(int32_t propId) const override;
     aidl::android::hardware::automotive::vehicle::StatusCode setValues(
             std::shared_ptr<const SetValuesCallback> callback,
             const std::vector<aidl::android::hardware::automotive::vehicle::SetValueRequest>&
@@ -98,6 +100,9 @@ class MockVehicleHardware final : public IVehicleHardware {
     std::vector<aidl::android::hardware::automotive::vehicle::SubscribeOptions>
     getSubscribeOptions();
     void clearSubscribeOptions();
+    // Whether getAllPropertyConfigs() has been called, which blocks all all property configs
+    // being ready.
+    bool getAllPropertyConfigsCalled();
 
   private:
     mutable std::mutex mLock;
@@ -142,6 +147,8 @@ class MockVehicleHardware final : public IVehicleHardware {
             int32_t propId, int32_t areaId, float sampleRateHz);
 
     DumpResult mDumpResult;
+
+    mutable bool mGetAllPropertyConfigsCalled GUARDED_BY(mLock) = false;
 
     // RecurrentTimer is thread-safe.
     std::shared_ptr<RecurrentTimer> mRecurrentTimer;

@@ -16,13 +16,16 @@
 
 package android.hardware.vibrator;
 
-import android.hardware.vibrator.IVibratorCallback;
 import android.hardware.vibrator.Braking;
-import android.hardware.vibrator.Effect;
-import android.hardware.vibrator.EffectStrength;
 import android.hardware.vibrator.CompositeEffect;
 import android.hardware.vibrator.CompositePrimitive;
+import android.hardware.vibrator.Effect;
+import android.hardware.vibrator.EffectStrength;
+import android.hardware.vibrator.IVibratorCallback;
 import android.hardware.vibrator.PrimitivePwle;
+import android.hardware.vibrator.PwleV2OutputMapEntry;
+import android.hardware.vibrator.PwleV2Primitive;
+import android.hardware.vibrator.VendorEffect;
 
 @VintfStability
 interface IVibrator {
@@ -70,6 +73,14 @@ interface IVibrator {
      * Whether composePwle is supported.
      */
     const int CAP_COMPOSE_PWLE_EFFECTS = 1 << 10;
+    /**
+     * Whether perform w/ vendor effect is supported.
+     */
+    const int CAP_PERFORM_VENDOR_EFFECTS = 1 << 11;
+    /**
+     * Whether composePwleV2 for PwlePrimitives is supported.
+     */
+    const int CAP_COMPOSE_PWLE_EFFECTS_V2 = 1 << 12;
 
     /**
      * Determine capabilities of the vibrator HAL (CAP_* mask)
@@ -359,4 +370,103 @@ interface IVibrator {
      * @param composite Array of PWLEs.
      */
     void composePwle(in PrimitivePwle[] composite, in IVibratorCallback callback);
+
+    /**
+     * Fire off a vendor-defined haptic event.
+     *
+     * This may not be supported and this support is reflected in
+     * getCapabilities (CAP_PERFORM_VENDOR_EFFECTS).
+     *
+     * The duration of the effect is unknown and can be undefined for looping effects.
+     * IVibratorCallback.onComplete() support is required for this API.
+     *
+     * Doing this operation while the vibrator is already on is undefined behavior. Clients should
+     * explicitly call off.
+     *
+     * @param effect The vendor data representing the effect to be performed.
+     * @param callback A callback used to inform Frameworks of state change.
+     * @throws :
+     *         - EX_UNSUPPORTED_OPERATION if unsupported, as reflected by getCapabilities.
+     *         - EX_ILLEGAL_ARGUMENT for bad framework parameters, e.g. scale or effect strength.
+     *         - EX_SERVICE_SPECIFIC for bad vendor data, vibration is not triggered.
+     */
+    void performVendorEffect(in VendorEffect vendorEffect, in IVibratorCallback callback);
+
+    /**
+     * Retrieves a mapping of vibration frequency (Hz) to the maximum achievable output
+     * acceleration (Gs) the device can reach at that frequency.
+     *
+     * The map, represented as a list of `PwleV2OutputMapEntry` (frequency, output acceleration)
+     * pairs, defines the device's frequency response. The platform uses the minimum and maximum
+     * frequency values to determine the supported input range for `IVibrator.composePwleV2`.
+     * Output acceleration values are used to identify a frequency range suitable to safely play
+     * perceivable vibrations with a simple API. The map is also exposed for developers using an
+     * advanced API.
+     *
+     * The platform does not impose specific requirements on map resolution which can vary
+     * depending on the shape of device output curve. The values will be linearly interpolated
+     * during lookups. The platform will provide a simple API, defined by the first frequency range
+     * where output acceleration consistently exceeds a minimum threshold of 10 db SL.
+     *
+     *
+     * This may not be supported and this support is reflected in getCapabilities
+     * (CAP_COMPOSE_PWLE_EFFECTS_V2). If this is supported, it's expected to be non-empty and
+     * describe a valid non-empty frequency range where the simple API can be defined
+     * (i.e. a range where the output acceleration is always above 10 db SL).
+     *
+     * @return A list of map entries representing the frequency to max acceleration
+     *         mapping.
+     * @throws EX_UNSUPPORTED_OPERATION if unsupported, as reflected by getCapabilities.
+     */
+    List<PwleV2OutputMapEntry> getPwleV2FrequencyToOutputAccelerationMap();
+
+    /**
+     * Retrieve the maximum duration allowed for any primitive PWLE in units of
+     * milliseconds.
+     *
+     * This may not be supported and this support is reflected in
+     * getCapabilities (CAP_COMPOSE_PWLE_EFFECTS_V2).
+     *
+     * @return The maximum duration allowed for a single PrimitivePwle. Non-zero value if supported.
+     * @throws EX_UNSUPPORTED_OPERATION if unsupported, as reflected by getCapabilities.
+     */
+    int getPwleV2PrimitiveDurationMaxMillis();
+
+    /**
+     * Retrieve the maximum number of PWLE primitives input supported by IVibrator.composePwleV2.
+     *
+     * This may not be supported and this support is reflected in
+     * getCapabilities (CAP_COMPOSE_PWLE_EFFECTS_V2). Devices supporting PWLE effects must
+     * support effects with at least 16 PwleV2Primitive.
+     *
+     * @return The maximum count allowed. Non-zero value if supported.
+     * @throws EX_UNSUPPORTED_OPERATION if unsupported, as reflected by getCapabilities.
+     */
+    int getPwleV2CompositionSizeMax();
+
+    /**
+     * Retrieves the minimum duration (in milliseconds) of any segment within a
+     * PWLE effect. Devices supporting PWLE effects must support a minimum ramp
+     * time of 20 milliseconds.
+     *
+     * This may not be supported and this support is reflected in
+     * getCapabilities (CAP_COMPOSE_PWLE_EFFECTS_V2).
+     *
+     * @return The minimum duration allowed for a single PrimitivePwle. Non-zero value if supported.
+     * @throws EX_UNSUPPORTED_OPERATION if unsupported, as reflected by getCapabilities.
+     */
+    int getPwleV2PrimitiveDurationMinMillis();
+
+    /**
+     * Play composed sequence of chirps with optional callback upon completion.
+     *
+     * This may not be supported and this support is reflected in
+     * getCapabilities (CAP_COMPOSE_PWLE_EFFECTS_V2).
+     *
+     * Doing this operation while the vibrator is already on is undefined behavior. Clients should
+     * explicitly call off. IVibratorCallback.onComplete() support is required for this API.
+     *
+     * @param composite An array of primitives that represents a PWLE (Piecewise-Linear Envelope).
+     */
+    void composePwleV2(in PwleV2Primitive[] composite, in IVibratorCallback callback);
 }

@@ -353,7 +353,7 @@ ScopedAStatus EvsGlDisplay::getTargetBuffer(BufferDesc* _aidl_return) {
             .buffer =
                     {
                             .description = mBuffer.description,
-                            .handle = std::move(::android::dupToAidl(mBuffer.handle)),
+                            .handle = ::android::dupToAidl(mBuffer.handle),
                     },
             .pixelSizeBytes = 4,  // RGBA_8888 is 4-byte-per-pixel format
             .bufferId = mBuffer.fingerprint,

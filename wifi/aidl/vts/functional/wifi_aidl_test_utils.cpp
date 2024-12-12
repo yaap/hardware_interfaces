@@ -177,8 +177,7 @@ std::shared_ptr<IWifiNanIface> getWifiNanIface(const char* instance_name) {
     return iface;
 }
 
-std::shared_ptr<IWifiApIface> getWifiApIface(const char* instance_name) {
-    std::shared_ptr<IWifiChip> wifi_chip = getWifiChip(instance_name);
+std::shared_ptr<IWifiApIface> getWifiApIface(std::shared_ptr<IWifiChip> wifi_chip) {
     if (!wifi_chip.get()) {
         return nullptr;
     }
@@ -191,6 +190,11 @@ std::shared_ptr<IWifiApIface> getWifiApIface(const char* instance_name) {
         return nullptr;
     }
     return iface;
+}
+
+std::shared_ptr<IWifiApIface> getWifiApIface(const char* instance_name) {
+    std::shared_ptr<IWifiChip> wifi_chip = getWifiChip(instance_name);
+    return getWifiApIface(wifi_chip);
 }
 
 std::shared_ptr<IWifiApIface> getBridgedWifiApIface(std::shared_ptr<IWifiChip> wifi_chip) {

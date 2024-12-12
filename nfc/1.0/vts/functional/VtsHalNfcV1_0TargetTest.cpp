@@ -108,7 +108,7 @@ class NfcHidlTest : public ::testing::TestWithParam<std::string> {
     EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
     // Wait for OPEN_CPLT event
     auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
     EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
@@ -118,7 +118,7 @@ class NfcHidlTest : public ::testing::TestWithParam<std::string> {
     EXPECT_EQ(data.size(), nfc_->write(data));
     // Wait for CORE_RESET_RSP
     res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_GE(6ul, res.args->last_data_.size());
     EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
     if (res.args->last_data_.size() == 6) {
@@ -127,7 +127,7 @@ class NfcHidlTest : public ::testing::TestWithParam<std::string> {
         EXPECT_EQ(4ul, res.args->last_data_.size());
         nci_version = NCI_VERSION_2;
         res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-        EXPECT_TRUE(res.no_timeout);
+        ASSERT_TRUE(res.no_timeout);
     }
 
     /*
@@ -137,14 +137,14 @@ class NfcHidlTest : public ::testing::TestWithParam<std::string> {
     EXPECT_EQ(NfcStatus::OK, nfc_->close());
     // Wait for CLOSE_CPLT event
     res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ(NfcEvent::CLOSE_CPLT, res.args->last_event_);
     EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
     EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
     // Wait for OPEN_CPLT event
     res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
     EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
   }
@@ -153,7 +153,7 @@ class NfcHidlTest : public ::testing::TestWithParam<std::string> {
     EXPECT_EQ(NfcStatus::OK, nfc_->close());
     // Wait for CLOSE_CPLT event
     auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ(NfcEvent::CLOSE_CPLT, res.args->last_event_);
     EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
   }
@@ -186,7 +186,7 @@ TEST_P(NfcHidlTest, WriteCoreReset) {
   EXPECT_EQ(data.size(), nfc_->write(data));
   // Wait for CORE_RESET_RSP
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
 
   /* The response/notification format for CORE_RESET_CMD differs
    * with NCI 1.0 and 2.0. */
@@ -200,7 +200,7 @@ TEST_P(NfcHidlTest, WriteCoreReset) {
       EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
       // Wait for CORE_RESET_NTF
       res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-      EXPECT_TRUE(res.no_timeout);
+      ASSERT_TRUE(res.no_timeout);
       // Check if reset trigger was due to CORE_RESET_CMD
       EXPECT_LE(8ul, res.args->last_data_.size());
       EXPECT_EQ(2ul, res.args->last_data_[3]);
@@ -221,7 +221,7 @@ TEST_P(NfcHidlTest, WriteCoreResetConfigReset) {
   EXPECT_EQ(data.size(), nfc_->write(data));
   // Wait for CORE_RESET_RSP
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
 
   /* The response/notification format for CORE_RESET_CMD differs
    * with NCI 1.0 and 2.0. */
@@ -235,7 +235,7 @@ TEST_P(NfcHidlTest, WriteCoreResetConfigReset) {
       EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
       // Wait for CORE_RESET_NTF
       res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-      EXPECT_TRUE(res.no_timeout);
+      ASSERT_TRUE(res.no_timeout);
       // Check if reset trigger was due to CORE_RESET_CMD
       EXPECT_LE(8ul, res.args->last_data_.size());
       EXPECT_EQ(2ul, res.args->last_data_[3]);
@@ -257,7 +257,7 @@ TEST_P(NfcHidlTest, WriteInvalidCommand) {
   EXPECT_EQ(data.size(), nfc_->write(data));
   // Wait for RSP
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(4ul, res.args->last_data_.size());
   EXPECT_EQ(SYNTAX_ERROR, res.args->last_data_[3]);
 }
@@ -277,14 +277,14 @@ TEST_P(NfcHidlTest, WriteInvalidAndThenValidCommand) {
     EXPECT_EQ(data.size(), nfc_->write(data));
     // Wait for CORE_RESET_RSP
     auto res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
 
     /* NCI 2.0 sends CORE_RESET_NTF everytime. */
     if (nci_version == NCI_VERSION_2) {
         // Wait for CORE_RESET_NTF
         res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-        EXPECT_TRUE(res.no_timeout);
+        ASSERT_TRUE(res.no_timeout);
         cmd = CORE_INIT_CMD_NCI20;
     } else {
         cmd = CORE_INIT_CMD;
@@ -294,7 +294,7 @@ TEST_P(NfcHidlTest, WriteInvalidAndThenValidCommand) {
     EXPECT_EQ(data.size(), nfc_->write(data));
     // Wait for CORE_INIT_RSP
     res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
     // Send an Error Data Packet
     cmd = INVALID_COMMAND;
@@ -307,7 +307,7 @@ TEST_P(NfcHidlTest, WriteInvalidAndThenValidCommand) {
         EXPECT_EQ(data.size(), nfc_->write(data));
         // Wait for response with SYNTAX_ERROR
         res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-        EXPECT_TRUE(res.no_timeout);
+        ASSERT_TRUE(res.no_timeout);
         EXPECT_EQ(4ul, res.args->last_data_.size());
         EXPECT_EQ(SYNTAX_ERROR, res.args->last_data_[3]);
   }
@@ -317,7 +317,7 @@ TEST_P(NfcHidlTest, WriteInvalidAndThenValidCommand) {
   EXPECT_EQ(data.size(), nfc_->write(data));
   // Wait for CORE_CONN_CREATE_RSP
   res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(7ul, res.args->last_data_.size());
   EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
 }
@@ -335,14 +335,14 @@ TEST_P(NfcHidlTest, Bandwidth) {
     EXPECT_EQ(data.size(), nfc_->write(data));
     // Wait for CORE_RESET_RSP
     auto res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
 
     /* NCI 2.0 sends CORE_RESET_NTF everytime. */
     if (nci_version == NCI_VERSION_2) {
         // Wait for CORE_RESET_NTF
         res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-        EXPECT_TRUE(res.no_timeout);
+        ASSERT_TRUE(res.no_timeout);
         cmd = CORE_INIT_CMD_NCI20;
     } else {
         cmd = CORE_INIT_CMD;
@@ -352,15 +352,15 @@ TEST_P(NfcHidlTest, Bandwidth) {
     EXPECT_EQ(data.size(), nfc_->write(data));
     // Wait for CORE_INIT_RSP
     res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
     cmd = CORE_CONN_CREATE_CMD;
     data = cmd;
     EXPECT_EQ(data.size(), nfc_->write(data));
     // Wait for CORE_CONN_CREATE_RSP
     res = nfc_cb_->WaitForCallback(kCallbackNameSendData);
-    EXPECT_TRUE(res.no_timeout);
-    EXPECT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
+    ASSERT_TRUE(res.no_timeout);
     EXPECT_EQ(7ul, res.args->last_data_.size());
     EXPECT_EQ((int)NfcStatus::OK, res.args->last_data_[3]);
     uint8_t conn_id = res.args->last_data_[6];
@@ -414,7 +414,7 @@ TEST_P(NfcHidlTest, PowerCycle) {
   EXPECT_EQ(NfcStatus::OK, nfc_->powerCycle());
   // Wait for NfcEvent.OPEN_CPLT
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 }
@@ -428,7 +428,7 @@ TEST_P(NfcHidlTest, PowerCycleAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->close());
   // Wait for CLOSE_CPLT event
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::CLOSE_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
@@ -437,7 +437,7 @@ TEST_P(NfcHidlTest, PowerCycleAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
   // Wait for OPEN_CPLT event
   res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 }
@@ -464,7 +464,7 @@ TEST_P(NfcHidlTest, CoreInitialized) {
       EXPECT_EQ(NfcStatus::OK, status);
       // Wait for NfcEvent.POST_INIT_CPLT
       auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-      EXPECT_TRUE(res.no_timeout);
+      ASSERT_TRUE(res.no_timeout);
       EXPECT_EQ(NfcEvent::POST_INIT_CPLT, res.args->last_event_);
   }
 }
@@ -487,7 +487,7 @@ TEST_P(NfcHidlTest, ControlGrantedAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->close());
   // Wait for CLOSE_CPLT event
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::CLOSE_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
@@ -496,7 +496,7 @@ TEST_P(NfcHidlTest, ControlGrantedAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
   // Wait for OPEN_CPLT event
   res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 }
@@ -518,7 +518,7 @@ TEST_P(NfcHidlTest, PreDiscoverAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->close());
   // Wait for CLOSE_CPLT event
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::CLOSE_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
@@ -527,7 +527,7 @@ TEST_P(NfcHidlTest, PreDiscoverAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
   // Wait for OPEN_CPLT event
   res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 }
@@ -541,7 +541,7 @@ TEST_P(NfcHidlTest, CloseAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->close());
   // Wait for CLOSE_CPLT event
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::CLOSE_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
@@ -550,7 +550,7 @@ TEST_P(NfcHidlTest, CloseAfterClose) {
   EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
   // Wait for OPEN_CPLT event
   res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 }
@@ -564,14 +564,14 @@ TEST_P(NfcHidlTest, OpenAfterOpen) {
   EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
   // Wait for OPEN_CPLT event
   auto res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 
   EXPECT_EQ(NfcStatus::OK, nfc_->open(nfc_cb_));
   // Wait for OPEN_CPLT event
   res = nfc_cb_->WaitForCallback(kCallbackNameSendEvent);
-  EXPECT_TRUE(res.no_timeout);
+  ASSERT_TRUE(res.no_timeout);
   EXPECT_EQ(NfcEvent::OPEN_CPLT, res.args->last_event_);
   EXPECT_EQ(NfcStatus::OK, res.args->last_status_);
 }

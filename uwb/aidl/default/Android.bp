@@ -16,17 +16,13 @@ rust_binary {
     prefer_rlib: true,
     rustlibs: [
         "android.hardware.uwb-V1-rust",
-        "liblibc",
         "liblogger",
         "liblog_rust",
         "libbinder_rs",
         "libbinder_tokio_rs",
         "libtokio",
-        "libtokio_util",
         "libnix",
         "libanyhow",
-        "libpdl_runtime",
-        "libuwb_uci_packets",
     ],
     proc_macros: [
         "libasync_trait",

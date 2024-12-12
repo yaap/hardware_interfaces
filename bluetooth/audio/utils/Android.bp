@@ -81,9 +81,9 @@ cc_library_shared {
     ],
     required: [
         "aidl_audio_set_configurations_bfbs",
-        "aidl_audio_set_configurations_json",
+        "aidl_default_audio_set_configurations_json",
         "aidl_audio_set_scenarios_bfbs",
-        "aidl_audio_set_scenarios_json",
+        "aidl_default_audio_set_scenarios_json",
         "hfp_codec_capabilities_xml",
     ],
 }
@@ -215,9 +215,9 @@ prebuilt_etc {
 }
 
 prebuilt_etc {
-    name: "aidl_audio_set_scenarios_json",
+    name: "aidl_default_audio_set_scenarios_json",
     src: "le_audio_configuration_set/audio_set_scenarios.json",
-    filename: "aidl_audio_set_scenarios.json",
+    filename: "aidl_default_audio_set_scenarios.json",
     sub_dir: "aidl/le_audio",
     vendor: true,
 }
@@ -239,9 +239,9 @@ prebuilt_etc {
 }
 
 prebuilt_etc {
-    name: "aidl_audio_set_configurations_json",
+    name: "aidl_default_audio_set_configurations_json",
     src: "le_audio_configuration_set/audio_set_configurations.json",
-    filename: "aidl_audio_set_configurations.json",
+    filename: "aidl_default_audio_set_configurations.json",
     sub_dir: "aidl/le_audio",
     vendor: true,
 }

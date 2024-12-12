@@ -328,7 +328,7 @@ TEST_F(VehiclePropertyStoreTest, testRemoveValue) {
 TEST_F(VehiclePropertyStoreTest, testRemoveValuesForProperty) {
     auto values = getTestPropValues();
     for (const auto& value : values) {
-        ASSERT_RESULT_OK(mStore->writeValue(std::move(mValuePool->obtain(value))));
+        ASSERT_RESULT_OK(mStore->writeValue(mValuePool->obtain(value)));
     }
 
     mStore->removeValuesForProperty(toInt(VehicleProperty::INFO_FUEL_CAPACITY));

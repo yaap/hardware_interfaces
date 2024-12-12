@@ -165,26 +165,21 @@ TEST_P(CameraAidlTest, getResourceCost) {
 
 // Validate the integrity of manual flash strength control metadata
 TEST_P(CameraAidlTest, validateManualFlashStrengthControlKeys) {
-    if (flags::camera_manual_flash_strength_control()) {
-        std::vector<std::string> cameraDeviceNames = getCameraDeviceNames(mProvider);
-        for (const auto& name : cameraDeviceNames) {
-            ALOGI("validateManualFlashStrengthControlKeys: Testing camera device %s", name.c_str());
-            CameraMetadata meta;
-            std::shared_ptr<ICameraDevice> cameraDevice;
-            openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                    &cameraDevice /*out*/);
-            ndk::ScopedAStatus ret = cameraDevice->getCameraCharacteristics(&meta);
-            ASSERT_TRUE(ret.isOk());
-            const camera_metadata_t* staticMeta =
-                    reinterpret_cast<const camera_metadata_t*>(meta.metadata.data());
-            verifyManualFlashStrengthControlCharacteristics(staticMeta);
-            ret = mSession->close();
-            mSession = nullptr;
-            ASSERT_TRUE(ret.isOk());
-        }
-    } else {
-        ALOGI("validateManualFlashStrengthControlKeys: Test skipped.\n");
-        GTEST_SKIP();
+    std::vector<std::string> cameraDeviceNames = getCameraDeviceNames(mProvider);
+    for (const auto& name : cameraDeviceNames) {
+        ALOGI("validateManualFlashStrengthControlKeys: Testing camera device %s", name.c_str());
+        CameraMetadata meta;
+        std::shared_ptr<ICameraDevice> cameraDevice;
+        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
+                &cameraDevice /*out*/);
+        ndk::ScopedAStatus ret = cameraDevice->getCameraCharacteristics(&meta);
+        ASSERT_TRUE(ret.isOk());
+        const camera_metadata_t* staticMeta =
+                reinterpret_cast<const camera_metadata_t*>(meta.metadata.data());
+        verifyManualFlashStrengthControlCharacteristics(staticMeta);
+        ret = mSession->close();
+        mSession = nullptr;
+        ASSERT_TRUE(ret.isOk());
     }
 }
 
@@ -288,77 +283,70 @@ TEST_P(CameraAidlTest, getCameraCharacteristics) {
 }
 
 TEST_P(CameraAidlTest, getSessionCharacteristics) {
-    if (flags::feature_combination_query()) {
-        std::vector<std::string> cameraDeviceNames = getCameraDeviceNames(mProvider);
+    std::vector<std::string> cameraDeviceNames = getCameraDeviceNames(mProvider);
 
-        for (const auto& name : cameraDeviceNames) {
-            std::shared_ptr<ICameraDevice> device;
-            ALOGI("getSessionCharacteristics: Testing camera device %s", name.c_str());
-            ndk::ScopedAStatus ret = mProvider->getCameraDeviceInterface(name, &device);
-            ALOGI("getCameraDeviceInterface returns: %d:%d", ret.getExceptionCode(),
-                  ret.getServiceSpecificError());
-            ASSERT_TRUE(ret.isOk());
-            ASSERT_NE(device, nullptr);
+    for (const auto& name : cameraDeviceNames) {
+        std::shared_ptr<ICameraDevice> device;
+        ALOGI("getSessionCharacteristics: Testing camera device %s", name.c_str());
+        ndk::ScopedAStatus ret = mProvider->getCameraDeviceInterface(name, &device);
+        ALOGI("getCameraDeviceInterface returns: %d:%d", ret.getExceptionCode(),
+              ret.getServiceSpecificError());
+        ASSERT_TRUE(ret.isOk());
+        ASSERT_NE(device, nullptr);
 
-            int32_t interfaceVersion = -1;
-            ret = device->getInterfaceVersion(&interfaceVersion);
-            ASSERT_TRUE(ret.isOk());
-            bool supportSessionCharacteristics =
-                    (interfaceVersion >= CAMERA_DEVICE_API_MINOR_VERSION_3);
-            if (!supportSessionCharacteristics) {
-                continue;
-            }
-
-            CameraMetadata meta;
-            openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                                   &device /*out*/);
-
-            std::vector<AvailableStream> outputStreams;
-            camera_metadata_t* staticMeta =
-                    reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
-            outputStreams.clear();
-            ASSERT_EQ(Status::OK, getAvailableOutputStreams(staticMeta, outputStreams));
-            ASSERT_NE(0u, outputStreams.size());
-
-            AvailableStream sampleStream = outputStreams[0];
-
-            int32_t streamId = 0;
-            Stream stream = {streamId,
-                             StreamType::OUTPUT,
-                             sampleStream.width,
-                             sampleStream.height,
-                             static_cast<PixelFormat>(sampleStream.format),
-                             static_cast<aidl::android::hardware::graphics::common::BufferUsage>(
-                                     GRALLOC1_CONSUMER_USAGE_VIDEO_ENCODER),
-                             Dataspace::UNKNOWN,
-                             StreamRotation::ROTATION_0,
-                             std::string(),
-                             /*bufferSize*/ 0,
-                             /*groupId*/ -1,
-                             {SensorPixelMode::ANDROID_SENSOR_PIXEL_MODE_DEFAULT},
-                             RequestAvailableDynamicRangeProfilesMap::
-                                     ANDROID_REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES_MAP_STANDARD};
-
-            std::vector<Stream> streams = {stream};
-            StreamConfiguration config;
-            createStreamConfiguration(streams, StreamConfigurationMode::NORMAL_MODE, &config);
-
-            CameraMetadata camera_chars;
-            ret = device->getCameraCharacteristics(&camera_chars);
-            ASSERT_TRUE(ret.isOk());
-
-            CameraMetadata session_chars;
-            ret = device->getSessionCharacteristics(config, &session_chars);
-            ASSERT_TRUE(ret.isOk());
-            verifySessionCharacteristics(session_chars, camera_chars);
-
-            ret = mSession->close();
-            mSession = nullptr;
-            ASSERT_TRUE(ret.isOk());
+        int32_t interfaceVersion = -1;
+        ret = device->getInterfaceVersion(&interfaceVersion);
+        ASSERT_TRUE(ret.isOk());
+        bool supportSessionCharacteristics =
+                (interfaceVersion >= CAMERA_DEVICE_API_MINOR_VERSION_3);
+        if (!supportSessionCharacteristics) {
+            continue;
         }
-    } else {
-        ALOGI("getSessionCharacteristics: Test skipped.\n");
-        GTEST_SKIP();
+
+        CameraMetadata meta;
+        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/, &device /*out*/);
+
+        std::vector<AvailableStream> outputStreams;
+        camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
+        outputStreams.clear();
+        ASSERT_EQ(Status::OK, getAvailableOutputStreams(staticMeta, outputStreams));
+        ASSERT_NE(0u, outputStreams.size());
+
+        AvailableStream sampleStream = outputStreams[0];
+
+        int32_t streamId = 0;
+        Stream stream = {streamId,
+                         StreamType::OUTPUT,
+                         sampleStream.width,
+                         sampleStream.height,
+                         static_cast<PixelFormat>(sampleStream.format),
+                         static_cast<aidl::android::hardware::graphics::common::BufferUsage>(
+                                 GRALLOC1_CONSUMER_USAGE_VIDEO_ENCODER),
+                         Dataspace::UNKNOWN,
+                         StreamRotation::ROTATION_0,
+                         std::string(),
+                         /*bufferSize*/ 0,
+                         /*groupId*/ -1,
+                         {SensorPixelMode::ANDROID_SENSOR_PIXEL_MODE_DEFAULT},
+                         RequestAvailableDynamicRangeProfilesMap::
+                                 ANDROID_REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES_MAP_STANDARD};
+
+        std::vector<Stream> streams = {stream};
+        StreamConfiguration config;
+        createStreamConfiguration(streams, StreamConfigurationMode::NORMAL_MODE, &config);
+
+        CameraMetadata camera_chars;
+        ret = device->getCameraCharacteristics(&camera_chars);
+        ASSERT_TRUE(ret.isOk());
+
+        CameraMetadata session_chars;
+        ret = device->getSessionCharacteristics(config, &session_chars);
+        ASSERT_TRUE(ret.isOk());
+        verifySessionCharacteristics(session_chars, camera_chars);
+
+        ret = mSession->close();
+        mSession = nullptr;
+        ASSERT_TRUE(ret.isOk());
     }
 }
 
@@ -615,19 +603,17 @@ TEST_P(CameraAidlTest, constructDefaultRequestSettings) {
                 ASSERT_EQ(0u, rawMetadata.metadata.size());
             }
 
-            if (flags::feature_combination_query()) {
-                if (supportFeatureCombinationQuery) {
-                    CameraMetadata rawMetadata2;
-                    ndk::ScopedAStatus ret2 =
-                            device->constructDefaultRequestSettings(reqTemplate, &rawMetadata2);
+            if (supportFeatureCombinationQuery) {
+                CameraMetadata rawMetadata2;
+                ndk::ScopedAStatus ret2 =
+                        device->constructDefaultRequestSettings(reqTemplate, &rawMetadata2);
 
-                    ASSERT_EQ(ret.isOk(), ret2.isOk());
-                    ASSERT_EQ(ret.getStatus(), ret2.getStatus());
+                ASSERT_EQ(ret.isOk(), ret2.isOk());
+                ASSERT_EQ(ret.getStatus(), ret2.getStatus());
 
-                    ASSERT_EQ(rawMetadata.metadata.size(), rawMetadata2.metadata.size());
-                    if (ret2.isOk()) {
-                        validateDefaultRequestMetadata(reqTemplate, rawMetadata2);
-                    }
+                ASSERT_EQ(rawMetadata.metadata.size(), rawMetadata2.metadata.size());
+                if (ret2.isOk()) {
+                    validateDefaultRequestMetadata(reqTemplate, rawMetadata2);
                 }
             }
         }

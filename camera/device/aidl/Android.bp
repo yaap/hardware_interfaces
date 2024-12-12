@@ -10,6 +10,7 @@ package {
 
 aidl_interface {
     name: "android.hardware.camera.device",
+    host_supported: true,
     vendor_available: true,
     srcs: ["android/hardware/camera/device/*.aidl"],
     frozen: true,
@@ -28,6 +29,9 @@ aidl_interface {
         java: {
             sdk_version: "module_current",
             enabled: false,
+        },
+        rust: {
+            enabled: true,
         },
     },
     versions_with_info: [

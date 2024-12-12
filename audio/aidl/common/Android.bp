@@ -32,10 +32,12 @@ cc_library {
     header_libs: [
         "libbase_headers",
         "libsystem_headers",
+        "libutils_headers",
     ],
     export_header_lib_headers: [
         "libbase_headers",
         "libsystem_headers",
+        "libutils_headers",
     ],
     srcs: [
         "StreamWorker.cpp",

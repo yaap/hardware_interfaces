@@ -60,6 +60,11 @@ struct Utils {
     static bool isAutomotiveDevice();
     static double distanceMeters(double lat1, double lon1, double lat2, double lon2);
 
+    // Returns true iff the device has the specified feature.
+    static bool deviceSupportsFeature(const char* feature);
+
+    static bool isCnBuild() { return deviceSupportsFeature("cn.google.services"); }
+
   private:
     template <class T>
     static int64_t getLocationTimestampMillis(const T&);

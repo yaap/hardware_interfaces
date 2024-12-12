@@ -73,7 +73,7 @@ interface ISession {
      * Note that this interface allows multiple in-flight challenges. Invoking generateChallenge
      * twice does not invalidate the first challenge. The challenge is invalidated only when:
      *   1) Its lifespan exceeds the challenge timeout defined in the TEE.
-     *   2) IFingerprint#revokeChallenge is invoked
+     *   2) IFace#revokeChallenge is invoked
      *
      * For example, the following is a possible table of valid challenges:
      * ----------------------------------------------

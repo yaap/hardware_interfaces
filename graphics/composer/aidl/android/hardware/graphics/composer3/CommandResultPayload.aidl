@@ -19,6 +19,7 @@ package android.hardware.graphics.composer3;
 import android.hardware.graphics.composer3.ChangedCompositionTypes;
 import android.hardware.graphics.composer3.ClientTargetPropertyWithBrightness;
 import android.hardware.graphics.composer3.CommandError;
+import android.hardware.graphics.composer3.DisplayLuts;
 import android.hardware.graphics.composer3.DisplayRequest;
 import android.hardware.graphics.composer3.PresentFence;
 import android.hardware.graphics.composer3.PresentOrValidate;
@@ -96,4 +97,13 @@ union CommandResultPayload {
      * the SDR buffers when an HDR layer is simultaneously device-composited.
      */
     ClientTargetPropertyWithBrightness clientTargetProperty;
+
+    /**
+     * Sets the Lut(s) for the layers.
+     *
+     * HWC should only request Lut(s) if SurfaceFlinger does not send the Lut(s) to the HWC.
+     * The main use-case is like HDR10+ or Dolby Vision where there is no Lut to send from
+     * SurfaceFlinger.
+     */
+    DisplayLuts displayLuts;
 }

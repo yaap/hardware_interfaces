@@ -83,7 +83,7 @@ void TestRenderEngine::checkColorBuffer(const std::vector<Color>& expectedColors
     const uint32_t stride = (bytesPerPixel > 0 && bytesPerStride > 0)
                                     ? static_cast<uint32_t>(bytesPerStride / bytesPerPixel)
                                     : mGraphicBuffer->getStride();
-    ReadbackHelper::compareColorBuffers(expectedColors, bufferData, stride,
+    ReadbackHelper::compareColorBuffers(expectedColors, bufferData, stride, bytesPerPixel,
                                         mGraphicBuffer->getWidth(), mGraphicBuffer->getHeight(),
                                         mFormat);
     ASSERT_EQ(::android::OK, mGraphicBuffer->unlock());
@@ -110,7 +110,7 @@ void TestRenderEngine::checkColorBuffer(const ::android::sp<::android::GraphicBu
 
     ASSERT_EQ(renderedStride, bufferStride);
 
-    ReadbackHelper::compareColorBuffers(renderedBufferData, bufferData, bufferStride,
+    ReadbackHelper::compareColorBuffers(renderedBufferData, bufferData, bufferStride, bytesPerPixel,
                                         mGraphicBuffer->getWidth(), mGraphicBuffer->getHeight(),
                                         mFormat);
     ASSERT_EQ(::android::OK, buffer->unlock());

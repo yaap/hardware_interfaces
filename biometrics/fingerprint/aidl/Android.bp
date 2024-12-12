@@ -11,7 +11,7 @@ aidl_interface {
     name: "android.hardware.biometrics.fingerprint",
     vendor_available: true,
     srcs: [
-        "android/hardware/biometrics/fingerprint/**/*.aidl",
+        "android/hardware/biometrics/fingerprint/*.aidl",
     ],
     imports: [
         "android.hardware.biometrics.common-V4",
@@ -24,6 +24,15 @@ aidl_interface {
         },
         cpp: {
             enabled: false,
+        },
+        ndk: {
+            apex_available: [
+                "//apex_available:platform",
+                "//apex_available:anyapex",
+            ],
+        },
+        rust: {
+            enabled: true,
         },
     },
     versions_with_info: [
@@ -57,5 +66,34 @@ aidl_interface {
         },
 
     ],
+    frozen: true,
+}
+
+aidl_interface {
+    name: "android.hardware.biometrics.fingerprint.virtualhal",
+    srcs: [
+        "android/hardware/biometrics/fingerprint/virtualhal/*.aidl",
+    ],
+    imports: [
+        "android.hardware.biometrics.common-V4",
+        "android.hardware.keymaster-V4",
+        "android.hardware.biometrics.fingerprint-V4",
+    ],
+    vendor_available: true,
+    unstable: true,
+    backend: {
+        java: {
+            platform_apis: true,
+        },
+        cpp: {
+            enabled: false,
+        },
+        ndk: {
+            apex_available: [
+                "com.android.hardware.biometrics.fingerprint.virtual",
+                "//apex_available:platform",
+            ],
+        },
+    },
     frozen: false,
 }

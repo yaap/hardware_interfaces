@@ -16,21 +16,21 @@
 
 #pragma once
 
-#include <aidl/android/hardware/biometrics/fingerprint/BnVirtualHal.h>
+#include <aidl/android/hardware/biometrics/fingerprint/virtualhal/BnVirtualHal.h>
 
 #include "Fingerprint.h"
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
+using namespace virtualhal;
+
 class VirtualHal : public BnVirtualHal {
   public:
-    VirtualHal(Fingerprint* fp) : mFp(fp) {}
+    VirtualHal(std::shared_ptr<Fingerprint> fp) : mFp(fp) {}
 
     ::ndk::ScopedAStatus setEnrollments(const std::vector<int32_t>& in_id) override;
     ::ndk::ScopedAStatus setEnrollmentHit(int32_t in_hit_id) override;
-    ::ndk::ScopedAStatus setNextEnrollment(
-            const ::aidl::android::hardware::biometrics::fingerprint::NextEnrollment&
-                    in_next_enrollment) override;
+    ::ndk::ScopedAStatus setNextEnrollment(const NextEnrollment& in_next_enrollment) override;
     ::ndk::ScopedAStatus setAuthenticatorId(int64_t in_id) override;
     ::ndk::ScopedAStatus setChallenge(int64_t in_challenge) override;
     ::ndk::ScopedAStatus setOperationAuthenticateFails(bool in_fail) override;
@@ -67,12 +67,15 @@ class VirtualHal : public BnVirtualHal {
     ::ndk::ScopedAStatus setDetectInteraction(bool in_v) override;
     ::ndk::ScopedAStatus setDisplayTouch(bool in_v) override;
     ::ndk::ScopedAStatus setControlIllumination(bool in_v) override;
+    ::ndk::ScopedAStatus getFingerprintHal(
+            std::shared_ptr<::aidl::android::hardware::biometrics::fingerprint::IFingerprint>*
+                    _aidl_return);
 
   private:
     OptIntVec intVec2OptIntVec(const std::vector<int32_t>& intVec);
     OptIntVec acquiredInfoVec2OptIntVec(const std::vector<AcquiredInfoAndVendorCode>& intVec);
     ::ndk::ScopedAStatus sanityCheckLatency(const std::vector<int32_t>& in_latency);
-    Fingerprint* mFp;
+    std::shared_ptr<Fingerprint> mFp;
 };
 
 }  // namespace aidl::android::hardware::biometrics::fingerprint

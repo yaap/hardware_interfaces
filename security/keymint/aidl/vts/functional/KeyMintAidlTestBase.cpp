@@ -236,10 +236,10 @@ uint32_t KeyMintAidlTestBase::boot_patch_level() {
 
 /**
  * An API to determine device IDs attestation is required or not,
- * which is mandatory for KeyMint version 2 or first_api_level 33 or greater.
+ * which is mandatory for KeyMint version 2 and first_api_level 33 or greater.
  */
 bool KeyMintAidlTestBase::isDeviceIdAttestationRequired() {
-    return AidlVersion() >= 2 || property_get_int32("ro.vendor.api_level", 0) >= __ANDROID_API_T__;
+    return AidlVersion() >= 2 && property_get_int32("ro.vendor.api_level", 0) >= __ANDROID_API_T__;
 }
 
 /**
@@ -250,7 +250,13 @@ bool KeyMintAidlTestBase::isSecondImeiIdAttestationRequired() {
     return AidlVersion() >= 3 && property_get_int32("ro.vendor.api_level", 0) > __ANDROID_API_T__;
 }
 
-bool KeyMintAidlTestBase::isRkpOnly() {
+std::optional<bool> KeyMintAidlTestBase::isRkpOnly() {
+    // GSI replaces the values for remote_prov_prop properties (since they’re system_internal_prop
+    // properties), so on GSI the properties are not reliable indicators of whether StrongBox/TEE is
+    // RKP-only or not.
+    if (is_gsi_image()) {
+        return std::nullopt;
+    }
     if (SecLevel() == SecurityLevel::STRONGBOX) {
         return property_get_bool("remote_provisioning.strongbox.rkp_only", false);
     }
@@ -318,8 +324,11 @@ ErrorCode KeyMintAidlTestBase::GenerateKey(const AuthorizationSet& key_desc,
     vector<Certificate> attest_cert_chain;
     // If an attestation is requested, but the system is RKP-only, we need to supply an explicit
     // attestation key. Else the result is a key without an attestation.
-    if (isRkpOnly() && key_desc.Contains(TAG_ATTESTATION_CHALLENGE)) {
-        skipAttestKeyTestIfNeeded();
+    // If the RKP-only value is undeterminable (i.e., when running on GSI), generate and use the
+    // attest key anyways. In the case that using an attest key is not supported
+    // (shouldSkipAttestKeyTest), assume the device has factory keys (so not RKP-only).
+    if (isRkpOnly().value_or(true) && key_desc.Contains(TAG_ATTESTATION_CHALLENGE) &&
+        !shouldSkipAttestKeyTest()) {
         AuthorizationSet attest_key_desc =
                 AuthorizationSetBuilder().EcdsaKey(EcCurve::P_256).AttestKey().SetDefaultValidity();
         attest_key.emplace();
@@ -1675,14 +1684,6 @@ bool KeyMintAidlTestBase::shouldSkipAttestKeyTest(void) const {
     // Check the chipset first as that doesn't require a round-trip to Package Manager.
     return (is_chipset_allowed_km4_strongbox() && is_strongbox_enabled() &&
             is_attest_key_feature_disabled());
-}
-
-// Skip a test that involves use of the ATTEST_KEY feature in specific configurations
-// where ATTEST_KEY is not supported (for either StrongBox or TEE).
-void KeyMintAidlTestBase::skipAttestKeyTestIfNeeded() const {
-    if (shouldSkipAttestKeyTest()) {
-        GTEST_SKIP() << "Test using ATTEST_KEY is not applicable on waivered device";
-    }
 }
 
 void verify_serial(X509* cert, const uint64_t expected_serial) {

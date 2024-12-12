@@ -24,12 +24,12 @@ namespace aidl::android::hardware::biometrics::fingerprint {
 
 class FakeLockoutTracker {
   public:
-    FakeLockoutTracker() : mFailedCount(0) {}
+    FakeLockoutTracker() : mFailedCount(0), mFailedCountTimed(0) {}
     ~FakeLockoutTracker() {}
 
     enum class LockoutMode : int8_t { kNone = 0, kTimed, kPermanent };
 
-    void reset();
+    void reset(bool dueToTimeout = false);
     LockoutMode getMode();
     void addFailedAttempt();
     int64_t getLockoutTimeLeft();
@@ -44,6 +44,7 @@ class FakeLockoutTracker {
 
   private:
     int32_t mFailedCount;
+    int32_t mFailedCountTimed;
     int64_t mLockoutTimedStart;
     LockoutMode mCurrentMode;
 };

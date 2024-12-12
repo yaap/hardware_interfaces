@@ -55,6 +55,7 @@ cc_test {
         "libui",
         "android.hardware.common-V2-ndk",
         "server_configurable_flags",
+        "libtracing_perfetto",
     ],
     static_libs: [
         "android.hardware.graphics.common@1.1",

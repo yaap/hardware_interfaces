@@ -201,14 +201,15 @@ TEST_P(UwbAidl, ChipGetName) {
     EXPECT_EQ(retrieved_chip_name, chip_name);
 }
 
-/**
 TEST_P(UwbAidl, ChipSendUciMessage_GetDeviceInfo) {
-const auto iuwb_chip = getAnyChipAndOpen(callback);
-EXPECT_TRUE(iuwb_chip->coreInit(callback).isOk());
+    const auto iuwb_chip = getAnyChipAndOpen();
+    EXPECT_TRUE(iuwb_chip->coreInit().isOk());
 
-const std::vector<uint8_t>
-EXPECT_TRUE(iuwb_chip->sendUciMessage().isOk());
-} */
+    std::vector<uint8_t> uciMessage = {0x20, 0x02, 0x00, 0x00}; /** CoreGetDeviceInfo */
+    int32_t* return_status = new int32_t;
+    EXPECT_TRUE(iuwb_chip->sendUciMessage(uciMessage, return_status).isOk());
+    EXPECT_EQ(*return_status, 4 /* Status Ok */);
+}
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UwbAidl);
 INSTANTIATE_TEST_SUITE_P(Uwb, UwbAidl,

@@ -45,4 +45,5 @@ interface IComposerCallback {
   oneway void onVsyncIdle(long display);
   oneway void onRefreshRateChangedDebug(in android.hardware.graphics.composer3.RefreshRateChangedDebugData data);
   void onHotplugEvent(long display, android.hardware.graphics.common.DisplayHotplugEvent event);
+  oneway void onHdcpLevelsChanged(long display, in android.hardware.drm.HdcpLevels levels);
 }

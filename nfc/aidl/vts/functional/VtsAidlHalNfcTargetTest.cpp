@@ -423,6 +423,11 @@ TEST_P(NfcAidl, CheckGetConfigValues) {
         EXPECT_GE((uint8_t)configValue.defaultIsoDepRoute, MIN_OFFHOST_ROUTE_ID);
         EXPECT_LE((uint8_t)configValue.defaultIsoDepRoute, MAX_OFFHOST_ROUTE_ID);
     }
+    for (auto simPipeId : configValue.offHostSimPipeIds) {
+        LOG(INFO) << StringPrintf("offHostSimPipeId= %x", simPipeId);
+        EXPECT_GE(simPipeId, MIN_OFFHOST_ROUTE_ID);
+        EXPECT_LE(simPipeId, MAX_OFFHOST_ROUTE_ID);
+    }
 }
 
 /*
@@ -438,6 +443,16 @@ TEST_P(NfcAidl, CheckisVerboseLoggingEnabledAfterSetEnableVerboseLogging) {
     EXPECT_TRUE(infc_->setEnableVerboseLogging(false).isOk());
     EXPECT_TRUE(infc_->isVerboseLoggingEnabled(&enabled).isOk());
     EXPECT_TRUE(!enabled);
+}
+
+TEST_P(NfcAidl, CheckControlGrantedStatus) {
+    int interface_version;
+    EXPECT_TRUE(infc_->getInterfaceVersion(&interface_version).isOk());
+    if (interface_version > 1) {
+        NfcStatus status;
+        EXPECT_TRUE(infc_->controlGranted(&status).isOk());
+        EXPECT_EQ(status, NfcStatus::OK);
+    }
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NfcAidl);

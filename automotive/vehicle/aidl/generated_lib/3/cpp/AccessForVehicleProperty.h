@@ -27,6 +27,10 @@
 #include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 #include <aidl/android/hardware/automotive/vehicle/VehiclePropertyAccess.h>
 
+// Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+#include <PerDisplayMaxBrightness.h>
+// End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+
 #include <unordered_map>
 
 namespace aidl {
@@ -302,6 +306,9 @@ std::unordered_map<VehicleProperty, VehiclePropertyAccess> AccessForVehiclePrope
         {VehicleProperty::CROSS_TRAFFIC_MONITORING_WARNING_STATE, VehiclePropertyAccess::READ},
         {VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_ENABLED, VehiclePropertyAccess::READ_WRITE},
         {VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyAccess::READ},
+        // Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+        {PER_DISPLAY_MAX_BRIGHTNESS, VehiclePropertyAccess::READ},
+        // End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
 };
 
 }  // namespace vehicle

@@ -62,9 +62,13 @@ UdsCerts = {
 SignerName = tstr
 
 UdsCertChain = [
-    2* X509Certificate      ; Root -> ... -> Leaf. "Root" is the vendor self-signed
-                            ; cert, "Leaf" contains UDS_Public. There may also be
-                            ; intermediate certificates between Root and Leaf.
+    + X509Certificate       ; Root -> ... -> Leaf. "Root" is the vendor self-signed
+                            ; cert, "Leaf" contains UDS_Pub. It's recommended to
+                            ; have at least 3 certificates in the chain.
+                            ; The Root certificate is recommended to be generated in an air-gapped,
+                            ; HSM-based secure environment. The intermediate signing keys may be
+                            ; online, and should be rotated regularly (e.g. annually). Additionally,
+                            ; the intermediate certificates may contain product family identifiers.
 ]
 
 ; A bstr containing a DER-encoded X.509 certificate (RSA, NIST P-curve, or EdDSA)
@@ -73,7 +77,7 @@ X509Certificate = bstr
 ; The DICE Chain contains measurements about the device firmware.
 ; The first entry in the DICE Chain is the UDS_Pub, encoded as a COSE_key. All entries
 ; after the first describe a link in the boot chain (e.g. bootloaders: BL1, BL2, ... BLN)
-; Note that there is no DiceChainEntry for UDS_pub, only a "bare" COSE_key.
+; Note that there is no DiceChainEntry for UDS_Pub, only a "bare" COSE_key.
 DiceCertChain = [
     PubKeyEd25519 / PubKeyECDSA256 / PubKeyECDSA384,  ; UDS_Pub
     + DiceChainEntry,               ; First CDI_Certificate -> Last CDI_Certificate

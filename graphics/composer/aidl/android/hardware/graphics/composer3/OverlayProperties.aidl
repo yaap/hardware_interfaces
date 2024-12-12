@@ -16,6 +16,8 @@
 
 package android.hardware.graphics.composer3;
 
+import android.hardware.graphics.composer3.LutProperties;
+
 @VintfStability
 parcelable OverlayProperties {
     parcelable SupportedBufferCombinations {
@@ -42,4 +44,8 @@ parcelable OverlayProperties {
     // True if the DPU is able to color manage at least two overlays
     // with different input colorspaces, false otherwise.
     boolean supportMixedColorSpaces;
+
+    // Array of lut properties in order that the HWC supports.
+    // The list accepts 1D lut(s) and 3D lut(s).
+    @nullable LutProperties[] lutProperties;
 }

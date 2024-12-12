@@ -43,6 +43,7 @@ void otLogCritPlat(const char* format, ...) {
 }
 
 void otDumpDebgPlat(const char* aText, const void* aData, uint16_t aDataLength) {
+#ifdef DEV_BUILD
     constexpr uint16_t kBufSize = 512;
     char buf[kBufSize];
 
@@ -55,6 +56,11 @@ void otDumpDebgPlat(const char* aText, const void* aData, uint16_t aDataLength) 
 
         __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, "%s: %s", aText, buf);
     }
+#else
+    OT_UNUSED_VARIABLE(aText);
+    OT_UNUSED_VARIABLE(aData);
+    OT_UNUSED_VARIABLE(aDataLength);
+#endif
 }
 
 OT_TOOL_WEAK void otPlatAlarmMilliFired(otInstance* aInstance) {

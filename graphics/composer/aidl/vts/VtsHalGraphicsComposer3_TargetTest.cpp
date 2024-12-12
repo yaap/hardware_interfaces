@@ -1845,7 +1845,7 @@ TEST_P(GraphicsComposerAidlCommandTest, SetDisplayBrightness) {
         writer.setDisplayBrightness(getPrimaryDisplayId(), /*brightness*/ 0.5f, -1.f);
         execute();
         const auto errors = mReader.takeErrors();
-        EXPECT_EQ(1, errors.size());
+        ASSERT_EQ(1, errors.size());
         EXPECT_EQ(IComposerClient::EX_UNSUPPORTED, errors[0].errorCode);
         GTEST_SUCCEED() << "SetDisplayBrightness is not supported";
         return;

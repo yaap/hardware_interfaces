@@ -136,10 +136,10 @@ class SocketInterface : public ot::Spinel::SpinelInterface,
      * Hardware resets the RCP.
      *
      * @retval OT_ERROR_NONE            Successfully reset the RCP.
-     * @retval OT_ERROR_NOT_IMPLEMENT   The hardware reset is not implemented.
+     * @retval OT_ERROR_FAILED          Hardware reset is failed.
      *
      */
-    otError HardwareReset(void) { return OT_ERROR_NOT_IMPLEMENTED; }
+    otError HardwareReset(void);
 
     /**
      * Returns the RCP interface metrics.
@@ -237,9 +237,26 @@ class SocketInterface : public ot::Spinel::SpinelInterface,
      */
     void WaitForSocketFileCreated(const char* aPath);
 
+    /**
+     * Wait for the hardware reset completion signal.
+     *
+     * @retval OT_ERROR_NONE       Hardware reset is successfully.
+     * @retval OT_ERROR_FAILED     Hardware reset is failed.
+     *
+     */
+    otError WaitForHardwareResetCompletion(uint32_t aTimeoutMs);
+
+    /**
+     * Reset socket interface to intitial state.
+     *
+     */
+    void ResetStates(void);
+
     enum {
-        kMaxSelectTimeMs = 2000,  ///< Maximum wait time in Milliseconds for file
-                                  ///< descriptor to become available.
+        kMaxSelectTimeMs = 2000,             ///< Maximum wait time in Milliseconds for file
+                                             ///< descriptor to become available.
+        kMaxRetriesForSocketCloseCheck = 3,  ///< Maximum retry times for checking
+                                             ///< if socket is closed.
     };
 
     ReceiveFrameCallback mReceiveFrameCallback;
@@ -248,6 +265,8 @@ class SocketInterface : public ot::Spinel::SpinelInterface,
 
     int mSockFd;
     const ot::Url::Url& mRadioUrl;
+
+    bool mIsHardwareResetting;
 
     otRcpInterfaceMetrics mInterfaceMetrics;
 

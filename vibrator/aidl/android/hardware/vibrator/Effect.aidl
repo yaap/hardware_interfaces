@@ -24,57 +24,57 @@ enum Effect {
      *
      * This effect should produce a sharp, crisp click sensation.
      */
-    CLICK,
+    CLICK = 0,
     /**
      * A double click effect.
      *
      * This effect should produce two sequential sharp, crisp click sensations with a minimal
      * amount of time between them.
      */
-    DOUBLE_CLICK,
+    DOUBLE_CLICK = 1,
     /**
      * A tick effect.
      *
      * This effect should produce a soft, short sensation, like the tick of a clock.
      */
-    TICK,
+    TICK = 2,
     /**
      * A thud effect.
      *
      * This effect should solid feeling bump, like the depression of a heavy mechanical button.
      */
-    THUD,
+    THUD = 3,
     /**
      * A pop effect.
      *
      * A short, quick burst effect.
      */
-    POP,
+    POP = 4,
     /**
      * A heavy click effect.
      *
      * This should produce a sharp striking sensation, like a click but stronger.
      */
-    HEAVY_CLICK,
+    HEAVY_CLICK = 5,
     /**
      * Ringtone patterns. They may correspond with the device's ringtone audio, or may just be a
      * pattern that can be played as a ringtone with any audio, depending on the device.
      */
-    RINGTONE_1,
-    RINGTONE_2,
-    RINGTONE_3,
-    RINGTONE_4,
-    RINGTONE_5,
-    RINGTONE_6,
-    RINGTONE_7,
-    RINGTONE_8,
-    RINGTONE_9,
-    RINGTONE_10,
-    RINGTONE_11,
-    RINGTONE_12,
-    RINGTONE_13,
-    RINGTONE_14,
-    RINGTONE_15,
+    RINGTONE_1 = 6,
+    RINGTONE_2 = 7,
+    RINGTONE_3 = 8,
+    RINGTONE_4 = 9,
+    RINGTONE_5 = 10,
+    RINGTONE_6 = 11,
+    RINGTONE_7 = 12,
+    RINGTONE_8 = 13,
+    RINGTONE_9 = 14,
+    RINGTONE_10 = 15,
+    RINGTONE_11 = 16,
+    RINGTONE_12 = 17,
+    RINGTONE_13 = 18,
+    RINGTONE_14 = 19,
+    RINGTONE_15 = 20,
     /**
      * A soft tick effect meant to be played as a texture.
      *
@@ -82,5 +82,5 @@ enum Effect {
      * are expected to be played multiple times in quick succession, replicating a specific
      * texture to the user as a form of haptic feedback.
      */
-    TEXTURE_TICK,
+    TEXTURE_TICK = 21,
 }

@@ -19,7 +19,7 @@ package android.hardware.vibrator;
 @VintfStability
 @Backing(type="byte")
 enum EffectStrength {
-    LIGHT,
-    MEDIUM,
-    STRONG,
+    LIGHT = 0,
+    MEDIUM = 1,
+    STRONG = 2,
 }

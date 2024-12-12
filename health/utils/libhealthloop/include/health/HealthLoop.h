@@ -20,6 +20,7 @@
 #include <mutex>
 #include <vector>
 
+#include <android-base/result.h>
 #include <android-base/unique_fd.h>
 #include <healthd/healthd.h>
 
@@ -87,10 +88,12 @@ class HealthLoop {
     };
 
     int InitInternal();
+    static android::base::Result<void> AttachFilter(int uevent_fd);
     void MainLoop();
     void WakeAlarmInit();
     void WakeAlarmEvent(uint32_t);
     void UeventInit();
+    bool RecvUevents();
     void UeventEvent(uint32_t);
     void WakeAlarmSetInterval(int interval);
     void PeriodicChores();

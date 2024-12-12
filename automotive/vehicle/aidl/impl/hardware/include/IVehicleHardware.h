@@ -20,6 +20,7 @@
 #include <VehicleHalTypes.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace android {
@@ -46,33 +47,53 @@ struct SetValueErrorEvent {
     int32_t areaId;
 };
 
+namespace aidlvhal = ::aidl::android::hardware::automotive::vehicle;
+
 // An abstract interface to access vehicle hardware.
 // For virtualized VHAL, GrpcVehicleHardware would communicate with a VehicleHardware
 // implementation in another VM through GRPC. For non-virtualzied VHAL, VHAL directly communicates
 // with a VehicleHardware through this interface.
 class IVehicleHardware {
   public:
-    using SetValuesCallback = std::function<void(
-            std::vector<aidl::android::hardware::automotive::vehicle::SetValueResult>)>;
-    using GetValuesCallback = std::function<void(
-            std::vector<aidl::android::hardware::automotive::vehicle::GetValueResult>)>;
-    using PropertyChangeCallback = std::function<void(
-            std::vector<aidl::android::hardware::automotive::vehicle::VehiclePropValue>)>;
+    using SetValuesCallback = std::function<void(std::vector<aidlvhal::SetValueResult>)>;
+    using GetValuesCallback = std::function<void(std::vector<aidlvhal::GetValueResult>)>;
+    using PropertyChangeCallback = std::function<void(std::vector<aidlvhal::VehiclePropValue>)>;
     using PropertySetErrorCallback = std::function<void(std::vector<SetValueErrorEvent>)>;
 
     virtual ~IVehicleHardware() = default;
 
     // Get all the property configs.
-    virtual std::vector<aidl::android::hardware::automotive::vehicle::VehiclePropConfig>
-    getAllPropertyConfigs() const = 0;
+    virtual std::vector<aidlvhal::VehiclePropConfig> getAllPropertyConfigs() const = 0;
+
+    // Get the property configs for the specified propId. This is used for early-boot
+    // native VHAL clients to access certain property configs when not all property configs are
+    // available. For example, a config discovery process might be required to determine the
+    // property config for HVAC. However, for early boot properties, e.g. VHAL_HEARTBEAT, it
+    // could return before the config discovery process.
+    //
+    // Currently Android system may try to access the following properties during early boot:
+    // STORAGE_ENCRYPTION_BINDING_SEED, WATCHDOG_ALIVE, WATCHDOG_TERMINATE_PROCESS, VHAL_HEARTBEAT,
+    // CURRENT_POWER_POLICY, POWER_POLICY_REQ, POWER_POLICY_GROUP_REQ. They should return
+    // quickly otherwise the whole bootup process might be blocked.
+    virtual std::optional<aidlvhal::VehiclePropConfig> getPropertyConfig(int32_t propId) const {
+        // The default implementation is to use getAllPropertyConfigs(). This should be
+        // overridden if getAllPropertyConfigs() takes a while to return for initial boot or
+        // relies on ethernet or other communication channel that is not available during early
+        // boot.
+        for (const auto& config : getAllPropertyConfigs()) {
+            if (config.prop == propId) {
+                return config;
+            }
+        }
+        return std::nullopt;
+    }
 
     // Set property values asynchronously. Server could return before the property set requests
     // are sent to vehicle bus or before property set confirmation is received. The callback is
     // safe to be called after the function returns and is safe to be called in a different thread.
-    virtual aidl::android::hardware::automotive::vehicle::StatusCode setValues(
+    virtual aidlvhal::StatusCode setValues(
             std::shared_ptr<const SetValuesCallback> callback,
-            const std::vector<aidl::android::hardware::automotive::vehicle::SetValueRequest>&
-                    requests) = 0;
+            const std::vector<aidlvhal::SetValueRequest>& requests) = 0;
 
     // Get property values asynchronously. Server could return before the property values are ready.
     // The callback is safe to be called after the function returns and is safe to be called in a
@@ -86,7 +107,7 @@ class IVehicleHardware {
     virtual DumpResult dump(const std::vector<std::string>& options) = 0;
 
     // Check whether the system is healthy, return {@code StatusCode::OK} for healthy.
-    virtual aidl::android::hardware::automotive::vehicle::StatusCode checkHealth() = 0;
+    virtual aidlvhal::StatusCode checkHealth() = 0;
 
     // Register a callback that would be called when there is a property change event from vehicle.
     // This function must only be called once during initialization.
@@ -179,16 +200,14 @@ class IVehicleHardware {
     // 5. The second subscriber is removed, 'unsubscribe' is called.
     //    The impl can optionally disable the polling for vehicle speed.
     //
-    virtual aidl::android::hardware::automotive::vehicle::StatusCode subscribe(
-            [[maybe_unused]] aidl::android::hardware::automotive::vehicle::SubscribeOptions
-                    options) {
-        return aidl::android::hardware::automotive::vehicle::StatusCode::OK;
+    virtual aidlvhal::StatusCode subscribe([[maybe_unused]] aidlvhal::SubscribeOptions options) {
+        return aidlvhal::StatusCode::OK;
     }
 
     // A [propId, areaId] is unsubscribed. This applies for both continuous or on-change property.
-    virtual aidl::android::hardware::automotive::vehicle::StatusCode unsubscribe(
-            [[maybe_unused]] int32_t propId, [[maybe_unused]] int32_t areaId) {
-        return aidl::android::hardware::automotive::vehicle::StatusCode::OK;
+    virtual aidlvhal::StatusCode unsubscribe([[maybe_unused]] int32_t propId,
+                                             [[maybe_unused]] int32_t areaId) {
+        return aidlvhal::StatusCode::OK;
     }
 
     // This function is deprecated, subscribe/unsubscribe should be used instead.
@@ -216,10 +235,10 @@ class IVehicleHardware {
     //
     // If the impl is always polling at {@code maxSampleRate} as specified in config, then this
     // function can be a no-op.
-    virtual aidl::android::hardware::automotive::vehicle::StatusCode updateSampleRate(
-            [[maybe_unused]] int32_t propId, [[maybe_unused]] int32_t areaId,
-            [[maybe_unused]] float sampleRate) {
-        return aidl::android::hardware::automotive::vehicle::StatusCode::OK;
+    virtual aidlvhal::StatusCode updateSampleRate([[maybe_unused]] int32_t propId,
+                                                  [[maybe_unused]] int32_t areaId,
+                                                  [[maybe_unused]] float sampleRate) {
+        return aidlvhal::StatusCode::OK;
     }
 };
 

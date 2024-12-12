@@ -149,6 +149,7 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.radio@",
             "android.hardware.uwb.fira_android@",
             "android.hardware.wifi.common@",
+            "android.hardware.biometrics.fingerprint.virtualhal@",
 
             // Test packages are exempted.
             "android.hardware.tests.",
@@ -164,8 +165,10 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             // AIDL
             "android.hardware.audio.core.sounddose@1",
             "android.hardware.audio.core.sounddose@2",
+            "android.hardware.audio.core.sounddose@3",
 
             // Deprecated HALs.
+            "android.hardware.audio.sounddose@3",
             "android.hardware.bluetooth.audio@1",
     };
 

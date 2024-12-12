@@ -75,7 +75,7 @@ TEST_F(FakeLockoutTrackerTest, addFailedAttemptLockoutTimed) {
         prevTimeLeft = currTimeLeft;
     }
     ASSERT_EQ(mLockoutTracker.getMode(), FakeLockoutTracker::LockoutMode::kNone);
-    mLockoutTracker.reset();
+    mLockoutTracker.reset(true);
 }
 
 TEST_F(FakeLockoutTrackerTest, addFailedAttemptPermanent) {

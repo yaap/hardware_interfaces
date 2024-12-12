@@ -40,12 +40,12 @@ interface IVibratorManager {
   void prepareSynced(in int[] vibratorIds);
   void triggerSynced(in android.hardware.vibrator.IVibratorCallback callback);
   void cancelSynced();
-  const int CAP_SYNC = 1;
-  const int CAP_PREPARE_ON = 2;
-  const int CAP_PREPARE_PERFORM = 4;
-  const int CAP_PREPARE_COMPOSE = 8;
-  const int CAP_MIXED_TRIGGER_ON = 16;
-  const int CAP_MIXED_TRIGGER_PERFORM = 32;
-  const int CAP_MIXED_TRIGGER_COMPOSE = 64;
-  const int CAP_TRIGGER_CALLBACK = 128;
+  const int CAP_SYNC = (1 << 0) /* 1 */;
+  const int CAP_PREPARE_ON = (1 << 1) /* 2 */;
+  const int CAP_PREPARE_PERFORM = (1 << 2) /* 4 */;
+  const int CAP_PREPARE_COMPOSE = (1 << 3) /* 8 */;
+  const int CAP_MIXED_TRIGGER_ON = (1 << 4) /* 16 */;
+  const int CAP_MIXED_TRIGGER_PERFORM = (1 << 5) /* 32 */;
+  const int CAP_MIXED_TRIGGER_COMPOSE = (1 << 6) /* 64 */;
+  const int CAP_TRIGGER_CALLBACK = (1 << 7) /* 128 */;
 }

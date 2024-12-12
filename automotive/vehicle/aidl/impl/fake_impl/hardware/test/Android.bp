@@ -40,10 +40,10 @@ cc_test {
         "FakeUserHal",
         "libgtest",
         "libgmock",
+        "libjsoncpp",
     ],
     shared_libs: [
         "libgrpc++",
-        "libjsoncpp",
         "libprotobuf-cpp-full",
     ],
     data: [

@@ -20,8 +20,7 @@
 #warn "ComposerCommandBuffer.h included without LOG_TAG"
 #endif
 
-#undef LOG_NDEBUG
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 
 #include <android/hardware/graphics/composer/2.4/IComposer.h>
 #include <android/hardware/graphics/composer/2.4/IComposerClient.h>

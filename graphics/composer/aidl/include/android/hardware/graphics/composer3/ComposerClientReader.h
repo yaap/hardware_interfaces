@@ -27,9 +27,8 @@
 #include <string.h>
 
 #include <aidl/android/hardware/graphics/composer3/ClientTargetProperty.h>
-#include <aidl/android/hardware/graphics/composer3/Composition.h>
 #include <aidl/android/hardware/graphics/composer3/CommandResultPayload.h>
-
+#include <aidl/android/hardware/graphics/composer3/Composition.h>
 
 #include <log/log.h>
 #include <sync/sync.h>
@@ -83,6 +82,10 @@ class ComposerClientReader {
                 case CommandResultPayload::Tag::clientTargetProperty:
                     parseSetClientTargetProperty(std::move(
                             result.get<CommandResultPayload::Tag::clientTargetProperty>()));
+                    break;
+                case CommandResultPayload::Tag::displayLuts:
+                    parseSetDisplayLuts(
+                            std::move(result.get<CommandResultPayload::Tag::displayLuts>()));
                     break;
             }
         }
@@ -182,6 +185,20 @@ class ComposerClientReader {
         return std::move(data.clientTargetProperty);
     }
 
+    // Get the lut(s) requested by hardware composer.
+    std::vector<DisplayLuts::LayerLut> takeDisplayLuts(int64_t display) {
+        LOG_ALWAYS_FATAL_IF(mDisplay && display != *mDisplay);
+        auto found = mReturnData.find(display);
+
+        // If not found, return the empty vector
+        if (found == mReturnData.end()) {
+            return {};
+        }
+
+        ReturnData& data = found->second;
+        return std::move(data.layerLuts);
+    }
+
   private:
     void resetData() {
         mErrors.clear();
@@ -227,6 +244,18 @@ class ComposerClientReader {
         data.clientTargetProperty = std::move(clientTargetProperty);
     }
 
+    void parseSetDisplayLuts(DisplayLuts&& displayLuts) {
+        LOG_ALWAYS_FATAL_IF(mDisplay && displayLuts.display != *mDisplay);
+        auto& data = mReturnData[displayLuts.display];
+        for (auto& layerLut : displayLuts.layerLuts) {
+            if (layerLut.lut.pfd.get() >= 0) {
+                data.layerLuts.push_back(
+                        {layerLut.layer, Lut{ndk::ScopedFileDescriptor(layerLut.lut.pfd.release()),
+                                             layerLut.lut.lutProperties}});
+            }
+        }
+    }
+
     struct ReturnData {
         DisplayRequest displayRequests;
         std::vector<ChangedCompositionLayer> changedLayers;
@@ -238,6 +267,7 @@ class ComposerClientReader {
                 .clientTargetProperty = {common::PixelFormat::RGBA_8888, Dataspace::UNKNOWN},
                 .brightness = 1.f,
         };
+        std::vector<DisplayLuts::LayerLut> layerLuts;
     };
 
     std::vector<CommandError> mErrors;

@@ -56,6 +56,13 @@ class FakeVehicleHardware : public IVehicleHardware {
     FakeVehicleHardware(std::string defaultConfigDir, std::string overrideConfigDir,
                         bool forceOverride);
 
+    // s2rS2dConfig is the config for whether S2R or S2D is supported, must be a bit flag combining
+    // values from VehicleApPowerStateConfigFlag.
+    // The default implementation is reading this from system property:
+    // "ro.vendor.fake_vhal.ap_power_state_req.config".
+    FakeVehicleHardware(std::string defaultConfigDir, std::string overrideConfigDir,
+                        bool forceOverride, int32_t s2rS2dConfig);
+
     ~FakeVehicleHardware();
 
     // Get all the property configs.
@@ -193,7 +200,7 @@ class FakeVehicleHardware : public IVehicleHardware {
     // provides power controlling related properties.
     std::string mPowerControllerServiceAddress = "";
 
-    void init();
+    void init(int32_t s2rS2dConfig);
     // Stores the initial value to property store.
     void storePropInitialValue(const ConfigDeclaration& config);
     // The callback that would be called when a vehicle property value change happens.
@@ -327,6 +334,8 @@ class FakeVehicleHardware : public IVehicleHardware {
     static android::base::Result<float> safelyParseFloat(int index, const std::string& s);
     static android::base::Result<int32_t> parsePropId(const std::vector<std::string>& options,
                                                       size_t index);
+    static android::base::Result<int32_t> parseAreaId(const std::vector<std::string>& options,
+                                                      size_t index, int32_t propId);
 };
 
 }  // namespace fake

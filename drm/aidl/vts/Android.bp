@@ -47,6 +47,7 @@ cc_test {
     ],
     static_libs: [
         "android.hardware.drm@1.0-helper",
+        "android.hardware.drm.common-V1-ndk",
         "android.hardware.drm-V1-ndk",
         "android.hardware.common-V2-ndk",
         "libaidlcommonsupport",
@@ -59,13 +60,19 @@ cc_test {
             data: [":libvtswidevine-arm-prebuilts"],
         },
         arm64: {
-            data: [":libvtswidevine-arm64-prebuilts", ":libvtswidevine-arm-prebuilts"],
+            data: [
+                ":libvtswidevine-arm64-prebuilts",
+                ":libvtswidevine-arm-prebuilts",
+            ],
         },
         x86: {
             data: [":libvtswidevine-x86-prebuilts"],
         },
         x86_64: {
-            data: [":libvtswidevine-x86_64-prebuilts", ":libvtswidevine-x86-prebuilts"],
+            data: [
+                ":libvtswidevine-x86_64-prebuilts",
+                ":libvtswidevine-x86-prebuilts",
+            ],
         },
     },
     test_suites: [

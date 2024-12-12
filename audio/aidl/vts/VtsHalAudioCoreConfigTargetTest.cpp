@@ -38,16 +38,24 @@ using aidl::android::hardware::audio::common::isDefaultAudioFormat;
 using aidl::android::hardware::audio::core::IConfig;
 using aidl::android::hardware::audio::core::SurroundSoundConfig;
 using aidl::android::media::audio::common::AudioAttributes;
+using aidl::android::media::audio::common::AudioDeviceAddress;
+using aidl::android::media::audio::common::AudioDeviceDescription;
 using aidl::android::media::audio::common::AudioFlag;
 using aidl::android::media::audio::common::AudioFormatDescription;
 using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::AudioHalAttributesGroup;
-using aidl::android::media::audio::common::AudioHalCapCriterion;
-using aidl::android::media::audio::common::AudioHalCapCriterionType;
+using aidl::android::media::audio::common::AudioHalCapConfiguration;
+using aidl::android::media::audio::common::AudioHalCapCriterionV2;
+using aidl::android::media::audio::common::AudioHalCapDomain;
+using aidl::android::media::audio::common::AudioHalCapParameter;
+using aidl::android::media::audio::common::AudioHalCapRule;
 using aidl::android::media::audio::common::AudioHalEngineConfig;
 using aidl::android::media::audio::common::AudioHalProductStrategy;
 using aidl::android::media::audio::common::AudioHalVolumeCurve;
 using aidl::android::media::audio::common::AudioHalVolumeGroup;
+using aidl::android::media::audio::common::AudioMode;
+using aidl::android::media::audio::common::AudioPolicyForceUse;
+using aidl::android::media::audio::common::AudioPolicyForcedConfig;
 using aidl::android::media::audio::common::AudioProductStrategyType;
 using aidl::android::media::audio::common::AudioSource;
 using aidl::android::media::audio::common::AudioStreamType;
@@ -256,48 +264,318 @@ class AudioCoreConfig : public testing::TestWithParam<std::string> {
     }
 
     /**
-     * Verify defaultLiteralValue is empty for inclusive criterion.
+     * Verify criterion provides a non empty value list.
+     * Verify logic rule provided is the expected one.
      */
-    void ValidateAudioHalCapCriterion(const AudioHalCapCriterion& criterion,
-                                      const AudioHalCapCriterionType& criterionType) {
-        if (criterionType.isInclusive) {
-            EXPECT_TRUE(criterion.defaultLiteralValue.empty());
+    void ValidateAudioHalCapCriterion(const AudioHalCapCriterionV2& criterionV2) {
+        switch (criterionV2.getTag()) {
+            case AudioHalCapCriterionV2::availableInputDevices: {
+                auto criterion = criterionV2.get<AudioHalCapCriterionV2::availableInputDevices>();
+                EXPECT_FALSE(criterion.values.empty());
+                EXPECT_EQ(criterion.logic, AudioHalCapCriterionV2::LogicalDisjunction::INCLUSIVE);
+                break;
+            }
+            case AudioHalCapCriterionV2::availableOutputDevices: {
+                auto criterion = criterionV2.get<AudioHalCapCriterionV2::availableOutputDevices>();
+                EXPECT_FALSE(criterion.values.empty());
+                EXPECT_EQ(criterion.logic, AudioHalCapCriterionV2::LogicalDisjunction::INCLUSIVE);
+                break;
+            }
+            case AudioHalCapCriterionV2::availableInputDevicesAddresses: {
+                auto criterion =
+                        criterionV2.get<AudioHalCapCriterionV2::availableInputDevicesAddresses>();
+                EXPECT_FALSE(criterion.values.empty());
+                EXPECT_EQ(criterion.logic, AudioHalCapCriterionV2::LogicalDisjunction::INCLUSIVE);
+                break;
+            }
+            case AudioHalCapCriterionV2::availableOutputDevicesAddresses: {
+                auto criterion =
+                        criterionV2.get<AudioHalCapCriterionV2::availableOutputDevicesAddresses>();
+                EXPECT_FALSE(criterion.values.empty());
+                EXPECT_EQ(criterion.logic, AudioHalCapCriterionV2::LogicalDisjunction::INCLUSIVE);
+                break;
+            }
+            case AudioHalCapCriterionV2::telephonyMode: {
+                auto criterion = criterionV2.get<AudioHalCapCriterionV2::telephonyMode>();
+                EXPECT_FALSE(criterion.values.empty());
+                EXPECT_EQ(criterion.logic, AudioHalCapCriterionV2::LogicalDisjunction::EXCLUSIVE);
+                break;
+            }
+            case AudioHalCapCriterionV2::forceConfigForUse: {
+                auto criterion = criterionV2.get<AudioHalCapCriterionV2::forceConfigForUse>();
+                EXPECT_FALSE(criterion.values.empty());
+                EXPECT_EQ(criterion.logic, AudioHalCapCriterionV2::LogicalDisjunction::EXCLUSIVE);
+                break;
+            }
+            default:
+                ADD_FAILURE() << "Invalid criterion tag " << toString(criterionV2.getTag());
         }
     }
 
     /**
-     * Verify values only contain alphanumeric characters.
+     * Verify the rule involve the right matching logic according to the criterion logic.
+     * @param matchingRule logic followed by the rule
+     * @param logicalDisjunction logic exposed by the criterion
      */
-    void ValidateAudioHalCapCriterionType(const AudioHalCapCriterionType& criterionType) {
-        auto isNotAlnum = [](const char& c) { return !isalnum(c); };
-        for (const std::string& value : criterionType.values) {
-            EXPECT_EQ(find_if(value.begin(), value.end(), isNotAlnum), value.end());
+    void ValidateAudioHalCapRuleMatchingRule(
+            const AudioHalCapRule::MatchingRule matchingRule,
+            const AudioHalCapCriterionV2::LogicalDisjunction logicalDisjunction) {
+        if (logicalDisjunction == AudioHalCapCriterionV2::LogicalDisjunction::INCLUSIVE) {
+            EXPECT_TRUE(matchingRule == AudioHalCapRule::MatchingRule::EXCLUDES ||
+                        matchingRule == AudioHalCapRule::MatchingRule::INCLUDES);
+        } else if (logicalDisjunction == AudioHalCapCriterionV2::LogicalDisjunction::EXCLUSIVE) {
+            EXPECT_TRUE(matchingRule == AudioHalCapRule::MatchingRule::IS ||
+                        matchingRule == AudioHalCapRule::MatchingRule::IS_NOT);
+        } else {
+            ADD_FAILURE() << "Invalid criterion Logical rule";
         }
     }
 
     /**
-     * Verify each criterionType has a unique name.
-     * Verify each criterion has a unique name.
-     * Verify each criterion maps to a criterionType.
-     * Verify each criterionType is used in a criterion.
-     * Validate contained types.
+     * Verify that the value and the matching rule are supported by the given criterion
+     */
+    template <typename CriterionV2, typename Value>
+    void validateAudioHalCapRule(CriterionV2 criterionV2, Value value,
+                                 const AudioHalCapRule::MatchingRule matchingRule) {
+        ValidateAudioHalCapRuleMatchingRule(matchingRule, criterionV2.logic);
+        EXPECT_FALSE(criterionV2.values.empty());
+        auto values = criterionV2.values;
+        auto valueIt = find_if(values.begin(), values.end(),
+                               [&](const auto& typedValue) { return typedValue == value; });
+        EXPECT_NE(valueIt, values.end());
+    }
+
+    /**
+     * Verify rule involves a supported criterion.
+     * Verify rule involves supported logic keyword according to logic rule exposed by the
+     * criterion.
+     * Verify rule involves a value supported by the associated criterion.
+     */
+    void ValidateAudioHalConfigurationRule(
+            const AudioHalCapRule& rule,
+            const std::vector<std::optional<AudioHalCapCriterionV2>>& criteria) {
+        const auto& compoundRule = rule.compoundRule;
+        using TypeTag = AudioHalCapCriterionV2::Type::Tag;
+        if (rule.nestedRules.empty() && rule.criterionRules.empty()) {
+            EXPECT_EQ(compoundRule, AudioHalCapRule::CompoundRule::ALL);
+        }
+        EXPECT_TRUE(compoundRule == AudioHalCapRule::CompoundRule::ANY ||
+                    compoundRule == AudioHalCapRule::CompoundRule::ALL);
+        for (const auto& nestedRule : rule.nestedRules) {
+            ValidateAudioHalConfigurationRule(nestedRule, criteria);
+        }
+        for (const auto& criterionRule : rule.criterionRules) {
+            auto selectionCriterion = criterionRule.criterion;
+            auto criterionValue = criterionRule.criterionTypeValue;
+            auto matchesWhen = criterionRule.matchingRule;
+            auto criteriaIt = find_if(criteria.begin(), criteria.end(), [&](const auto& criterion) {
+                return criterion.has_value() &&
+                       criterion.value().getTag() == selectionCriterion.getTag();
+            });
+            EXPECT_NE(criteriaIt, criteria.end())
+                    << " Invalid rule criterion " << toString(selectionCriterion.getTag());
+            AudioHalCapCriterionV2 matchingCriterion = (*criteriaIt).value();
+            switch (selectionCriterion.getTag()) {
+                case AudioHalCapCriterionV2::availableInputDevices: {
+                    EXPECT_EQ(criterionValue.getTag(), TypeTag::availableDevicesType);
+                    validateAudioHalCapRule(
+                            matchingCriterion.get<AudioHalCapCriterionV2::availableInputDevices>(),
+                            criterionValue.get<TypeTag::availableDevicesType>(), matchesWhen);
+                    break;
+                }
+                case AudioHalCapCriterionV2::availableOutputDevices: {
+                    EXPECT_EQ(criterionValue.getTag(), TypeTag::availableDevicesType);
+                    validateAudioHalCapRule(
+                            matchingCriterion.get<AudioHalCapCriterionV2::availableOutputDevices>(),
+                            criterionValue.get<TypeTag::availableDevicesType>(), matchesWhen);
+                    break;
+                }
+                case AudioHalCapCriterionV2::availableInputDevicesAddresses: {
+                    EXPECT_EQ(criterionValue.getTag(), TypeTag::availableDevicesAddressesType);
+                    validateAudioHalCapRule(
+                            matchingCriterion
+                                    .get<AudioHalCapCriterionV2::availableInputDevicesAddresses>(),
+                            criterionValue.get<TypeTag::availableDevicesAddressesType>(),
+                            matchesWhen);
+                    break;
+                }
+                case AudioHalCapCriterionV2::availableOutputDevicesAddresses: {
+                    EXPECT_EQ(criterionValue.getTag(), TypeTag::availableDevicesAddressesType);
+                    validateAudioHalCapRule(
+                            matchingCriterion
+                                    .get<AudioHalCapCriterionV2::availableOutputDevicesAddresses>(),
+                            criterionValue.get<TypeTag::availableDevicesAddressesType>(),
+                            matchesWhen);
+                    break;
+                }
+                case AudioHalCapCriterionV2::telephonyMode: {
+                    EXPECT_EQ(criterionValue.getTag(), TypeTag::telephonyModeType);
+                    validateAudioHalCapRule(
+                            matchingCriterion.get<AudioHalCapCriterionV2::telephonyMode>(),
+                            criterionValue.get<TypeTag::telephonyModeType>(), matchesWhen);
+                    break;
+                }
+                case AudioHalCapCriterionV2::forceConfigForUse: {
+                    EXPECT_EQ(criterionValue.getTag(), TypeTag::forcedConfigType);
+                    validateAudioHalCapRule(
+                            matchingCriterion
+                                    .get<AudioHalCapCriterionV2::forceConfigForUse>(),
+                            criterionValue.get<TypeTag::forcedConfigType>(), matchesWhen);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Get the number of occurrence of a given parameter within a given vector of parameter.
+     * It just take into account the parameter, not its associated value.
+     * @param parameter to consider
+     * @param domainParameters to check against
+     * @return matching occurrence of the parameter within the provided vector.
+     */
+    size_t countsParameter(const AudioHalCapParameter& parameter,
+                           const std::vector<AudioHalCapParameter>& domainParameters) {
+        size_t count = 0;
+        for (const auto& domainParameter : domainParameters) {
+            if (domainParameter.getTag() != parameter.getTag()) {
+                continue;
+            }
+            switch (domainParameter.getTag()) {
+                case AudioHalCapParameter::selectedStrategyDevice: {
+                    auto typedDomainParam =
+                            domainParameter.get<AudioHalCapParameter::selectedStrategyDevice>();
+                    auto typedParam = parameter.get<AudioHalCapParameter::selectedStrategyDevice>();
+                    if (typedDomainParam.id == typedParam.id &&
+                        typedDomainParam.device == typedParam.device) {
+                        count += 1;
+                    }
+                    break;
+                }
+                case AudioHalCapParameter::strategyDeviceAddress: {
+                    auto typedDomainParam =
+                            domainParameter.get<AudioHalCapParameter::strategyDeviceAddress>();
+                    auto typedParam = parameter.get<AudioHalCapParameter::strategyDeviceAddress>();
+                    if (typedDomainParam.id == typedParam.id) {
+                        count += 1;
+                    }
+                    break;
+                }
+                case AudioHalCapParameter::selectedInputSourceDevice: {
+                    auto typedDomainParam =
+                            domainParameter.get<AudioHalCapParameter::selectedInputSourceDevice>();
+                    auto typedParam =
+                            parameter.get<AudioHalCapParameter::selectedInputSourceDevice>();
+                    if (typedDomainParam.inputSource == typedParam.inputSource &&
+                        typedDomainParam.device == typedParam.device) {
+                        count += 1;
+                    }
+                    break;
+                }
+                case AudioHalCapParameter::streamVolumeProfile: {
+                    auto typedDomainParam =
+                            domainParameter.get<AudioHalCapParameter::streamVolumeProfile>();
+                    auto typedParam = parameter.get<AudioHalCapParameter::streamVolumeProfile>();
+                    if (typedDomainParam.stream == typedParam.stream) {
+                        count += 1;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Verify each configuration has unique name within a domain
+     * Verify no duplicate parameter within a domain.
+     * Verify that each configuration has no duplicated parameter.
+     * Verify that each configuration has an associated value for all parameter within a domain.
+     */
+    void ValidateAudioHalCapDomain(
+            const AudioHalCapDomain& domain,
+            const std::vector<std::optional<AudioHalCapCriterionV2>>& criteria) {
+        std::unordered_set<std::string> configurationNames;
+        for (const AudioHalCapConfiguration& configuration : domain.configurations) {
+            EXPECT_TRUE(configurationNames.insert(configuration.name).second);
+            ValidateAudioHalConfigurationRule(configuration.rule, criteria);
+        }
+        auto domainParameters = domain.configurations[0].parameterSettings;
+        for (const auto& settingParameter : domainParameters) {
+            EXPECT_EQ(1ul, countsParameter(settingParameter, domainParameters))
+                    << "Duplicated parameter within domain " << domain.name << " configuration "
+                    << domain.configurations[0].name << " for parameter "
+                    << settingParameter.toString();
+        }
+        for (const auto& configuration : domain.configurations) {
+            auto configurationParameters = configuration.parameterSettings;
+            for (const auto& configurationParameter : configurationParameters) {
+                EXPECT_EQ(1ul, countsParameter(configurationParameter, configurationParameters))
+                        << "Duplicated parameter within domain " << domain.name << " configuration "
+                        << configuration.name << " for parameter "
+                        << configurationParameter.toString();
+            }
+            EXPECT_EQ(domainParameters.size(), configurationParameters.size());
+            for (const auto& settingParameter : configuration.parameterSettings) {
+                EXPECT_EQ(1ul, countsParameter(settingParameter, domainParameters))
+                        << "Confiugration " << configuration.name << " within domain "
+                        << domain.name << " exposes invalid parameter "
+                        << settingParameter.toString();
+                ;
+            }
+        }
+    }
+
+    /**
+     * Verify each domain has a unique name.
+     * Verify that a given parameter does not appear in more than one domain.
+     */
+    void ValidateAudioHalCapDomains(
+            const std::vector<std::optional<AudioHalCapDomain>>& domains,
+            const std::vector<std::optional<AudioHalCapCriterionV2>>& criteria) {
+        std::unordered_map<std::string, AudioHalCapDomain> domainMap;
+        std::vector<AudioHalCapParameter> allDomainParameters;
+        for (const auto& domain : domains) {
+            EXPECT_TRUE(domain.has_value());
+            EXPECT_FALSE(domain.value().configurations.empty());
+            auto domainParameters = domain.value().configurations[0].parameterSettings;
+            for (const auto& domainParameter : domainParameters) {
+                EXPECT_EQ(0ul, countsParameter(domainParameter, allDomainParameters))
+                        << "Duplicated parameter in domain " << domain.value().name
+                        << " for parameter " << domainParameter.toString();
+                allDomainParameters.push_back(domainParameter);
+            }
+            EXPECT_NO_FATAL_FAILURE(ValidateAudioHalCapDomain(domain.value(), criteria));
+            EXPECT_TRUE(domainMap.insert({domain.value().name, domain.value()}).second);
+        }
+    }
+
+    /**
+     * Verify unique criterion is provided for a given Tag, except for ForceUse
+     * Verify unique forceUse criterion are provided for usage
+     * Verify each criterion is validating.
+     * Verify domains.
      */
     void ValidateCapSpecificConfig(const AudioHalEngineConfig::CapSpecificConfig& capCfg) {
-        EXPECT_FALSE(capCfg.criteria.empty());
-        EXPECT_FALSE(capCfg.criterionTypes.empty());
-        std::unordered_map<std::string, AudioHalCapCriterionType> criterionTypeMap;
-        for (const AudioHalCapCriterionType& criterionType : capCfg.criterionTypes) {
-            EXPECT_NO_FATAL_FAILURE(ValidateAudioHalCapCriterionType(criterionType));
-            EXPECT_TRUE(criterionTypeMap.insert({criterionType.name, criterionType}).second);
+        EXPECT_TRUE(capCfg.criteriaV2.has_value());
+        std::unordered_set<AudioHalCapCriterionV2::Tag> criterionTagSet;
+        std::unordered_set<AudioPolicyForceUse> forceUseCriterionUseSet;
+        for (const auto& criterion : capCfg.criteriaV2.value()) {
+            EXPECT_TRUE(criterion.has_value());
+            if (criterion.value().getTag() != AudioHalCapCriterionV2::forceConfigForUse) {
+                EXPECT_TRUE(criterionTagSet.insert(criterion.value().getTag()).second);
+            } else {
+                auto forceUseCriterion =
+                        criterion.value().get<AudioHalCapCriterionV2::forceConfigForUse>();
+                EXPECT_TRUE(forceUseCriterionUseSet.insert(forceUseCriterion.forceUse).second);
+            }
+            EXPECT_NO_FATAL_FAILURE(ValidateAudioHalCapCriterion(criterion.value()));
         }
-        std::unordered_set<std::string> criterionNameSet;
-        for (const AudioHalCapCriterion& criterion : capCfg.criteria) {
-            EXPECT_TRUE(criterionNameSet.insert(criterion.name).second);
-            EXPECT_EQ(criterionTypeMap.count(criterion.criterionTypeName), 1UL);
-            EXPECT_NO_FATAL_FAILURE(ValidateAudioHalCapCriterion(
-                    criterion, criterionTypeMap.at(criterion.criterionTypeName)));
-        }
-        EXPECT_EQ(criterionTypeMap.size(), criterionNameSet.size());
+        ValidateAudioHalCapDomains(capCfg.domains.value(), capCfg.criteriaV2.value());
     }
 
     /**

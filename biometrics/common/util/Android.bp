@@ -6,7 +6,7 @@ cc_library {
     //   SPDX-license-identifier-Apache-2.0
     name: "android.hardware.biometrics.common.util",
     export_include_dirs: ["include"],
-    vendor: true,
+    vendor_available: true,
     srcs: [
         "CancellationSignal.cpp",
     ],
@@ -14,5 +14,9 @@ cc_library {
         "libbase",
         "libbinder_ndk",
         "android.hardware.biometrics.common-V4-ndk",
+    ],
+    apex_available: [
+        "//apex_available:anyapex",
+        "//apex_available:platform",
     ],
 }

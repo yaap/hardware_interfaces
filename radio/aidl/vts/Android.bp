@@ -25,6 +25,7 @@ package {
 cc_test {
     name: "VtsHalRadioTargetTest",
     defaults: [
+        "aconfig_lib_cc_shared_link.defaults",
         "VtsHalTargetTestDefaults",
         "use_libaidlvintf_gtest_helper_static",
     ],

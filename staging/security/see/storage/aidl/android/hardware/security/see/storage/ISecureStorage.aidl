@@ -15,7 +15,7 @@
  */
 package android.hardware.security.see.storage;
 
-import android.hardware.security.see.storage.FileProperties;
+import android.hardware.security.see.storage.Filesystem;
 import android.hardware.security.see.storage.IStorageSession;
 
 /**
@@ -28,20 +28,18 @@ interface ISecureStorage {
     const int ERR_NOT_FOUND = 2;
     const int ERR_ALREADY_EXISTS = 3;
     const int ERR_BAD_TRANSACTION = 4;
-
-    const int ERR_FS_RESET = 5;
-    const int ERR_FS_ROLLED_BACK = 6;
-    const int ERR_FS_TAMPERED = 7;
+    const int ERR_AB_UPDATE_IN_PROGRESS = 5;
+    const int ERR_FS_TAMPERED = 6;
 
     /**
      * Starts a storage session for a filesystem.
      *
-     * @properties:
-     *     the minimum filesystem properties requested for the session.
+     * @filesystem:
+     *     The minimum filesystem properties requested.
      *
      * May return service-specific errors:
      *   - ERR_UNSUPPORTED_PROPERTIES if no filesystems exist which meet the minimum requested
-     * requirements
+     *       requirements
      */
-    IStorageSession startSession(in FileProperties properties);
+    IStorageSession startSession(in Filesystem filesystem);
 }

@@ -14,6 +14,8 @@ cc_binary {
     vendor: true,
     relative_install_path: "hw",
 
+    defaults: ["android.hardware.threadnetwork-service.defaults"],
+
     shared_libs: [
         "libbinder_ndk",
         "liblog",
@@ -41,6 +43,17 @@ cc_binary {
         "thread_chip.cpp",
         "utils.cpp",
     ],
+}
+
+cc_defaults {
+    name: "android.hardware.threadnetwork-service.defaults",
+    product_variables: {
+        debuggable: {
+            cppflags: [
+                "-DDEV_BUILD",
+            ],
+        },
+    },
 }
 
 cc_fuzz {
@@ -90,10 +103,20 @@ prebuilt_etc {
     installable: false,
 }
 
+filegroup {
+    name: "com.android.hardware.threadnetwork_manifest",
+    srcs: ["manifest.json"],
+}
+
+filegroup {
+    name: "com.android.hardware.threadnetwork_file_contexts",
+    srcs: ["file_contexts"],
+}
+
 apex {
     name: "com.android.hardware.threadnetwork",
-    manifest: "manifest.json",
-    file_contexts: "file_contexts",
+    manifest: ":com.android.hardware.threadnetwork_manifest",
+    file_contexts: ":com.android.hardware.threadnetwork_file_contexts",
     key: "com.android.hardware.key",
     certificate: ":com.android.hardware.certificate",
     updatable: false,
@@ -108,5 +131,23 @@ apex {
         "threadnetwork-default.xml", // vintf_fragment
         "threadnetwork-service.rc", // init_rc
         "android.hardware.thread_network.prebuilt.xml", // permission
+    ],
+}
+
+prebuilt_etc {
+    name: "threadnetwork-service-simulation-rcp.rc",
+    src: "threadnetwork-service-simulation-rcp.rc",
+    installable: false,
+}
+
+// Thread HAL service which uses a simulation RCP (i.e. ot-rcp),
+// typically used in emulator devices.
+override_apex {
+    name: "com.android.hardware.threadnetwork-simulation-rcp",
+    base: "com.android.hardware.threadnetwork",
+    prebuilts: [
+        "threadnetwork-service-simulation-rcp.rc",
+        "threadnetwork-default.xml",
+        "android.hardware.thread_network.prebuilt.xml",
     ],
 }

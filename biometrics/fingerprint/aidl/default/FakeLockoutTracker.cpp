@@ -23,8 +23,11 @@ using namespace ::android::fingerprint::virt;
 
 namespace aidl::android::hardware::biometrics::fingerprint {
 
-void FakeLockoutTracker::reset() {
-    mFailedCount = 0;
+void FakeLockoutTracker::reset(bool dueToTimeout) {
+    if (!dueToTimeout) {
+        mFailedCount = 0;
+    }
+    mFailedCountTimed = 0;
     mLockoutTimedStart = 0;
     mCurrentMode = LockoutMode::kNone;
 }
@@ -33,6 +36,7 @@ void FakeLockoutTracker::addFailedAttempt() {
     bool enabled = Fingerprint::cfg().get<bool>("lockout_enable");
     if (enabled) {
         mFailedCount++;
+        mFailedCountTimed++;
         int32_t lockoutTimedThreshold =
                 Fingerprint::cfg().get<std::int32_t>("lockout_timed_threshold");
         int32_t lockoutPermanetThreshold =
@@ -40,7 +44,7 @@ void FakeLockoutTracker::addFailedAttempt() {
         if (mFailedCount >= lockoutPermanetThreshold) {
             mCurrentMode = LockoutMode::kPermanent;
             Fingerprint::cfg().set<bool>("lockout", true);
-        } else if (mFailedCount >= lockoutTimedThreshold) {
+        } else if (mFailedCountTimed >= lockoutTimedThreshold) {
             if (mCurrentMode == LockoutMode::kNone) {
                 mCurrentMode = LockoutMode::kTimed;
                 mLockoutTimedStart = Util::getSystemNanoTime();

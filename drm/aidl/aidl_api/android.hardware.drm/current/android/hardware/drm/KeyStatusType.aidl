@@ -34,10 +34,10 @@
 package android.hardware.drm;
 @Backing(type="int") @VintfStability
 enum KeyStatusType {
-  USABLE = 0,
-  EXPIRED = 1,
-  OUTPUT_NOT_ALLOWED = 2,
-  STATUS_PENDING = 3,
-  INTERNAL_ERROR = 4,
-  USABLE_IN_FUTURE = 5,
+  USABLE,
+  EXPIRED,
+  OUTPUT_NOT_ALLOWED,
+  STATUS_PENDING,
+  INTERNAL_ERROR,
+  USABLE_IN_FUTURE,
 }

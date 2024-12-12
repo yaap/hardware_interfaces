@@ -2171,6 +2171,14 @@ TEST_P(RadioNetworkTest, setEmergencyMode) {
     // exit emergency mode for other tests
     serial = GetRandomSerialNumber();
     radio_network->exitEmergencyMode(serial);
+
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+
+    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
+                                 {RadioError::NONE, RadioError::REQUEST_NOT_SUPPORTED,
+                                  RadioError::RADIO_NOT_AVAILABLE, RadioError::MODEM_ERR}));
 }
 
 /*
@@ -2494,24 +2502,27 @@ TEST_P(RadioNetworkTest, setCellularIdentifierTransparencyEnabled) {
                                  {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
                                   RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
 
-    // Assert the value has changed
-    serial = GetRandomSerialNumber();
-    ndk::ScopedAStatus res = radio_network->isCellularIdentifierTransparencyEnabled(serial);
+    if (radioRsp_network->rspInfo.error == RadioError::NONE) {
+        // Assert the value has changed
+        serial = GetRandomSerialNumber();
+        ndk::ScopedAStatus res = radio_network->isCellularIdentifierTransparencyEnabled(serial);
 
-    ASSERT_OK(res);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
-    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
-                                 {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
-                                  RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
-    EXPECT_EQ(valueToSet, radioRsp_network->isCellularIdentifierTransparencyEnabled);
+        ASSERT_OK(res);
+        EXPECT_EQ(std::cv_status::no_timeout, wait());
+        EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+        EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
+                                     {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                                      RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
+        EXPECT_EQ(valueToSet, radioRsp_network->isCellularIdentifierTransparencyEnabled);
 
-    // Reset original state
-    radio_network->setCellularIdentifierTransparencyEnabled(serial, originalTransparencySetting);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+        // Reset original state
+        radio_network->setCellularIdentifierTransparencyEnabled(serial,
+                                                                originalTransparencySetting);
+        EXPECT_EQ(std::cv_status::no_timeout, wait());
+        EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+        EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+    }
 }
 
 /*
@@ -2547,24 +2558,26 @@ TEST_P(RadioNetworkTest, setSecurityAlgorithmsUpdatedEnabled) {
                                  {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
                                   RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
 
-    // Assert the value has changed
-    serial = GetRandomSerialNumber();
-    ndk::ScopedAStatus res = radio_network->isSecurityAlgorithmsUpdatedEnabled(serial);
+    if (radioRsp_network->rspInfo.error == RadioError::NONE) {
+        // Assert the value has changed
+        serial = GetRandomSerialNumber();
+        ndk::ScopedAStatus res = radio_network->isSecurityAlgorithmsUpdatedEnabled(serial);
 
-    ASSERT_OK(res);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
-    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
-                                 {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
-                                  RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
-    EXPECT_EQ(valueToSet, radioRsp_network->isSecurityAlgorithmsUpdatedEnabled);
+        ASSERT_OK(res);
+        EXPECT_EQ(std::cv_status::no_timeout, wait());
+        EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+        EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
+                                     {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                                      RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
+        EXPECT_EQ(valueToSet, radioRsp_network->isSecurityAlgorithmsUpdatedEnabled);
 
-    // Reset original state
-    radio_network->setSecurityAlgorithmsUpdatedEnabled(serial, originalSecuritySetting);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+        // Reset original state
+        radio_network->setSecurityAlgorithmsUpdatedEnabled(serial, originalSecuritySetting);
+        EXPECT_EQ(std::cv_status::no_timeout, wait());
+        EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+        EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+    }
 }
 
 /**

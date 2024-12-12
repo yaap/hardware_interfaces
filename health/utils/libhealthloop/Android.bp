@@ -21,6 +21,17 @@ package {
     default_applicable_licenses: ["hardware_interfaces_license"],
 }
 
+bpf {
+    name: "filterPowerSupplyEvents.o",
+    srcs: ["filterPowerSupplyEvents.c"],
+    // "vendor: true" because all binaries that use this BPF filter are vendor
+    // binaries.
+    vendor: true,
+}
+
+// Since "required" sections are ignored in static library definitions,
+// filterPowerSupplyEvents.o has been added in
+// build/make/target/product/base_vendor.mk.
 cc_library_static {
     name: "libhealthloop",
     vendor_available: true,
@@ -30,10 +41,11 @@ cc_library_static {
         "utils.cpp",
     ],
     shared_libs: [
-        "libcutils",
         "libbase",
+        "libcutils",
     ],
     header_libs: [
+        "bpf_headers",
         "libbatteryservice_headers",
         "libhealthd_headers",
         "libutils_headers",
@@ -41,4 +53,31 @@ cc_library_static {
     export_include_dirs: [
         "include",
     ],
+}
+
+genrule {
+    name: "filterPowerSupplyEvents.h",
+    out: ["filterPowerSupplyEvents.h"],
+    srcs: [":filterPowerSupplyEvents.o"],
+    cmd: "cat $(in) | od -v -tx1 | cut -c9- | grep -v '^$$' | sed 's/^/0x/;s/ /, 0x/g;s/^, //;s/$$/,/' > $(out)",
+}
+
+cc_test_host {
+    name: "filterPowerSupplyEventsTest",
+    team: "trendy_team_pixel_system_sw_storage",
+    srcs: [
+        "filterPowerSupplyEventsTest.cpp",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbpf",
+    ],
+    static_libs: [
+        "libgmock",
+    ],
+    generated_headers: [
+        "filterPowerSupplyEvents.h",
+        "libbpf_headers",
+    ],
+    compile_multilib: "64",
 }

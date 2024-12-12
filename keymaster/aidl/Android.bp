@@ -18,6 +18,16 @@ aidl_interface {
         java: {
             platform_apis: true,
         },
+        ndk: {
+            apex_available: [
+                "com.android.hardware.biometrics.face.virtual",
+                "com.android.hardware.biometrics.fingerprint.virtual",
+                "//apex_available:platform",
+            ],
+        },
+        rust: {
+            enabled: true,
+        },
     },
     versions_with_info: [
         {

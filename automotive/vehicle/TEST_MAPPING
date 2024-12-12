@@ -45,6 +45,9 @@
       "name": "FakeVehicleHardwareTest"
     },
     {
+      "name": "GRPCVehicleHardwareUnitTest"
+    },
+    {
       "name": "CarServiceUnitTest",
       "options" : [
         {

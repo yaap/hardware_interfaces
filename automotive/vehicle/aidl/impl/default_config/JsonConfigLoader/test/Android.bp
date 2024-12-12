@@ -27,8 +27,6 @@ cc_test {
         "VehicleHalJsonConfigLoader",
         "VehicleHalUtils",
         "libgtest",
-    ],
-    shared_libs: [
         "libjsoncpp",
     ],
     defaults: ["VehicleHalDefaults"],
@@ -43,8 +41,6 @@ cc_test {
         "VehicleHalJsonConfigLoaderEnableTestProperties",
         "VehicleHalUtils",
         "libgtest",
-    ],
-    shared_libs: [
         "libjsoncpp",
     ],
     defaults: ["VehicleHalDefaults"],

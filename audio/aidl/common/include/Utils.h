@@ -26,10 +26,13 @@
 #include <aidl/android/media/audio/common/AudioDeviceType.h>
 #include <aidl/android/media/audio/common/AudioFormatDescription.h>
 #include <aidl/android/media/audio/common/AudioInputFlags.h>
+#include <aidl/android/media/audio/common/AudioIoFlags.h>
 #include <aidl/android/media/audio/common/AudioMode.h>
 #include <aidl/android/media/audio/common/AudioOutputFlags.h>
+#include <aidl/android/media/audio/common/AudioPolicyForcedConfig.h>
 #include <aidl/android/media/audio/common/PcmType.h>
 #include <android/binder_auto_utils.h>
+#include <utils/FastStrcmp.h>
 
 namespace ndk {
 
@@ -59,6 +62,36 @@ constexpr std::array<::aidl::android::media::audio::common::AudioMode, 5> kValid
         ::aidl::android::media::audio::common::AudioMode::IN_COMMUNICATION,
         ::aidl::android::media::audio::common::AudioMode::CALL_SCREEN,
 };
+
+constexpr std::array<::aidl::android::media::audio::common::AudioPolicyForcedConfig, 17>
+        kValidAudioPolicyForcedConfig = {
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::NONE,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::SPEAKER,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::HEADPHONES,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::BT_SCO,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::BT_A2DP,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::WIRED_ACCESSORY,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::BT_CAR_DOCK,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::BT_DESK_DOCK,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::ANALOG_DOCK,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::DIGITAL_DOCK,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::NO_BT_A2DP,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::SYSTEM_ENFORCED,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::
+                        HDMI_SYSTEM_AUDIO_ENFORCED,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::
+                        ENCODED_SURROUND_NEVER,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::
+                        ENCODED_SURROUND_ALWAYS,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::
+                        ENCODED_SURROUND_MANUAL,
+                ::aidl::android::media::audio::common::AudioPolicyForcedConfig::BT_BLE,
+};
+
+constexpr bool iequals(const std::string& str1, const std::string& str2) {
+    return str1.length() == str2.length() &&
+           !fasticmp<strncmp>(str1.c_str(), str2.c_str(), str1.length());
+}
 
 constexpr size_t getPcmSampleSizeInBytes(::aidl::android::media::audio::common::PcmType pcm) {
     using ::aidl::android::media::audio::common::PcmType;
@@ -135,6 +168,12 @@ constexpr bool isValidAudioMode(::aidl::android::media::audio::common::AudioMode
            kValidAudioModes.end();
 }
 
+constexpr bool isValidAudioPolicyForcedConfig(
+        ::aidl::android::media::audio::common::AudioPolicyForcedConfig config) {
+    return std::find(kValidAudioPolicyForcedConfig.begin(), kValidAudioPolicyForcedConfig.end(),
+                     config) != kValidAudioPolicyForcedConfig.end();
+}
+
 static inline bool maybeVendorExtension(const std::string& s) {
     // Only checks whether the string starts with the "vendor prefix".
     static const std::string vendorPrefix = "VX_";
@@ -189,6 +228,17 @@ constexpr int32_t frameCountFromDurationUs(long durationUs, int32_t sampleRateHz
 
 constexpr int32_t frameCountFromDurationMs(int32_t durationMs, int32_t sampleRateHz) {
     return frameCountFromDurationUs(durationMs * 1000, sampleRateHz);
+}
+
+constexpr bool hasMmapFlag(const ::aidl::android::media::audio::common::AudioIoFlags& flags) {
+    return (flags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::Tag::input &&
+            isBitPositionFlagSet(
+                    flags.get<::aidl::android::media::audio::common::AudioIoFlags::Tag::input>(),
+                    ::aidl::android::media::audio::common::AudioInputFlags::MMAP_NOIRQ)) ||
+           (flags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::Tag::output &&
+            isBitPositionFlagSet(
+                    flags.get<::aidl::android::media::audio::common::AudioIoFlags::Tag::output>(),
+                    ::aidl::android::media::audio::common::AudioOutputFlags::MMAP_NOIRQ));
 }
 
 }  // namespace aidl::android::hardware::audio::common

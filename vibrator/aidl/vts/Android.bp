@@ -17,10 +17,10 @@ cc_test {
     tidy_timeout_srcs: ["VtsHalVibratorTargetTest.cpp"],
     srcs: ["VtsHalVibratorTargetTest.cpp"],
     shared_libs: [
-        "libbinder",
+        "libbinder_ndk",
     ],
     static_libs: [
-        "android.hardware.vibrator-V2-cpp",
+        "android.hardware.vibrator-V3-ndk",
     ],
     test_suites: [
         "general-tests",
@@ -36,10 +36,10 @@ cc_test {
     ],
     srcs: ["VtsHalVibratorManagerTargetTest.cpp"],
     shared_libs: [
-        "libbinder",
+        "libbinder_ndk",
     ],
     static_libs: [
-        "android.hardware.vibrator-V2-cpp",
+        "android.hardware.vibrator-V3-ndk",
     ],
     test_suites: [
         "general-tests",

@@ -110,7 +110,7 @@ class FakeFingerprintEngine {
     std::pair<Error, int32_t> convertError(int32_t code);
     int32_t getRandomInRange(int32_t bound1, int32_t bound2);
     bool checkSensorLockout(ISessionCallback*);
-    void clearLockout(ISessionCallback* cb);
+    void clearLockout(ISessionCallback* cb, bool dueToTimeout = false);
     void waitForFingerDown(ISessionCallback* cb, const std::future<void>& cancel);
 
     FakeLockoutTracker mLockoutTracker;

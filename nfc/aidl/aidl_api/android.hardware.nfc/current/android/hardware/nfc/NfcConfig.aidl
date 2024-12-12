@@ -49,4 +49,5 @@ parcelable NfcConfig {
   byte[] offHostRouteUicc;
   byte[] offHostRouteEse;
   byte defaultIsoDepRoute;
+  byte[] offHostSimPipeIds = {};
 }

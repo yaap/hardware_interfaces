@@ -21,6 +21,7 @@
 #include <vector>
 #include "aidl/android/hardware/security/keymint/IRemotelyProvisionedComponent.h"
 
+#include <hwtrust/hwtrust.h>
 #include <keymaster/cppcose/cppcose.h>
 
 namespace aidl::android::hardware::security::keymint::remote_prov {
@@ -167,7 +168,8 @@ ErrMsgOr<std::vector<BccEntryData>> verifyProductionProtectedData(
         const DeviceInfo& deviceInfo, const cppbor::Array& keysToSign,
         const std::vector<uint8_t>& keysToSignMac, const ProtectedData& protectedData,
         const EekChain& eekChain, const std::vector<uint8_t>& eekId, int32_t supportedEekCurve,
-        IRemotelyProvisionedComponent* provisionable, const std::vector<uint8_t>& challenge);
+        IRemotelyProvisionedComponent* provisionable, const std::vector<uint8_t>& challenge,
+        bool allowAnyMode = false);
 
 /**
  * Verify the CSR as if the device is still early in the factory process and may not
@@ -175,15 +177,22 @@ ErrMsgOr<std::vector<BccEntryData>> verifyProductionProtectedData(
  */
 ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(
         const cppbor::Array& keysToSign, const std::vector<uint8_t>& csr,
-        IRemotelyProvisionedComponent* provisionable, const std::vector<uint8_t>& challenge);
+        IRemotelyProvisionedComponent* provisionable, const std::vector<uint8_t>& challenge,
+        bool allowDegenerate = true);
 /**
  * Verify the CSR as if the device is a final production sample.
  */
 ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyProductionCsr(
         const cppbor::Array& keysToSign, const std::vector<uint8_t>& csr,
-        IRemotelyProvisionedComponent* provisionable, const std::vector<uint8_t>& challenge);
+        IRemotelyProvisionedComponent* provisionable, const std::vector<uint8_t>& challenge,
+        bool allowAnyMode = false);
 
 /** Checks whether the CSR has a proper DICE chain. */
 ErrMsgOr<bool> isCsrWithProperDiceChain(const std::vector<uint8_t>& csr);
+
+/** Verify the DICE chain. */
+ErrMsgOr<std::vector<BccEntryData>> validateBcc(const cppbor::Array* bcc,
+                                                hwtrust::DiceChain::Kind kind, bool allowAnyMode,
+                                                bool allowDegenerate);
 
 }  // namespace aidl::android::hardware::security::keymint::remote_prov

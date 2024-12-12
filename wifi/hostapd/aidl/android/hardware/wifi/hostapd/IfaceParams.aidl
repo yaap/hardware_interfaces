@@ -41,4 +41,12 @@ parcelable IfaceParams {
      * Optional vendor-specific configuration parameters.
      */
     @nullable OuiKeyedData[] vendorData;
+    /**
+     * The list of the instance identities.
+     */
+    @nullable String[] instanceIdentities;
+    /**
+     * Whether the current iface is MLO.
+     */
+    boolean isMlo;
 }

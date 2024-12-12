@@ -50,4 +50,14 @@ enum NfcEvent {
      * Error event to notify upper layer when there's an unknown error.
      */
     ERROR = 5,
+    /**
+     * Request control event to notify upper layer when HAL
+     * request control of NFCC to libnfc-nci
+     */
+    REQUEST_CONTROL = 6,
+    /**
+     * Release control event to notify upper layer when HAL
+     * release control of NFCC to libnfc-nci.
+     */
+    RELEASE_CONTROL = 7,
 }

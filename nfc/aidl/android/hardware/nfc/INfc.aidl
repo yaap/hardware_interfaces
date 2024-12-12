@@ -140,4 +140,13 @@ interface INfc {
      * @return true if verbose logging flag value is enabled, false if disabled.
      */
     boolean isVerboseLoggingEnabled();
+
+    /**
+     * Requests control of NFCC to libnfc-nci.
+     * If an API request is sent when the framework has no control of NFCC, the request will be
+     * queued until the control is released from HAL.
+     * The control will be taken out of the framework for at most 2 seconds.
+     * @return NfcStatus::OK on success and NfcStatus::FAILED on error.
+     */
+    NfcStatus controlGranted();
 }

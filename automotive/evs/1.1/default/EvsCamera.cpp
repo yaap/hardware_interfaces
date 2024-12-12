@@ -495,7 +495,7 @@ unsigned EvsCamera::increaseAvailableFrames_Locked(unsigned numToAdd) {
         }
         if (!stored) {
             // Add a BufferRecord wrapping this handle to our set of available buffers
-            mBuffers.push_back(std::move(BufferRecord(memHandle)));
+            mBuffers.push_back(BufferRecord(memHandle));
         }
 
         mFramesAllowed++;

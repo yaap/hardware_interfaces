@@ -718,8 +718,8 @@ enum SensorType {
     HEADING = 42,
 
     /**
-     * Base for device manufacturers private sensor types.
-     * These sensor types can't be exposed in the SDK.
+     * Base of the range reserved for device manufacturers' private sensor
+     * types. These sensor types aren't documented in the SDK.
      */
     DEVICE_PRIVATE_BASE = 0x10000,
 }

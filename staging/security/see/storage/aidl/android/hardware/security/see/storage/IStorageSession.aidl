@@ -15,12 +15,10 @@
  */
 package android.hardware.security.see.storage;
 
-import android.hardware.security.see.storage.DeleteOptions;
+import android.hardware.security.see.storage.CreationMode;
 import android.hardware.security.see.storage.IDir;
 import android.hardware.security.see.storage.IFile;
 import android.hardware.security.see.storage.OpenOptions;
-import android.hardware.security.see.storage.ReadIntegrity;
-import android.hardware.security.see.storage.RenameOptions;
 
 /**
  * Interface for a Secure Storage session
@@ -66,8 +64,8 @@ interface IStorageSession {
      * May return service-specific errors:
      *   - ERR_NOT_FOUND
      *   - ERR_ALREADY_EXISTS
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that @options.readIntegrity
-     *       does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     IFile openFile(in @utf8InCpp String filePath, in OpenOptions options);
 
@@ -81,10 +79,10 @@ interface IStorageSession {
      *
      * May return service-specific errors:
      *   - ERR_NOT_FOUND
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that @options.readIntegrity
-     *       does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
-    void deleteFile(in @utf8InCpp String filePath, in DeleteOptions options);
+    void deleteFile(in @utf8InCpp String filePath);
 
     /**
      * Renames an existing file.
@@ -95,19 +93,19 @@ interface IStorageSession {
      *     path to the file, relative to filesystem root
      * @destPath:
      *     the file's new path, relative to filesystem root
-     * @options:
-     *     options controlling rename behavior
+     * @destCreateMode:
+     *     creation behavior for the dest file
      *
      * May return service-specific errors:
-     *   - ERR_NOT_FOUND if no file exists at @currentPath, or if @options.destCreateMode is
-     *       `NO_CREATE` and no file exists at @destPath
-     *   - ERR_ALREADY_EXISTS if @options.destCreateMode is `CREATE_EXCLUSIVE` and a file exists at
+     *   - ERR_NOT_FOUND if no file exists at @currentPath, or if @destCreateMode is `NO_CREATE` and
+     *       no file exists at @destPath
+     *   - ERR_ALREADY_EXISTS if @destCreateMode is `CREATE_EXCLUSIVE` and a file exists at
      *       @destPath
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that @options.readIntegrity
-     *       does not acknowledge
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
+     *       acknowledge
      */
     void renameFile(in @utf8InCpp String currentPath, in @utf8InCpp String destPath,
-            in RenameOptions options);
+            in CreationMode destCreateMode);
 
     /**
      * Opens a directory from a filesystem with the given properties.
@@ -116,14 +114,11 @@ interface IStorageSession {
      *
      * @path:
      *     path to the directory, relative to filesystem root
-     * @readIntegrity:
-     *     allow opening (and subsequent read/write operations) despite possible tampering for the
-     * directory
      *
      * May return service-specific errors:
      *   - ERR_NOT_FOUND
-     *   - ERR_FS_* if the filesystem has been tampered with in a way that @readIntegrity does not
+     *   - ERR_FS_* if the filesystem has been tampered with in a way that the session did not
      *       acknowledge
      */
-    IDir openDir(in @utf8InCpp String path, in ReadIntegrity readIntegrity);
+    IDir openDir(in @utf8InCpp String path);
 }

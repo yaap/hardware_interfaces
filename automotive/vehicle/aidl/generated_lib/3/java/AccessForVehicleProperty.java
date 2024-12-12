@@ -28,6 +28,10 @@ import java.util.Map;
 
 public final class AccessForVehicleProperty {
 
+    // Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+    private static final int PER_DISPLAY_MAX_BRIGHTNESS = 0x11410F4E;
+    // End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+
     public static final Map<Integer, Integer> values = Map.ofEntries(
         Map.entry(VehicleProperty.INFO_VIN, VehiclePropertyAccess.READ),
         Map.entry(VehicleProperty.INFO_MAKE, VehiclePropertyAccess.READ),
@@ -294,7 +298,10 @@ public final class AccessForVehicleProperty {
         Map.entry(VehicleProperty.CROSS_TRAFFIC_MONITORING_ENABLED, VehiclePropertyAccess.READ_WRITE),
         Map.entry(VehicleProperty.CROSS_TRAFFIC_MONITORING_WARNING_STATE, VehiclePropertyAccess.READ),
         Map.entry(VehicleProperty.LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_ENABLED, VehiclePropertyAccess.READ_WRITE),
-        Map.entry(VehicleProperty.LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyAccess.READ)
+        Map.entry(VehicleProperty.LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyAccess.READ),
+        // Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+        Map.entry(PER_DISPLAY_MAX_BRIGHTNESS, VehiclePropertyAccess.READ)
+        // End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
     );
 
 }

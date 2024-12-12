@@ -27,6 +27,10 @@
 #include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 #include <aidl/android/hardware/automotive/vehicle/VehiclePropertyChangeMode.h>
 
+// Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+#include <PerDisplayMaxBrightness.h>
+// End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+
 #include <unordered_map>
 
 namespace aidl {
@@ -302,6 +306,9 @@ std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehi
         {VehicleProperty::CROSS_TRAFFIC_MONITORING_WARNING_STATE, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_ENABLED, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyChangeMode::ON_CHANGE},
+        // Start manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
+        {PER_DISPLAY_MAX_BRIGHTNESS, VehiclePropertyChangeMode::STATIC},
+        // End manual edit: backport PER_DISPLAY_MAX_BRIGHTNESS.
 };
 
 }  // namespace vehicle

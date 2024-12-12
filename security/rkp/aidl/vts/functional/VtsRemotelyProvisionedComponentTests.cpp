@@ -188,7 +188,8 @@ class VtsRemotelyProvisionedComponentTests : public testing::TestWithParam<std::
         }
         ASSERT_NE(provisionable_, nullptr);
         auto status = provisionable_->getHardwareInfo(&rpcHardwareInfo);
-        if (GetParam() == RKP_VM_INSTANCE_NAME) {
+        isRkpVmInstance_ = GetParam() == RKP_VM_INSTANCE_NAME;
+        if (isRkpVmInstance_) {
             if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
                 GTEST_SKIP() << "The RKP VM is not supported on this system.";
             }
@@ -209,6 +210,7 @@ class VtsRemotelyProvisionedComponentTests : public testing::TestWithParam<std::
   protected:
     std::shared_ptr<IRemotelyProvisionedComponent> provisionable_;
     RpcHardwareInfo rpcHardwareInfo;
+    bool isRkpVmInstance_;
 };
 
 /**
@@ -765,7 +767,8 @@ TEST_P(CertificateRequestV2Test, EmptyRequest) {
                 provisionable_->generateCertificateRequestV2({} /* keysToSign */, challenge, &csr);
         ASSERT_TRUE(status.isOk()) << status.getDescription();
 
-        auto result = verifyProductionCsr(cppbor::Array(), csr, provisionable_.get(), challenge);
+        auto result = verifyProductionCsr(cppbor::Array(), csr, provisionable_.get(), challenge,
+                                          isRkpVmInstance_);
         ASSERT_TRUE(result) << result.message();
     }
 }
@@ -786,7 +789,8 @@ TEST_P(CertificateRequestV2Test, NonEmptyRequest) {
         auto status = provisionable_->generateCertificateRequestV2(keysToSign_, challenge, &csr);
         ASSERT_TRUE(status.isOk()) << status.getDescription();
 
-        auto result = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge);
+        auto result = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge,
+                                          isRkpVmInstance_);
         ASSERT_TRUE(result) << result.message();
     }
 }
@@ -816,13 +820,15 @@ TEST_P(CertificateRequestV2Test, NonEmptyRequestReproducible) {
     auto status = provisionable_->generateCertificateRequestV2(keysToSign_, challenge_, &csr);
     ASSERT_TRUE(status.isOk()) << status.getDescription();
 
-    auto firstCsr = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge_);
+    auto firstCsr = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge_,
+                                        isRkpVmInstance_);
     ASSERT_TRUE(firstCsr) << firstCsr.message();
 
     status = provisionable_->generateCertificateRequestV2(keysToSign_, challenge_, &csr);
     ASSERT_TRUE(status.isOk()) << status.getDescription();
 
-    auto secondCsr = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge_);
+    auto secondCsr = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge_,
+                                         isRkpVmInstance_);
     ASSERT_TRUE(secondCsr) << secondCsr.message();
 
     ASSERT_EQ(**firstCsr, **secondCsr);
@@ -840,7 +846,8 @@ TEST_P(CertificateRequestV2Test, NonEmptyRequestMultipleKeys) {
     auto status = provisionable_->generateCertificateRequestV2(keysToSign_, challenge_, &csr);
     ASSERT_TRUE(status.isOk()) << status.getDescription();
 
-    auto result = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge_);
+    auto result = verifyProductionCsr(cborKeysToSign_, csr, provisionable_.get(), challenge_,
+                                      isRkpVmInstance_);
     ASSERT_TRUE(result) << result.message();
 }
 

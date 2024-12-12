@@ -32,9 +32,10 @@ namespace {
 bool initConfiguration() {
     std::array<char, PROPERTY_VALUE_MAX> variant;
     property_get("ro.vendor.vts_tuner_configuration_variant", variant.data(), "");
+    string variantString = variant.data();
     string configFilePath = "/vendor/etc/tuner_vts_config_aidl_V1";
-    if (variant.size() != 0) {
-        configFilePath = configFilePath + "."  + variant.data();
+    if (variantString.length() != 0) {
+        configFilePath = configFilePath + "." + variantString;
     }
     configFilePath = configFilePath + ".xml";
     TunerTestingConfigAidlReader1_0::setConfigFilePath(configFilePath);

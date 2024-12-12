@@ -24,13 +24,13 @@ enum CompositePrimitive {
      *
      * Support is required.
      */
-    NOOP,
+    NOOP = 0,
     /**
      * This effect should produce a sharp, crisp click sensation.
      *
      * Support is required.
      */
-    CLICK,
+    CLICK = 1,
     /**
      * A haptic effect that simulates downwards movement with gravity. Often
      * followed by extra energy of hitting and reverberation to augment
@@ -38,43 +38,43 @@ enum CompositePrimitive {
      *
      * Support is optional.
      */
-    THUD,
+    THUD = 2,
     /**
      * A haptic effect that simulates spinning momentum.
      *
      * Support is optional.
      */
-    SPIN,
+    SPIN = 3,
     /**
      * A haptic effect that simulates quick upward movement against gravity.
      *
      * Support is required.
      */
-    QUICK_RISE,
+    QUICK_RISE = 4,
     /**
      * A haptic effect that simulates slow upward movement against gravity.
      *
      * Support is required.
      */
-    SLOW_RISE,
+    SLOW_RISE = 5,
     /**
      * A haptic effect that simulates quick downwards movement with gravity.
      *
      * Support is required.
      */
-    QUICK_FALL,
+    QUICK_FALL = 6,
     /**
      * This very short effect should produce a light crisp sensation intended
      * to be used repetitively for dynamic feedback.
      *
      * Support is required.
      */
-    LIGHT_TICK,
+    LIGHT_TICK = 7,
     /**
      * This very short low frequency effect should produce a light crisp sensation intended
      * to be used repetitively for dynamic feedback.
      *
      * Support is required.
      */
-    LOW_TICK,
+    LOW_TICK = 8,
 }

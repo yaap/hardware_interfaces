@@ -44,4 +44,5 @@ interface INfc {
   int write(in byte[] data);
   void setEnableVerboseLogging(in boolean enable);
   boolean isVerboseLoggingEnabled();
+  android.hardware.nfc.NfcStatus controlGranted();
 }

@@ -20,6 +20,7 @@
 #include <FakeUserHal.h>
 #include <PropertyUtils.h>
 
+#include <aidl/android/hardware/automotive/vehicle/VehicleApPowerStateConfigFlag.h>
 #include <aidl/android/hardware/automotive/vehicle/VehicleApPowerStateShutdownParam.h>
 #include <android/hardware/automotive/vehicle/TestVendorProperty.h>
 
@@ -73,10 +74,12 @@ using ::aidl::android::hardware::automotive::vehicle::SetValueRequest;
 using ::aidl::android::hardware::automotive::vehicle::SetValueResult;
 using ::aidl::android::hardware::automotive::vehicle::StatusCode;
 using ::aidl::android::hardware::automotive::vehicle::SubscribeOptions;
+using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateConfigFlag;
 using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateReport;
 using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateReq;
 using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateShutdownParam;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaMirror;
+using ::aidl::android::hardware::automotive::vehicle::VehicleAreaSeat;
 using ::aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleProperty;
@@ -1870,7 +1873,7 @@ TEST_F(FakeVehicleHardwareTest, testSetVehicleMapService) {
 
 TEST_F(FakeVehicleHardwareTest, testGetHvacPropNotAvailable) {
     FakeVehicleHardwareTestHelper helper(getHardware());
-    auto hvacPowerOnConfig = std::move(getVehiclePropConfig(toInt(VehicleProperty::HVAC_POWER_ON)));
+    auto hvacPowerOnConfig = getVehiclePropConfig(toInt(VehicleProperty::HVAC_POWER_ON));
     EXPECT_NE(hvacPowerOnConfig, nullptr);
     for (auto& hvacPowerOnAreaConfig : hvacPowerOnConfig->areaConfigs) {
         int hvacPowerAreaId = hvacPowerOnAreaConfig.areaId;
@@ -1881,7 +1884,7 @@ TEST_F(FakeVehicleHardwareTest, testGetHvacPropNotAvailable) {
         EXPECT_EQ(status, StatusCode::OK);
 
         for (auto& powerPropId : helper.getHvacPowerDependentProps()) {
-            auto powerPropConfig = std::move(getVehiclePropConfig(powerPropId));
+            auto powerPropConfig = getVehiclePropConfig(powerPropId);
             EXPECT_NE(powerPropConfig, nullptr);
             if (powerPropConfig->access == VehiclePropertyAccess::WRITE) {
                 continue;
@@ -1917,7 +1920,7 @@ TEST_F(FakeVehicleHardwareTest, testGetHvacPropNotAvailable) {
 
 TEST_F(FakeVehicleHardwareTest, testSetHvacPropNotAvailable) {
     FakeVehicleHardwareTestHelper helper(getHardware());
-    auto hvacPowerOnConfig = std::move(getVehiclePropConfig(toInt(VehicleProperty::HVAC_POWER_ON)));
+    auto hvacPowerOnConfig = getVehiclePropConfig(toInt(VehicleProperty::HVAC_POWER_ON));
     EXPECT_NE(hvacPowerOnConfig, nullptr);
     for (auto& hvacPowerOnAreaConfig : hvacPowerOnConfig->areaConfigs) {
         int hvacPowerAreaId = hvacPowerOnAreaConfig.areaId;
@@ -1928,7 +1931,7 @@ TEST_F(FakeVehicleHardwareTest, testSetHvacPropNotAvailable) {
         EXPECT_EQ(status, StatusCode::OK);
 
         for (auto& powerPropId : helper.getHvacPowerDependentProps()) {
-            auto powerPropConfig = std::move(getVehiclePropConfig(powerPropId));
+            auto powerPropConfig = getVehiclePropConfig(powerPropId);
             EXPECT_NE(powerPropConfig, nullptr);
             if (powerPropConfig->access == VehiclePropertyAccess::READ) {
                 continue;
@@ -1967,7 +1970,7 @@ TEST_F(FakeVehicleHardwareTest, testSetHvacPropNotAvailable) {
 
 TEST_F(FakeVehicleHardwareTest, testHvacPowerOnSendCurrentHvacPropValues) {
     FakeVehicleHardwareTestHelper helper(getHardware());
-    auto hvacPowerOnConfig = std::move(getVehiclePropConfig(toInt(VehicleProperty::HVAC_POWER_ON)));
+    auto hvacPowerOnConfig = getVehiclePropConfig(toInt(VehicleProperty::HVAC_POWER_ON));
     EXPECT_NE(hvacPowerOnConfig, nullptr);
     for (auto& hvacPowerOnAreaConfig : hvacPowerOnConfig->areaConfigs) {
         int hvacPowerAreaId = hvacPowerOnAreaConfig.areaId;
@@ -2006,9 +2009,9 @@ TEST_F(FakeVehicleHardwareTest, testHvacPowerOnSendCurrentHvacPropValues) {
 }
 
 TEST_F(FakeVehicleHardwareTest, testHvacDualOnSynchronizesTemp) {
-    auto hvacDualOnConfig = std::move(getVehiclePropConfig(toInt(VehicleProperty::HVAC_DUAL_ON)));
+    auto hvacDualOnConfig = getVehiclePropConfig(toInt(VehicleProperty::HVAC_DUAL_ON));
     auto hvacTemperatureSetConfig =
-            std::move(getVehiclePropConfig(toInt(VehicleProperty::HVAC_TEMPERATURE_SET)));
+            getVehiclePropConfig(toInt(VehicleProperty::HVAC_TEMPERATURE_SET));
     EXPECT_NE(hvacDualOnConfig, nullptr);
     EXPECT_NE(hvacTemperatureSetConfig, nullptr);
     for (auto& hvacTemperatureSetConfig : hvacTemperatureSetConfig->areaConfigs) {
@@ -2781,6 +2784,8 @@ TEST_P(FakeVehicleHardwareSetPropTest, cmdSetOneProperty) {
 
 std::vector<SetPropTestCase> GenSetPropParams() {
     std::string infoMakeProperty = std::to_string(toInt(VehicleProperty::INFO_MAKE));
+    std::string testVendorProperty =
+            std::to_string(toInt(TestVendorProperty::VENDOR_EXTENSION_FLOAT_PROPERTY));
     return {
             {"success_set_string", {"--set", infoMakeProperty, "-s", CAR_MAKE}, true},
             {"success_set_with_name", {"--set", "INFO_MAKE", "-s", CAR_MAKE}, true},
@@ -2889,6 +2894,14 @@ std::vector<SetPropTestCase> GenSetPropParams() {
              {"--set", infoMakeProperty, "-a", "-s", CAR_MAKE},
              false,
              "Expect exact one value"},
+            {"fail_invalid_area_name",
+             {"--set", testVendorProperty, "-a", "ROW_1_LEFT|NO_SUCH_AREA", "-f", "1.234"},
+             false,
+             "not a valid int or one or more area names"},
+            {"fail_invalid_area_format",
+             {"--set", testVendorProperty, "-a", "ROW_1_LEFT|||ROW_2_LEFT", "-f", "1.234"},
+             false,
+             "not a valid int or one or more area names"},
     };
 }
 
@@ -2931,6 +2944,86 @@ TEST_F(FakeVehicleHardwareTest, SetComplexPropTest) {
     ASSERT_EQ(-3.402823466E+38f, value.value.floatValues[0]);
     ASSERT_EQ(0.0f, value.value.floatValues[1]);
     ASSERT_EQ(3.402823466E+38f, value.value.floatValues[2]);
+}
+
+TEST_F(FakeVehicleHardwareTest, SetPropertyWithPropertyNameAreaId) {
+    int32_t areaId = toInt(VehicleAreaSeat::ROW_1_LEFT);
+    getHardware()->dump(
+            {"--set", "HVAC_TEMPERATURE_SET", "-a", std::to_string(areaId), "-f", "22.345"});
+
+    VehiclePropValue requestProp;
+    requestProp.prop = toInt(VehicleProperty::HVAC_TEMPERATURE_SET);
+    requestProp.areaId = areaId;
+    auto result = getValue(requestProp);
+
+    ASSERT_TRUE(result.ok());
+    VehiclePropValue value = result.value();
+    ASSERT_EQ(value.prop, toInt(VehicleProperty::HVAC_TEMPERATURE_SET));
+    ASSERT_EQ(value.areaId, areaId);
+    ASSERT_EQ(1u, value.value.floatValues.size());
+    ASSERT_EQ(22.345f, value.value.floatValues[0]);
+}
+
+TEST_F(FakeVehicleHardwareTest, SetPropertyWithPropertyNameAreaName) {
+    int32_t areaId = toInt(VehicleAreaSeat::ROW_1_LEFT);
+    getHardware()->dump({"--set", "HVAC_TEMPERATURE_SET", "-a", "ROW_1_LEFT", "-f", "22.345"});
+
+    VehiclePropValue requestProp;
+    requestProp.prop = toInt(VehicleProperty::HVAC_TEMPERATURE_SET);
+    requestProp.areaId = areaId;
+    auto result = getValue(requestProp);
+
+    ASSERT_TRUE(result.ok());
+    VehiclePropValue value = result.value();
+    ASSERT_EQ(value.prop, toInt(VehicleProperty::HVAC_TEMPERATURE_SET));
+    ASSERT_EQ(value.areaId, areaId);
+    ASSERT_EQ(1u, value.value.floatValues.size());
+    ASSERT_EQ(22.345f, value.value.floatValues[0]);
+}
+
+TEST_F(FakeVehicleHardwareTest, GetPropertyWithPropertyNameAreaName) {
+    auto result = getHardware()->dump({"--get", "HVAC_TEMPERATURE_SET", "-a", "ROW_1_LEFT"});
+
+    // Default value is 17
+    ASSERT_THAT(result.buffer, ContainsRegex("17"));
+
+    getHardware()->dump({"--set", "HVAC_TEMPERATURE_SET", "-a", "ROW_1_LEFT", "-f", "22"});
+    result = getHardware()->dump({"--get", "HVAC_TEMPERATURE_SET", "-a", "ROW_1_LEFT"});
+
+    ASSERT_THAT(result.buffer, ContainsRegex("22"));
+}
+
+TEST_F(FakeVehicleHardwareTest, SetPropertyWithPropertyNameTwoAreasInOneId) {
+    int32_t propId = toInt(TestVendorProperty::VENDOR_EXTENSION_FLOAT_PROPERTY);
+    std::string testVendorProperty = std::to_string(propId);
+    getHardware()->dump({"--set", testVendorProperty, "-a", "ROW_1_LEFT|ROW_2_LEFT|ROW_2_CENTER",
+                         "-f", "1.234"});
+
+    VehiclePropValue requestProp;
+    requestProp.prop = propId;
+    int32_t areaId = toInt(VehicleAreaSeat::ROW_1_LEFT) | toInt(VehicleAreaSeat::ROW_2_LEFT) |
+                     toInt(VehicleAreaSeat::ROW_2_CENTER);
+    requestProp.areaId = areaId;
+    auto result = getValue(requestProp);
+
+    ASSERT_TRUE(result.ok());
+    VehiclePropValue value = result.value();
+    ASSERT_EQ(value.prop, propId);
+    ASSERT_EQ(value.areaId, areaId);
+    ASSERT_EQ(1u, value.value.floatValues.size());
+    ASSERT_EQ(1.234f, value.value.floatValues[0]);
+
+    // Ignore space between two areas.
+    getHardware()->dump({"--set", testVendorProperty, "-a",
+                         "ROW_1_LEFT | ROW_2_LEFT | ROW_2_CENTER", "-f", "2.345"});
+    result = getValue(requestProp);
+
+    ASSERT_TRUE(result.ok());
+    value = result.value();
+    ASSERT_EQ(value.prop, propId);
+    ASSERT_EQ(value.areaId, areaId);
+    ASSERT_EQ(1u, value.value.floatValues.size());
+    ASSERT_EQ(2.345f, value.value.floatValues[0]);
 }
 
 struct OptionsTestCase {
@@ -3514,7 +3607,7 @@ TEST_F(FakeVehicleHardwareTest, testSetHvacTemperatureValueSuggestion) {
     // Config array values from HVAC_TEMPERATURE_SET in DefaultProperties.json
     auto configs = getHardware()->getAllPropertyConfigs();
     auto hvacTemperatureSetConfig =
-            std::move(getVehiclePropConfig(toInt(VehicleProperty::HVAC_TEMPERATURE_SET)));
+            getVehiclePropConfig(toInt(VehicleProperty::HVAC_TEMPERATURE_SET));
     EXPECT_NE(hvacTemperatureSetConfig, nullptr);
 
     auto& hvacTemperatureSetConfigArray = hvacTemperatureSetConfig->configArray;
@@ -3769,6 +3862,25 @@ TEST_F(FakeVehicleHardwareTest, testSetHvacTemperatureValueSuggestion) {
 
         EXPECT_EQ(events[0], tc.expectedValuesToGet[0]);
         clearChangedProperties();
+    }
+}
+
+TEST_F(FakeVehicleHardwareTest, testOverrideApPowerStateReqConfig) {
+    auto hardware = std::make_unique<FakeVehicleHardware>(
+            android::base::GetExecutableDirectory(),
+            /*overrideConfigDir=*/"",
+            /*forceOverride=*/false,
+            toInt(VehicleApPowerStateConfigFlag::ENABLE_DEEP_SLEEP_FLAG) |
+                    toInt(VehicleApPowerStateConfigFlag::ENABLE_HIBERNATION_FLAG));
+
+    std::vector<VehiclePropConfig> configs = hardware->getAllPropertyConfigs();
+
+    for (const auto& config : configs) {
+        if (config.prop != toInt(VehicleProperty::AP_POWER_STATE_REQ)) {
+            continue;
+        }
+        ASSERT_EQ(config.configArray[0], 0x5);
+        break;
     }
 }
 
