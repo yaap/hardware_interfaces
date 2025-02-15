@@ -69,7 +69,8 @@ static const AacCapabilities kDefaultOffloadAacCapability = {
 static const LdacCapabilities kDefaultOffloadLdacCapability = {
     .sampleRateHz = {44100, 48000, 88200, 96000},
     .channelMode = {LdacChannelMode::DUAL, LdacChannelMode::STEREO},
-    .qualityIndex = {LdacQualityIndex::HIGH},
+    .qualityIndex = {LdacQualityIndex::HIGH, LdacQualityIndex::MID,
+                     LdacQualityIndex::LOW, LdacQualityIndex::ABR},
     .bitsPerSample = {16, 24, 32}};
 
 static const AptxCapabilities kDefaultOffloadAptxCapability = {
@@ -81,7 +82,7 @@ static const AptxCapabilities kDefaultOffloadAptxCapability = {
 static const AptxCapabilities kDefaultOffloadAptxHdCapability = {
     .sampleRateHz = {44100, 48000},
     .channelMode = {ChannelMode::STEREO},
-    .bitsPerSample = {24},
+    .bitsPerSample = {16, 24},
 };
 
 static const OpusCapabilities kDefaultOffloadOpusCapability = {
