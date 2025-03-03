@@ -18,6 +18,11 @@
 #define android_hardware_automotive_vehicle_aidl_impl_grpc_utils_proto_message_converter_include_ProtoMessageConverter_H_
 
 #include <VehicleHalTypes.h>
+#include <VehicleUtils.h>
+#include <android/hardware/automotive/vehicle/GetMinMaxSupportedValuesTypes.pb.h>
+#include <android/hardware/automotive/vehicle/GetSupportedValuesListsTypes.pb.h>
+#include <android/hardware/automotive/vehicle/PropIdAreaId.pb.h>
+#include <android/hardware/automotive/vehicle/RawPropValues.pb.h>
 #include <android/hardware/automotive/vehicle/SubscribeOptions.pb.h>
 #include <android/hardware/automotive/vehicle/VehicleAreaConfig.pb.h>
 #include <android/hardware/automotive/vehicle/VehiclePropConfig.pb.h>
@@ -53,6 +58,34 @@ void aidlToProto(const ::aidl::android::hardware::automotive::vehicle::Subscribe
 // Convert Protobuf SubscribeOptions to AIDL SubscribeOptions.
 void protoToAidl(const ::android::hardware::automotive::vehicle::proto::SubscribeOptions& in,
                  ::aidl::android::hardware::automotive::vehicle::SubscribeOptions* out);
+// Convert VehicleUtils PropIdAreaId to Protobuf PropIdAreaId.
+void aidlToProto(const PropIdAreaId& in,
+                 ::android::hardware::automotive::vehicle::proto::PropIdAreaId* out);
+// Convert Protobuf PropIdAreaId to VehicleUtils PropIdAreaId.
+void protoToAidl(const ::android::hardware::automotive::vehicle::proto::PropIdAreaId& in,
+                 PropIdAreaId* out);
+// Convert AIDL RawPropValues to Protobuf RawPropValues.
+void aidlToProto(const ::aidl::android::hardware::automotive::vehicle::RawPropValues& in,
+                 ::android::hardware::automotive::vehicle::proto::RawPropValues* out);
+// Convert Protobuf RawPropValues to AIDL RawPropValues.
+void protoToAidl(const ::android::hardware::automotive::vehicle::proto::RawPropValues& in,
+                 ::aidl::android::hardware::automotive::vehicle::RawPropValues* out);
+// Convert AIDL MinMaxSupportedValueResult to Protobuf MinMaxSupportedValueResult.
+void aidlToProto(
+        const ::aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult& in,
+        ::android::hardware::automotive::vehicle::proto::MinMaxSupportedValueResult* out);
+// Convert Protobuf MinMaxSupportedValueResult to AIDL MinMaxSupportedValueResult.
+void protoToAidl(
+        const ::android::hardware::automotive::vehicle::proto::MinMaxSupportedValueResult& in,
+        ::aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult* out);
+// Convert AIDL SupportedValuesListResult to Protobuf SupportedValuesListResult.
+void aidlToProto(
+        const ::aidl::android::hardware::automotive::vehicle::SupportedValuesListResult& in,
+        ::android::hardware::automotive::vehicle::proto::SupportedValuesListResult* out);
+// Convert Protobuf SupportedValuesListResult to AIDL SupportedValuesListResult.
+void protoToAidl(
+        const ::android::hardware::automotive::vehicle::proto::SupportedValuesListResult& in,
+        ::aidl::android::hardware::automotive::vehicle::SupportedValuesListResult* out);
 
 }  // namespace proto_msg_converter
 }  // namespace vehicle

@@ -31,7 +31,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
       mIsAsynchronous(!!context.getAsyncCallback()),
       mIsInput(context.isInput()) {}
 
-::android::status_t DriverStubImpl::init() {
+::android::status_t DriverStubImpl::init(DriverCallbackInterface* /*callback*/) {
     mIsInitialized = true;
     return ::android::OK;
 }

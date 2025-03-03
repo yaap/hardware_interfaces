@@ -3276,7 +3276,7 @@ TEST_P(GraphicsComposerAidlCommandV3Test, DestroyBatchedCommand_BadDisplay) {
         invalid_writer.setLayerLifecycleBatchCommandType(getInvalidDisplayId(), layer,
                                                          LayerLifecycleBatchCommandType::DESTROY);
         execute();
-        const auto errors = getReader(display.getDisplayId()).takeErrors();
+        const auto errors = getReader(getInvalidDisplayId()).takeErrors();
         ASSERT_TRUE(errors.size() == 1 && errors[0].errorCode == IComposerClient::EX_BAD_DISPLAY);
     }
 }

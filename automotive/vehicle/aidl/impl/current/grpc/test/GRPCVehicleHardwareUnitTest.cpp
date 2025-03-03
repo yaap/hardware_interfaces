@@ -442,4 +442,119 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestGetValuesOutdatedRetry) {
     EXPECT_LT(gotResults[0].prop->timestamp, elapsedRealtimeNano());
 }
 
+TEST_F(GRPCVehicleHardwareUnitTest, testGetMinMaxSupportedValues) {
+    int32_t testPropId = 1234;
+    int32_t testAreaId = 4321;
+    int32_t testValue1 = 12345;
+    int32_t testValue2 = 123456;
+    std::vector<PropIdAreaId> propIdAreaIds = {{.propId = testPropId, .areaId = testAreaId}};
+
+    EXPECT_CALL(*mGrpcStub, GetMinMaxSupportedValues(_, _, _))
+            .WillOnce([=](::grpc::ClientContext* context,
+                          const proto::GetMinMaxSupportedValuesRequest& request,
+                          proto::GetMinMaxSupportedValuesResult* response) {
+                for (const auto& propIdAreaId : request.prop_id_area_id()) {
+                    proto::MinMaxSupportedValueResult* individualResult = response->add_result();
+                    individualResult->set_status(proto::StatusCode::OK);
+                    individualResult->mutable_min_supported_value()->add_int32_values(testValue1);
+                    individualResult->mutable_max_supported_value()->add_int32_values(testValue2);
+                }
+                return ::grpc::Status::OK;
+            });
+
+    auto results = mHardware->getMinMaxSupportedValues(propIdAreaIds);
+
+    ASSERT_THAT(results, ::testing::SizeIs(1));
+    EXPECT_EQ(results[0].status, aidlvhal::StatusCode::OK);
+    ASSERT_TRUE(results[0].minSupportedValue.has_value());
+    EXPECT_EQ(results[0].minSupportedValue.value(),
+              aidlvhal::RawPropValues{.int32Values = {testValue1}});
+    ASSERT_TRUE(results[0].maxSupportedValue.has_value());
+    EXPECT_EQ(results[0].maxSupportedValue.value(),
+              aidlvhal::RawPropValues{.int32Values = {testValue2}});
+}
+
+TEST_F(GRPCVehicleHardwareUnitTest, testGetMinMaxSupportedValues_noMaxValue) {
+    int32_t testPropId = 1234;
+    int32_t testAreaId = 4321;
+    int32_t testValue1 = 12345;
+    std::vector<PropIdAreaId> propIdAreaIds = {{.propId = testPropId, .areaId = testAreaId}};
+
+    EXPECT_CALL(*mGrpcStub, GetMinMaxSupportedValues(_, _, _))
+            .WillOnce([=](::grpc::ClientContext* context,
+                          const proto::GetMinMaxSupportedValuesRequest& request,
+                          proto::GetMinMaxSupportedValuesResult* response) {
+                for (const auto& propIdAreaId : request.prop_id_area_id()) {
+                    proto::MinMaxSupportedValueResult* individualResult = response->add_result();
+                    individualResult->set_status(proto::StatusCode::OK);
+                    individualResult->mutable_min_supported_value()->add_int32_values(testValue1);
+                }
+                return ::grpc::Status::OK;
+            });
+
+    auto results = mHardware->getMinMaxSupportedValues(propIdAreaIds);
+
+    ASSERT_THAT(results, ::testing::SizeIs(1));
+    EXPECT_EQ(results[0].status, aidlvhal::StatusCode::OK);
+    ASSERT_TRUE(results[0].minSupportedValue.has_value());
+    EXPECT_EQ(results[0].minSupportedValue.value(),
+              aidlvhal::RawPropValues{.int32Values = {testValue1}});
+    ASSERT_FALSE(results[0].maxSupportedValue.has_value());
+}
+
+TEST_F(GRPCVehicleHardwareUnitTest, testGetSupportedValuesLists) {
+    int32_t testPropId = 1234;
+    int32_t testAreaId = 4321;
+    int32_t testValue1 = 12345;
+    int32_t testValue2 = 123456;
+    std::vector<PropIdAreaId> propIdAreaIds = {{.propId = testPropId, .areaId = testAreaId}};
+
+    EXPECT_CALL(*mGrpcStub, GetSupportedValuesLists(_, _, _))
+            .WillOnce([=](::grpc::ClientContext* context,
+                          const proto::GetSupportedValuesListsRequest& request,
+                          proto::GetSupportedValuesListsResult* response) {
+                for (const auto& propIdAreaId : request.prop_id_area_id()) {
+                    proto::SupportedValuesListResult* individualResult = response->add_result();
+                    individualResult->set_status(proto::StatusCode::OK);
+                    individualResult->add_supported_values_list()->add_int32_values(testValue1);
+                    individualResult->add_supported_values_list()->add_int32_values(testValue2);
+                }
+                return ::grpc::Status::OK;
+            });
+
+    auto results = mHardware->getSupportedValuesLists(propIdAreaIds);
+
+    ASSERT_THAT(results, ::testing::SizeIs(1));
+    EXPECT_EQ(results[0].status, aidlvhal::StatusCode::OK);
+    ASSERT_TRUE(results[0].supportedValuesList.has_value());
+    ASSERT_THAT(results[0].supportedValuesList.value(), ::testing::SizeIs(2));
+    EXPECT_EQ(results[0].supportedValuesList.value()[0],
+              aidlvhal::RawPropValues{.int32Values = {testValue1}});
+    EXPECT_EQ(results[0].supportedValuesList.value()[1],
+              aidlvhal::RawPropValues{.int32Values = {testValue2}});
+}
+
+TEST_F(GRPCVehicleHardwareUnitTest, testGetSupportedValuesLists_noSupportedValue) {
+    int32_t testPropId = 1234;
+    int32_t testAreaId = 4321;
+    std::vector<PropIdAreaId> propIdAreaIds = {{.propId = testPropId, .areaId = testAreaId}};
+
+    EXPECT_CALL(*mGrpcStub, GetSupportedValuesLists(_, _, _))
+            .WillOnce([=](::grpc::ClientContext* context,
+                          const proto::GetSupportedValuesListsRequest& request,
+                          proto::GetSupportedValuesListsResult* response) {
+                for (const auto& propIdAreaId : request.prop_id_area_id()) {
+                    proto::SupportedValuesListResult* individualResult = response->add_result();
+                    individualResult->set_status(proto::StatusCode::INTERNAL_ERROR);
+                }
+                return ::grpc::Status::OK;
+            });
+
+    auto results = mHardware->getSupportedValuesLists(propIdAreaIds);
+
+    ASSERT_THAT(results, ::testing::SizeIs(1));
+    EXPECT_EQ(results[0].status, aidlvhal::StatusCode::INTERNAL_ERROR);
+    ASSERT_FALSE(results[0].supportedValuesList.has_value());
+}
+
 }  // namespace android::hardware::automotive::vehicle::virtualization

@@ -142,11 +142,15 @@ std::string StreamWorkerCommonLogic::init() {
                    ", size in bytes: " + std::to_string(mDataBufferSize);
         }
     }
-    if (::android::status_t status = mDriver->init(); status != STATUS_OK) {
+    if (::android::status_t status = mDriver->init(this /*DriverCallbackInterface*/);
+        status != STATUS_OK) {
         return "Failed to initialize the driver: " + std::to_string(status);
     }
     return "";
 }
+
+void StreamWorkerCommonLogic::onBufferStateChange(size_t /*bufferFramesLeft*/) {}
+void StreamWorkerCommonLogic::onClipStateChange(size_t /*clipFramesLeft*/, bool /*hasNextClip*/) {}
 
 void StreamWorkerCommonLogic::populateReply(StreamDescriptor::Reply* reply,
                                             bool isConnected) const {
@@ -381,48 +385,60 @@ bool StreamInWorkerLogic::read(size_t clientSize, StreamDescriptor::Reply* reply
 
 const std::string StreamOutWorkerLogic::kThreadName = "writer";
 
-StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
-    if (mState == StreamDescriptor::State::DRAINING && mContext->getForceDrainToDraining() &&
-        mOnDrainReadyStatus == OnDrainReadyStatus::UNSENT) {
+void StreamOutWorkerLogic::onBufferStateChange(size_t bufferFramesLeft) {
+    const StreamDescriptor::State state = mState;
+    LOG(DEBUG) << __func__ << ": state: " << toString(state)
+               << ", bufferFramesLeft: " << bufferFramesLeft;
+    if (state == StreamDescriptor::State::TRANSFERRING) {
+        mState = StreamDescriptor::State::ACTIVE;
         std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
         if (asyncCallback != nullptr) {
+            ndk::ScopedAStatus status = asyncCallback->onTransferReady();
+            if (!status.isOk()) {
+                LOG(ERROR) << __func__ << ": error from onTransferReady: " << status;
+            }
+        }
+    }
+}
+
+void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNextClip) {
+    const DrainState drainState = mDrainState;
+    std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
+    LOG(DEBUG) << __func__ << ": drainState: " << drainState << "; clipFramesLeft "
+               << clipFramesLeft << "; hasNextClip? " << hasNextClip << "; asyncCallback? "
+               << (asyncCallback != nullptr);
+    if (drainState != DrainState::NONE && clipFramesLeft == 0) {
+        mState =
+                hasNextClip ? StreamDescriptor::State::TRANSFERRING : StreamDescriptor::State::IDLE;
+        mDrainState = DrainState::NONE;
+        if (drainState == DrainState::ALL && asyncCallback != nullptr) {
+            LOG(DEBUG) << __func__ << ": sending onDrainReady";
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
                 LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
             }
-            // This sets the timeout for moving into IDLE on next iterations.
-            switchToTransientState(StreamDescriptor::State::DRAINING);
-            mOnDrainReadyStatus = OnDrainReadyStatus::SENT;
         }
-    } else if (mState == StreamDescriptor::State::DRAINING ||
-               mState == StreamDescriptor::State::TRANSFERRING) {
+    } else if (drainState == DrainState::EN && clipFramesLeft > 0) {
+        // The stream state does not change, it is still draining.
+        mDrainState = DrainState::EN_SENT;
+        if (asyncCallback != nullptr) {
+            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            ndk::ScopedAStatus status = asyncCallback->onDrainReady();
+            if (!status.isOk()) {
+                LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
+            }
+        }
+    }
+}
+
+StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
+    // Non-blocking mode is handled within 'onClipStateChange'
+    if (std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
+        mState == StreamDescriptor::State::DRAINING && asyncCallback == nullptr) {
         if (auto stateDurationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now() - mTransientStateStart);
             stateDurationMs >= mTransientStateDelayMs) {
-            std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
-            if (asyncCallback == nullptr) {
-                // In blocking mode, mState can only be DRAINING.
-                mState = StreamDescriptor::State::IDLE;
-            } else {
-                // In a real implementation, the driver should notify the HAL about
-                // drain or transfer completion. In the stub, we switch unconditionally.
-                if (mState == StreamDescriptor::State::DRAINING) {
-                    mState = StreamDescriptor::State::IDLE;
-                    if (mOnDrainReadyStatus != OnDrainReadyStatus::SENT) {
-                        ndk::ScopedAStatus status = asyncCallback->onDrainReady();
-                        if (!status.isOk()) {
-                            LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
-                        }
-                        mOnDrainReadyStatus = OnDrainReadyStatus::SENT;
-                    }
-                } else {
-                    mState = StreamDescriptor::State::ACTIVE;
-                    ndk::ScopedAStatus status = asyncCallback->onTransferReady();
-                    if (!status.isOk()) {
-                        LOG(ERROR) << __func__ << ": error from onTransferReady: " << status;
-                    }
-                }
-            }
+            mState = StreamDescriptor::State::IDLE;
             if (mTransientStateDelayMs.count() != 0) {
                 LOG(DEBUG) << __func__ << ": switched to state " << toString(mState)
                            << " after a timeout";
@@ -552,10 +568,9 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                             mState = StreamDescriptor::State::IDLE;
                         } else {
                             switchToTransientState(StreamDescriptor::State::DRAINING);
-                            mOnDrainReadyStatus =
-                                    mode == StreamDescriptor::DrainMode::DRAIN_EARLY_NOTIFY
-                                            ? OnDrainReadyStatus::UNSENT
-                                            : OnDrainReadyStatus::IGNORE;
+                            mDrainState = mode == StreamDescriptor::DrainMode::DRAIN_EARLY_NOTIFY
+                                                  ? DrainState::EN
+                                                  : DrainState::ALL;
                         }
                     } else {
                         LOG(ERROR) << __func__ << ": drain failed: " << status;

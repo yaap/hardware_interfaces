@@ -193,6 +193,13 @@ class FakeVehicleHardware : public IVehicleHardware {
     int32_t mMaxSupportedValueForTestIntProp GUARDED_BY(mLock) = 10;
     std::vector<int32_t> mSupportedValuesListForTestIntProp GUARDED_BY(mLock) = {0, 2, 4, 6, 8, 10};
 
+    std::unordered_map<PropIdAreaId, aidl::android::hardware::automotive::vehicle::RawPropValues,
+                       PropIdAreaIdHash>
+            mMinSupportedValueByPropIdAreaId GUARDED_BY(mLock);
+    std::unordered_map<PropIdAreaId, aidl::android::hardware::automotive::vehicle::RawPropValues,
+                       PropIdAreaIdHash>
+            mMaxSupportedValueByPropIdAreaId GUARDED_BY(mLock);
+
     // PendingRequestHandler is thread-safe.
     mutable PendingRequestHandler<GetValuesCallback,
                                   aidl::android::hardware::automotive::vehicle::GetValueRequest>
@@ -323,6 +330,15 @@ class FakeVehicleHardware : public IVehicleHardware {
     void triggerSupportedValueChange(
             const aidl::android::hardware::automotive::vehicle::VehiclePropConfig& config)
             EXCLUDES(mLock);
+    void triggerSupportedValueChange(int32_t propId, int32_t areaId) EXCLUDES(mLock);
+    template <class T>
+    void setMinSupportedValueLocked(int32_t propId, int32_t areaId, T minValue) REQUIRES(mLock);
+    template <class T>
+    void setMaxSupportedValueLocked(int32_t propId, int32_t areaId, T maxValue) REQUIRES(mLock);
+    template <class T>
+    android::base::Result<void> parseAndSetMinMaxValue(int32_t propId, int32_t areaId,
+                                                       const std::vector<std::string>& options,
+                                                       size_t index) EXCLUDES(mLock);
 
     static aidl::android::hardware::automotive::vehicle::VehiclePropValue createHwInputKeyProp(
             aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction action,
@@ -355,6 +371,9 @@ class FakeVehicleHardware : public IVehicleHardware {
                                                       size_t index);
     static android::base::Result<int32_t> parseAreaId(const std::vector<std::string>& options,
                                                       size_t index, int32_t propId);
+    template <class T>
+    static android::base::Result<std::vector<T>> parseValues(
+            const std::vector<std::string>& options, size_t index);
 };
 
 }  // namespace fake

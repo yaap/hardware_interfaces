@@ -70,7 +70,7 @@ StreamBluetooth::~StreamBluetooth() {
     cleanupWorker();
 }
 
-::android::status_t StreamBluetooth::init() {
+::android::status_t StreamBluetooth::init(DriverCallbackInterface*) {
     std::lock_guard guard(mLock);
     if (mBtDeviceProxy == nullptr) {
         // This is a normal situation in VTS tests.

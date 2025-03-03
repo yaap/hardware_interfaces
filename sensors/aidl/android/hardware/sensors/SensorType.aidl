@@ -275,8 +275,9 @@ enum SensorType {
      *  than every period_ns passed to setDelay() or to batch().
      *  See the definition of the on-change reporting mode for more information.
      *
-     *  SensorInfo.requiredPermission must be set to
-     *  SENSOR_PERMISSION_BODY_SENSORS.
+     *  The framework will override the SensorInfo.requiredPermission to either
+     *  SENSOR_PERMISSION_BODY_SENSORS or SENSOR_PERMISSION_READ_HEART_RATE
+     *  depending on the platform SDK version in order to ensure compatibility.
      *
      *  Both wake-up and non wake-up versions are useful.
      */

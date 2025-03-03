@@ -36,12 +36,10 @@ using aidl::android::hardware::audio::core::IModule;
 using aidl::android::media::audio::common::AudioChannelLayout;
 using aidl::android::media::audio::common::AudioDeviceDescription;
 using aidl::android::media::audio::common::AudioDeviceType;
-using aidl::android::media::audio::common::AudioEncapsulationMode;
 using aidl::android::media::audio::common::AudioFormatDescription;
 using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::AudioInputFlags;
 using aidl::android::media::audio::common::AudioIoFlags;
-using aidl::android::media::audio::common::AudioOffloadInfo;
 using aidl::android::media::audio::common::AudioOutputFlags;
 using aidl::android::media::audio::common::AudioPort;
 using aidl::android::media::audio::common::AudioPortConfig;
@@ -49,26 +47,6 @@ using aidl::android::media::audio::common::AudioPortExt;
 using aidl::android::media::audio::common::AudioProfile;
 using aidl::android::media::audio::common::AudioUsage;
 using aidl::android::media::audio::common::Int;
-
-// static
-std::optional<AudioOffloadInfo> ModuleConfig::generateOffloadInfoIfNeeded(
-        const AudioPortConfig& portConfig) {
-    if (portConfig.flags.has_value() &&
-        portConfig.flags.value().getTag() == AudioIoFlags::Tag::output &&
-        isBitPositionFlagSet(portConfig.flags.value().get<AudioIoFlags::Tag::output>(),
-                             AudioOutputFlags::COMPRESS_OFFLOAD)) {
-        AudioOffloadInfo offloadInfo;
-        offloadInfo.base.sampleRate = portConfig.sampleRate.value().value;
-        offloadInfo.base.channelMask = portConfig.channelMask.value();
-        offloadInfo.base.format = portConfig.format.value();
-        offloadInfo.bitRatePerSecond = 256000;                             // Arbitrary value.
-        offloadInfo.durationUs = std::chrono::microseconds(1min).count();  // Arbitrary value.
-        offloadInfo.usage = AudioUsage::MEDIA;
-        offloadInfo.encapsulationMode = AudioEncapsulationMode::NONE;
-        return offloadInfo;
-    }
-    return {};
-}
 
 // static
 std::vector<aidl::android::media::audio::common::AudioPort>

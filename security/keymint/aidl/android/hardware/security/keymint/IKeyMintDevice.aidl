@@ -479,8 +479,8 @@ interface IKeyMintDevice {
      *        structure.
      *
      * @param unwrappingParams must contain any parameters needed to perform the unwrapping
-     *        operation.  For example, if the wrapping key is an AES key the block and padding modes
-     *        must be specified in this argument.
+     *        operation.  For example, the padding mode for the RSA wrapping key must be specified
+     *        in this argument.
      *
      * @param passwordSid specifies the password secure ID (SID) of the user that owns the key being
      *        installed.  If the authorization list in wrappedKeyData contains a

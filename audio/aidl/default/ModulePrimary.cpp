@@ -21,12 +21,16 @@
 #include <android-base/logging.h>
 
 #include "core-impl/ModulePrimary.h"
+#include "core-impl/StreamOffloadStub.h"
 #include "core-impl/StreamPrimary.h"
 #include "core-impl/Telephony.h"
 
+using aidl::android::hardware::audio::common::areAllBitPositionFlagsSet;
 using aidl::android::hardware::audio::common::SinkMetadata;
 using aidl::android::hardware::audio::common::SourceMetadata;
+using aidl::android::media::audio::common::AudioIoFlags;
 using aidl::android::media::audio::common::AudioOffloadInfo;
+using aidl::android::media::audio::common::AudioOutputFlags;
 using aidl::android::media::audio::common::AudioPort;
 using aidl::android::media::audio::common::AudioPortConfig;
 using aidl::android::media::audio::common::MicrophoneInfo;
@@ -43,6 +47,17 @@ ndk::ScopedAStatus ModulePrimary::getTelephony(std::shared_ptr<ITelephony>* _aid
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus ModulePrimary::calculateBufferSizeFrames(
+        const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+        int32_t latencyMs, int32_t sampleRateHz, int32_t* bufferSizeFrames) {
+    if (format.type != ::aidl::android::media::audio::common::AudioFormatType::PCM &&
+        StreamOffloadStub::getSupportedEncodings().count(format.encoding)) {
+        *bufferSizeFrames = sampleRateHz / 2;  // 1/2 of a second.
+        return ndk::ScopedAStatus::ok();
+    }
+    return Module::calculateBufferSizeFrames(format, latencyMs, sampleRateHz, bufferSizeFrames);
+}
+
 ndk::ScopedAStatus ModulePrimary::createInputStream(StreamContext&& context,
                                                     const SinkMetadata& sinkMetadata,
                                                     const std::vector<MicrophoneInfo>& microphones,
@@ -54,8 +69,18 @@ ndk::ScopedAStatus ModulePrimary::createInputStream(StreamContext&& context,
 ndk::ScopedAStatus ModulePrimary::createOutputStream(
         StreamContext&& context, const SourceMetadata& sourceMetadata,
         const std::optional<AudioOffloadInfo>& offloadInfo, std::shared_ptr<StreamOut>* result) {
-    return createStreamInstance<StreamOutPrimary>(result, std::move(context), sourceMetadata,
-                                                  offloadInfo);
+    if (!areAllBitPositionFlagsSet(
+                context.getFlags().get<AudioIoFlags::output>(),
+                {AudioOutputFlags::COMPRESS_OFFLOAD, AudioOutputFlags::NON_BLOCKING})) {
+        return createStreamInstance<StreamOutPrimary>(result, std::move(context), sourceMetadata,
+                                                      offloadInfo);
+    } else {
+        // "Stub" is used because there is no actual decoder. The stream just
+        // extracts the clip duration from the media file header and simulates
+        // playback over time.
+        return createStreamInstance<StreamOutOffloadStub>(result, std::move(context),
+                                                          sourceMetadata, offloadInfo);
+    }
 }
 
 int32_t ModulePrimary::getNominalLatencyMs(const AudioPortConfig&) {

@@ -1,0 +1,83 @@
+// Copyright (C) 2024 The Android Open-Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+rust_defaults {
+    name: "hw_crypto_hal_aidl_rust_defaults",
+    enabled: false,
+    rustlibs: [
+        "libbinder_rs",
+        "android.hardware.security.see.hwcrypto-V1-rust",
+        "liblogger",
+        "liblog_rust",
+        "libanyhow",
+        "libvsock",
+        "librpcbinder_rs",
+        "librustutils",
+    ],
+    arch: {
+        x86_64: {
+            enabled: true,
+        },
+    },
+}
+
+rust_library {
+    name: "libhwcryptohal_vts_test",
+    crate_name: "hwcryptohal_vts_test",
+    srcs: [
+        "lib.rs",
+    ],
+    defaults: [
+        "hw_crypto_hal_aidl_rust_defaults",
+    ],
+}
+
+rust_binary {
+    name: "wait_hw_crypto",
+    prefer_rlib: true,
+    defaults: [
+        "hw_crypto_hal_aidl_rust_defaults",
+    ],
+    srcs: ["wait_service.rs"],
+    rustlibs: [
+        "libhwcryptohal_vts_test",
+        "liblogger",
+        "liblog_rust",
+        "libanyhow",
+        "libclap",
+    ],
+}
+
+rust_test {
+    name: "VtsAidlHwCryptoConnTest",
+    srcs: ["connection_test.rs"],
+    require_root: true,
+    defaults: [
+        "hw_crypto_hal_aidl_rust_defaults",
+    ],
+    rustlibs: [
+        "libhwcryptohal_vts_test",
+    ],
+    data: [
+        ":trusty_test_vm_elf",
+        ":trusty_test_vm_config",
+        ":trusty_vm_launcher_sh",
+        ":trusty_wait_ready_sh",
+        ":wait_hw_crypto",
+    ],
+}

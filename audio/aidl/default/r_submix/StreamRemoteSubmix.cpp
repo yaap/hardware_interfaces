@@ -51,7 +51,7 @@ StreamRemoteSubmix::~StreamRemoteSubmix() {
     cleanupWorker();
 }
 
-::android::status_t StreamRemoteSubmix::init() {
+::android::status_t StreamRemoteSubmix::init(DriverCallbackInterface*) {
     mCurrentRoute = SubmixRoute::findOrCreateRoute(mDeviceAddress, mStreamConfig);
     if (mCurrentRoute == nullptr) {
         return ::android::NO_INIT;

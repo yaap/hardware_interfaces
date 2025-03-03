@@ -32,7 +32,7 @@ class StreamRemoteSubmix : public StreamCommonImpl {
     ~StreamRemoteSubmix();
 
     // Methods of 'DriverInterface'.
-    ::android::status_t init() override;
+    ::android::status_t init(DriverCallbackInterface*) override;
     ::android::status_t drain(StreamDescriptor::DrainMode) override;
     ::android::status_t flush() override;
     ::android::status_t pause() override;

@@ -83,6 +83,11 @@ void ThreadChip::handleReceivedFrame(void) {
                 mRxFrameBuffer.GetFrame(), mRxFrameBuffer.GetFrame() + mRxFrameBuffer.GetLength()));
     }
 
+    if (mVendorCallback != nullptr) {
+        mVendorCallback->onReceiveSpinelFrame(std::vector<uint8_t>(
+                mRxFrameBuffer.GetFrame(), mRxFrameBuffer.GetFrame() + mRxFrameBuffer.GetLength()));
+    }
+
     mRxFrameBuffer.DiscardFrame();
 }
 
@@ -191,6 +196,10 @@ void ThreadChip::Process(const otSysMainloopContext& context) {
     if (mCallback != nullptr) {
         mSpinelInterface->Process(&context);
     }
+}
+
+void ThreadChip::setVendorCallback(const std::shared_ptr<IThreadChipCallback>& vendorCallback) {
+    mVendorCallback = vendorCallback;
 }
 
 ndk::ScopedAStatus ThreadChip::errorStatus(int32_t error, const char* message) {

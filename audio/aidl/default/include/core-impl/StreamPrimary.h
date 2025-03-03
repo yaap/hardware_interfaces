@@ -32,7 +32,7 @@ class StreamPrimary : public StreamAlsa {
     StreamPrimary(StreamContext* context, const Metadata& metadata);
 
     // Methods of 'DriverInterface'.
-    ::android::status_t init() override;
+    ::android::status_t init(DriverCallbackInterface* callback) override;
     ::android::status_t drain(StreamDescriptor::DrainMode mode) override;
     ::android::status_t flush() override;
     ::android::status_t pause() override;

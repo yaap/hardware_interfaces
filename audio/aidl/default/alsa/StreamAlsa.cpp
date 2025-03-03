@@ -72,7 +72,7 @@ StreamAlsa::~StreamAlsa() {
     return source;
 }
 
-::android::status_t StreamAlsa::init() {
+::android::status_t StreamAlsa::init(DriverCallbackInterface* /*callback*/) {
     return mConfig.has_value() ? ::android::OK : ::android::NO_INIT;
 }
 

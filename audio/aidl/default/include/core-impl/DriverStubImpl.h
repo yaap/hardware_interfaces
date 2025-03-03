@@ -24,7 +24,7 @@ class DriverStubImpl : virtual public DriverInterface {
   public:
     explicit DriverStubImpl(const StreamContext& context);
 
-    ::android::status_t init() override;
+    ::android::status_t init(DriverCallbackInterface* callback) override;
     ::android::status_t drain(StreamDescriptor::DrainMode) override;
     ::android::status_t flush() override;
     ::android::status_t pause() override;
@@ -34,7 +34,7 @@ class DriverStubImpl : virtual public DriverInterface {
                                  int32_t* latencyMs) override;
     void shutdown() override;
 
-  private:
+  protected:
     const size_t mBufferSizeFrames;
     const size_t mFrameSizeBytes;
     const int mSampleRate;

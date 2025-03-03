@@ -162,61 +162,83 @@
         },
         {
             "property": "VehicleProperty::SEAT_MEMORY_SELECT",
-            "defaultValue": {
-                "int32Values": [
-                    1
-                ]
-            },
             "areas": [
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
         {
             "property": "VehicleProperty::SEAT_MEMORY_SET",
-            "defaultValue": {
-                "int32Values": [
-                    1
-                ]
-            },
             "areas": [
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -256,27 +278,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -291,27 +333,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -326,27 +388,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -361,27 +443,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -396,27 +498,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -431,27 +553,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -466,27 +608,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -501,27 +663,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -536,27 +718,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -571,27 +773,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -606,27 +828,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -641,27 +883,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -676,27 +938,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -711,27 +993,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -746,27 +1048,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -781,27 +1103,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -816,27 +1158,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -851,27 +1213,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -886,27 +1268,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -921,27 +1323,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -956,27 +1378,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -991,27 +1433,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1026,27 +1488,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1061,27 +1543,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1193,27 +1695,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1228,27 +1750,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1263,27 +1805,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1298,27 +1860,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1333,12 +1915,20 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 5
+                    "maxInt32Value": 5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 5
+                    "maxInt32Value": 5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -1684,22 +2274,38 @@
                 {
                     "areaId": "Constants::WHEEL_FRONT_LEFT",
                     "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0
+                    "maxFloatValue": 300.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WHEEL_FRONT_RIGHT",
                     "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0
+                    "maxFloatValue": 300.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WHEEL_REAR_LEFT",
                     "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0
+                    "maxFloatValue": 300.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WHEEL_REAR_RIGHT",
                     "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0
+                    "maxFloatValue": 300.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "comment": "Units in kpa",
@@ -1819,7 +2425,11 @@
                     },
                     "areaId": "Constants::WHEEL_FRONT_LEFT",
                     "minInt32Value": -100,
-                    "maxInt32Value": 100
+                    "maxInt32Value": 100,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "defaultValue": {
@@ -1829,7 +2439,11 @@
                     },
                     "areaId": "Constants::WHEEL_FRONT_RIGHT",
                     "minInt32Value": -100,
-                    "maxInt32Value": 100
+                    "maxInt32Value": 100,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "defaultValue": {
@@ -1839,7 +2453,11 @@
                     },
                     "areaId": "Constants::WHEEL_REAR_RIGHT",
                     "minInt32Value": -100,
-                    "maxInt32Value": 100
+                    "maxInt32Value": 100,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "defaultValue": {
@@ -1849,7 +2467,11 @@
                     },
                     "areaId": "Constants::WHEEL_REAR_LEFT",
                     "minInt32Value": -100,
-                    "maxInt32Value": 100
+                    "maxInt32Value": 100,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "maxSampleRate": 10.0,
@@ -1913,7 +2535,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2336,27 +2962,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 1,
-                    "maxInt32Value": 7
+                    "maxInt32Value": 7,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 1,
-                    "maxInt32Value": 7
+                    "maxInt32Value": 7,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": 1,
-                    "maxInt32Value": 7
+                    "maxInt32Value": 7,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": 1,
-                    "maxInt32Value": 7
+                    "maxInt32Value": 7,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": 1,
-                    "maxInt32Value": 7
+                    "maxInt32Value": 7,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2428,27 +3074,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "comment": "0 is off and +ve values indicate ventilation level."
@@ -2464,7 +3130,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "comment": "+ve values for heating and -ve for cooling"
@@ -2480,27 +3150,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "comment": "+ve values for heating and -ve for cooling"
@@ -2516,7 +3206,11 @@
                 {
                     "areaId": "Constants::MIRROR_DRIVER_LEFT_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2556,27 +3250,47 @@
                 {
                     "areaId": "Constants::SEAT_1_LEFT",
                     "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5
+                    "maxFloatValue": 32.5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5
+                    "maxFloatValue": 32.5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5
+                    "maxFloatValue": 32.5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5
+                    "maxFloatValue": 32.5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_CENTER",
                     "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5
+                    "maxFloatValue": 32.5,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "comment":
@@ -2812,27 +3526,47 @@
                 {
                     "areaId": "Constants::DOOR_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_REAR",
                     "minInt32Value": 0,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2847,22 +3581,38 @@
                 {
                     "areaId": "Constants::DOOR_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::DOOR_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2877,17 +3627,29 @@
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_LEFT",
                     "minInt32Value": -3,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
                     "minInt32Value": -3,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_CENTER",
                     "minInt32Value": -3,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2902,17 +3664,29 @@
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2927,17 +3701,29 @@
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_LEFT",
                     "minInt32Value": -3,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
                     "minInt32Value": -3,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_CENTER",
                     "minInt32Value": -3,
-                    "maxInt32Value": 3
+                    "maxInt32Value": 3,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -2952,17 +3738,29 @@
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaMirror::DRIVER_CENTER",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3032,27 +3830,47 @@
                 {
                     "areaId": "Constants::WINDOW_1_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_2_LEFT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_2_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_ROOF_TOP_1",
                     "minInt32Value": -10,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3067,27 +3885,47 @@
                 {
                     "areaId": "Constants::WINDOW_1_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_1_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_2_LEFT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_2_RIGHT",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "Constants::WINDOW_ROOF_TOP_1",
                     "minInt32Value": -1,
-                    "maxInt32Value": 1
+                    "maxInt32Value": 1,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3102,12 +3940,20 @@
                 {
                     "areaId": "VehicleAreaWindow::FRONT_WINDSHIELD",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3000
+                    "maxInt32Value": 3000,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaWindow::REAR_WINDSHIELD",
                     "minInt32Value": 0,
-                    "maxInt32Value": 3000
+                    "maxInt32Value": 3000,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3188,7 +4034,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3203,7 +4053,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3218,7 +4072,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3233,7 +4091,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": -2,
-                    "maxInt32Value": 2
+                    "maxInt32Value": 2,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -3272,7 +4134,11 @@
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
                     "minInt32Value": 0,
-                    "maxInt32Value": 10
+                    "maxInt32Value": 10,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -4575,7 +5441,11 @@
                 {
                     "areaId": 0,
                     "minFloatValue": 20.0,
-                    "maxFloatValue": 35.0
+                    "maxFloatValue": 35.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ]
         },
@@ -4606,7 +5476,11 @@
                 {
                     "areaId": 0,
                     "minInt32Value": 0,
-                    "maxInt32Value": 200000
+                    "maxInt32Value": 200000,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "maxSampleRate": 10.0,
@@ -5234,19 +6108,7 @@
             ]
         },
         {
-            "property": "VehicleProperty::CAMERA_SERVICE_CURRENT_STATE",
-            "defaultValue": {
-                "int32Values": [
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE",
-                    "CameraServiceState::UNAVAILABLE"
-                ]
-            }
+            "property": "VehicleProperty::CAMERA_SERVICE_CURRENT_STATE"
         }
     ]
 }

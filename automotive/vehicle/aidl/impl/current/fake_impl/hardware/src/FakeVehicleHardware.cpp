@@ -398,26 +398,128 @@ std::unordered_map<int32_t, ConfigDeclaration> FakeVehicleHardware::loadConfigDe
     return configsByPropId;
 }
 
+template <>
+void FakeVehicleHardware::setMinSupportedValueLocked(int32_t propId, int32_t areaId,
+                                                     int32_t minValue) {
+    mMinSupportedValueByPropIdAreaId[PropIdAreaId{.propId = propId, .areaId = areaId}] =
+            RawPropValues{.int32Values = {minValue}};
+}
+
+template <>
+void FakeVehicleHardware::setMaxSupportedValueLocked(int32_t propId, int32_t areaId,
+                                                     int32_t maxValue) {
+    mMaxSupportedValueByPropIdAreaId[PropIdAreaId{.propId = propId, .areaId = areaId}] =
+            RawPropValues{.int32Values = {maxValue}};
+}
+
+template <>
+void FakeVehicleHardware::setMinSupportedValueLocked(int32_t propId, int32_t areaId,
+                                                     int64_t minValue) {
+    mMinSupportedValueByPropIdAreaId[PropIdAreaId{.propId = propId, .areaId = areaId}] =
+            RawPropValues{.int64Values = {minValue}};
+}
+
+template <>
+void FakeVehicleHardware::setMaxSupportedValueLocked(int32_t propId, int32_t areaId,
+                                                     int64_t maxValue) {
+    mMaxSupportedValueByPropIdAreaId[PropIdAreaId{.propId = propId, .areaId = areaId}] =
+            RawPropValues{.int64Values = {maxValue}};
+}
+
+template <>
+void FakeVehicleHardware::setMinSupportedValueLocked(int32_t propId, int32_t areaId,
+                                                     float minValue) {
+    mMinSupportedValueByPropIdAreaId[PropIdAreaId{.propId = propId, .areaId = areaId}] =
+            RawPropValues{.floatValues = {minValue}};
+}
+
+template <>
+void FakeVehicleHardware::setMaxSupportedValueLocked(int32_t propId, int32_t areaId,
+                                                     float maxValue) {
+    mMaxSupportedValueByPropIdAreaId[PropIdAreaId{.propId = propId, .areaId = areaId}] =
+            RawPropValues{.floatValues = {maxValue}};
+}
+
 void FakeVehicleHardware::init(int32_t s2rS2dConfig) {
     maybeGetGrpcServiceInfo(&mPowerControllerServiceAddress);
 
-    for (auto& [_, configDeclaration] : loadConfigDeclarations()) {
-        VehiclePropConfig cfg = configDeclaration.config;
-        VehiclePropertyStore::TokenFunction tokenFunction = nullptr;
+    {
+        std::scoped_lock<std::mutex> lockGuard(mLock);
+        for (auto& [_, configDeclaration] : loadConfigDeclarations()) {
+            VehiclePropConfig cfg = configDeclaration.config;
+            VehiclePropertyStore::TokenFunction tokenFunction = nullptr;
 
-        if (cfg.prop == toInt(VehicleProperty::AP_POWER_STATE_REQ)) {
-            cfg.configArray[0] = s2rS2dConfig;
-        } else if (cfg.prop == OBD2_FREEZE_FRAME) {
-            tokenFunction = [](const VehiclePropValue& propValue) { return propValue.timestamp; };
-        }
+            if (cfg.prop == toInt(VehicleProperty::AP_POWER_STATE_REQ)) {
+                cfg.configArray[0] = s2rS2dConfig;
+            } else if (cfg.prop == OBD2_FREEZE_FRAME) {
+                tokenFunction = [](const VehiclePropValue& propValue) {
+                    return propValue.timestamp;
+                };
+            }
 
-        mServerSidePropStore->registerProperty(cfg, tokenFunction);
-        if (obd2frame::FakeObd2Frame::isDiagnosticProperty(cfg)) {
-            // Ignore storing default value for diagnostic property. They have special get/set
-            // logic.
-            continue;
+            mServerSidePropStore->registerProperty(cfg, tokenFunction);
+            if (obd2frame::FakeObd2Frame::isDiagnosticProperty(cfg)) {
+                // Ignore storing default value for diagnostic property. They have special get/set
+                // logic.
+                continue;
+            }
+            storePropInitialValue(configDeclaration);
+
+            int32_t propertyType = cfg.prop & toInt(VehiclePropertyType::MASK);
+            for (const auto& areaConfig : cfg.areaConfigs) {
+                if (!areaConfig.hasSupportedValueInfo.has_value()) {
+                    continue;
+                }
+                if (!areaConfig.hasSupportedValueInfo->hasMinSupportedValue &&
+                    !areaConfig.hasSupportedValueInfo->hasMaxSupportedValue) {
+                    continue;
+                }
+                if (areaConfig.hasSupportedValueInfo->hasMinSupportedValue) {
+                    RawPropValues rawPropValues = {};
+                    switch (propertyType) {
+                        case toInt(VehiclePropertyType::INT32):
+                            setMinSupportedValueLocked(cfg.prop, areaConfig.areaId,
+                                                       areaConfig.minInt32Value);
+                            break;
+                        case toInt(VehiclePropertyType::INT64):
+                            setMinSupportedValueLocked(cfg.prop, areaConfig.areaId,
+                                                       areaConfig.minInt64Value);
+                            break;
+                        case toInt(VehiclePropertyType::FLOAT):
+                            setMinSupportedValueLocked(cfg.prop, areaConfig.areaId,
+                                                       areaConfig.minFloatValue);
+                            break;
+                        default:
+                            ALOGE("hasMinSupportedValue must only be true for INT32, INT64 or "
+                                  "FLOAT "
+                                  "type property");
+                            continue;
+                    }
+                }
+                if (areaConfig.hasSupportedValueInfo->hasMaxSupportedValue) {
+                    RawPropValues rawPropValues = {};
+                    switch (propertyType) {
+                        case toInt(VehiclePropertyType::INT32):
+                            setMaxSupportedValueLocked(cfg.prop, areaConfig.areaId,
+                                                       areaConfig.maxInt32Value);
+                            break;
+                        case toInt(VehiclePropertyType::INT64):
+                            setMaxSupportedValueLocked(cfg.prop, areaConfig.areaId,
+                                                       areaConfig.maxInt64Value);
+                            break;
+                        case toInt(VehiclePropertyType::FLOAT):
+                            setMaxSupportedValueLocked(cfg.prop, areaConfig.areaId,
+                                                       areaConfig.maxFloatValue);
+                            break;
+                        default:
+                            ALOGE("hasMaxSupportedValue must only be true for INT32, INT64 or "
+                                  "FLOAT "
+                                  "type property");
+                            continue;
+                    }
+                }
+            }
         }
-        storePropInitialValue(configDeclaration);
     }
 
     // OBD2_LIVE_FRAME and OBD2_FREEZE_FRAME must be configured in default configs.
@@ -1800,38 +1902,122 @@ std::string FakeVehicleHardware::dumpSubscriptions() {
 }
 
 std::string FakeVehicleHardware::dumpSetMinMaxValue(const std::vector<std::string>& options) {
-    if (auto result = checkArgumentsSize(options, /*minSize=*/3); !result.ok()) {
-        return getErrorMsg(result);
+    // Requires at least --set-minmaxvalue <PropId> <MinValue> <MaxValue>
+    if (auto result = checkArgumentsSize(options, /*minSize=*/4); !result.ok()) {
+        return StringPrintf("Not enough arguments\n");
     }
-    int testPropId = toInt(TestVendorProperty::VENDOR_EXTENSION_INT_PROPERTY);
-    auto configResult = mServerSidePropStore->getPropConfig(testPropId);
+    size_t index = 1;
+    const std::string& propIdStr = options[index];
+    auto maybePropId = parsePropId(options, index);
+    index++;
+    if (!maybePropId.ok()) {
+        return StringPrintf("Failed to set min/max supported value: propId not valid: %s\n",
+                            propIdStr.c_str());
+    }
+    int32_t propId = maybePropId.value();
+    auto configResult = mServerSidePropStore->getPropConfig(propId);
     if (!configResult.ok()) {
-        return "Failed to set min/max supported value: VENDOR_EXTENSION_INT_PROPERTY not supported";
+        return "Failed to set min/max supported value: property not supported\n";
     }
-    int32_t values[2];
-    for (size_t i = 1; i < 3; i++) {
-        auto int32Result = safelyParseInt<int32_t>(i, options[i]);
-        if (!int32Result.ok()) {
-            return StringPrintf(
-                    "Failed to set min/max supported value: Value: \"%s\" is not a valid int: %s\n",
-                    options[i].c_str(), getErrorMsg(int32Result).c_str());
+    std::string areaIdStr = "0";
+    int32_t areaId = 0;
+    if (EqualsIgnoreCase(options[index], "-a")) {
+        index++;
+        if (index >= options.size()) {
+            return StringPrintf("Not enough arguments\n");
         }
-        values[i - 1] = int32Result.value();
+        areaIdStr = options[index];
+        auto maybeAreaId = parseAreaId(options, index, propId);
+        if (!maybeAreaId.ok()) {
+            return StringPrintf("Failed to set min/max supported value: areaId not valid: %s\n",
+                                areaIdStr.c_str());
+        }
+        areaId = maybeAreaId.value();
+        index++;
     }
-    int32_t minValue = values[0];
-    int32_t maxValue = values[1];
+
+    if (index + 1 >= options.size()) {
+        return StringPrintf("Not enough arguments\n");
+    }
+    Result<void> parseAndSetValueResult = {};
+    switch (propId & toInt(VehiclePropertyType::MASK)) {
+        case toInt(VehiclePropertyType::INT32):
+            parseAndSetValueResult =
+                    parseAndSetMinMaxValue<int32_t>(propId, areaId, options, index);
+            break;
+        case toInt(VehiclePropertyType::INT64):
+            parseAndSetValueResult =
+                    parseAndSetMinMaxValue<int64_t>(propId, areaId, options, index);
+            break;
+        case toInt(VehiclePropertyType::FLOAT):
+            parseAndSetValueResult = parseAndSetMinMaxValue<float>(propId, areaId, options, index);
+            break;
+        default:
+            return StringPrintf(
+                    "Failed to set min/max supported value: only int32/int64/float type"
+                    " property is supported\n");
+    }
+    if (!parseAndSetValueResult.ok()) {
+        return parseAndSetValueResult.error().message();
+    }
+
+    triggerSupportedValueChange(propId, areaId);
+    return StringPrintf("Min/Max supported value for propId: %s, areaId: %s set", propIdStr.c_str(),
+                        areaIdStr.c_str());
+}
+
+template <class T>
+Result<void> FakeVehicleHardware::parseAndSetMinMaxValue(int32_t propId, int32_t areaId,
+                                                         const std::vector<std::string>& options,
+                                                         size_t index) {
+    auto valuesResult = parseValues<T>(options, index);
+    if (!valuesResult.ok()) {
+        return Error() << "Failed to set min/max supported value: "
+                       << valuesResult.error().message();
+    }
+    T minValue = (*valuesResult)[0];
+    T maxValue = (*valuesResult)[1];
     if (minValue > maxValue) {
-        return StringPrintf("Failed to set min/max supported value: MinValue: %" PRId32
-                            " must not > MaxValue: %" PRId32,
-                            minValue, maxValue);
+        return Error() << "Failed to set min/max supported value: MinValue: " << minValue
+                       << " must not > MaxValue: " << maxValue;
     }
     {
         std::scoped_lock<std::mutex> lockGuard(mLock);
-        mMinSupportedValueForTestIntProp = minValue;
-        mMaxSupportedValueForTestIntProp = maxValue;
+        setMinSupportedValueLocked(propId, areaId, minValue);
+        setMaxSupportedValueLocked(propId, areaId, maxValue);
     }
-    triggerSupportedValueChange(configResult.value());
-    return "Min/Max supported value for VENDOR_EXTENSION_INT_PROPERTY set";
+    return {};
+}
+
+template <class T>
+Result<std::vector<T>> FakeVehicleHardware::parseValues(const std::vector<std::string>& options,
+                                                        size_t index) {
+    std::vector<T> values;
+    for (size_t i = index; i < index + 2; i++) {
+        auto result = safelyParseInt<T>(i, options[i]);
+        if (!result.ok()) {
+            return Error() << StringPrintf("Value: \"%s\" is not a valid int: %s",
+                                           options[i].c_str(), getErrorMsg(result).c_str());
+        }
+        values.push_back(result.value());
+    }
+    return values;
+}
+
+// This is a special version of parseValues for float type.
+template <>
+Result<std::vector<float>> FakeVehicleHardware::parseValues(const std::vector<std::string>& options,
+                                                            size_t index) {
+    std::vector<float> values;
+    for (size_t i = index; i < index + 2; i++) {
+        auto result = safelyParseFloat(i, options[i]);
+        if (!result.ok()) {
+            return Error() << StringPrintf("Value: \"%s\" is not a valid float: %s",
+                                           options[i].c_str(), getErrorMsg(result).c_str());
+        }
+        values.push_back(result.value());
+    }
+    return values;
 }
 
 std::string FakeVehicleHardware::dumpSetSupportedValues(const std::vector<std::string>& options) {
@@ -1860,6 +2046,18 @@ std::string FakeVehicleHardware::dumpSetSupportedValues(const std::vector<std::s
     }
     triggerSupportedValueChange(configResult.value());
     return "Supported values list for VENDOR_EXTENSION_INT_PROPERTY set";
+}
+
+void FakeVehicleHardware::triggerSupportedValueChange(int32_t propId, int32_t areaId) {
+    if (mOnSupportedValueChangeCallback == nullptr) {
+        ALOGE("onSupportedValueChangeCallback is not registered, ignore event");
+        return;
+    }
+
+    (*mOnSupportedValueChangeCallback)({PropIdAreaId{
+            .propId = propId,
+            .areaId = areaId,
+    }});
 }
 
 // Triggers supported value change for all areaIds that specify hasSupportedValueInfo.
@@ -1892,8 +2090,8 @@ std::string FakeVehicleHardware::dumpHelp() {
            "The value arguments constructs a VehiclePropValue used in the getValue request. \n"
            "--set <PROP_ID> [ValueArguments]: sets the value of property PROP_ID, the value "
            "arguments constructs a VehiclePropValue used in the setValue request. \n"
-           "--set-minmaxvalue <MIN_VALUE(int)> <MAX_VALUE(int)>: sets the min max supported value "
-           "for VENDOR_EXTENSION_INT_PROPERTY\n"
+           "--set-minmaxvalue <PROP_ID> [-a AREA_ID] <MIN_VALUE> <MAX_VALUE>: sets the min max "
+           "supported value e.g. --set-minmaxvalue HVAC_TEMPERATURE_SET -a ROW_1_LEFT -5.1 5.1\n"
            "--set-supportedvalues <VALUE_1(int)> [VALUE_2(int) ...]: sets the supported values list"
            "for VENDOR_EXTENSION_INT_PROPERTY\n"
            "--save-prop <PROP_ID> [-a AREA_ID]: saves the current value for PROP_ID, integration "
@@ -2405,27 +2603,24 @@ std::vector<MinMaxSupportedValueResult> FakeVehicleHardware::getMinMaxSupportedV
         const std::vector<PropIdAreaId>& propIdAreaIds) {
     std::scoped_lock<std::mutex> lockGuard(mLock);
     std::vector<MinMaxSupportedValueResult> results;
-    // We only support VENDOR_EXTENSION_INT_PROPERTY
     for (const auto& propIdAreaId : propIdAreaIds) {
-        int propId = propIdAreaId.propId;
-        int areaId = propIdAreaId.areaId;
-        if (propId != toInt(TestVendorProperty::VENDOR_EXTENSION_INT_PROPERTY)) {
+        const auto minIt = mMinSupportedValueByPropIdAreaId.find(propIdAreaId);
+        const auto maxIt = mMaxSupportedValueByPropIdAreaId.find(propIdAreaId);
+        if (minIt == mMinSupportedValueByPropIdAreaId.end() &&
+            maxIt == mMaxSupportedValueByPropIdAreaId.end()) {
             results.push_back(MinMaxSupportedValueResult{
                     .status = StatusCode::INVALID_ARG,
             });
             continue;
         }
-        results.push_back(MinMaxSupportedValueResult{
-                .status = StatusCode::OK,
-                .minSupportedValue =
-                        RawPropValues{
-                                .int32Values = {mMinSupportedValueForTestIntProp},
-                        },
-                .maxSupportedValue =
-                        RawPropValues{
-                                .int32Values = {mMaxSupportedValueForTestIntProp},
-                        },
-        });
+        auto result = MinMaxSupportedValueResult{.status = StatusCode::OK};
+        if (minIt != mMinSupportedValueByPropIdAreaId.end()) {
+            result.minSupportedValue = minIt->second;
+        }
+        if (maxIt != mMaxSupportedValueByPropIdAreaId.end()) {
+            result.maxSupportedValue = maxIt->second;
+        }
+        results.push_back(std::move(result));
     }
     return results;
 }

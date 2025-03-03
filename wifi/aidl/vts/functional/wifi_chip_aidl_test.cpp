@@ -1016,6 +1016,10 @@ TEST_P(WifiChipAidlTest, CreateApOrBridgedApIfaceWithParams_mlo_bridged_ap) {
  */
 TEST_P(WifiChipAidlTest, GetWifiChipCapabilities) {
     WifiChipCapabilities chipCapabilities;
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
     auto status = wifi_chip_->getWifiChipCapabilities(&chipCapabilities);
     if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
         GTEST_SKIP() << "getWifiChipCapabilities() is not supported by vendor.";
@@ -1027,6 +1031,10 @@ TEST_P(WifiChipAidlTest, GetWifiChipCapabilities) {
  * SetMloMode
  */
 TEST_P(WifiChipAidlTest, SetMloMode) {
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
     auto status = wifi_chip_->setMloMode(IWifiChip::ChipMloMode::LOW_LATENCY);
     if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
         GTEST_SKIP() << "setMloMode() is not supported by vendor.";

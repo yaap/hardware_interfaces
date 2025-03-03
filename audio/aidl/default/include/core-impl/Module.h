@@ -148,10 +148,8 @@ class Module : public BnModule {
     struct VendorDebug {
         static const std::string kForceTransientBurstName;
         static const std::string kForceSynchronousDrainName;
-        static const std::string kForceDrainToDrainingName;
         bool forceTransientBurst = false;
         bool forceSynchronousDrain = false;
-        bool forceDrainToDraining = false;
     };
     // ids of device ports created at runtime via 'connectExternalDevice'.
     // Also stores a list of ids of mix ports with dynamic profiles that were populated from

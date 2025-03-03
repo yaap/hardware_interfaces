@@ -48,10 +48,16 @@
       "name": "GRPCVehicleHardwareUnitTest"
     },
     {
+      "name": "GRPCVehicleProxyServerUnitTest"
+    },
+    {
       "name": "CarServiceHalUnitTest"
     },
     {
       "name": "VehicleHalProtoMessageConverterTest"
+    },
+    {
+      "name": "CtsCarTestCases"
     }
   ],
   "postsubmit": [

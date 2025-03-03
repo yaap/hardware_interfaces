@@ -77,7 +77,11 @@
                     },
                     "areaId": "Constants::HVAC_LEFT",
                     "minFloatValue": -10.0,
-                    "maxFloatValue": 10.0
+                    "maxFloatValue": 10.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 },
                 {
                     "defaultValue": {
@@ -87,7 +91,11 @@
                     },
                     "areaId": "Constants::HVAC_RIGHT",
                     "minFloatValue": -10.0,
-                    "maxFloatValue": 10.0
+                    "maxFloatValue": 10.0,
+                    "hasSupportedValueInfo": {
+                        "hasMinSupportedValue": true,
+                        "hasMaxSupportedValue": true
+                    }
                 }
             ],
             "access": "VehiclePropertyAccess::READ_WRITE",
@@ -103,6 +111,8 @@
                         ]
                     },
                     "areaId": "VehicleAreaWindow::FRONT_WINDSHIELD",
+                    "minInt32Value": -100,
+                    "maxInt32Value": 100,
                     "hasSupportedValueInfo": {
                         "hasMinSupportedValue": true,
                         "hasMaxSupportedValue": true,

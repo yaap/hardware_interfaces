@@ -31,12 +31,32 @@
 
 namespace android::hardware::automotive::vehicle::virtualization {
 
-std::atomic<uint64_t> GrpcVehicleProxyServer::ConnectionDescriptor::connection_id_counter_{0};
-
-static std::shared_ptr<::grpc::ServerCredentials> getServerCredentials() {
-    // TODO(chenhaosjtuacm): get secured credentials here
+namespace {
+std::shared_ptr<::grpc::ServerCredentials> getServerCredentials() {
     return ::grpc::InsecureServerCredentials();
 }
+
+template <class ProtoRequestType>
+std::vector<PropIdAreaId> getPropIdAreaIdsFromProtoRequest(const ProtoRequestType* request) {
+    std::vector<PropIdAreaId> propIdAreaIds;
+    for (const proto::PropIdAreaId& protoPropIdAreaId : request->prop_id_area_id()) {
+        PropIdAreaId aidlPropIdAreaId = {};
+        proto_msg_converter::protoToAidl(protoPropIdAreaId, &aidlPropIdAreaId);
+        propIdAreaIds.push_back(aidlPropIdAreaId);
+    }
+    return propIdAreaIds;
+}
+
+template <class AidlResultType, class ProtoResultType>
+void aidlResultsToProtoResults(const AidlResultType& aidlResults, ProtoResultType* result) {
+    for (const auto& aidlResult : aidlResults) {
+        auto* protoResult = result->add_result();
+        proto_msg_converter::aidlToProto(aidlResult, protoResult);
+    }
+}
+}  // namespace
+
+std::atomic<uint64_t> GrpcVehicleProxyServer::ConnectionDescriptor::connection_id_counter_{0};
 
 GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::string serverAddr,
                                                std::unique_ptr<IVehicleHardware>&& hardware)
@@ -241,6 +261,26 @@ GrpcVehicleProxyServer::GrpcVehicleProxyServer(std::vector<std::string> serverAd
     conn->Wait();
     LOG(ERROR) << __func__ << ": Stream lost, ID : " << conn->ID();
     return ::grpc::Status(::grpc::StatusCode::ABORTED, "Connection lost.");
+}
+
+::grpc::Status GrpcVehicleProxyServer::GetMinMaxSupportedValues(
+        ::grpc::ServerContext* context, const proto::GetMinMaxSupportedValuesRequest* request,
+        proto::GetMinMaxSupportedValuesResult* result) {
+    std::vector<PropIdAreaId> propIdAreaIds = getPropIdAreaIdsFromProtoRequest(request);
+    std::vector<aidlvhal::MinMaxSupportedValueResult> minMaxSupportedValueResults =
+            mHardware->getMinMaxSupportedValues(propIdAreaIds);
+    aidlResultsToProtoResults(minMaxSupportedValueResults, result);
+    return ::grpc::Status::OK;
+}
+
+::grpc::Status GrpcVehicleProxyServer::GetSupportedValuesLists(
+        ::grpc::ServerContext* context, const proto::GetSupportedValuesListsRequest* request,
+        proto::GetSupportedValuesListsResult* result) {
+    std::vector<PropIdAreaId> propIdAreaIds = getPropIdAreaIdsFromProtoRequest(request);
+    std::vector<aidlvhal::SupportedValuesListResult> supportedValuesListResults =
+            mHardware->getSupportedValuesLists(propIdAreaIds);
+    aidlResultsToProtoResults(supportedValuesListResults, result);
+    return ::grpc::Status::OK;
 }
 
 void GrpcVehicleProxyServer::OnVehiclePropChange(
