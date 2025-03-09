@@ -58,12 +58,6 @@ class GraphicsCompositionTestBase : public ::testing::Test {
         for (const auto& display : mAllDisplays) {
             // explicitly disable vsync
             EXPECT_TRUE(mComposerClient->setVsync(display.getDisplayId(), /*enable*/ false).isOk());
-
-            DisplayProperties& displayProperties = mDisplayProperties.at(display.getDisplayId());
-            if (ReadbackHelper::readbackSupported(displayProperties.pixelFormat,
-                                                  displayProperties.dataspace)) {
-                mDisplaysWithReadbackBuffers.push_back(&display);
-            }
         }
 
         mComposerClient->setVsyncAllowed(/*isAllowed*/ false);
@@ -150,10 +144,33 @@ class GraphicsCompositionTestBase : public ::testing::Test {
             DisplayProperties displayProperties(displayId, testColorModes,
                                                 std::move(testRenderEngine),
                                                 std::move(clientCompositionDisplaySettings),
-                                                std::move(readBackBufferAttributes));
+                                                std::move(readBackBufferAttributes.format));
 
             mDisplayProperties.emplace(displayId, std::move(displayProperties));
         }
+    }
+
+    // Get the dataspace and check if readback is supported given the default pixel format and the
+    // current dataspace. Dataspace can get updated after calls to
+    // ComposerClientWrapper::setColorMode so it's essential to get the latest dataspace.
+    std::pair<common::Dataspace, bool> GetDataspaceAndIfReadBackSupported(int64_t displayId) {
+        auto [status, readBackBufferAttributes] =
+                mComposerClient->getReadbackBufferAttributes(displayId);
+        if (status.isOk()) {
+            auto dataspace = readBackBufferAttributes.dataspace;
+
+            // We are making an assumption that Pixel Format never changes, so assert for this
+            // assumption. If this is not the case on any display, then we should stop caching it.
+            // The cached format is used in initializing TestRenderEngine.
+            assertPixelFormatConsistency(displayId, readBackBufferAttributes.format);
+
+            return std::make_pair(std::move(dataspace),
+                                  ReadbackHelper::readbackSupported(
+                                          mDisplayProperties.at(displayId).pixelFormat, dataspace));
+        }
+        EXPECT_NO_FATAL_FAILURE(
+                assertServiceSpecificError(status, IComposerClient::EX_UNSUPPORTED));
+        return {common::Dataspace::UNKNOWN, false};
     }
 
     int64_t getInvalidDisplayId() const { return mComposerClient->getInvalidDisplayId(); }
@@ -161,6 +178,10 @@ class GraphicsCompositionTestBase : public ::testing::Test {
     void assertServiceSpecificError(const ScopedAStatus& status, int32_t serviceSpecificError) {
         ASSERT_EQ(status.getExceptionCode(), EX_SERVICE_SPECIFIC);
         ASSERT_EQ(status.getServiceSpecificError(), serviceSpecificError);
+    }
+
+    void assertPixelFormatConsistency(int64_t displayId, common::PixelFormat currentPixelFormat) {
+        ASSERT_EQ(mDisplayProperties.at(displayId).pixelFormat, currentPixelFormat);
     }
 
     std::pair<bool, ::android::sp<::android::GraphicBuffer>> allocateBuffer(
@@ -201,10 +222,9 @@ class GraphicsCompositionTestBase : public ::testing::Test {
         DisplayProperties(int64_t displayId, std::vector<ColorMode> testColorModes,
                           std::unique_ptr<TestRenderEngine> testRenderEngine,
                           ::android::renderengine::DisplaySettings clientCompositionDisplaySettings,
-                          ReadbackBufferAttributes readBackBufferAttributes)
+                          common::PixelFormat pixelFormat)
             : testColorModes(testColorModes),
-              pixelFormat(readBackBufferAttributes.format),
-              dataspace(readBackBufferAttributes.dataspace),
+              pixelFormat(pixelFormat),
               testRenderEngine(std::move(testRenderEngine)),
               clientCompositionDisplaySettings(std::move(clientCompositionDisplaySettings)),
               writer(displayId),
@@ -212,7 +232,6 @@ class GraphicsCompositionTestBase : public ::testing::Test {
 
         std::vector<ColorMode> testColorModes = {};
         common::PixelFormat pixelFormat = common::PixelFormat::UNSPECIFIED;
-        common::Dataspace dataspace = common::Dataspace::UNKNOWN;
         std::unique_ptr<TestRenderEngine> testRenderEngine = nullptr;
         ::android::renderengine::DisplaySettings clientCompositionDisplaySettings = {};
         ComposerClientWriter writer;
@@ -221,7 +240,6 @@ class GraphicsCompositionTestBase : public ::testing::Test {
 
     std::shared_ptr<ComposerClientWrapper> mComposerClient;
     std::vector<DisplayWrapper> mAllDisplays;
-    std::vector<const DisplayWrapper*> mDisplaysWithReadbackBuffers;
     std::unordered_map<int64_t, DisplayProperties> mDisplayProperties;
 
     static constexpr uint32_t kClientTargetSlotCount = 64;
@@ -234,19 +252,25 @@ class GraphicsCompositionTest : public GraphicsCompositionTestBase,
 };
 
 TEST_P(GraphicsCompositionTest, SingleSolidColorLayer) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        auto& testColorModes = mDisplayProperties.at(display->getDisplayId()).testColorModes;
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto& testColorModes = mDisplayProperties.at(display.getDisplayId()).testColorModes;
         for (ColorMode mode : testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             auto layer = std::make_shared<TestColorLayer>(
-                    mComposerClient, display->getDisplayId(),
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    mComposerClient, display.getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             common::Rect coloredSquare(
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setColor(BLUE);
             layer->setDisplayFrame(coloredSquare);
             layer->setZOrder(10);
@@ -255,40 +279,38 @@ TEST_P(GraphicsCompositionTest, SingleSolidColorLayer) {
 
             // expected color for each pixel
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
-                                           coloredSquare, BLUE);
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), coloredSquare,
+                                           BLUE);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
             // if hwc cannot handle and asks for composition change, just skip the test on this
             // display->
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -297,71 +319,74 @@ TEST_P(GraphicsCompositionTest, SingleSolidColorLayer) {
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerBuffer) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        auto& testColorModes = mDisplayProperties.at(display->getDisplayId()).testColorModes;
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto& testColorModes = mDisplayProperties.at(display.getDisplayId()).testColorModes;
         for (ColorMode mode : testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight() / 4}, RED);
+                    expectedColors, display.getDisplayWidth(),
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight() / 4}, RED);
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, display->getDisplayHeight() / 4, display->getDisplayWidth(),
-                     display->getDisplayHeight() / 2},
+                    expectedColors, display.getDisplayWidth(),
+                    {0, display.getDisplayHeight() / 4, display.getDisplayWidth(),
+                     display.getDisplayHeight() / 2},
                     GREEN);
-            ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, display->getDisplayHeight() / 2, display->getDisplayWidth(),
-                     display->getDisplayHeight()},
-                    BLUE);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
+                                           {0, display.getDisplayHeight() / 2,
+                                            display.getDisplayWidth(), display.getDisplayHeight()},
+                                           BLUE);
 
             auto layer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight(), common::PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
-            layer->setDisplayFrame({0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(), display.getDisplayHeight(),
+                    common::PixelFormat::RGBA_8888,
+                    mDisplayProperties.at(display.getDisplayId()).writer);
+            layer->setDisplayFrame({0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setZOrder(10);
             layer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
             ASSERT_NO_FATAL_FAILURE(layer->setBuffer(expectedColors));
 
             std::vector<std::shared_ptr<TestLayer>> layers = {layer};
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
 
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -370,64 +395,69 @@ TEST_P(GraphicsCompositionTest, SetLayerBuffer) {
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerBufferNoEffect) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        auto& testColorModes = mDisplayProperties.at(display->getDisplayId()).testColorModes;
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto& testColorModes = mDisplayProperties.at(display.getDisplayId()).testColorModes;
         for (ColorMode mode : testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            auto& writer = mDisplayProperties.at(display->getDisplayId()).writer;
-            auto layer = std::make_shared<TestColorLayer>(mComposerClient, display->getDisplayId(),
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            auto& writer = mDisplayProperties.at(display.getDisplayId()).writer;
+            auto layer = std::make_shared<TestColorLayer>(mComposerClient, display.getDisplayId(),
                                                           writer);
             common::Rect coloredSquare(
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setColor(BLUE);
             layer->setDisplayFrame(coloredSquare);
             layer->setZOrder(10);
-            layer->write(mDisplayProperties.at(display->getDisplayId()).writer);
+            layer->write(mDisplayProperties.at(display.getDisplayId()).writer);
 
             // This following buffer call should have no effect
             const auto usage = static_cast<uint32_t>(common::BufferUsage::CPU_WRITE_OFTEN) |
                                static_cast<uint32_t>(common::BufferUsage::CPU_READ_OFTEN);
-            const auto& [graphicBufferStatus, graphicBuffer] = allocateBuffer(*display, usage);
+            const auto& [graphicBufferStatus, graphicBuffer] = allocateBuffer(display, usage);
             ASSERT_TRUE(graphicBufferStatus);
             const auto& buffer = graphicBuffer->handle;
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.setLayerBuffer(display->getDisplayId(), layer->getLayer(), /*slot*/ 0,
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.setLayerBuffer(display.getDisplayId(), layer->getLayer(), /*slot*/ 0,
                                            buffer,
                                            /*acquireFence*/ -1);
 
             // expected color for each pixel
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
-                                           coloredSquare, BLUE);
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), coloredSquare,
+                                           BLUE);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
 
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
         }
@@ -435,20 +465,31 @@ TEST_P(GraphicsCompositionTest, SetLayerBufferNoEffect) {
 }
 
 TEST_P(GraphicsCompositionTest, SetReadbackBuffer) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        ReadbackBuffer readbackBuffer(display->getDisplayId(), mComposerClient,
-                                      display->getDisplayWidth(), display->getDisplayHeight(),
-                                      mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                                      mDisplayProperties.at(display->getDisplayId()).dataspace);
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto [dataspace, readbackSupported] =
+                GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+        if (!readbackSupported) {
+            continue;
+        }
+
+        ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                      display.getDisplayWidth(), display.getDisplayHeight(),
+                                      mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                      dataspace);
         ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
     }
 }
 
 TEST_P(GraphicsCompositionTest, SetReadbackBuffer_BadDisplay) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto [_, readbackSupported] = GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+        if (!readbackSupported) {
+            continue;
+        }
+
         const auto usage = static_cast<uint32_t>(common::BufferUsage::CPU_WRITE_OFTEN) |
                            static_cast<uint32_t>(common::BufferUsage::CPU_READ_OFTEN);
-        const auto& [graphicBufferStatus, graphicBuffer] = allocateBuffer(*display, usage);
+        const auto& [graphicBufferStatus, graphicBuffer] = allocateBuffer(display, usage);
         ASSERT_TRUE(graphicBufferStatus);
         const auto& bufferHandle = graphicBuffer->handle;
         ::ndk::ScopedFileDescriptor fence = ::ndk::ScopedFileDescriptor(-1);
@@ -463,10 +504,15 @@ TEST_P(GraphicsCompositionTest, SetReadbackBuffer_BadDisplay) {
 }
 
 TEST_P(GraphicsCompositionTest, SetReadbackBuffer_BadParameter) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto [_, readbackSupported] = GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+        if (!readbackSupported) {
+            continue;
+        }
+
         const native_handle_t bufferHandle{};
         ndk::ScopedFileDescriptor releaseFence = ndk::ScopedFileDescriptor(-1);
-        const auto status = mComposerClient->setReadbackBuffer(display->getDisplayId(),
+        const auto status = mComposerClient->setReadbackBuffer(display.getDisplayId(),
                                                                &bufferHandle, releaseFence);
 
         EXPECT_FALSE(status.isOk());
@@ -476,9 +522,13 @@ TEST_P(GraphicsCompositionTest, SetReadbackBuffer_BadParameter) {
 }
 
 TEST_P(GraphicsCompositionTest, GetReadbackBufferFenceInactive) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
+        auto [_, readbackSupported] = GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+        if (!readbackSupported) {
+            continue;
+        }
         const auto& [status, releaseFence] =
-                mComposerClient->getReadbackBufferFence(display->getDisplayId());
+                mComposerClient->getReadbackBufferFence(display.getDisplayId());
 
         EXPECT_FALSE(status.isOk());
         EXPECT_NO_FATAL_FAILURE(
@@ -488,64 +538,67 @@ TEST_P(GraphicsCompositionTest, GetReadbackBufferFenceInactive) {
 }
 
 TEST_P(GraphicsCompositionTest, ClientComposition) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
         EXPECT_TRUE(
                 mComposerClient
-                        ->setClientTargetSlotCount(display->getDisplayId(), kClientTargetSlotCount)
+                        ->setClientTargetSlotCount(display.getDisplayId(), kClientTargetSlotCount)
                         .isOk());
 
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight() / 4}, RED);
+                    expectedColors, display.getDisplayWidth(),
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight() / 4}, RED);
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, display->getDisplayHeight() / 4, display->getDisplayWidth(),
-                     display->getDisplayHeight() / 2},
+                    expectedColors, display.getDisplayWidth(),
+                    {0, display.getDisplayHeight() / 4, display.getDisplayWidth(),
+                     display.getDisplayHeight() / 2},
                     GREEN);
-            ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, display->getDisplayHeight() / 2, display->getDisplayWidth(),
-                     display->getDisplayHeight()},
-                    BLUE);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
+                                           {0, display.getDisplayHeight() / 2,
+                                            display.getDisplayWidth(), display.getDisplayHeight()},
+                                           BLUE);
 
             auto layer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight(), PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
-            layer->setDisplayFrame({0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(), display.getDisplayHeight(),
+                    PixelFormat::RGBA_8888, mDisplayProperties.at(display.getDisplayId()).writer);
+            layer->setDisplayFrame({0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setZOrder(10);
             layer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
 
             std::vector<std::shared_ptr<TestLayer>> layers = {layer};
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
 
             auto changedCompositionTypes =
-                    mDisplayProperties.at(display->getDisplayId())
-                            .reader.takeChangedCompositionTypes(display->getDisplayId());
+                    mDisplayProperties.at(display.getDisplayId())
+                            .reader.takeChangedCompositionTypes(display.getDisplayId());
             if (!changedCompositionTypes.empty()) {
                 ASSERT_EQ(1, changedCompositionTypes.size());
                 ASSERT_EQ(Composition::CLIENT, changedCompositionTypes[0].composition);
@@ -556,11 +609,11 @@ TEST_P(GraphicsCompositionTest, ClientComposition) {
                         static_cast<uint32_t>(common::BufferUsage::CPU_WRITE_OFTEN) |
                         static_cast<uint32_t>(common::BufferUsage::COMPOSER_CLIENT_TARGET));
                 Dataspace clientDataspace = ReadbackHelper::getDataspaceForColorMode(mode);
-                common::Rect damage{0, 0, display->getDisplayWidth(), display->getDisplayHeight()};
+                common::Rect damage{0, 0, display.getDisplayWidth(), display.getDisplayHeight()};
 
                 // create client target buffer
                 const auto& [graphicBufferStatus, graphicBuffer] =
-                        allocateBuffer(*display, clientUsage);
+                        allocateBuffer(display, clientUsage);
                 ASSERT_TRUE(graphicBufferStatus);
                 const auto& buffer = graphicBuffer->handle;
                 void* clientBufData;
@@ -576,29 +629,28 @@ TEST_P(GraphicsCompositionTest, ClientComposition) {
                 int32_t clientFence;
                 const auto unlockStatus = graphicBuffer->unlockAsync(&clientFence);
                 ASSERT_EQ(::android::OK, unlockStatus);
-                mDisplayProperties.at(display->getDisplayId())
-                        .writer.setClientTarget(display->getDisplayId(), /*slot*/ 0, buffer,
+                mDisplayProperties.at(display.getDisplayId())
+                        .writer.setClientTarget(display.getDisplayId(), /*slot*/ 0, buffer,
                                                 clientFence, clientDataspace,
                                                 std::vector<common::Rect>(1, damage), 1.f);
-                layer->setToClientComposition(
-                        mDisplayProperties.at(display->getDisplayId()).writer);
-                mDisplayProperties.at(display->getDisplayId())
-                        .writer.validateDisplay(display->getDisplayId(),
+                layer->setToClientComposition(mDisplayProperties.at(display.getDisplayId()).writer);
+                mDisplayProperties.at(display.getDisplayId())
+                        .writer.validateDisplay(display.getDisplayId(),
                                                 ComposerClientWriter::kNoTimestamp,
                                                 ComposerClientWrapper::kNoFrameIntervalNs);
-                execute(display->getDisplayId());
+                execute(display.getDisplayId());
                 changedCompositionTypes =
-                        mDisplayProperties.at(display->getDisplayId())
-                                .reader.takeChangedCompositionTypes(display->getDisplayId());
+                        mDisplayProperties.at(display.getDisplayId())
+                                .reader.takeChangedCompositionTypes(display.getDisplayId());
                 ASSERT_TRUE(changedCompositionTypes.empty());
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
 
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
         }
@@ -634,12 +686,12 @@ TEST_P(GraphicsCompositionTest, Luts) {
         GTEST_SKIP();
     }
 
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
         ASSERT_TRUE(
                 mComposerClient
-                        ->setClientTargetSlotCount(display->getDisplayId(), kClientTargetSlotCount)
+                        ->setClientTargetSlotCount(display.getDisplayId(), kClientTargetSlotCount)
                         .isOk());
-        auto& testColorModes = mDisplayProperties.at(display->getDisplayId()).testColorModes;
+        auto& testColorModes = mDisplayProperties.at(display.getDisplayId()).testColorModes;
 
         for (const auto& lutProperties : *properties.lutProperties) {
             if (!lutProperties) {
@@ -650,25 +702,31 @@ TEST_P(GraphicsCompositionTest, Luts) {
             for (const auto& key : l.samplingKeys) {
                 for (ColorMode mode : testColorModes) {
                     EXPECT_TRUE(mComposerClient
-                                        ->setColorMode(display->getDisplayId(), mode,
+                                        ->setColorMode(display.getDisplayId(), mode,
                                                        RenderIntent::COLORIMETRIC)
                                         .isOk());
 
+                    auto [dataspace, readbackSupported] =
+                            GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+                    if (!readbackSupported) {
+                        continue;
+                    }
+
                     common::Rect coloredSquare(
-                            {0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                            {0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
 
                     // expected color for each pixel
                     std::vector<Color> expectedColors(static_cast<size_t>(
-                            display->getDisplayWidth() * display->getDisplayHeight()));
-                    ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+                            display.getDisplayWidth() * display.getDisplayHeight()));
+                    ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                                    coloredSquare, WHITE);
 
                     auto layer = std::make_shared<TestBufferLayer>(
                             mComposerClient,
-                            *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                            display->getDisplayId(), display->getDisplayWidth(),
-                            display->getDisplayHeight(), PixelFormat::RGBA_8888,
-                            mDisplayProperties.at(display->getDisplayId()).writer);
+                            *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                            display.getDisplayId(), display.getDisplayWidth(),
+                            display.getDisplayHeight(), PixelFormat::RGBA_8888,
+                            mDisplayProperties.at(display.getDisplayId()).writer);
                     layer->setDisplayFrame(coloredSquare);
                     layer->setZOrder(10);
                     layer->setDataspace(Dataspace::SRGB);
@@ -682,46 +740,45 @@ TEST_P(GraphicsCompositionTest, Luts) {
                     std::vector<std::shared_ptr<TestLayer>> layers = {layer};
 
                     ReadbackBuffer readbackBuffer(
-                            display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                            display->getDisplayHeight(),
-                            mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                            mDisplayProperties.at(display->getDisplayId()).dataspace);
+                            display.getDisplayId(), mComposerClient, display.getDisplayWidth(),
+                            display.getDisplayHeight(),
+                            mDisplayProperties.at(display.getDisplayId()).pixelFormat, dataspace);
                     ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-                    writeLayers(layers, display->getDisplayId());
-                    ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId())
+                    writeLayers(layers, display.getDisplayId());
+                    ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId())
                                         .reader.takeErrors()
                                         .empty());
-                    mDisplayProperties.at(display->getDisplayId())
-                            .writer.validateDisplay(display->getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId())
+                            .writer.validateDisplay(display.getDisplayId(),
                                                     ComposerClientWriter::kNoTimestamp,
                                                     ComposerClientWrapper::kNoFrameIntervalNs);
-                    execute(display->getDisplayId());
-                    if (!mDisplayProperties.at(display->getDisplayId())
-                                 .reader.takeChangedCompositionTypes(display->getDisplayId())
+                    execute(display.getDisplayId());
+                    if (!mDisplayProperties.at(display.getDisplayId())
+                                 .reader.takeChangedCompositionTypes(display.getDisplayId())
                                  .empty()) {
                         continue;
                     }
 
                     auto changedCompositionTypes =
-                            mDisplayProperties.at(display->getDisplayId())
-                                    .reader.takeChangedCompositionTypes(display->getDisplayId());
+                            mDisplayProperties.at(display.getDisplayId())
+                                    .reader.takeChangedCompositionTypes(display.getDisplayId());
                     ASSERT_TRUE(changedCompositionTypes.empty());
 
-                    mDisplayProperties.at(display->getDisplayId())
-                            .writer.presentDisplay(display->getDisplayId());
-                    execute(display->getDisplayId());
-                    ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId())
+                    mDisplayProperties.at(display.getDisplayId())
+                            .writer.presentDisplay(display.getDisplayId());
+                    execute(display.getDisplayId());
+                    ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId())
                                         .reader.takeErrors()
                                         .empty());
 
                     ReadbackHelper::fillColorsArea(
-                            expectedColors, display->getDisplayWidth(), coloredSquare,
+                            expectedColors, display.getDisplayWidth(), coloredSquare,
                             {188.f / 255.f, 188.f / 255.f, 188.f / 255.f, 1.0f});
 
                     ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
                     auto& testRenderEngine =
-                            mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+                            mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
                     testRenderEngine->setRenderLayers(layers);
                     ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
                     ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -744,27 +801,33 @@ TEST_P(GraphicsCompositionTest, MixedColorSpaces) {
         GTEST_SKIP();
     }
 
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
         ASSERT_TRUE(
                 mComposerClient
-                        ->setClientTargetSlotCount(display->getDisplayId(), kClientTargetSlotCount)
+                        ->setClientTargetSlotCount(display.getDisplayId(), kClientTargetSlotCount)
                         .isOk());
 
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             // sRGB layer
             auto srgbLayer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight() / 2, PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(),
+                    display.getDisplayHeight() / 2, PixelFormat::RGBA_8888,
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             std::vector<Color> sRgbDeviceColors(srgbLayer->getWidth() * srgbLayer->getHeight());
-            ReadbackHelper::fillColorsArea(sRgbDeviceColors, display->getDisplayWidth(),
+            ReadbackHelper::fillColorsArea(sRgbDeviceColors, display.getDisplayWidth(),
                                            {0, 0, static_cast<int32_t>(srgbLayer->getWidth()),
                                             static_cast<int32_t>(srgbLayer->getHeight())},
                                            GREEN);
@@ -777,86 +840,90 @@ TEST_P(GraphicsCompositionTest, MixedColorSpaces) {
             // display P3 layer
             auto displayP3Layer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight() / 2, PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(),
+                    display.getDisplayHeight() / 2, PixelFormat::RGBA_8888,
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             std::vector<Color> displayP3DeviceColors(
                     static_cast<size_t>(displayP3Layer->getWidth() * displayP3Layer->getHeight()));
-            ReadbackHelper::fillColorsArea(displayP3DeviceColors, display->getDisplayWidth(),
+            ReadbackHelper::fillColorsArea(displayP3DeviceColors, display.getDisplayWidth(),
                                            {0, 0, static_cast<int32_t>(displayP3Layer->getWidth()),
                                             static_cast<int32_t>(displayP3Layer->getHeight())},
                                            RED);
-            displayP3Layer->setDisplayFrame({0, display->getDisplayHeight() / 2,
-                                             display->getDisplayWidth(),
-                                             display->getDisplayHeight()});
+            displayP3Layer->setDisplayFrame({0, display.getDisplayHeight() / 2,
+                                             display.getDisplayWidth(),
+                                             display.getDisplayHeight()});
             displayP3Layer->setZOrder(10);
             displayP3Layer->setDataspace(Dataspace::DISPLAY_P3);
             ASSERT_NO_FATAL_FAILURE(displayP3Layer->setBuffer(displayP3DeviceColors));
 
-            writeLayers({srgbLayer, displayP3Layer}, display->getDisplayId());
+            writeLayers({srgbLayer, displayP3Layer}, display.getDisplayId());
 
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
 
             auto changedCompositionTypes =
-                    mDisplayProperties.at(display->getDisplayId())
-                            .reader.takeChangedCompositionTypes(display->getDisplayId());
+                    mDisplayProperties.at(display.getDisplayId())
+                            .reader.takeChangedCompositionTypes(display.getDisplayId());
             ASSERT_TRUE(changedCompositionTypes.empty());
 
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
             changedCompositionTypes =
-                    mDisplayProperties.at(display->getDisplayId())
-                            .reader.takeChangedCompositionTypes(display->getDisplayId());
+                    mDisplayProperties.at(display.getDisplayId())
+                            .reader.takeChangedCompositionTypes(display.getDisplayId());
             ASSERT_TRUE(changedCompositionTypes.empty());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
         }
     }
 }
 
 TEST_P(GraphicsCompositionTest, DeviceAndClientComposition) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
+    for (const DisplayWrapper display : mAllDisplays) {
         ASSERT_TRUE(
                 mComposerClient
-                        ->setClientTargetSlotCount(display->getDisplayId(), kClientTargetSlotCount)
+                        ->setClientTargetSlotCount(display.getDisplayId(), kClientTargetSlotCount)
                         .isOk());
 
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight() / 2}, GREEN);
-            ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, display->getDisplayHeight() / 2, display->getDisplayWidth(),
-                     display->getDisplayHeight()},
-                    RED);
+                    expectedColors, display.getDisplayWidth(),
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight() / 2}, GREEN);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
+                                           {0, display.getDisplayHeight() / 2,
+                                            display.getDisplayWidth(), display.getDisplayHeight()},
+                                           RED);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
             auto deviceLayer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight() / 2, PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(),
+                    display.getDisplayHeight() / 2, PixelFormat::RGBA_8888,
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             std::vector<Color> deviceColors(deviceLayer->getWidth() * deviceLayer->getHeight());
             ReadbackHelper::fillColorsArea(deviceColors,
                                            static_cast<int32_t>(deviceLayer->getWidth()),
@@ -868,7 +935,7 @@ TEST_P(GraphicsCompositionTest, DeviceAndClientComposition) {
             deviceLayer->setZOrder(10);
             deviceLayer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
             ASSERT_NO_FATAL_FAILURE(deviceLayer->setBuffer(deviceColors));
-            deviceLayer->write(mDisplayProperties.at(display->getDisplayId()).writer);
+            deviceLayer->write(mDisplayProperties.at(display.getDisplayId()).writer);
 
             PixelFormat clientFormat = PixelFormat::RGBA_8888;
             auto clientUsage = static_cast<uint32_t>(
@@ -876,35 +943,34 @@ TEST_P(GraphicsCompositionTest, DeviceAndClientComposition) {
                     static_cast<uint32_t>(common::BufferUsage::CPU_WRITE_OFTEN) |
                     static_cast<uint32_t>(common::BufferUsage::COMPOSER_CLIENT_TARGET));
             Dataspace clientDataspace = ReadbackHelper::getDataspaceForColorMode(mode);
-            int32_t clientWidth = display->getDisplayWidth();
-            int32_t clientHeight = display->getDisplayHeight() / 2;
+            int32_t clientWidth = display.getDisplayWidth();
+            int32_t clientHeight = display.getDisplayHeight() / 2;
 
             auto clientLayer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), clientWidth, clientHeight, PixelFormat::RGBA_FP16,
-                    mDisplayProperties.at(display->getDisplayId()).writer, Composition::DEVICE);
-            common::Rect clientFrame = {0, display->getDisplayHeight() / 2,
-                                        display->getDisplayWidth(), display->getDisplayHeight()};
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), clientWidth, clientHeight, PixelFormat::RGBA_FP16,
+                    mDisplayProperties.at(display.getDisplayId()).writer, Composition::DEVICE);
+            common::Rect clientFrame = {0, display.getDisplayHeight() / 2,
+                                        display.getDisplayWidth(), display.getDisplayHeight()};
             clientLayer->setDisplayFrame(clientFrame);
             clientLayer->setZOrder(0);
-            clientLayer->write(mDisplayProperties.at(display->getDisplayId()).writer);
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            clientLayer->write(mDisplayProperties.at(display.getDisplayId()).writer);
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
 
             auto changedCompositionTypes =
-                    mDisplayProperties.at(display->getDisplayId())
-                            .reader.takeChangedCompositionTypes(display->getDisplayId());
+                    mDisplayProperties.at(display.getDisplayId())
+                            .reader.takeChangedCompositionTypes(display.getDisplayId());
             if (changedCompositionTypes.size() != 1) {
                 continue;
             }
             // create client target buffer
             ASSERT_EQ(Composition::CLIENT, changedCompositionTypes[0].composition);
-            const auto& [graphicBufferStatus, graphicBuffer] =
-                    allocateBuffer(*display, clientUsage);
+            const auto& [graphicBufferStatus, graphicBuffer] = allocateBuffer(display, clientUsage);
             ASSERT_TRUE(graphicBufferStatus);
             const auto& buffer = graphicBuffer->handle;
 
@@ -912,131 +978,133 @@ TEST_P(GraphicsCompositionTest, DeviceAndClientComposition) {
             int bytesPerPixel = -1;
             int bytesPerStride = -1;
             graphicBuffer->lock(clientUsage,
-                                {0, 0, display->getDisplayWidth(), display->getDisplayHeight()},
+                                {0, 0, display.getDisplayWidth(), display.getDisplayHeight()},
                                 &clientBufData, &bytesPerPixel, &bytesPerStride);
 
             std::vector<Color> clientColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            ReadbackHelper::fillColorsArea(clientColors, display->getDisplayWidth(), clientFrame,
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            ReadbackHelper::fillColorsArea(clientColors, display.getDisplayWidth(), clientFrame,
                                            RED);
             ASSERT_NO_FATAL_FAILURE(ReadbackHelper::fillBuffer(
-                    static_cast<uint32_t>(display->getDisplayWidth()),
-                    static_cast<uint32_t>(display->getDisplayHeight()), graphicBuffer->getStride(),
+                    static_cast<uint32_t>(display.getDisplayWidth()),
+                    static_cast<uint32_t>(display.getDisplayHeight()), graphicBuffer->getStride(),
                     bytesPerPixel, clientBufData, clientFormat, clientColors));
             int32_t clientFence;
             const auto unlockStatus = graphicBuffer->unlockAsync(&clientFence);
             ASSERT_EQ(::android::OK, unlockStatus);
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.setClientTarget(display->getDisplayId(), /*slot*/ 0, buffer,
-                                            clientFence, clientDataspace,
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.setClientTarget(display.getDisplayId(), /*slot*/ 0, buffer, clientFence,
+                                            clientDataspace,
                                             std::vector<common::Rect>(1, clientFrame), 1.f);
             clientLayer->setToClientComposition(
-                    mDisplayProperties.at(display->getDisplayId()).writer);
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
+            execute(display.getDisplayId());
             changedCompositionTypes =
-                    mDisplayProperties.at(display->getDisplayId())
-                            .reader.takeChangedCompositionTypes(display->getDisplayId());
+                    mDisplayProperties.at(display.getDisplayId())
+                            .reader.takeChangedCompositionTypes(display.getDisplayId());
             ASSERT_TRUE(changedCompositionTypes.empty());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
         }
     }
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerDamage) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            common::Rect redRect = {0, 0, display->getDisplayWidth() / 4,
-                                    display->getDisplayHeight() / 4};
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            common::Rect redRect = {0, 0, display.getDisplayWidth() / 4,
+                                    display.getDisplayHeight() / 4};
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), redRect,
-                                           RED);
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), redRect, RED);
 
             auto layer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight(), PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
-            layer->setDisplayFrame({0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(), display.getDisplayHeight(),
+                    PixelFormat::RGBA_8888, mDisplayProperties.at(display.getDisplayId()).writer);
+            layer->setDisplayFrame({0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setZOrder(10);
             layer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
             ASSERT_NO_FATAL_FAILURE(layer->setBuffer(expectedColors));
 
             std::vector<std::shared_ptr<TestLayer>> layers = {layer};
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
 
             // update surface damage and recheck
-            redRect = {display->getDisplayWidth() / 4, display->getDisplayHeight() / 4,
-                       display->getDisplayWidth() / 2, display->getDisplayHeight() / 2};
-            ReadbackHelper::clearColors(expectedColors, display->getDisplayWidth(),
-                                        display->getDisplayHeight(), display->getDisplayWidth());
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), redRect,
-                                           RED);
+            redRect = {display.getDisplayWidth() / 4, display.getDisplayHeight() / 4,
+                       display.getDisplayWidth() / 2, display.getDisplayHeight() / 2};
+            ReadbackHelper::clearColors(expectedColors, display.getDisplayWidth(),
+                                        display.getDisplayHeight(), display.getDisplayWidth());
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), redRect, RED);
 
             ASSERT_NO_FATAL_FAILURE(layer->fillBuffer(expectedColors));
             layer->setSurfaceDamage(std::vector<common::Rect>(
-                    1, {0, 0, display->getDisplayWidth() / 2, display->getDisplayWidth() / 2}));
+                    1, {0, 0, display.getDisplayWidth() / 2, display.getDisplayWidth() / 2}));
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId())
-                                .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId())
+                                .reader.takeChangedCompositionTypes(display.getDisplayId())
                                 .empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
         }
@@ -1044,56 +1112,60 @@ TEST_P(GraphicsCompositionTest, SetLayerDamage) {
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerPlaneAlpha) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             auto layer = std::make_shared<TestColorLayer>(
-                    mComposerClient, display->getDisplayId(),
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    mComposerClient, display.getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             layer->setColor(RED);
-            layer->setDisplayFrame({0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+            layer->setDisplayFrame({0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setZOrder(10);
             layer->setAlpha(0);
             layer->setBlendMode(BlendMode::PREMULTIPLIED);
 
             std::vector<std::shared_ptr<TestLayer>> layers = {layer};
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1102,70 +1174,72 @@ TEST_P(GraphicsCompositionTest, SetLayerPlaneAlpha) {
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerSourceCrop) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight() / 4}, RED);
-            ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, display->getDisplayHeight() / 2, display->getDisplayWidth(),
-                     display->getDisplayHeight()},
-                    BLUE);
+                    expectedColors, display.getDisplayWidth(),
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight() / 4}, RED);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
+                                           {0, display.getDisplayHeight() / 2,
+                                            display.getDisplayWidth(), display.getDisplayHeight()},
+                                           BLUE);
 
             auto layer = std::make_shared<TestBufferLayer>(
                     mComposerClient,
-                    *mDisplayProperties.at(display->getDisplayId()).testRenderEngine,
-                    display->getDisplayId(), display->getDisplayWidth(),
-                    display->getDisplayHeight(), PixelFormat::RGBA_8888,
-                    mDisplayProperties.at(display->getDisplayId()).writer);
-            layer->setDisplayFrame({0, 0, display->getDisplayWidth(), display->getDisplayHeight()});
+                    *mDisplayProperties.at(display.getDisplayId()).testRenderEngine,
+                    display.getDisplayId(), display.getDisplayWidth(), display.getDisplayHeight(),
+                    PixelFormat::RGBA_8888, mDisplayProperties.at(display.getDisplayId()).writer);
+            layer->setDisplayFrame({0, 0, display.getDisplayWidth(), display.getDisplayHeight()});
             layer->setZOrder(10);
             layer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
-            layer->setSourceCrop({0, static_cast<float>(display->getDisplayHeight() / 2),
-                                  static_cast<float>(display->getDisplayWidth()),
-                                  static_cast<float>(display->getDisplayHeight())});
+            layer->setSourceCrop({0, static_cast<float>(display.getDisplayHeight() / 2),
+                                  static_cast<float>(display.getDisplayWidth()),
+                                  static_cast<float>(display.getDisplayHeight())});
             ASSERT_NO_FATAL_FAILURE(layer->setBuffer(expectedColors));
 
             std::vector<std::shared_ptr<TestLayer>> layers = {layer};
 
             // update expected colors to match crop
             ReadbackHelper::fillColorsArea(
-                    expectedColors, display->getDisplayWidth(),
-                    {0, 0, display->getDisplayWidth(), display->getDisplayHeight()}, BLUE);
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+                    expectedColors, display.getDisplayWidth(),
+                    {0, 0, display.getDisplayWidth(), display.getDisplayHeight()}, BLUE);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1174,98 +1248,100 @@ TEST_P(GraphicsCompositionTest, SetLayerSourceCrop) {
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerZOrder) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            common::Rect redRect = {0, 0, display->getDisplayWidth(),
-                                    display->getDisplayHeight() / 2};
-            common::Rect blueRect = {0, display->getDisplayHeight() / 4, display->getDisplayWidth(),
-                                     display->getDisplayHeight()};
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            common::Rect redRect = {0, 0, display.getDisplayWidth(),
+                                    display.getDisplayHeight() / 2};
+            common::Rect blueRect = {0, display.getDisplayHeight() / 4, display.getDisplayWidth(),
+                                     display.getDisplayHeight()};
             auto redLayer = std::make_shared<TestColorLayer>(
-                    mComposerClient, display->getDisplayId(),
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    mComposerClient, display.getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             redLayer->setColor(RED);
             redLayer->setDisplayFrame(redRect);
 
             auto blueLayer = std::make_shared<TestColorLayer>(
-                    mComposerClient, display->getDisplayId(),
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    mComposerClient, display.getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             blueLayer->setColor(BLUE);
             blueLayer->setDisplayFrame(blueRect);
             blueLayer->setZOrder(5);
 
             std::vector<std::shared_ptr<TestLayer>> layers = {redLayer, blueLayer};
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
 
             // red in front of blue
             redLayer->setZOrder(10);
 
             // fill blue first so that red will overwrite on overlap
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), blueRect,
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), blueRect,
                                            BLUE);
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), redRect,
-                                           RED);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), redRect, RED);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
 
             redLayer->setZOrder(1);
-            ReadbackHelper::clearColors(expectedColors, display->getDisplayWidth(),
-                                        display->getDisplayHeight(), display->getDisplayWidth());
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), redRect,
-                                           RED);
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), blueRect,
+            ReadbackHelper::clearColors(expectedColors, display.getDisplayWidth(),
+                                        display.getDisplayHeight(), display.getDisplayWidth());
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), redRect, RED);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), blueRect,
                                            BLUE);
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId())
-                                .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId())
+                                .reader.takeChangedCompositionTypes(display.getDisplayId())
                                 .empty());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1274,32 +1350,38 @@ TEST_P(GraphicsCompositionTest, SetLayerZOrder) {
 }
 
 TEST_P(GraphicsCompositionTest, SetLayerBrightnessDims) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            const common::Rect redRect = {0, 0, display->getDisplayWidth(),
-                                          display->getDisplayHeight() / 2};
-            const common::Rect dimmerRedRect = {0, display->getDisplayHeight() / 2,
-                                                display->getDisplayWidth(),
-                                                display->getDisplayHeight()};
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            const common::Rect redRect = {0, 0, display.getDisplayWidth(),
+                                          display.getDisplayHeight() / 2};
+            const common::Rect dimmerRedRect = {0, display.getDisplayHeight() / 2,
+                                                display.getDisplayWidth(),
+                                                display.getDisplayHeight()};
 
             static constexpr float kMaxBrightnessNits = 300.f;
 
             const auto redLayer = std::make_shared<TestColorLayer>(
-                    mComposerClient, display->getDisplayId(),
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    mComposerClient, display.getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             redLayer->setColor(RED);
             redLayer->setDisplayFrame(redRect);
             redLayer->setWhitePointNits(kMaxBrightnessNits);
             redLayer->setBrightness(1.f);
 
             const auto dimmerRedLayer = std::make_shared<TestColorLayer>(
-                    mComposerClient, display->getDisplayId(),
-                    mDisplayProperties.at(display->getDisplayId()).writer);
+                    mComposerClient, display.getDisplayId(),
+                    mDisplayProperties.at(display.getDisplayId()).writer);
             dimmerRedLayer->setColor(RED);
             dimmerRedLayer->setDisplayFrame(dimmerRedRect);
             // Intentionally use a small dimming ratio as some implementations may be more likely
@@ -1310,42 +1392,39 @@ TEST_P(GraphicsCompositionTest, SetLayerBrightnessDims) {
 
             const std::vector<std::shared_ptr<TestLayer>> layers = {redLayer, dimmerRedLayer};
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
 
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(), redRect,
-                                           RED);
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
-                                           dimmerRedRect, DIM_RED);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), redRect, RED);
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(), dimmerRedRect,
+                                           DIM_RED);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 ALOGI(" Readback verification not supported for GPU composition for color mode %d",
                       mode);
                 continue;
             }
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1462,49 +1541,53 @@ class GraphicsBlendModeCompositionTest
 };
 
 TEST_P(GraphicsBlendModeCompositionTest, None) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
 
-            setBackgroundColor(display->getDisplayId(), BLACK);
-            setTopLayerColor(display->getDisplayId(), TRANSLUCENT_RED);
-            setUpLayers(*display, BlendMode::NONE);
-            setExpectedColors(*display, expectedColors);
+            setBackgroundColor(display.getDisplayId(), BLACK);
+            setTopLayerColor(display.getDisplayId(), TRANSLUCENT_RED);
+            setUpLayers(display, BlendMode::NONE);
+            setExpectedColors(display, expectedColors);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
-            auto& layers = mDisplayGfx[display->getDisplayId()].layers;
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            auto& layers = mDisplayGfx[display.getDisplayId()].layers;
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1513,94 +1596,103 @@ TEST_P(GraphicsBlendModeCompositionTest, None) {
 }
 
 TEST_P(GraphicsBlendModeCompositionTest, Coverage) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
 
-            setBackgroundColor(display->getDisplayId(), BLACK);
-            setTopLayerColor(display->getDisplayId(), TRANSLUCENT_RED);
+            setBackgroundColor(display.getDisplayId(), BLACK);
+            setTopLayerColor(display.getDisplayId(), TRANSLUCENT_RED);
 
-            setUpLayers(*display, BlendMode::COVERAGE);
-            setExpectedColors(*display, expectedColors);
+            setUpLayers(display, BlendMode::COVERAGE);
+            setExpectedColors(display, expectedColors);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
-            auto& layers = mDisplayGfx[display->getDisplayId()].layers;
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            auto& layers = mDisplayGfx[display.getDisplayId()].layers;
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
         }
     }
 }
 
 TEST_P(GraphicsBlendModeCompositionTest, Premultiplied) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
 
-            setBackgroundColor(display->getDisplayId(), BLACK);
-            setTopLayerColor(display->getDisplayId(), TRANSLUCENT_RED);
-            setUpLayers(*display, BlendMode::PREMULTIPLIED);
-            setExpectedColors(*display, expectedColors);
+            setBackgroundColor(display.getDisplayId(), BLACK);
+            setTopLayerColor(display.getDisplayId(), TRANSLUCENT_RED);
+            setUpLayers(display, BlendMode::PREMULTIPLIED);
+            setExpectedColors(display, expectedColors);
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
-            auto& layers = mDisplayGfx[display->getDisplayId()].layers;
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            auto& layers = mDisplayGfx[display.getDisplayId()].layers;
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1658,58 +1750,63 @@ class GraphicsTransformCompositionTest : public GraphicsCompositionTest {
 };
 
 TEST_P(GraphicsTransformCompositionTest, FLIP_H) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            auto status = mComposerClient->setColorMode(display->getDisplayId(), mode,
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            auto status = mComposerClient->setColorMode(display.getDisplayId(), mode,
                                                         RenderIntent::COLORIMETRIC);
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
             if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
                 (status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED ||
                  status.getServiceSpecificError() == IComposerClient::EX_BAD_PARAMETER)) {
                 ALOGI("ColorMode not supported on Display %" PRId64 " for ColorMode %d",
-                      display->getDisplayId(), mode);
+                      display.getDisplayId(), mode);
                 continue;
             }
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
-            auto& bufferLayer = mDisplayGfx[display->getDisplayId()].bufferLayer;
+            auto& bufferLayer = mDisplayGfx[display.getDisplayId()].bufferLayer;
             bufferLayer->setTransform(Transform::FLIP_H);
             bufferLayer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            int& sideLength = mDisplayGfx[display->getDisplayId()].sideLength;
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            int& sideLength = mDisplayGfx[display.getDisplayId()].sideLength;
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                            {sideLength / 2, 0, sideLength, sideLength / 2}, RED);
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                            {0, sideLength / 2, sideLength / 2, sideLength}, BLUE);
 
-            auto& layers = mDisplayGfx[display->getDisplayId()].layers;
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            auto& layers = mDisplayGfx[display.getDisplayId()].layers;
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1718,53 +1815,57 @@ TEST_P(GraphicsTransformCompositionTest, FLIP_H) {
 }
 
 TEST_P(GraphicsTransformCompositionTest, FLIP_V) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            auto& bufferLayer = mDisplayGfx[display->getDisplayId()].bufferLayer;
+            auto& bufferLayer = mDisplayGfx[display.getDisplayId()].bufferLayer;
             bufferLayer->setTransform(Transform::FLIP_V);
             bufferLayer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            int& sideLength = mDisplayGfx[display->getDisplayId()].sideLength;
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            int& sideLength = mDisplayGfx[display.getDisplayId()].sideLength;
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                            {0, sideLength / 2, sideLength / 2, sideLength}, RED);
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                            {sideLength / 2, 0, sideLength, sideLength / 2}, BLUE);
 
-            auto& layers = mDisplayGfx[display->getDisplayId()].layers;
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            auto& layers = mDisplayGfx[display.getDisplayId()].layers;
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1773,55 +1874,59 @@ TEST_P(GraphicsTransformCompositionTest, FLIP_V) {
 }
 
 TEST_P(GraphicsTransformCompositionTest, ROT_180) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
 
-            ReadbackBuffer readbackBuffer(
-                    display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                    display->getDisplayHeight(),
-                    mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                    mDisplayProperties.at(display->getDisplayId()).dataspace);
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
+
+            ReadbackBuffer readbackBuffer(display.getDisplayId(), mComposerClient,
+                                          display.getDisplayWidth(), display.getDisplayHeight(),
+                                          mDisplayProperties.at(display.getDisplayId()).pixelFormat,
+                                          dataspace);
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
 
-            auto& bufferLayer = mDisplayGfx[display->getDisplayId()].bufferLayer;
+            auto& bufferLayer = mDisplayGfx[display.getDisplayId()].bufferLayer;
             bufferLayer->setTransform(Transform::ROT_180);
             bufferLayer->setDataspace(ReadbackHelper::getDataspaceForColorMode(mode));
 
             std::vector<Color> expectedColors(
-                    static_cast<size_t>(display->getDisplayWidth() * display->getDisplayHeight()));
-            int& sideLength = mDisplayGfx[display->getDisplayId()].sideLength;
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+                    static_cast<size_t>(display.getDisplayWidth() * display.getDisplayHeight()));
+            int& sideLength = mDisplayGfx[display.getDisplayId()].sideLength;
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                            {sideLength / 2, sideLength / 2, sideLength, sideLength},
                                            RED);
-            ReadbackHelper::fillColorsArea(expectedColors, display->getDisplayWidth(),
+            ReadbackHelper::fillColorsArea(expectedColors, display.getDisplayWidth(),
                                            {0, 0, sideLength / 2, sideLength / 2}, BLUE);
 
-            auto& layers = mDisplayGfx[display->getDisplayId()].layers;
-            writeLayers(layers, display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.validateDisplay(display->getDisplayId(),
+            auto& layers = mDisplayGfx[display.getDisplayId()].layers;
+            writeLayers(layers, display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.validateDisplay(display.getDisplayId(),
                                             ComposerClientWriter::kNoTimestamp,
                                             ComposerClientWrapper::kNoFrameIntervalNs);
-            execute(display->getDisplayId());
-            if (!mDisplayProperties.at(display->getDisplayId())
-                         .reader.takeChangedCompositionTypes(display->getDisplayId())
+            execute(display.getDisplayId());
+            if (!mDisplayProperties.at(display.getDisplayId())
+                         .reader.takeChangedCompositionTypes(display.getDisplayId())
                          .empty()) {
                 continue;
             }
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-            mDisplayProperties.at(display->getDisplayId())
-                    .writer.presentDisplay(display->getDisplayId());
-            execute(display->getDisplayId());
-            ASSERT_TRUE(mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+            mDisplayProperties.at(display.getDisplayId())
+                    .writer.presentDisplay(display.getDisplayId());
+            execute(display.getDisplayId());
+            ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
             ASSERT_NO_FATAL_FAILURE(readbackBuffer.checkReadbackBuffer(expectedColors));
-            auto& testRenderEngine =
-                    mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+            auto& testRenderEngine = mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
             testRenderEngine->setRenderLayers(layers);
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
             ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
@@ -1888,59 +1993,63 @@ class GraphicsColorManagementCompositionTest
 
 // @VsrTest = 4.4-015
 TEST_P(GraphicsColorManagementCompositionTest, ColorConversion) {
-    for (const DisplayWrapper* display : mDisplaysWithReadbackBuffers) {
-        for (ColorMode mode : mDisplayProperties.at(display->getDisplayId()).testColorModes) {
-            EXPECT_TRUE(mComposerClient
-                                ->setColorMode(display->getDisplayId(), mode,
-                                               RenderIntent::COLORIMETRIC)
-                                .isOk());
+    for (const DisplayWrapper display : mAllDisplays) {
+        for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
+            EXPECT_TRUE(
+                    mComposerClient
+                            ->setColorMode(display.getDisplayId(), mode, RenderIntent::COLORIMETRIC)
+                            .isOk());
+
+            auto [dataspace, readbackSupported] =
+                    GetDataspaceAndIfReadBackSupported(display.getDisplayId());
+            if (!readbackSupported) {
+                continue;
+            }
 
             auto& clientCompositionDisplaySettings =
-                    mDisplayProperties.at(display->getDisplayId()).clientCompositionDisplaySettings;
+                    mDisplayProperties.at(display.getDisplayId()).clientCompositionDisplaySettings;
             clientCompositionDisplaySettings.outputDataspace =
-                    static_cast<::android::ui::Dataspace>(
-                            mDisplayProperties.at(display->getDisplayId()).dataspace);
-            mDisplayProperties.at(display->getDisplayId())
+                    static_cast<::android::ui::Dataspace>(dataspace);
+            mDisplayProperties.at(display.getDisplayId())
                     .testRenderEngine->setDisplaySettings(clientCompositionDisplaySettings);
 
-            makeLayer(*display);
+            makeLayer(display);
             for (auto color : {LIGHT_RED, LIGHT_GREEN, LIGHT_BLUE}) {
                 ALOGD("Testing color: %f, %f, %f, %f with color mode: %d", color.r, color.g,
                       color.b, color.a, mode);
                 ReadbackBuffer readbackBuffer(
-                        display->getDisplayId(), mComposerClient, display->getDisplayWidth(),
-                        display->getDisplayHeight(),
-                        mDisplayProperties.at(display->getDisplayId()).pixelFormat,
-                        mDisplayProperties.at(display->getDisplayId()).dataspace);
+                        display.getDisplayId(), mComposerClient, display.getDisplayWidth(),
+                        display.getDisplayHeight(),
+                        mDisplayProperties.at(display.getDisplayId()).pixelFormat, dataspace);
                 ASSERT_NO_FATAL_FAILURE(readbackBuffer.setReadbackBuffer());
-                fillColor(*display, color);
-                auto& layer = mDisplayGfx[display->getDisplayId()].layer;
-                writeLayers({layer}, display->getDisplayId());
-                EXPECT_TRUE(mComposerClient->setPowerMode(display->getDisplayId(), PowerMode::ON)
+                fillColor(display, color);
+                auto& layer = mDisplayGfx[display.getDisplayId()].layer;
+                writeLayers({layer}, display.getDisplayId());
+                EXPECT_TRUE(mComposerClient->setPowerMode(display.getDisplayId(), PowerMode::ON)
                                     .isOk());
 
                 ASSERT_TRUE(
-                        mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-                mDisplayProperties.at(display->getDisplayId())
-                        .writer.validateDisplay(display->getDisplayId(),
+                        mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+                mDisplayProperties.at(display.getDisplayId())
+                        .writer.validateDisplay(display.getDisplayId(),
                                                 ComposerClientWriter::kNoTimestamp,
                                                 ComposerClientWrapper::kNoFrameIntervalNs);
-                execute(display->getDisplayId());
-                if (!mDisplayProperties.at(display->getDisplayId())
-                             .reader.takeChangedCompositionTypes(display->getDisplayId())
+                execute(display.getDisplayId());
+                if (!mDisplayProperties.at(display.getDisplayId())
+                             .reader.takeChangedCompositionTypes(display.getDisplayId())
                              .empty()) {
                     continue;
                 }
                 ASSERT_TRUE(
-                        mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
-                mDisplayProperties.at(display->getDisplayId())
-                        .writer.presentDisplay(display->getDisplayId());
-                execute(display->getDisplayId());
+                        mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+                mDisplayProperties.at(display.getDisplayId())
+                        .writer.presentDisplay(display.getDisplayId());
+                execute(display.getDisplayId());
                 ASSERT_TRUE(
-                        mDisplayProperties.at(display->getDisplayId()).reader.takeErrors().empty());
+                        mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
 
                 auto& testRenderEngine =
-                        mDisplayProperties.at(display->getDisplayId()).testRenderEngine;
+                        mDisplayProperties.at(display.getDisplayId()).testRenderEngine;
                 testRenderEngine->setRenderLayers({layer});
                 ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
                 ASSERT_NO_FATAL_FAILURE(

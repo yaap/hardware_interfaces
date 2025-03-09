@@ -190,7 +190,7 @@ class DownmixParamTest : public ::testing::TestWithParam<DownmixParamTestParam>,
         std::tie(mFactory, mDescriptor) = std::get<PARAM_INSTANCE_NAME>(GetParam());
     }
 
-    void SetUp() override { SetUpDownmix(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDownmix()); }
 
     void TearDown() override { TearDownDownmix(); }
 
@@ -216,7 +216,7 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
 
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpDownmix(mInputChannelLayout);
+        ASSERT_NO_FATAL_FAILURE(SetUpDownmix(mInputChannelLayout));
         if (int32_t version;
             mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
             GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
@@ -288,7 +288,7 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
             case AudioChannelLayout::CHANNEL_TOP_BACK_LEFT:
             case AudioChannelLayout::CHANNEL_FRONT_WIDE_LEFT:
             case AudioChannelLayout::CHANNEL_TOP_SIDE_LEFT:
-                checkAtLeft(position);
+                ASSERT_NO_FATAL_FAILURE(checkAtLeft(position));
                 break;
 
             case AudioChannelLayout::CHANNEL_FRONT_RIGHT:
@@ -300,7 +300,7 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
             case AudioChannelLayout::CHANNEL_FRONT_WIDE_RIGHT:
             case AudioChannelLayout::CHANNEL_TOP_SIDE_RIGHT:
             case AudioChannelLayout::CHANNEL_LOW_FREQUENCY_2:
-                checkAtRight(position);
+                ASSERT_NO_FATAL_FAILURE(checkAtRight(position));
                 break;
 
             case AudioChannelLayout::CHANNEL_FRONT_CENTER:
@@ -311,17 +311,17 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
             case AudioChannelLayout::CHANNEL_FRONT_RIGHT_OF_CENTER:
             case AudioChannelLayout::CHANNEL_TOP_CENTER:
             case AudioChannelLayout::CHANNEL_TOP_BACK_CENTER:
-                checkAtCenter(position);
+                ASSERT_NO_FATAL_FAILURE(checkAtCenter(position));
                 break;
 
             case AudioChannelLayout::CHANNEL_LOW_FREQUENCY:
                 // If CHANNEL_LOW_FREQUENCY_2 is supported
                 if (mInputChannelLayout & AudioChannelLayout::CHANNEL_LOW_FREQUENCY_2) {
                     // Validate that only Left channel has audio
-                    checkAtLeft(position);
+                    ASSERT_NO_FATAL_FAILURE(checkAtLeft(position));
                 } else {
                     // Validate that both channels have audio
-                    checkAtCenter(position);
+                    ASSERT_NO_FATAL_FAILURE(checkAtCenter(position));
                 }
                 break;
         }
@@ -371,7 +371,7 @@ class DownmixStripDataTest : public ::testing::TestWithParam<DownmixStripDataTes
     }
 
     void SetUp() override {
-        SetUpDownmix(mInputChannelLayout);
+        ASSERT_NO_FATAL_FAILURE(SetUpDownmix(mInputChannelLayout));
         if (int32_t version;
             mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
             GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
@@ -406,7 +406,7 @@ TEST_P(DownmixStripDataTest, DownmixProcessData) {
                         mInputChannelCount /*channelCount*/, kMaxDownmixSample);
     ASSERT_NO_FATAL_FAILURE(
             processAndWriteToOutput(mInputBuffer, mOutputBuffer, mEffect, &mOpenEffectReturn));
-    validateOutput();
+    ASSERT_NO_FATAL_FAILURE(validateOutput());
 }
 
 INSTANTIATE_TEST_SUITE_P(

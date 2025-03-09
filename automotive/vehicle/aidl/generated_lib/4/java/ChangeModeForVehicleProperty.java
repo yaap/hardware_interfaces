@@ -233,7 +233,7 @@ public final class ChangeModeForVehicleProperty {
         Map.entry(VehicleProperty.INITIAL_USER_INFO, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.SWITCH_USER, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.CREATE_USER, VehiclePropertyChangeMode.ON_CHANGE),
-        Map.entry(VehicleProperty.REMOVE_USER, VehiclePropertyChangeMode.STATIC),
+        Map.entry(VehicleProperty.REMOVE_USER, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.USER_IDENTIFICATION_ASSOCIATION, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.EVS_SERVICE_REQUEST, VehiclePropertyChangeMode.ON_CHANGE),
         Map.entry(VehicleProperty.POWER_POLICY_REQ, VehiclePropertyChangeMode.ON_CHANGE),

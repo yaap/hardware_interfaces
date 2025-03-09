@@ -40,7 +40,8 @@ parcelable VehicleAreaConfig {
      * Note that this property only represents the minimum value at boot time
      * and may not represent the current actual minimum value.
      *
-     * Only applicable for {@code INT32} type property. Ignored for other types.
+     * Only applicable for {@code INT32} type property. For other types, must be
+     * 0.
      *
      * For certain properties, this field must be specified, see
      * {@code VehicleProperty} documentation.
@@ -60,10 +61,13 @@ parcelable VehicleAreaConfig {
      * boot time, both {@code minInt32Value} and {@code maxInt32Value} must be
      * set to 0.
      *
-     * Note that this property only represents the minimum value at boot time
-     * and may not represent the current actual minimum value.
+     * Note that this property only represents the maximum value at boot time
+     * and may not represent the current actual maximum value.
      *
-     * Only applicable for {@code INT32} type property. Ignored for other types.
+     * Only applicable for {@code INT32} type property. For other types, must be
+     * 0.
+     *
+     * Must be larger or equal to {@code minInt32Value}.
      *
      * For certain properties, this field must be specified, see
      * {@code VehicleProperty} documentation.
@@ -86,7 +90,8 @@ parcelable VehicleAreaConfig {
      * Note that this property only represents the minimum value at boot time
      * and may not represent the current actual minimum value.
      *
-     * Only applicable for {@code INT64} type property. Ignored for other types.
+     * Only applicable for {@code INT64} type property. For other types, must be
+     * 0.
      *
      * For certain properties, this field must be specified, see
      * {@code VehicleProperty} documentation.
@@ -106,10 +111,13 @@ parcelable VehicleAreaConfig {
      * boot time, both {@code minInt64Value} and {@code maxInt64Value} must be
      * set to 0.
      *
-     * Note that this property only represents the minimum value at boot time
-     * and may not represent the current actual minimum value.
+     * Note that this property only represents the maximum value at boot time
+     * and may not represent the current actual maximum value.
      *
-     * Only applicable for {@code INT64} type property. Ignored for other types.
+     * Only applicable for {@code INT64} type property. For other types, must be
+     * 0.
+     *
+     * Must be larger or equal to {@code minInt64Value}.
      *
      * For certain properties, this field must be specified, see
      * {@code VehicleProperty} documentation.
@@ -132,7 +140,8 @@ parcelable VehicleAreaConfig {
      * Note that this property only represents the minimum value at boot time
      * and may not represent the current actual minimum value.
      *
-     * Only applicable for {@code FLOAT} type property. Ignored for other types.
+     * Only applicable for {@code FLOAT} type property. For other types, must be
+     * 0.
      *
      * For certain properties, this field must be specified, see
      * {@code VehicleProperty} documentation.
@@ -152,10 +161,13 @@ parcelable VehicleAreaConfig {
      * boot time, both {@code minFloatValue} and {@code maxFloatValue} must be
      * set to 0.
      *
-     * Note that this property only represents the minimum value at boot time
-     * and may not represent the current actual minimum value.
+     * Note that this property only represents the maximum value at boot time
+     * and may not represent the current actual maximum value.
      *
-     * Only applicable for {@code FLOAT} type property. Ignored for other types.
+     * Only applicable for {@code FLOAT} type property. For other types, must be
+     * 0.
+     *
+     * Must be larger or equal to {@code minFloatValue}.
      *
      * For certain properties, this field must be specified, see
      * {@code VehicleProperty} documentation.

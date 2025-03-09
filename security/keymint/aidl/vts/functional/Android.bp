@@ -100,6 +100,9 @@ cc_test_library {
     export_static_lib_headers: [
         "libkeymint_support",
     ],
+    shared_libs: [
+        "libkeystore2_flags_cc",
+    ],
     static_libs: [
         "libgmock_ndk",
     ],

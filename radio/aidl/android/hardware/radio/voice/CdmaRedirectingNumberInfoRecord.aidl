@@ -22,6 +22,7 @@ import android.hardware.radio.voice.CdmaNumberInfoRecord;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaRedirectingNumberInfoRecord {
     /**
      * Redirecting Number Information Record as defined in C.S0005 section 3.7.5.11

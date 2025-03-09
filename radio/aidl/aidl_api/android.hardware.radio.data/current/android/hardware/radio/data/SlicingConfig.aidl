@@ -33,7 +33,7 @@
 
 package android.hardware.radio.data;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable SlicingConfig {
   android.hardware.radio.data.UrspRule[] urspRules;
   android.hardware.radio.data.SliceInfo[] sliceInfo;

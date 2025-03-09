@@ -21,6 +21,7 @@ import android.hardware.radio.messaging.CdmaSmsMessage;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaSmsWriteArgs {
     /** @deprecated Legacy CDMA is unsupported. */
     const int STATUS_REC_UNREAD = 0;

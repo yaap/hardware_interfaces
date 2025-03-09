@@ -550,8 +550,14 @@ interface IKeyMintDevice {
     void deleteKey(in byte[] keyBlob);
 
     /**
-     * Deletes all keys in the hardware keystore. Used when keystore is reset completely. After
-     * this function is called all keys created previously must be rendered permanently unusable.
+     * Deletes all keys in the hardware keystore. Used when keystore is reset completely.
+     *
+     * For StrongBox KeyMint: After this function is called all keys created previously must be
+     * rendered permanently unusable.
+     *
+     * For TEE KeyMint: After this function is called all keys with Tag::ROLLBACK_RESISTANCE in
+     * their hardware-enforced authorization lists must be rendered permanently unusable.  Keys
+     * without Tag::ROLLBACK_RESISTANCE may or may not be rendered unusable.
      */
     void deleteAllKeys();
 

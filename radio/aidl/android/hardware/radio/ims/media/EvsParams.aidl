@@ -22,6 +22,7 @@ import android.hardware.radio.ims.media.EvsMode;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable EvsParams {
     /** EVS codec bandwidth */
     EvsBandwidth bandwidth = EvsBandwidth.NONE;

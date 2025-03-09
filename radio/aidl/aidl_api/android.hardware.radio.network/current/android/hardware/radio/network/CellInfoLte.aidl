@@ -33,7 +33,7 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable CellInfoLte {
   android.hardware.radio.network.CellIdentityLte cellIdentityLte;
   android.hardware.radio.network.LteSignalStrength signalStrengthLte;

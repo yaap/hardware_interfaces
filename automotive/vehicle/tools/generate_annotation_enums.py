@@ -51,17 +51,17 @@ ANNOTATIONS_JAVA_FILE_PATH = GENERATED_LIB + '/java/AnnotationsForVehiclePropert
 SCRIPT_PATH = 'hardware/interfaces/automotive/vehicle/tools/generate_annotation_enums.py'
 
 TAB = '    '
-RE_ENUM_START = re.compile('\s*enum VehicleProperty \{')
-RE_ENUM_END = re.compile('\s*\}\;')
-RE_COMMENT_BEGIN = re.compile('\s*\/\*\*?')
-RE_COMMENT_END = re.compile('\s*\*\/')
-RE_CHANGE_MODE = re.compile('\s*\* @change_mode (\S+)\s*')
-RE_VERSION = re.compile('\s*\* @version (\S+)\s*')
-RE_ACCESS = re.compile('\s*\* @access (\S+)\s*')
-RE_DATA_ENUM = re.compile('\s*\* @data_enum (\S+)\s*')
-RE_UNIT = re.compile('\s*\* @unit (\S+)\s+')
-RE_VALUE = re.compile('\s*(\w+)\s*=(.*)')
-RE_ANNOTATION = re.compile('\s*\* @(\S+)\s*')
+RE_ENUM_START = re.compile(r'\s*enum VehicleProperty \{')
+RE_ENUM_END = re.compile(r'\s*\}\;')
+RE_COMMENT_BEGIN = re.compile(r'\s*\/\*\*?')
+RE_COMMENT_END = re.compile(r'\s*\*\/')
+RE_CHANGE_MODE = re.compile(r'\s*\* @change_mode (\S+)\s*')
+RE_VERSION = re.compile(r'\s*\* @version (\S+)\s*')
+RE_ACCESS = re.compile(r'\s*\* @access (\S+)\s*')
+RE_DATA_ENUM = re.compile(r'\s*\* @data_enum (\S+)\s*')
+RE_UNIT = re.compile(r'\s*\* @unit (\S+)\s+')
+RE_VALUE = re.compile(r'\s*(\w+)\s*=(.*)')
+RE_ANNOTATION = re.compile(r'\s*\* @(\S+)\s*')
 
 SUPPORTED_ANNOTATIONS = ['change_mode', 'access', 'unit', 'data_enum', 'data_enum_bit_flags',
     'version', 'require_min_max_supported_value', 'require_supported_values_list',

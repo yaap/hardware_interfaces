@@ -33,7 +33,7 @@
 
 package android.hardware.radio.ims.media;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable RtpHeaderExtension {
   int localId;
   byte[] data;

@@ -1248,9 +1248,21 @@ TEST_P(VtsHalAutomotivePropertyConfigTest, verifyPropertyConfig) {
         }
     }
 
-    EXPECT_EQ(actualChangeMode, expectedChangeMode)
-            << StringPrintf("Expect to get VehiclePropertyChangeMode: %i, got %i",
-                            expectedChangeMode, actualChangeMode);
+    if (actualPropId != toInt(VehicleProperty::REMOVE_USER)) {
+        EXPECT_EQ(actualChangeMode, expectedChangeMode)
+                << StringPrintf("Expect to get VehiclePropertyChangeMode: %i, got %i",
+                                expectedChangeMode, actualChangeMode);
+    } else {
+        // Special logic for REMOVE_USER property. We allow both STATIC and ON_CHANGE change mode
+        // because historically we define the change mode to be STATIC which is incorrect, it should
+        // be on_change. For backward compatibility, we have to allow both.
+        EXPECT_THAT(actualChangeMode, ::testing::AnyOf(toInt(VehiclePropertyChangeMode::STATIC),
+                                                       toInt(VehiclePropertyChangeMode::ON_CHANGE)))
+                << StringPrintf(
+                           "Expect to get VehiclePropertyChangeMode as one of: "
+                           "[STATIC, ON_CHANGE], got %i",
+                           actualChangeMode);
+    }
 
     std::unordered_set<std::string> annotations;
     auto it = AnnotationsForVehicleProperty.find(param.propId);

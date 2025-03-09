@@ -33,7 +33,7 @@
 
 package android.hardware.radio.messaging;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable ImsSmsMessage {
   android.hardware.radio.RadioTechnologyFamily tech = android.hardware.radio.RadioTechnologyFamily.THREE_GPP;
   boolean retry;

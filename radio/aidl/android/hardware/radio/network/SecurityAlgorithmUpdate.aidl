@@ -26,6 +26,7 @@ import android.hardware.radio.network.SecurityAlgorithm;
  * @hide
  */
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 @VintfStability
 parcelable SecurityAlgorithmUpdate {
     /**

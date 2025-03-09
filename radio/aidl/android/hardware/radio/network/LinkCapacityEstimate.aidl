@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable LinkCapacityEstimate {
     /**
      * Estimated downlink capacity in kbps. In case of a dual connected network, this includes

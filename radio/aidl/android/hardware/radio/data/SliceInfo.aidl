@@ -22,6 +22,7 @@ package android.hardware.radio.data;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SliceInfo {
     /*
      * Not specified

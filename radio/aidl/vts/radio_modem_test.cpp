@@ -285,29 +285,6 @@ TEST_P(RadioModemTest, nvWriteItem) {
 }
 
 /*
- * Test IRadioModem.nvWriteCdmaPrl() for the response returned.
- */
-TEST_P(RadioModemTest, nvWriteCdmaPrl) {
-    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-        GTEST_SKIP() << "Skipping nvWriteCdmaPrl "
-                        "due to undefined FEATURE_TELEPHONY_CDMA";
-    }
-
-    serial = GetRandomSerialNumber();
-    std::vector<uint8_t> prl = {1, 2, 3, 4, 5};
-
-    radio_modem->nvWriteCdmaPrl(serial, std::vector<uint8_t>(prl));
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_modem->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_modem->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_modem->rspInfo.error, {RadioError::NONE},
-                                     CHECK_GENERAL_ERROR));
-    }
-}
-
-/*
  * Test IRadioModem.nvResetConfig() for the response returned.
  */
 TEST_P(RadioModemTest, nvResetConfig) {

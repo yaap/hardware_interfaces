@@ -95,6 +95,8 @@ class LoudnessEnhancerEffectHelper : public EffectHelper {
         EXPECT_STATUS(expected, mEffect->setParameter(param)) << param.toString();
     }
 
+    void reset() { EXPECT_STATUS(EX_NONE, mEffect->command(CommandId::RESET)); }
+
     void validateParameters(int gain) {
         // get parameter
         LoudnessEnhancer::Id leId;
@@ -133,7 +135,7 @@ class LoudnessEnhancerParamTest : public ::testing::TestWithParam<LoudnessEnhanc
         std::tie(mFactory, mDescriptor) = std::get<PARAM_INSTANCE_NAME>(GetParam());
     }
 
-    void SetUp() override { SetUpLoudnessEnhancer(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpLoudnessEnhancer()); }
     void TearDown() override { TearDownLoudnessEnhancer(); }
     int mParamGainMb = 0;
 };
@@ -164,7 +166,7 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
 
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpLoudnessEnhancer();
+        ASSERT_NO_FATAL_FAILURE(SetUpLoudnessEnhancer());
 
         // Creating AidlMessageQueues
         mStatusMQ = std::make_unique<EffectHelper::StatusMQ>(mOpenEffectReturn.statusMQ);
@@ -218,6 +220,8 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
         binder_exception_t expected;
         expected = isGainValid(kZeroGain);
         ASSERT_EQ(expected, EX_NONE);
+        // reset state to prevent prior signal history from affecting trial run.
+        ASSERT_NO_FATAL_FAILURE(reset());
         setParameters(kZeroGain, expected);
         ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput());
         baseOutput = mOutputBuffer;
@@ -229,6 +233,8 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
             if (expected != EX_NONE) {
                 GTEST_SKIP() << "Gains not supported.";
             }
+            // reset state to prevent prior signal history from affecting trial run.
+            ASSERT_NO_FATAL_FAILURE(reset());
             setParameters(gain, expected);
             ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput());
 
@@ -255,13 +261,13 @@ class LoudnessEnhancerDataTest : public ::testing::TestWithParam<LoudnessEnhance
 TEST_P(LoudnessEnhancerDataTest, IncreasingGains) {
     static const std::vector<int> kIncreasingGains = {50, 100};
 
-    assertSequentialGains(kIncreasingGains, true /*isIncreasing*/);
+    ASSERT_NO_FATAL_FAILURE(assertSequentialGains(kIncreasingGains, true /*isIncreasing*/));
 }
 
 TEST_P(LoudnessEnhancerDataTest, DecreasingGains) {
     static const std::vector<int> kDecreasingGains = {-50, -100};
 
-    assertSequentialGains(kDecreasingGains, false /*isIncreasing*/);
+    ASSERT_NO_FATAL_FAILURE(assertSequentialGains(kDecreasingGains, false /*isIncreasing*/));
 }
 
 TEST_P(LoudnessEnhancerDataTest, MinimumGain) {

@@ -25,6 +25,7 @@ import android.hardware.radio.data.NrQos;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 union Qos {
     boolean noinit;
     EpsQos eps;

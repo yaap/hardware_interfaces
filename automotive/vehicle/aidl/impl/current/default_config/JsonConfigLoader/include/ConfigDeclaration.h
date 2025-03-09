@@ -39,6 +39,9 @@ struct ConfigDeclaration {
     std::unordered_map<int32_t, aidl::android::hardware::automotive::vehicle::RawPropValues>
             initialAreaValues;
 
+    // The optional supported values for each areaId.
+    std::unordered_map<int32_t, std::vector<float>> supportedValuesForAreaId;
+
     inline bool operator==(const ConfigDeclaration& other) const {
         return (config == other.config && initialValue == other.initialValue &&
                 initialAreaValues == other.initialAreaValues);

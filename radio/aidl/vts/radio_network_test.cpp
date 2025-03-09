@@ -590,42 +590,6 @@ TEST_P(RadioNetworkTest, setSignalStrengthReportingCriteria_Eutran_RSSNR) {
 }
 
 /*
- * Test IRadioNetwork.setSignalStrengthReportingCriteria() for CDMA2000
- */
-TEST_P(RadioNetworkTest, setSignalStrengthReportingCriteria_Cdma2000) {
-    if (!deviceSupportsFeature(FEATURE_TELEPHONY_RADIO_ACCESS)) {
-        GTEST_SKIP() << "Skipping setSignalStrengthReportingCriteria_Cdma2000 "
-                        "due to undefined FEATURE_TELEPHONY_RADIO_ACCESS";
-    }
-
-    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-        GTEST_SKIP() << "Skipping setSignalStrengthReportingCriteria_Cdma2000 "
-                        "due to undefined FEATURE_TELEPHONY_CDMA";
-    }
-
-    serial = GetRandomSerialNumber();
-
-    SignalThresholdInfo signalThresholdInfo;
-    signalThresholdInfo.signalMeasurement = SignalThresholdInfo::SIGNAL_MEASUREMENT_TYPE_RSSI;
-    signalThresholdInfo.hysteresisMs = 5000;
-    signalThresholdInfo.hysteresisDb = 2;
-    signalThresholdInfo.thresholds = {-105, -90, -75, -65};
-    signalThresholdInfo.isEnabled = true;
-    signalThresholdInfo.ran = AccessNetwork::CDMA2000;
-
-    ndk::ScopedAStatus res =
-            radio_network->setSignalStrengthReportingCriteria(serial, {signalThresholdInfo});
-    ASSERT_OK(res);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
-
-    ALOGI("setSignalStrengthReportingCriteria_Cdma2000, rspInfo.error = %s\n",
-          toString(radioRsp_network->rspInfo.error).c_str());
-    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error, {RadioError::NONE}));
-}
-
-/*
  * Test IRadioNetwork.setSignalStrengthReportingCriteria() for NGRAN_SSRSRP
  */
 TEST_P(RadioNetworkTest, setSignalStrengthReportingCriteria_NGRAN_SSRSRP) {
@@ -790,15 +754,6 @@ TEST_P(RadioNetworkTest, setSignalStrengthReportingCriteria_multiRansPerRequest)
     signalThresholdInfoEutran.isEnabled = true;
     signalThresholdInfoEutran.ran = AccessNetwork::EUTRAN;
 
-    SignalThresholdInfo signalThresholdInfoCdma2000;
-    signalThresholdInfoCdma2000.signalMeasurement =
-            SignalThresholdInfo::SIGNAL_MEASUREMENT_TYPE_RSSI;
-    signalThresholdInfoCdma2000.hysteresisMs = 5000;
-    signalThresholdInfoCdma2000.hysteresisDb = 2;
-    signalThresholdInfoCdma2000.thresholds = {-105, -90, -75, -65};
-    signalThresholdInfoCdma2000.isEnabled = true;
-    signalThresholdInfoCdma2000.ran = AccessNetwork::CDMA2000;
-
     SignalThresholdInfo signalThresholdInfoNgran;
     signalThresholdInfoNgran.signalMeasurement =
             SignalThresholdInfo::SIGNAL_MEASUREMENT_TYPE_SSRSRP;
@@ -811,9 +766,6 @@ TEST_P(RadioNetworkTest, setSignalStrengthReportingCriteria_multiRansPerRequest)
     std::vector<SignalThresholdInfo> candidateSignalThresholdInfos = {
             signalThresholdInfoGeran, signalThresholdInfoUtran, signalThresholdInfoEutran,
             signalThresholdInfoNgran};
-    if (deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-        candidateSignalThresholdInfos.push_back(signalThresholdInfoCdma2000);
-    }
 
     std::vector<SignalThresholdInfo> supportedSignalThresholdInfos;
     for (size_t i = 0; i < candidateSignalThresholdInfos.size(); i++) {
@@ -2011,53 +1963,6 @@ TEST_P(RadioNetworkTest, setLocationUpdates) {
     if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
         ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
                                      {RadioError::NONE, RadioError::SIM_ABSENT}));
-    }
-}
-
-/*
- * Test IRadioNetwork.setCdmaRoamingPreference() for the response returned.
- */
-TEST_P(RadioNetworkTest, setCdmaRoamingPreference) {
-    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-        GTEST_SKIP() << "Skipping setCdmaRoamingPreference "
-                        "due to undefined FEATURE_TELEPHONY_CDMA";
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_network->setCdmaRoamingPreference(serial, CdmaRoamingType::HOME_NETWORK);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(
-                radioRsp_network->rspInfo.error,
-                {RadioError::NONE, RadioError::SIM_ABSENT, RadioError::REQUEST_NOT_SUPPORTED}));
-    }
-}
-
-/*
- * Test IRadioNetwork.getCdmaRoamingPreference() for the response returned.
- */
-TEST_P(RadioNetworkTest, getCdmaRoamingPreference) {
-    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-        GTEST_SKIP() << "Skipping getCdmaRoamingPreference "
-                        "due to undefined FEATURE_TELEPHONY_CDMA";
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_network->getCdmaRoamingPreference(serial);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(
-                CheckAnyOfErrors(radioRsp_network->rspInfo.error,
-                                 {RadioError::NONE, RadioError::SIM_ABSENT, RadioError::MODEM_ERR},
-                                 CHECK_GENERAL_ERROR));
     }
 }
 

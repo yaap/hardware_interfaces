@@ -25,6 +25,7 @@ import android.hardware.radio.data.UrspRule;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SlicingConfig {
     /**
      * This vector contains the current URSP rules. Empty vector indicates no rules are configured.

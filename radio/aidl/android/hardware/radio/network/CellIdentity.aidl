@@ -29,6 +29,7 @@ import android.hardware.radio.network.CellIdentityWcdma;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 union CellIdentity {
     boolean noinit;
     CellIdentityGsm gsm;

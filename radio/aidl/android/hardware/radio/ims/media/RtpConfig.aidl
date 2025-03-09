@@ -25,6 +25,7 @@ import android.hardware.radio.ims.media.RtpSessionParams;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RtpConfig {
     /** Media flow direction. The bitfield of MediaDirection(s) */
     int direction;

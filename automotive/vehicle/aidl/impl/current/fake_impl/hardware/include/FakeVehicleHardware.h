@@ -170,6 +170,13 @@ class FakeVehicleHardware : public IVehicleHardware {
         std::shared_ptr<RecurrentTimer::Callback> recurrentAction;
     };
 
+    struct DumpOptionPropIdAreaIdInfo {
+        int32_t propId;
+        int32_t areaId;
+        std::string propIdStr;
+        std::string areaIdStr;
+    };
+
     const std::unique_ptr<obd2frame::FakeObd2Frame> mFakeObd2Frame;
     const std::unique_ptr<FakeUserHal> mFakeUserHal;
     // RecurrentTimer is thread-safe.
@@ -189,9 +196,6 @@ class FakeVehicleHardware : public IVehicleHardware {
     std::unordered_map<PropIdAreaId, VehiclePropValuePool::RecyclableType, PropIdAreaIdHash>
             mSavedProps GUARDED_BY(mLock);
     std::unordered_set<PropIdAreaId, PropIdAreaIdHash> mSubOnChangePropIdAreaIds GUARDED_BY(mLock);
-    int32_t mMinSupportedValueForTestIntProp GUARDED_BY(mLock) = 0;
-    int32_t mMaxSupportedValueForTestIntProp GUARDED_BY(mLock) = 10;
-    std::vector<int32_t> mSupportedValuesListForTestIntProp GUARDED_BY(mLock) = {0, 2, 4, 6, 8, 10};
 
     std::unordered_map<PropIdAreaId, aidl::android::hardware::automotive::vehicle::RawPropValues,
                        PropIdAreaIdHash>
@@ -199,6 +203,10 @@ class FakeVehicleHardware : public IVehicleHardware {
     std::unordered_map<PropIdAreaId, aidl::android::hardware::automotive::vehicle::RawPropValues,
                        PropIdAreaIdHash>
             mMaxSupportedValueByPropIdAreaId GUARDED_BY(mLock);
+    std::unordered_map<PropIdAreaId,
+                       std::vector<aidl::android::hardware::automotive::vehicle::RawPropValues>,
+                       PropIdAreaIdHash>
+            mSupportedValuesByPropIdAreaId GUARDED_BY(mLock);
 
     // PendingRequestHandler is thread-safe.
     mutable PendingRequestHandler<GetValuesCallback,
@@ -327,9 +335,6 @@ class FakeVehicleHardware : public IVehicleHardware {
                                float sampleRateHz) REQUIRES(mLock);
     void unregisterRefreshLocked(PropIdAreaId propIdAreaId) REQUIRES(mLock);
     void refreshTimestampForInterval(int64_t intervalInNanos) EXCLUDES(mLock);
-    void triggerSupportedValueChange(
-            const aidl::android::hardware::automotive::vehicle::VehiclePropConfig& config)
-            EXCLUDES(mLock);
     void triggerSupportedValueChange(int32_t propId, int32_t areaId) EXCLUDES(mLock);
     template <class T>
     void setMinSupportedValueLocked(int32_t propId, int32_t areaId, T minValue) REQUIRES(mLock);
@@ -339,6 +344,8 @@ class FakeVehicleHardware : public IVehicleHardware {
     android::base::Result<void> parseAndSetMinMaxValue(int32_t propId, int32_t areaId,
                                                        const std::vector<std::string>& options,
                                                        size_t index) EXCLUDES(mLock);
+    android::base::Result<DumpOptionPropIdAreaIdInfo> parseDumpOptionPropIdAreaId(
+            const std::vector<std::string>& options, size_t& index);
 
     static aidl::android::hardware::automotive::vehicle::VehiclePropValue createHwInputKeyProp(
             aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction action,
@@ -372,8 +379,13 @@ class FakeVehicleHardware : public IVehicleHardware {
     static android::base::Result<int32_t> parseAreaId(const std::vector<std::string>& options,
                                                       size_t index, int32_t propId);
     template <class T>
-    static android::base::Result<std::vector<T>> parseValues(
-            const std::vector<std::string>& options, size_t index);
+    static android::base::Result<std::vector<T>> parseOptionValues(
+            const std::vector<std::string>& options, size_t index, size_t count);
+
+    template <class T>
+    static android::base::Result<
+            std::vector<aidl::android::hardware::automotive::vehicle::RawPropValues>>
+    parseOptionsToSupportedValuesList(const std::vector<std::string>& options, size_t index);
 };
 
 }  // namespace fake

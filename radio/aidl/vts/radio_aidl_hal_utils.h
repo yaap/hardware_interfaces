@@ -65,8 +65,6 @@ static constexpr const char* FEATURE_VOICE_CALL = "android.software.connectionse
 
 static constexpr const char* FEATURE_TELEPHONY = "android.hardware.telephony";
 
-static constexpr const char* FEATURE_TELEPHONY_CDMA = "android.hardware.telephony.cdma";
-
 static constexpr const char* FEATURE_TELEPHONY_IMS = "android.hardware.telephony.ims";
 
 static constexpr const char* FEATURE_TELEPHONY_CALLING = "android.hardware.telephony.calling";

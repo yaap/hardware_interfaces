@@ -33,7 +33,7 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable Cdma2000RegistrationInfo {
   /**
    * @deprecated Legacy CDMA is unsupported.

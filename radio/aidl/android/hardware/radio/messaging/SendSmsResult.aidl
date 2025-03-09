@@ -19,6 +19,7 @@ package android.hardware.radio.messaging;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SendSmsResult {
     /**
      * TP-Message-Reference for GSM, and BearerData MessageId for CDMA.

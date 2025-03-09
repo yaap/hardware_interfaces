@@ -22,6 +22,7 @@ package android.hardware.radio.voice;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaLineControlInfoRecord {
     /** @deprecated Legacy CDMA is unsupported. */
     byte lineCtrlPolarityIncluded;

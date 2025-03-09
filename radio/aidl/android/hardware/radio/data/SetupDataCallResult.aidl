@@ -28,6 +28,7 @@ import android.hardware.radio.data.TrafficDescriptor;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SetupDataCallResult {
     /**
      * Indicates the data connection is inactive.

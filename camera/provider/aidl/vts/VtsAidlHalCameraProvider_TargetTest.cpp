@@ -171,8 +171,8 @@ TEST_P(CameraAidlTest, validateManualFlashStrengthControlKeys) {
         ALOGI("validateManualFlashStrengthControlKeys: Testing camera device %s", name.c_str());
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
         ndk::ScopedAStatus ret = cameraDevice->getCameraCharacteristics(&meta);
         ASSERT_TRUE(ret.isOk());
         const camera_metadata_t* staticMeta =
@@ -305,7 +305,8 @@ TEST_P(CameraAidlTest, getSessionCharacteristics) {
         }
 
         CameraMetadata meta;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/, &device /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &device /*out*/));
 
         std::vector<AvailableStream> outputStreams;
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
@@ -634,7 +635,8 @@ TEST_P(CameraAidlTest, configureStreamsAvailableOutputs) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> device;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/, &device /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &device /*out*/));
 
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
         outputStreams.clear();
@@ -712,8 +714,9 @@ TEST_P(CameraAidlTest, configureConcurrentStreamsAvailableOutputs) {
             ASSERT_TRUE(idToNameMap.end() != it);
             std::string name = it->second;
 
-            openEmptyDeviceSession(name, mProvider, &cti.session /*out*/, &cti.staticMeta /*out*/,
-                                   &cti.cameraDevice /*out*/);
+            ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &cti.session /*out*/,
+                                                           &cti.staticMeta /*out*/,
+                                                           &cti.cameraDevice /*out*/));
 
             outputStreams.clear();
             camera_metadata_t* staticMeta =
@@ -795,8 +798,8 @@ TEST_P(CameraAidlTest, configureStreamsInvalidOutputs) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
         outputStreams.clear();
 
@@ -933,8 +936,8 @@ TEST_P(CameraAidlTest, configureStreamsZSLInputOutputs) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
         Status rc = isZSLModeAvailable(staticMeta);
@@ -1086,8 +1089,8 @@ TEST_P(CameraAidlTest, configureStreamsWithSessionParameters) {
         CameraMetadata meta;
 
         std::shared_ptr<ICameraDevice> unusedCameraDevice;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &unusedCameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &unusedCameraDevice /*out*/));
         camera_metadata_t* staticMetaBuffer =
                 reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
@@ -1196,8 +1199,8 @@ TEST_P(CameraAidlTest, configureStreamsPreviewStillOutputs) {
         CameraMetadata meta;
 
         std::shared_ptr<ICameraDevice> cameraDevice;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
 
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
@@ -1291,8 +1294,8 @@ TEST_P(CameraAidlTest, configureStreamsConstrainedOutputs) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
         Status rc = isConstrainedModeAvailable(staticMeta);
@@ -1434,8 +1437,8 @@ TEST_P(CameraAidlTest, configureStreamsVideoStillOutputs) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
 
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
@@ -1557,8 +1560,8 @@ TEST_P(CameraAidlTest, processMultiCaptureRequestPreview) {
         CameraMetadata metadata;
 
         std::shared_ptr<ICameraDevice> unusedDevice;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &metadata /*out*/,
-                               &unusedDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &metadata /*out*/, &unusedDevice /*out*/));
 
         camera_metadata_t* staticMeta =
                 reinterpret_cast<camera_metadata_t*>(metadata.metadata.data());
@@ -1801,7 +1804,8 @@ TEST_P(CameraAidlTest, processUltraHighResolutionRequest) {
         CameraMetadata meta;
 
         std::shared_ptr<ICameraDevice> unusedDevice;
-        openEmptyDeviceSession(name, mProvider, &mSession, &meta, &unusedDevice);
+        ASSERT_NO_FATAL_FAILURE(
+                openEmptyDeviceSession(name, mProvider, &mSession, &meta, &unusedDevice));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
         if (!isUltraHighResolution(staticMeta)) {
             ndk::ScopedAStatus ret = mSession->close();
@@ -1966,7 +1970,7 @@ TEST_P(CameraAidlTest, process10BitDynamicRangeRequest) {
         ASSERT_TRUE(matchDeviceName(name, mProviderType, &version, &deviceId));
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> device;
-        openEmptyDeviceSession(name, mProvider, &mSession, &meta, &device);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession, &meta, &device));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
         if (!is10BitDynamicRangeCapable(staticMeta)) {
             ndk::ScopedAStatus ret = mSession->close();
@@ -2209,8 +2213,8 @@ TEST_P(CameraAidlTest, processCaptureRequestBurstISO) {
         CameraMetadata meta;
         settings.metadata.clear();
         std::shared_ptr<ICameraDevice> unusedDevice;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &unusedDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &unusedDevice /*out*/));
         camera_metadata_t* staticMetaBuffer =
                 clone_camera_metadata(reinterpret_cast<camera_metadata_t*>(meta.metadata.data()));
         ::android::hardware::camera::common::V1_0::helper::CameraMetadata staticMeta(
@@ -2435,8 +2439,8 @@ TEST_P(CameraAidlTest, switchToOffline) {
         CameraMetadata meta;
         {
             std::shared_ptr<ICameraDevice> unusedDevice;
-            openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                                   &unusedDevice);
+            ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                           &meta /*out*/, &unusedDevice));
             camera_metadata_t* staticMetaBuffer = clone_camera_metadata(
                     reinterpret_cast<camera_metadata_t*>(meta.metadata.data()));
             ::android::hardware::camera::common::V1_0::helper::CameraMetadata staticMeta(
@@ -3170,8 +3174,8 @@ TEST_P(CameraAidlTest, validateStreamConfigurations) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
         if (is10BitDynamicRangeCapable(staticMeta)) {

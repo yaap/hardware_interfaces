@@ -314,6 +314,33 @@ TEST_F(JsonConfigLoaderUnitTest, testAccessOverride) {
     ASSERT_EQ(propConfig.changeMode, VehiclePropertyChangeMode::STATIC);
 }
 
+TEST_F(JsonConfigLoaderUnitTest, testAccessAreaOverride) {
+    std::istringstream iss(R"(
+    {
+        "properties": [{
+            "property": "VehicleProperty::INFO_FUEL_CAPACITY",
+            "areas": [
+                {
+                    "areaId": 0,
+                    "access": "VehiclePropertyAccess::WRITE"
+                }
+            ]
+        }]
+    }
+    )");
+
+    auto result = mLoader.loadPropConfig(iss);
+
+    ASSERT_TRUE(result.ok()) << result.error().message();
+    auto configs = result.value();
+    ASSERT_EQ(configs.size(), 1u);
+
+    const VehiclePropConfig& propConfig = configs.begin()->second.config;
+    ASSERT_EQ(propConfig.access, VehiclePropertyAccess::READ);
+    ASSERT_EQ(propConfig.areaConfigs[0].access, VehiclePropertyAccess::WRITE);
+    ASSERT_EQ(propConfig.changeMode, VehiclePropertyChangeMode::STATIC);
+}
+
 TEST_F(JsonConfigLoaderUnitTest, testChangeModeOverride) {
     std::istringstream iss(R"(
     {
@@ -562,6 +589,148 @@ TEST_F(JsonConfigLoaderUnitTest, testAreas_Simple) {
     ASSERT_EQ(areaConfig.maxInt32Value, 7);
     ASSERT_EQ(areaConfig.access, VehiclePropertyAccess::READ);
     ASSERT_EQ(areaConfig.areaId, HVAC_ALL);
+}
+
+TEST_F(JsonConfigLoaderUnitTest, testAreas_InheritFromProperty) {
+    std::istringstream iss(R"(
+    {
+        "properties": [{
+            "property": "VehicleProperty::INFO_FUEL_CAPACITY",
+            "minInt32Value": 1,
+            "maxInt32Value": 7,
+            "minInt64Value": 2,
+            "maxInt64Value": 6,
+            "minFloatValue": 1.1,
+            "maxFloatValue": 2.2,
+            "supportVariableUpdateRate": true,
+            "supportedEnumValues": [1, 2, 3],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true,
+                "hasSupportedValuesList": true
+            },
+            "defaultValue": {
+                "int32Values": [
+                    1
+                ]
+            },
+            "areas": [{
+                "areaId": "Constants::HVAC_ALL"
+            }]
+        }]
+    }
+    )");
+
+    auto result = mLoader.loadPropConfig(iss);
+
+    ASSERT_RESULT_OK(result);
+
+    auto configs = result.value();
+    ASSERT_EQ(configs.size(), 1u);
+
+    const auto& configDecl = configs.begin()->second;
+    const VehiclePropConfig& config = configDecl.config;
+    EXPECT_EQ(config.access, VehiclePropertyAccess::READ);
+    ASSERT_EQ(config.areaConfigs.size(), 1u);
+    const VehicleAreaConfig& areaConfig = config.areaConfigs[0];
+    EXPECT_EQ(areaConfig.minInt32Value, 1);
+    EXPECT_EQ(areaConfig.maxInt32Value, 7);
+    EXPECT_EQ(areaConfig.minInt64Value, 2);
+    EXPECT_EQ(areaConfig.maxInt64Value, 6);
+    EXPECT_EQ(areaConfig.minFloatValue, 1.1f);
+    EXPECT_EQ(areaConfig.maxFloatValue, 2.2f);
+    EXPECT_EQ(areaConfig.access, VehiclePropertyAccess::READ);
+    EXPECT_EQ(areaConfig.areaId, HVAC_ALL);
+    EXPECT_EQ(areaConfig.supportVariableUpdateRate, true);
+    ASSERT_TRUE(areaConfig.supportedEnumValues.has_value());
+    EXPECT_EQ(areaConfig.supportedEnumValues.value(), std::vector<int64_t>({1, 2, 3}));
+    ASSERT_TRUE(areaConfig.hasSupportedValueInfo.has_value());
+    EXPECT_TRUE(areaConfig.hasSupportedValueInfo->hasMinSupportedValue);
+    EXPECT_TRUE(areaConfig.hasSupportedValueInfo->hasMaxSupportedValue);
+    EXPECT_TRUE(areaConfig.hasSupportedValueInfo->hasSupportedValuesList);
+    ASSERT_FALSE(configDecl.initialAreaValues.find(HVAC_ALL) == configDecl.initialAreaValues.end());
+    EXPECT_EQ(configDecl.initialAreaValues.find(HVAC_ALL)->second,
+              RawPropValues{.int32Values = {1}});
+}
+
+TEST_F(JsonConfigLoaderUnitTest, testAreas_InheritFromProperty_override) {
+    std::istringstream iss(R"(
+    {
+        "properties": [{
+            "property": "VehicleProperty::INFO_FUEL_CAPACITY",
+            "minInt32Value": 100,
+            "maxInt32Value": 100,
+            "minInt64Value": 100,
+            "maxInt64Value": 100,
+            "minFloatValue": 100.1,
+            "maxFloatValue": 100.2,
+            "supportVariableUpdateRate": false,
+            "supportedEnumValues": [3, 2, 1],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": false,
+                "hasMaxSupportedValue": false,
+                "hasSupportedValuesList": false
+            },
+            "defaultValue": {
+                "int32Values": [
+                    2
+                ]
+            },
+            "areas": [{
+                "areaId": "Constants::HVAC_ALL",
+                "minInt32Value": 1,
+                "maxInt32Value": 7,
+                "minInt64Value": 2,
+                "maxInt64Value": 6,
+                "minFloatValue": 1.1,
+                "maxFloatValue": 2.2,
+                "supportVariableUpdateRate": true,
+                "supportedEnumValues": [1, 2, 3],
+                "hasSupportedValueInfo": {
+                    "hasMinSupportedValue": true,
+                    "hasMaxSupportedValue": true,
+                    "hasSupportedValuesList": true
+                },
+                "defaultValue": {
+                    "int32Values": [
+                        1
+                    ]
+                }
+            }]
+        }]
+    }
+    )");
+
+    auto result = mLoader.loadPropConfig(iss);
+
+    ASSERT_RESULT_OK(result);
+
+    auto configs = result.value();
+    ASSERT_EQ(configs.size(), 1u);
+
+    const auto& configDecl = configs.begin()->second;
+    const VehiclePropConfig& config = configDecl.config;
+    EXPECT_EQ(config.access, VehiclePropertyAccess::READ);
+    ASSERT_EQ(config.areaConfigs.size(), 1u);
+    const VehicleAreaConfig& areaConfig = config.areaConfigs[0];
+    EXPECT_EQ(areaConfig.minInt32Value, 1);
+    EXPECT_EQ(areaConfig.maxInt32Value, 7);
+    EXPECT_EQ(areaConfig.minInt64Value, 2);
+    EXPECT_EQ(areaConfig.maxInt64Value, 6);
+    EXPECT_EQ(areaConfig.minFloatValue, 1.1f);
+    EXPECT_EQ(areaConfig.maxFloatValue, 2.2f);
+    EXPECT_EQ(areaConfig.access, VehiclePropertyAccess::READ);
+    EXPECT_EQ(areaConfig.areaId, HVAC_ALL);
+    EXPECT_EQ(areaConfig.supportVariableUpdateRate, true);
+    ASSERT_TRUE(areaConfig.supportedEnumValues.has_value());
+    EXPECT_EQ(areaConfig.supportedEnumValues.value(), std::vector<int64_t>({1, 2, 3}));
+    ASSERT_TRUE(areaConfig.hasSupportedValueInfo.has_value());
+    EXPECT_TRUE(areaConfig.hasSupportedValueInfo->hasMinSupportedValue);
+    EXPECT_TRUE(areaConfig.hasSupportedValueInfo->hasMaxSupportedValue);
+    EXPECT_TRUE(areaConfig.hasSupportedValueInfo->hasSupportedValuesList);
+    ASSERT_FALSE(configDecl.initialAreaValues.find(HVAC_ALL) == configDecl.initialAreaValues.end());
+    EXPECT_EQ(configDecl.initialAreaValues.find(HVAC_ALL)->second,
+              RawPropValues{.int32Values = {1}});
 }
 
 TEST_F(JsonConfigLoaderUnitTest, testAreas_DefaultValueForEachArea) {

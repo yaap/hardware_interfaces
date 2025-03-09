@@ -33,7 +33,7 @@
 
 package android.hardware.radio.sim;
 /* @hide */
-@JavaDerive(toString=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
 parcelable AppStatus {
   int appType;
   int appState;

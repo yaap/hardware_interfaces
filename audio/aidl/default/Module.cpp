@@ -612,6 +612,15 @@ ndk::ScopedAStatus Module::updateStreamsConnectedState(const AudioPatch& oldPatc
     return ndk::ScopedAStatus::ok();
 }
 
+binder_status_t Module::dump(int fd, const char** args, uint32_t numArgs) {
+    for (const auto& portConfig : getConfig().portConfigs) {
+        if (portConfig.ext.getTag() == AudioPortExt::Tag::mix) {
+            getStreams().dump(portConfig.id, fd, args, numArgs);
+        }
+    }
+    return STATUS_OK;
+}
+
 ndk::ScopedAStatus Module::setModuleDebug(
         const ::aidl::android::hardware::audio::core::ModuleDebug& in_debug) {
     LOG(DEBUG) << __func__ << ": " << mType << ": old flags:" << mDebug.toString()
@@ -1546,6 +1555,7 @@ ndk::ScopedAStatus Module::generateHwAvSyncId(int32_t* _aidl_return) {
 
 const std::string Module::VendorDebug::kForceTransientBurstName = "aosp.forceTransientBurst";
 const std::string Module::VendorDebug::kForceSynchronousDrainName = "aosp.forceSynchronousDrain";
+const std::string Module::kClipTransitionSupportName = "aosp.clipTransitionSupport";
 
 ndk::ScopedAStatus Module::getVendorParameters(const std::vector<std::string>& in_ids,
                                                std::vector<VendorParameter>* _aidl_return) {
@@ -1560,6 +1570,10 @@ ndk::ScopedAStatus Module::getVendorParameters(const std::vector<std::string>& i
             VendorParameter forceSynchronousDrain{.id = id};
             forceSynchronousDrain.ext.setParcelable(Boolean{mVendorDebug.forceSynchronousDrain});
             _aidl_return->push_back(std::move(forceSynchronousDrain));
+        } else if (id == kClipTransitionSupportName) {
+            VendorParameter clipTransitionSupport{.id = id};
+            clipTransitionSupport.ext.setParcelable(Boolean{true});
+            _aidl_return->push_back(std::move(clipTransitionSupport));
         } else {
             allParametersKnown = false;
             LOG(VERBOSE) << __func__ << ": " << mType << ": unrecognized parameter \"" << id << "\"";

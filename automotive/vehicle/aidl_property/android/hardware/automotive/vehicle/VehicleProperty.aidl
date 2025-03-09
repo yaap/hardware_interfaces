@@ -5716,7 +5716,11 @@ enum VehicleProperty {
      * int32[8]: 10  // 2nd user (user 10)
      * int32[9]: 0   // 2nd user flags (none)
      *
-     * @change_mode VehiclePropertyChangeMode.STATIC
+     * Before Android B, this property's change mode was defined as STATIC although the property
+     * value may be updated from Android side. For backward compatibility, we still allow STATIC
+     * as change mode, but for new implementations, ON_CHANGE should be used instead.
+     *
+     * @change_mode VehiclePropertyChangeMode.ON_CHANGE
      * @access VehiclePropertyAccess.WRITE
      * @version 2
      */

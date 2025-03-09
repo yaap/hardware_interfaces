@@ -141,12 +141,12 @@ class NSParamTest : public ::testing::TestWithParam<NSParamTestParam>, public Ef
 
 TEST_P(NSParamTest, SetAndGetLevel) {
     addLevelParam(mLevel);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(NSParamTest, SetAndGetType) {
     addLevelParam(mLevel);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 INSTANTIATE_TEST_SUITE_P(

@@ -23,6 +23,7 @@ import android.hardware.radio.network.NrVopsInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 union AccessTechnologySpecificInfo {
     boolean noinit;
     /** @deprecated Legacy CDMA is unsupported. */

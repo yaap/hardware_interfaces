@@ -19,6 +19,7 @@ package android.hardware.radio.modem;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable HardwareConfigSim {
     /**
      * RadioConst:MAX_UUID_LENGTH is max length of the string

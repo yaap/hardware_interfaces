@@ -19,6 +19,7 @@ package android.hardware.radio.messaging;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SmsWriteArgs {
     const int STATUS_REC_UNREAD = 0;
     const int STATUS_REC_READ = 1;

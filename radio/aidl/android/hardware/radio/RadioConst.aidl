@@ -19,6 +19,7 @@ package android.hardware.radio;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RadioConst {
     const int VALUE_UNAVAILABLE = 0x7FFFFFFF;
     const long VALUE_UNAVAILABLE_LONG = 0x7FFFFFFFFFFFFFFF;

@@ -25,6 +25,7 @@ import android.hardware.radio.data.TrafficDescriptor;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable UrspRule {
     /**
      * Precedence value in the range of 0 to 255. Higher value has lower precedence.

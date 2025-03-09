@@ -25,6 +25,7 @@ import android.hardware.radio.network.RegistrationFailCause;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RegStateResult {
     /**
      * Registration state. If the RAT is indicated as a GERAN or UTRAN technology, this

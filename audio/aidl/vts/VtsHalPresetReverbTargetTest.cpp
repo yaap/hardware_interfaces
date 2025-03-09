@@ -187,13 +187,13 @@ TEST_P(PresetReverbProcessTest, DecreasingRoomSize) {
     std::vector<PresetReverb::Presets> roomPresets = {PresetReverb::Presets::LARGEROOM,
                                                       PresetReverb::Presets::MEDIUMROOM,
                                                       PresetReverb::Presets::SMALLROOM};
-    validateIncreasingEnergy(roomPresets);
+    ASSERT_NO_FATAL_FAILURE(validateIncreasingEnergy(roomPresets));
 }
 
 TEST_P(PresetReverbProcessTest, DecreasingHallSize) {
     std::vector<PresetReverb::Presets> hallPresets = {PresetReverb::Presets::LARGEHALL,
                                                       PresetReverb::Presets::MEDIUMHALL};
-    validateIncreasingEnergy(hallPresets);
+    ASSERT_NO_FATAL_FAILURE(validateIncreasingEnergy(hallPresets));
 }
 
 TEST_P(PresetReverbProcessTest, PresetPlate) {

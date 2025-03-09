@@ -21,6 +21,7 @@ import android.hardware.radio.RadioTechnology;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable HardwareConfigModem {
     /**
      * RIL attachment model. Values are:

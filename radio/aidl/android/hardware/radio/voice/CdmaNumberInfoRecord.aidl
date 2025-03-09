@@ -25,6 +25,7 @@ package android.hardware.radio.voice;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaNumberInfoRecord {
     /** @deprecated Legacy CDMA is unsupported. */
     const int CDMA_NUMBER_INFO_BUFFER_LENGTH = 81;

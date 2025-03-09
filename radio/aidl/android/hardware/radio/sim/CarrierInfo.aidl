@@ -21,6 +21,7 @@ import android.hardware.radio.sim.Plmn;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CarrierInfo {
     /**
      * MCC (Mobile Country Code) of Carrier. Wild char is either '*' or '?'.
@@ -34,37 +35,30 @@ parcelable CarrierInfo {
     /**
      * Service Provider Name(SPN) of the SIM card of the Carrier.
      */
-    @nullable
-    String spn;
+    @nullable String spn;
     /**
      * GID1 value of the SIM card of the Carrier.
      */
-    @nullable
-    String gid1;
+    @nullable String gid1;
     /**
      * GID2 value of the SIM card of the Carrier.
      */
-    @nullable
-    String gid2;
+    @nullable String gid2;
 
     /**
      * IMSI (International Mobile Subscriber Identity) prefix. Wild char is '*'.
      */
-    @nullable
-    String imsiPrefix;
+    @nullable String imsiPrefix;
     /**
      * Equivalent HPLMN of the SIM card of the Carrier.
      */
-    @nullable
-    List<Plmn> ehplmn;
+    @nullable List<Plmn> ehplmn;
     /**
      * ICCID (Integrated Circuit Card Identification) of the SIM card.
      */
-    @nullable
-    String iccid;
+    @nullable String iccid;
     /**
      * IMPI (IMS Private Identity) of the SIM card of the Carrier.
      */
-    @nullable
-    String impi;
+    @nullable String impi;
 }

@@ -22,6 +22,7 @@ import android.hardware.radio.modem.HardwareConfigSim;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable HardwareConfig {
     const int STATE_ENABLED = 0;
     const int STATE_STANDBY = 1;

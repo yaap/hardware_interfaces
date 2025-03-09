@@ -26,6 +26,7 @@ import android.hardware.radio.network.NasProtocolMessage;
  * @hide
  */
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 @VintfStability
 parcelable CellularIdentifierDisclosure {
     // The PLMN-ID to which the UE transmitted the cellular identifier

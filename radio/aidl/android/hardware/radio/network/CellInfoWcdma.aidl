@@ -22,6 +22,7 @@ import android.hardware.radio.network.WcdmaSignalStrength;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellInfoWcdma {
     CellIdentityWcdma cellIdentityWcdma;
     WcdmaSignalStrength signalStrengthWcdma;

@@ -21,6 +21,7 @@ import android.hardware.radio.voice.CdmaSignalInfoRecord;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaCallWaiting {
     /** @deprecated Legacy CDMA is unsupported. */
     const int NUMBER_PLAN_UNKNOWN = 0;

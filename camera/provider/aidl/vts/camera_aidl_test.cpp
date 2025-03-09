@@ -1814,7 +1814,7 @@ void CameraAidlTest::openEmptyDeviceSession(const std::string& name,
     ALOGI("getCameraDeviceInterface returns status:%d:%d", ret.getExceptionCode(),
           ret.getServiceSpecificError());
     ASSERT_TRUE(ret.isOk());
-    ASSERT_NE(device, nullptr);
+    ASSERT_NE(*device, nullptr);
 
     std::shared_ptr<EmptyDeviceCb> cb = ndk::SharedRefBase::make<EmptyDeviceCb>();
     ret = (*device)->open(cb, session);
@@ -2462,8 +2462,8 @@ void CameraAidlTest::configureStreamUseCaseInternal(const AvailableStream &thres
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> cameraDevice;
 
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &cameraDevice /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &cameraDevice /*out*/));
 
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
         // Check if camera support depth only or doesn't support stream use case capability
@@ -3731,7 +3731,7 @@ void CameraAidlTest::processColorSpaceRequest(
         ASSERT_TRUE(matchDeviceName(name, mProviderType, &version, &deviceId));
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> device;
-        openEmptyDeviceSession(name, mProvider, &mSession, &meta, &device);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession, &meta, &device));
         camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
 
         // Device does not report color spaces, skip.
@@ -3952,8 +3952,8 @@ void CameraAidlTest::processZoomSettingsOverrideRequests(
     for (const auto& name : cameraDeviceNames) {
         CameraMetadata meta;
         std::shared_ptr<ICameraDevice> device;
-        openEmptyDeviceSession(name, mProvider, &mSession /*out*/, &meta /*out*/,
-                               &device /*out*/);
+        ASSERT_NO_FATAL_FAILURE(openEmptyDeviceSession(name, mProvider, &mSession /*out*/,
+                                                       &meta /*out*/, &device /*out*/));
         camera_metadata_t* staticMeta =
                 clone_camera_metadata(reinterpret_cast<camera_metadata_t*>(meta.metadata.data()));
 

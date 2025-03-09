@@ -80,6 +80,7 @@ using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateReq;
 using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateShutdownParam;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaMirror;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaSeat;
+using ::aidl::android::hardware::automotive::vehicle::VehicleAreaWindow;
 using ::aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleProperty;
@@ -2591,7 +2592,7 @@ TEST_F(FakeVehicleHardwareTest, testDumpHelp) {
     DumpResult result = getHardware()->dump(options);
     ASSERT_FALSE(result.callerShouldDumpState);
     ASSERT_NE(result.buffer, "");
-    ASSERT_THAT(result.buffer, ContainsRegex("Usage: "));
+    ASSERT_THAT(result.buffer, ContainsRegex("Usage:"));
 }
 
 TEST_F(FakeVehicleHardwareTest, testDumpListProperties) {
@@ -2892,8 +2893,9 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_minLargerThanMax) {
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
 }
 
-TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues) {
-    std::vector<std::string> options = {"--set-supportedvalues", "1", "2", "3"};
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_Int) {
+    std::vector<std::string> options = {
+            "--set-supportedvalues", "EV_STOPPING_MODE", "-a", "0", "1", "2", "3"};
     std::vector<PropIdAreaId> changedPropIdAreaIds;
 
     getHardware()->registerSupportedValueChangeCallback(
@@ -2907,11 +2909,13 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues) {
     ASSERT_THAT(result.buffer, ContainsRegex("Supported values list .* set"));
 
     ASSERT_EQ(changedPropIdAreaIds.size(), 1u);
+    EXPECT_EQ(changedPropIdAreaIds[0], (PropIdAreaId{
+                                               .propId = toInt(VehicleProperty::EV_STOPPING_MODE),
+                                               .areaId = 0,
+                                       }));
 
-    auto results = getHardware()->getSupportedValuesLists({PropIdAreaId{
-            .propId = toInt(TestVendorProperty::VENDOR_EXTENSION_INT_PROPERTY), .areaId = 0}});
+    auto results = getHardware()->getSupportedValuesLists({changedPropIdAreaIds[0]});
 
-    ASSERT_EQ(results.size(), 1u);
     EXPECT_EQ(results[0].status, StatusCode::OK);
     EXPECT_NE(results[0].supportedValuesList, std::nullopt);
     EXPECT_EQ(results[0].supportedValuesList.value(), std::vector<std::optional<RawPropValues>>({
@@ -2921,11 +2925,106 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues) {
                                                       }));
 }
 
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_forGlobalPropertySkipArea) {
+    std::vector<std::string> options = {"--set-supportedvalues", "EV_STOPPING_MODE", "1", "2", "3"};
+    std::vector<PropIdAreaId> changedPropIdAreaIds;
+
+    getHardware()->registerSupportedValueChangeCallback(
+            std::make_unique<IVehicleHardware::SupportedValueChangeCallback>(
+                    [&changedPropIdAreaIds](std::vector<PropIdAreaId> propIdAreaIds) {
+                        changedPropIdAreaIds = propIdAreaIds;
+                    }));
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_FALSE(result.callerShouldDumpState);
+    ASSERT_THAT(result.buffer, ContainsRegex("Supported values list .* set"));
+
+    ASSERT_EQ(changedPropIdAreaIds.size(), 1u);
+    EXPECT_EQ(changedPropIdAreaIds[0], (PropIdAreaId{
+                                               .propId = toInt(VehicleProperty::EV_STOPPING_MODE),
+                                               .areaId = 0,
+                                       }));
+
+    auto results = getHardware()->getSupportedValuesLists({changedPropIdAreaIds[0]});
+
+    EXPECT_EQ(results[0].status, StatusCode::OK);
+    EXPECT_NE(results[0].supportedValuesList, std::nullopt);
+    EXPECT_EQ(results[0].supportedValuesList.value(), std::vector<std::optional<RawPropValues>>({
+                                                              RawPropValues{.int32Values = {1}},
+                                                              RawPropValues{.int32Values = {2}},
+                                                              RawPropValues{.int32Values = {3}},
+                                                      }));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_Float) {
+    std::vector<std::string> options = {"--set-supportedvalues",
+                                        "HVAC_TEMPERATURE_SET",
+                                        "-a",
+                                        "ROW_1_LEFT",
+                                        "1.1",
+                                        "2.2",
+                                        "3.3"};
+    std::vector<PropIdAreaId> changedPropIdAreaIds;
+
+    getHardware()->registerSupportedValueChangeCallback(
+            std::make_unique<IVehicleHardware::SupportedValueChangeCallback>(
+                    [&changedPropIdAreaIds](std::vector<PropIdAreaId> propIdAreaIds) {
+                        changedPropIdAreaIds = propIdAreaIds;
+                    }));
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_FALSE(result.callerShouldDumpState);
+    ASSERT_THAT(result.buffer, ContainsRegex("Supported values list .* set"));
+
+    ASSERT_EQ(changedPropIdAreaIds.size(), 1u);
+    EXPECT_EQ(changedPropIdAreaIds[0],
+              (PropIdAreaId{
+                      .propId = toInt(VehicleProperty::HVAC_TEMPERATURE_SET),
+                      .areaId = toInt(VehicleAreaSeat::ROW_1_LEFT),
+              }));
+
+    auto results = getHardware()->getSupportedValuesLists({changedPropIdAreaIds[0]});
+
+    EXPECT_EQ(results[0].status, StatusCode::OK);
+    EXPECT_NE(results[0].supportedValuesList, std::nullopt);
+    EXPECT_EQ(results[0].supportedValuesList.value(), std::vector<std::optional<RawPropValues>>({
+                                                              RawPropValues{.floatValues = {1.1}},
+                                                              RawPropValues{.floatValues = {2.2}},
+                                                              RawPropValues{.floatValues = {3.3}},
+                                                      }));
+}
+
 TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_invalidInt) {
-    std::vector<std::string> options = {"--set-supportedvalues", "1", "2", "ab", "3"};
+    std::vector<std::string> options = {
+            "--set-supportedvalues", "EV_STOPPING_MODE", "1", "2", "ab", "3"};
 
     DumpResult result = getHardware()->dump(options);
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_notEnoughArguments) {
+    std::vector<std::string> options = {"--set-supportedvalues", "EV_STOPPING_MODE"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("Not enough arguments"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_withAreaId_notEnoughArguments) {
+    std::vector<std::string> options = {"--set-supportedvalues", "EV_STOPPING_MODE", "-a", "0"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("Not enough arguments"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_invalidAreaId) {
+    std::vector<std::string> options = {"--set-supportedvalues", "EV_STOPPING_MODE", "-a", "blah",
+                                        "1"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not valid"));
 }
 
 struct SetPropTestCase {
@@ -4073,23 +4172,30 @@ TEST_F(FakeVehicleHardwareTest, testGetMinMaxSupportedValues) {
 TEST_F(FakeVehicleHardwareTest, testGetSupportedValuesLists) {
     auto results = getHardware()->getSupportedValuesLists({
             PropIdAreaId{.propId = toInt(TestVendorProperty::VENDOR_EXTENSION_INT_PROPERTY),
-                         .areaId = 0},
-            PropIdAreaId{.propId = toInt(VehicleProperty::HVAC_TEMPERATURE_SET), .areaId = 0},
+                         .areaId = toInt(VehicleAreaWindow::FRONT_WINDSHIELD)},
+            // This property does not specify supported values list.
+            PropIdAreaId{.propId = toInt(VehicleProperty::INFO_EV_BATTERY_CAPACITY), .areaId = 0},
     });
 
     ASSERT_EQ(results.size(), 2u);
     EXPECT_EQ(results[0].status, StatusCode::OK);
     EXPECT_NE(results[0].supportedValuesList, std::nullopt);
     EXPECT_NE((results[0].supportedValuesList)->size(), 0u);
-    EXPECT_EQ(results[0].supportedValuesList.value(), std::vector<std::optional<RawPropValues>>({
-                                                              RawPropValues{.int32Values = {0}},
-                                                              RawPropValues{.int32Values = {2}},
-                                                              RawPropValues{.int32Values = {4}},
-                                                              RawPropValues{.int32Values = {6}},
-                                                              RawPropValues{.int32Values = {8}},
-                                                              RawPropValues{.int32Values = {10}},
-                                                      }));
+    EXPECT_EQ(results[0].supportedValuesList.value(),
+              std::vector<std::optional<RawPropValues>>({RawPropValues{.int32Values = {1}},
+                                                         RawPropValues{.int32Values = {2}},
+                                                         RawPropValues{.int32Values = {3}}}));
     EXPECT_EQ(results[1].status, StatusCode::INVALID_ARG);
+}
+
+TEST_F(FakeVehicleHardwareTest, testGetSupportedValuesLists_populateFromSupportedEnumValues) {
+    auto results = getHardware()->getSupportedValuesLists({PropIdAreaId{
+            .propId = toInt(VehicleProperty::FORWARD_COLLISION_WARNING_STATE), .areaId = 0}});
+
+    ASSERT_EQ(results.size(), 1u);
+    EXPECT_EQ(results[0].status, StatusCode::OK);
+    ASSERT_NE(results[0].supportedValuesList, std::nullopt);
+    ASSERT_THAT(results[0].supportedValuesList.value(), ::testing::Not(::testing::IsEmpty()));
 }
 
 }  // namespace fake

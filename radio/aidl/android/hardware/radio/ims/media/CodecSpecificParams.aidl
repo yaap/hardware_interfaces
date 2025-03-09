@@ -22,6 +22,7 @@ import android.hardware.radio.ims.media.EvsParams;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 union CodecSpecificParams {
     AmrParams amr;
     EvsParams evs;

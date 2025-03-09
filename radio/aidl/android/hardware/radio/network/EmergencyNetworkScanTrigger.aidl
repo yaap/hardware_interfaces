@@ -21,6 +21,7 @@ import android.hardware.radio.network.EmergencyScanType;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable EmergencyNetworkScanTrigger {
     /**
      * Access network to be prioritized during emergency scan. The 1st entry has the highest

@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable BarringTypeSpecificInfo {
     /**
      * The barring factor as a percentage 0-100

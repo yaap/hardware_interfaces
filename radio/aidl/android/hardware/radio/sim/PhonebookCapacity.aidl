@@ -19,6 +19,7 @@ package android.hardware.radio.sim;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable PhonebookCapacity {
     /**
      * Maximum number of ADN records possible in the SIM phonebook. Needs to be non-negative.

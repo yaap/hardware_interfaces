@@ -108,11 +108,23 @@ class JsonConfigParser {
     // @param fieldIsOptional Whether the field is optional.
     // @param outPtr The pointer to output to if the field exists and parsing succeeded.
     // @param errors The error array to append error to if errors are found.
-    // @return true if the field is optional and does not exist or parsed successfully.
+    // @param found if not nullptr, this will be set to true if the field is found.
+    // @return true if parsed successfully or the field is optional and is not found.
     template <class T>
     bool tryParseJsonValueToVariable(const Json::Value& parentJsonNode,
                                      const std::string& fieldName, bool fieldIsOptional, T* outPtr,
+                                     std::vector<std::string>* errors, bool* found = nullptr);
+
+    // Tries to parse a JSON value to a specific type.
+    //
+    // This is similar to the previous version except that it tries to find the field in multiple
+    // parent nodes and will return early if the field is found in one parent node. This is useful
+    // when we allow the field to either come from vehicleArea fields or vehicleProperty fields.
+    template <class T>
+    bool tryParseJsonValueToVariable(std::vector<const Json::Value*> parentJsonNodePtrs,
+                                     const std::string& fieldName, bool fieldIsOptional, T* outPtr,
                                      std::vector<std::string>* errors);
+
     // Tries to parse a JSON value to an array of specific type.
     //
     // If fieldIsOptional is True, then if the field specified by "fieldName" does not exist,
@@ -127,7 +139,19 @@ class JsonConfigParser {
     template <class T>
     bool tryParseJsonArrayToVariable(const Json::Value& parentJsonNode,
                                      const std::string& fieldName, bool fieldIsOptional,
+                                     std::vector<T>* outPtr, std::vector<std::string>* errors,
+                                     bool* found = nullptr);
+
+    // Tries to parse a JSON value to an array of specific type.
+    //
+    // This is similar to the previous version except that it tries to find the field in multiple
+    // parent nodes and will return early if the field is found in one parent node. This is useful
+    // when we allow the field to either come from vehicleArea fields or vehicleProperty fields.
+    template <class T>
+    bool tryParseJsonArrayToVariable(std::vector<const Json::Value*> parentJsonNodePtrs,
+                                     const std::string& fieldName, bool fieldIsOptional,
                                      std::vector<T>* outPtr, std::vector<std::string>* errors);
+
     // Parses a JSON field to VehiclePropertyAccess or VehiclePropertyChangeMode.
     template <class T>
     void parseAccessChangeMode(const Json::Value& parentJsonNode, const std::string& fieldName,

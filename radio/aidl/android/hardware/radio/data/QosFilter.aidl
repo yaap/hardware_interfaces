@@ -27,6 +27,7 @@ import android.hardware.radio.data.QosFilterTypeOfService;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable QosFilter {
     const byte DIRECTION_DOWNLINK = 0;
     const byte DIRECTION_UPLINK = 1;

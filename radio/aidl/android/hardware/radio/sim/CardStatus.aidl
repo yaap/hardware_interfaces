@@ -24,6 +24,7 @@ import android.hardware.radio.sim.PinState;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CardStatus {
     /*
      * Card is physically absent from the device. (Some old modems use STATE_ABSENT when the SIM

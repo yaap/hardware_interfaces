@@ -367,8 +367,15 @@ class AudioCoreConfig : public testing::TestWithParam<std::string> {
             auto criterionValue = criterionRule.criterionAndValue;
             auto matchesWhen = criterionRule.matchingRule;
             auto criteriaIt = find_if(criteria.begin(), criteria.end(), [&](const auto& criterion) {
+                auto getForceConfigTag = [](const AudioHalCapCriterionV2& forceConfig) {
+                    return forceConfig.get<AudioHalCapCriterionV2::forceConfigForUse>()
+                            .values[0].getTag();
+                };
                 return criterion.has_value() &&
-                       criterion.value().getTag() == selectionCriterion.getTag();
+                       criterion.value().getTag() == selectionCriterion.getTag() &&
+                       (criterion.value().getTag() != AudioHalCapCriterionV2::forceConfigForUse ||
+                        getForceConfigTag(criterion.value()) ==
+                                getForceConfigTag(selectionCriterion));
             });
             EXPECT_NE(criteriaIt, criteria.end())
                     << " Invalid rule criterion " << toString(selectionCriterion.getTag());
@@ -515,7 +522,8 @@ class AudioCoreConfig : public testing::TestWithParam<std::string> {
         std::unordered_set<std::string> configurationNames;
         for (const AudioHalCapConfiguration& configuration : domain.configurations) {
             EXPECT_TRUE(configurationNames.insert(configuration.name).second);
-            ValidateAudioHalConfigurationRule(configuration.rule, criteria);
+            ASSERT_NO_FATAL_FAILURE(
+                    ValidateAudioHalConfigurationRule(configuration.rule, criteria));
         }
         auto domainParameters = domain.configurations[0].parameterSettings;
         for (const auto& settingParameter : domainParameters) {
@@ -590,7 +598,8 @@ class AudioCoreConfig : public testing::TestWithParam<std::string> {
             }
             EXPECT_NO_FATAL_FAILURE(ValidateAudioHalCapCriterion(criterion.value()));
         }
-        ValidateAudioHalCapDomains(capCfg.domains.value(), capCfg.criteriaV2.value());
+        ASSERT_NO_FATAL_FAILURE(
+                ValidateAudioHalCapDomains(capCfg.domains.value(), capCfg.criteriaV2.value()));
     }
 
     /**

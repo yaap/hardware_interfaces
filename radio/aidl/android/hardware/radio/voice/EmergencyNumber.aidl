@@ -41,6 +41,7 @@ package android.hardware.radio.voice;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable EmergencyNumber {
     /**
      * Indicates the number is from the network signal.

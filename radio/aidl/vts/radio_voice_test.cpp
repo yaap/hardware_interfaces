@@ -821,31 +821,6 @@ TEST_P(RadioVoiceTest, explicitCallTransfer) {
 }
 
 /*
- * Test IRadioVoice.sendCdmaFeatureCode() for the response returned.
- */
-TEST_P(RadioVoiceTest, sendCdmaFeatureCode) {
-    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-        GTEST_SKIP() << "Skipping sendCdmaFeatureCode "
-                        "due to undefined FEATURE_TELEPHONY_CDMA";
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_voice->sendCdmaFeatureCode(serial, std::string());
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_voice->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_voice->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_voice->rspInfo.error,
-                                     {RadioError::NONE, RadioError::INVALID_ARGUMENTS,
-                                      RadioError::INVALID_CALL_ID, RadioError::INVALID_MODEM_STATE,
-                                      RadioError::MODEM_ERR, RadioError::OPERATION_NOT_ALLOWED},
-                                     CHECK_GENERAL_ERROR));
-    }
-}
-
-/*
  * Test IRadioVoice.sendDtmf() for the response returned.
  */
 TEST_P(RadioVoiceTest, sendDtmf) {

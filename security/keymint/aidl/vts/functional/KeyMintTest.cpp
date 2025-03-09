@@ -9134,5 +9134,12 @@ int main(int argc, char** argv) {
             }
         }
     }
+    // Some tests rely on information about the state of the system having been received by KeyMint,
+    // so ensure that has happened before running tests.
+    using namespace std::chrono_literals;
+    if (!android::base::WaitForProperty("keystore.module_hash.sent", "true", 30s)) {
+        std::cerr << "Warning: running test before keystore.module_hash.sent is true\n";
+    }
+
     return RUN_ALL_TESTS();
 }

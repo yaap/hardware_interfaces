@@ -235,7 +235,7 @@ std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehi
         {VehicleProperty::INITIAL_USER_INFO, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::SWITCH_USER, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::CREATE_USER, VehiclePropertyChangeMode::ON_CHANGE},
-        {VehicleProperty::REMOVE_USER, VehiclePropertyChangeMode::STATIC},
+        {VehicleProperty::REMOVE_USER, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::USER_IDENTIFICATION_ASSOCIATION, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::EVS_SERVICE_REQUEST, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::POWER_POLICY_REQ, VehiclePropertyChangeMode::ON_CHANGE},

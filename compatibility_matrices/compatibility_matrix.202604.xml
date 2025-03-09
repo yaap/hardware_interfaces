@@ -396,7 +396,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.config</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioConfig</name>
             <instance>default</instance>
@@ -404,7 +404,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.data</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioData</name>
             <instance>slot1</instance>
@@ -414,7 +414,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.messaging</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioMessaging</name>
             <instance>slot1</instance>
@@ -424,7 +424,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.modem</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioModem</name>
             <instance>slot1</instance>
@@ -434,7 +434,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.network</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioNetwork</name>
             <instance>slot1</instance>
@@ -444,7 +444,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.sim</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioSim</name>
             <instance>slot1</instance>
@@ -464,7 +464,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.voice</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IRadioVoice</name>
             <instance>slot1</instance>
@@ -474,7 +474,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.ims</name>
-        <version>2-3</version>
+        <version>2-4</version>
         <interface>
             <name>IRadioIms</name>
             <instance>slot1</instance>
@@ -484,7 +484,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.radio.ims.media</name>
-        <version>2-3</version>
+        <version>2-4</version>
         <interface>
             <name>IImsMedia</name>
             <instance>default</instance>

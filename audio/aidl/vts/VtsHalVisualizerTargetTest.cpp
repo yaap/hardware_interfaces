@@ -183,7 +183,7 @@ class VisualizerParamTest : public ::testing::TestWithParam<VisualizerTestParam>
         generateInputBuffer(mInputBuffer, 0, true, mChannelCount, kMaxAudioSampleValue);
     }
 
-    void SetUp() override { SetUpVisualizer(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpVisualizer()); }
 
     void TearDown() override { TearDownVisualizer(); }
 
@@ -252,7 +252,7 @@ class VisualizerDataTest : public ::testing::TestWithParam<VisualizerTestParam>,
                                std::get<PARAM_SCALING_MODE>(GetParam()),
                                std::get<PARAM_MEASUREMENT_MODE>(GetParam())) {}
 
-    void SetUp() override { SetUpVisualizer(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpVisualizer()); }
 
     void TearDown() override { TearDownVisualizer(); }
 };

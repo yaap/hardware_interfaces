@@ -31,6 +31,7 @@ import android.hardware.radio.voice.CdmaT53ClirInfoRecord;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaInformationRecord {
     /** @deprecated Legacy CDMA is unsupported. */
     const int CDMA_MAX_NUMBER_OF_INFO_RECS = 10;

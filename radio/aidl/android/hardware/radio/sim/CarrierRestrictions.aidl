@@ -22,6 +22,7 @@ import android.hardware.radio.sim.CarrierInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CarrierRestrictions {
     @VintfStability
     @Backing(type="int")

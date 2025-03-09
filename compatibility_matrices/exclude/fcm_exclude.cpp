@@ -104,6 +104,28 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.vibrator@1.1",
             "android.hardware.vibrator@1.2",
             "android.hardware.vibrator@1.3",
+
+            // b/392700935 for HALs deprecated in R
+            "android.hardware.automotive.audiocontrol@1.0",
+            "android.hardware.automotive.audiocontrol@2.0",
+            "android.hardware.boot@1.1",
+            "android.hardware.contexthub@1.0",
+            "android.hardware.contexthub@1.1",
+            "android.hardware.health.storage@1.0",
+            "android.hardware.memtrack@1.0",
+            "android.hardware.power.stats@1.0",
+            "android.hardware.radio@1.4",
+            "android.hardware.radio@1.5",
+            "android.hardware.soundtrigger@2.0",
+            "android.hardware.soundtrigger@2.1",
+            "android.hardware.soundtrigger@2.2",
+            "android.hardware.tetheroffload.control@1.0",
+            "android.hardware.vr@1.0",
+            "android.hardware.wifi.supplicant@1.0",
+            "android.hardware.wifi.supplicant@1.1",
+            "android.hardware.wifi@1.0",
+            "android.hardware.wifi@1.1",
+            "android.hardware.wifi@1.2",
     };
 
     auto package_has_prefix = [&](const std::string& prefix) {

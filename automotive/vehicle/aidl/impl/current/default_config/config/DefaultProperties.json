@@ -1,5 +1,5 @@
 {
-    "apiVersion": 1,
+    "apiVersion": 2,
     "properties": [
         {
             "property": "VehicleProperty::INFO_FUEL_CAPACITY",
@@ -164,83 +164,47 @@
             "property": "VehicleProperty::SEAT_MEMORY_SELECT",
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 3
         },
         {
             "property": "VehicleProperty::SEAT_MEMORY_SET",
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 3
         },
         {
             "property": "VehicleProperty::SEAT_BELT_BUCKLED",
@@ -276,51 +240,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_BELT_HEIGHT_MOVE",
@@ -331,51 +271,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_FORE_AFT_POS",
@@ -386,51 +302,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_FORE_AFT_MOVE",
@@ -441,51 +333,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_BACKREST_ANGLE_1_POS",
@@ -496,51 +364,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_BACKREST_ANGLE_1_MOVE",
@@ -551,51 +395,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_BACKREST_ANGLE_2_POS",
@@ -606,51 +426,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_BACKREST_ANGLE_2_MOVE",
@@ -661,51 +457,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_HEIGHT_POS",
@@ -716,51 +488,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_HEIGHT_MOVE",
@@ -771,51 +519,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_DEPTH_POS",
@@ -826,51 +550,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_DEPTH_MOVE",
@@ -881,51 +581,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_TILT_POS",
@@ -936,51 +612,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_TILT_MOVE",
@@ -991,51 +643,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_LUMBAR_FORE_AFT_POS",
@@ -1046,51 +674,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_LUMBAR_FORE_AFT_MOVE",
@@ -1101,51 +705,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_LUMBAR_SIDE_SUPPORT_POS",
@@ -1156,51 +736,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_LUMBAR_SIDE_SUPPORT_MOVE",
@@ -1211,51 +767,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_HEADREST_HEIGHT_POS_V2",
@@ -1266,51 +798,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_HEADREST_HEIGHT_MOVE",
@@ -1321,51 +829,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_HEADREST_ANGLE_POS",
@@ -1376,51 +860,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_HEADREST_ANGLE_MOVE",
@@ -1431,51 +891,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_HEADREST_FORE_AFT_POS",
@@ -1486,51 +922,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_HEADREST_FORE_AFT_MOVE",
@@ -1541,51 +953,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_FOOTWELL_LIGHTS_STATE",
@@ -1596,26 +984,21 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_STATE_OFF",
-                        "Constants::LIGHT_STATE_ON"
-                    ]
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_STATE_OFF",
-                        "Constants::LIGHT_STATE_ON"
-                    ]
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT_2_RIGHT_2_CENTER",
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_STATE_OFF",
-                        "Constants::LIGHT_STATE_ON"
-                    ]
+                    "areaId": "Constants::SEAT_2_LEFT_2_RIGHT_2_CENTER"
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
             ]
         },
         {
@@ -1627,29 +1010,22 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_SWITCH_OFF",
-                        "Constants::LIGHT_SWITCH_ON",
-                        "Constants::LIGHT_SWITCH_AUTO"
-                    ]
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_SWITCH_OFF",
-                        "Constants::LIGHT_SWITCH_ON",
-                        "Constants::LIGHT_SWITCH_AUTO"
-                    ]
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT_2_RIGHT_2_CENTER",
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_SWITCH_OFF",
-                        "Constants::LIGHT_SWITCH_ON",
-                        "Constants::LIGHT_SWITCH_AUTO"
-                    ]
+                    "areaId": "Constants::SEAT_2_LEFT_2_RIGHT_2_CENTER"
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON",
+                "Constants::LIGHT_SWITCH_AUTO"
             ]
         },
         {
@@ -1693,51 +1069,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_CUSHION_SIDE_SUPPORT_MOVE",
@@ -1748,51 +1100,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_LUMBAR_VERTICAL_POS",
@@ -1803,51 +1131,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -10,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -10,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::SEAT_LUMBAR_VERTICAL_MOVE",
@@ -1858,51 +1162,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::SEAT_WALK_IN_POS",
@@ -1913,24 +1193,18 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 5
         },
         {
             "property": "VehicleProperty::SEAT_AIRBAGS_DEPLOYED",
@@ -1948,7 +1222,10 @@
                         "VehicleAirbagLocation::LEFT_SIDE",
                         "VehicleAirbagLocation::RIGHT_SIDE",
                         "VehicleAirbagLocation::CURTAIN"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_1_RIGHT",
@@ -1958,21 +1235,30 @@
                         "VehicleAirbagLocation::LEFT_SIDE",
                         "VehicleAirbagLocation::RIGHT_SIDE",
                         "VehicleAirbagLocation::CURTAIN"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_LEFT",
                     "supportedEnumValues": [
                         "VehicleAirbagLocation::FRONT",
                         "VehicleAirbagLocation::CURTAIN"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 },
                 {
                     "areaId": "Constants::SEAT_2_RIGHT",
                     "supportedEnumValues": [
                         "VehicleAirbagLocation::FRONT",
                         "VehicleAirbagLocation::CURTAIN"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 }
             ]
         },
@@ -2186,6 +1472,21 @@
                 60,
                 80,
                 100
+            ],
+            "areas": [
+                {
+                    "areaId": 0
+                }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedValues": [
+                20,
+                40,
+                60,
+                80,
+                100
             ]
         },
         {
@@ -2272,45 +1573,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::WHEEL_FRONT_LEFT",
-                    "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_FRONT_LEFT"
                 },
                 {
-                    "areaId": "Constants::WHEEL_FRONT_RIGHT",
-                    "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_FRONT_RIGHT"
                 },
                 {
-                    "areaId": "Constants::WHEEL_REAR_LEFT",
-                    "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_REAR_LEFT"
                 },
                 {
-                    "areaId": "Constants::WHEEL_REAR_RIGHT",
-                    "minFloatValue": 193.0,
-                    "maxFloatValue": 300.0,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_REAR_RIGHT"
                 }
             ],
             "comment": "Units in kpa",
             "maxSampleRate": 2.0,
-            "minSampleRate": 1.0
+            "minSampleRate": 1.0,
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minFloatValue": 193.0,
+            "maxFloatValue": 300.0
         },
         {
             "property": "VehicleProperty::CRITICALLY_LOW_TIRE_PRESSURE",
@@ -2423,13 +1706,7 @@
                             0
                         ]
                     },
-                    "areaId": "Constants::WHEEL_FRONT_LEFT",
-                    "minInt32Value": -100,
-                    "maxInt32Value": 100,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_FRONT_LEFT"
                 },
                 {
                     "defaultValue": {
@@ -2437,13 +1714,7 @@
                             0
                         ]
                     },
-                    "areaId": "Constants::WHEEL_FRONT_RIGHT",
-                    "minInt32Value": -100,
-                    "maxInt32Value": 100,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_FRONT_RIGHT"
                 },
                 {
                     "defaultValue": {
@@ -2451,13 +1722,7 @@
                             0
                         ]
                     },
-                    "areaId": "Constants::WHEEL_REAR_RIGHT",
-                    "minInt32Value": -100,
-                    "maxInt32Value": 100,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_REAR_RIGHT"
                 },
                 {
                     "defaultValue": {
@@ -2465,17 +1730,17 @@
                             0
                         ]
                     },
-                    "areaId": "Constants::WHEEL_REAR_LEFT",
-                    "minInt32Value": -100,
-                    "maxInt32Value": 100,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WHEEL_REAR_LEFT"
                 }
             ],
             "maxSampleRate": 10.0,
-            "minSampleRate": 1.0
+            "minSampleRate": 1.0,
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -100,
+            "maxInt32Value": 100
         },
         {
             "property": "VehicleProperty::TIRE_PRESSURE_DISPLAY_UNITS",
@@ -2533,15 +1798,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 3
         },
         {
             "property": "VehicleProperty::EV_STOPPING_MODE",
@@ -2552,13 +1817,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "Constants::EV_STOPPING_MODE_CREEP",
-                        "Constants::EV_STOPPING_MODE_ROLL",
-                        "Constants::EV_STOPPING_MODE_HOLD"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::EV_STOPPING_MODE_CREEP",
+                "Constants::EV_STOPPING_MODE_ROLL",
+                "Constants::EV_STOPPING_MODE_HOLD"
             ]
         },
         {
@@ -2960,51 +2228,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 1,
-                    "maxInt32Value": 7,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 1,
-                    "maxInt32Value": 7,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": 1,
-                    "maxInt32Value": 7,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": 1,
-                    "maxInt32Value": 7,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": 1,
-                    "maxInt32Value": 7,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 1,
+            "maxInt32Value": 7
         },
         {
             "property": "VehicleProperty::HVAC_FAN_DIRECTION",
@@ -3072,52 +2316,28 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
             ],
-            "comment": "0 is off and +ve values indicate ventilation level."
+            "comment": "0 is off and +ve values indicate ventilation level.",
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 3
         },
         {
             "property": "VehicleProperty::HVAC_STEERING_WHEEL_HEAT",
@@ -3128,16 +2348,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
             ],
-            "comment": "+ve values for heating and -ve for cooling"
+            "comment": "+ve values for heating and -ve for cooling",
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -2,
+            "maxInt32Value": 2
         },
         {
             "property": "VehicleProperty::HVAC_SEAT_TEMPERATURE",
@@ -3148,52 +2368,28 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
             ],
-            "comment": "+ve values for heating and -ve for cooling"
+            "comment": "+ve values for heating and -ve for cooling",
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -2,
+            "maxInt32Value": 2
         },
         {
             "property": "VehicleProperty::HVAC_SIDE_MIRROR_HEAT",
@@ -3204,15 +2400,15 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::MIRROR_DRIVER_LEFT_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::MIRROR_DRIVER_LEFT_RIGHT"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 2
         },
         {
             "property": "VehicleProperty::HVAC_TEMPERATURE_CURRENT",
@@ -3248,49 +2444,19 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_LEFT",
-                    "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_LEFT",
-                    "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_RIGHT",
-                    "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::SEAT_2_CENTER",
-                    "minFloatValue": 17.5,
-                    "maxFloatValue": 32.5,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_2_CENTER"
                 }
             ],
             "comment":
@@ -3302,6 +2468,46 @@
                 600,
                 900,
                 10
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true,
+                "hasSupportedValuesList": true
+            },
+            "minFloatValue": 17.5,
+            "maxFloatValue": 32.5,
+            "supportedValues": [
+                17.5,
+                18,
+                18.5,
+                19,
+                19.5,
+                20,
+                20.5,
+                21,
+                21.5,
+                22,
+                22.5,
+                23,
+                23.5,
+                24,
+                24.5,
+                25,
+                25.5,
+                26,
+                26.5,
+                27,
+                27.5,
+                28,
+                28.5,
+                29,
+                29.5,
+                30,
+                30.5,
+                31,
+                31.5,
+                32,
+                32.5
             ]
         },
         {
@@ -3442,16 +2648,19 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ImpactSensorLocation::FRONT",
-                        "ImpactSensorLocation::FRONT_LEFT_DOOR_SIDE",
-                        "ImpactSensorLocation::FRONT_RIGHT_DOOR_SIDE",
-                        "ImpactSensorLocation::REAR_LEFT_DOOR_SIDE",
-                        "ImpactSensorLocation::REAR_RIGHT_DOOR_SIDE",
-                        "ImpactSensorLocation::REAR"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ImpactSensorLocation::FRONT",
+                "ImpactSensorLocation::FRONT_LEFT_DOOR_SIDE",
+                "ImpactSensorLocation::FRONT_RIGHT_DOOR_SIDE",
+                "ImpactSensorLocation::REAR_LEFT_DOOR_SIDE",
+                "ImpactSensorLocation::REAR_RIGHT_DOOR_SIDE",
+                "ImpactSensorLocation::REAR"
             ]
         },
         {
@@ -3524,51 +2733,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::DOOR_1_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::DOOR_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::DOOR_2_LEFT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::DOOR_2_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::DOOR_REAR",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_REAR"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::DOOR_MOVE",
@@ -3579,42 +2764,24 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::DOOR_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::DOOR_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::DOOR_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::DOOR_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::DOOR_2_RIGHT"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::MIRROR_Z_POS",
@@ -3625,33 +2792,21 @@
             },
             "areas": [
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_LEFT",
-                    "minInt32Value": -3,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_LEFT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
-                    "minInt32Value": -3,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_CENTER",
-                    "minInt32Value": -3,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -3,
+            "maxInt32Value": 3
         },
         {
             "property": "VehicleProperty::MIRROR_Z_MOVE",
@@ -3662,33 +2817,21 @@
             },
             "areas": [
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_LEFT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::MIRROR_Y_POS",
@@ -3699,33 +2842,21 @@
             },
             "areas": [
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_LEFT",
-                    "minInt32Value": -3,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_LEFT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
-                    "minInt32Value": -3,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_CENTER",
-                    "minInt32Value": -3,
-                    "maxInt32Value": 3,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -3,
+            "maxInt32Value": 3
         },
         {
             "property": "VehicleProperty::MIRROR_Y_MOVE",
@@ -3736,33 +2867,21 @@
             },
             "areas": [
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_LEFT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_CENTER",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaMirror::DRIVER_CENTER"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::MIRROR_LOCK",
@@ -3883,51 +3002,27 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::WINDOW_1_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WINDOW_1_LEFT"
                 },
                 {
-                    "areaId": "Constants::WINDOW_1_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WINDOW_1_RIGHT"
                 },
                 {
-                    "areaId": "Constants::WINDOW_2_LEFT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WINDOW_2_LEFT"
                 },
                 {
-                    "areaId": "Constants::WINDOW_2_RIGHT",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WINDOW_2_RIGHT"
                 },
                 {
-                    "areaId": "Constants::WINDOW_ROOF_TOP_1",
-                    "minInt32Value": -1,
-                    "maxInt32Value": 1,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::WINDOW_ROOF_TOP_1"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -1,
+            "maxInt32Value": 1
         },
         {
             "property": "VehicleProperty::WINDSHIELD_WIPERS_PERIOD",
@@ -3938,24 +3033,18 @@
             },
             "areas": [
                 {
-                    "areaId": "VehicleAreaWindow::FRONT_WINDSHIELD",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3000,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaWindow::FRONT_WINDSHIELD"
                 },
                 {
-                    "areaId": "VehicleAreaWindow::REAR_WINDSHIELD",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 3000,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "VehicleAreaWindow::REAR_WINDSHIELD"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 3000
         },
         {
             "property": "VehicleProperty::WINDSHIELD_WIPERS_STATE",
@@ -3971,14 +3060,20 @@
                         "WindshieldWipersState::OFF",
                         "WindshieldWipersState::ON",
                         "WindshieldWipersState::SERVICE"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaWindow::REAR_WINDSHIELD",
                     "supportedEnumValues": [
                         "WindshieldWipersState::OFF",
                         "WindshieldWipersState::ON"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 }
             ]
         },
@@ -4007,7 +3102,10 @@
                         "WindshieldWipersSwitch::CONTINUOUS_LEVEL_5",
                         "WindshieldWipersSwitch::AUTO",
                         "WindshieldWipersSwitch::SERVICE"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 },
                 {
                     "areaId": "VehicleAreaWindow::REAR_WINDSHIELD",
@@ -4019,7 +3117,10 @@
                         "WindshieldWipersSwitch::CONTINUOUS_LEVEL_2",
                         "WindshieldWipersSwitch::AUTO",
                         "WindshieldWipersSwitch::SERVICE"
-                    ]
+                    ],
+                    "hasSupportedValueInfo": {
+                        "hasSupportedValuesList": true
+                    }
                 }
             ]
         },
@@ -4032,15 +3133,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::STEERING_WHEEL_DEPTH_MOVE",
@@ -4051,15 +3152,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -2,
+            "maxInt32Value": 2
         },
         {
             "property": "VehicleProperty::STEERING_WHEEL_HEIGHT_POS",
@@ -4070,15 +3171,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::STEERING_WHEEL_HEIGHT_MOVE",
@@ -4089,15 +3190,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": -2,
-                    "maxInt32Value": 2,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": -2,
+            "maxInt32Value": 2
         },
         {
             "property": "VehicleProperty::STEERING_WHEEL_THEFT_LOCK_ENABLED",
@@ -4132,15 +3233,15 @@
             },
             "areas": [
                 {
-                    "areaId": "Constants::SEAT_1_RIGHT",
-                    "minInt32Value": 0,
-                    "maxInt32Value": 10,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": "Constants::SEAT_1_RIGHT"
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 10
         },
         {
             "property": "VehicleProperty::GLOVE_BOX_LOCKED",
@@ -4359,12 +3460,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_STATE_OFF",
-                        "Constants::LIGHT_STATE_ON"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
             ]
         },
         {
@@ -4449,13 +3553,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "Constants::LIGHT_SWITCH_OFF",
-                        "Constants::LIGHT_SWITCH_ON",
-                        "Constants::LIGHT_SWITCH_AUTO"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON",
+                "Constants::LIGHT_SWITCH_AUTO"
             ]
         },
         {
@@ -5344,20 +4451,23 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "EmergencyLaneKeepAssistState::ENABLED",
-                        "EmergencyLaneKeepAssistState::WARNING_LEFT",
-                        "EmergencyLaneKeepAssistState::WARNING_RIGHT",
-                        "EmergencyLaneKeepAssistState::ACTIVATED_STEER_LEFT",
-                        "EmergencyLaneKeepAssistState::ACTIVATED_STEER_RIGHT",
-                        "EmergencyLaneKeepAssistState::USER_OVERRIDE"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "EmergencyLaneKeepAssistState::ENABLED",
+                "EmergencyLaneKeepAssistState::WARNING_LEFT",
+                "EmergencyLaneKeepAssistState::WARNING_RIGHT",
+                "EmergencyLaneKeepAssistState::ACTIVATED_STEER_LEFT",
+                "EmergencyLaneKeepAssistState::ACTIVATED_STEER_RIGHT",
+                "EmergencyLaneKeepAssistState::USER_OVERRIDE"
             ]
         },
         {
@@ -5377,17 +4487,20 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "CruiseControlType::STANDARD",
-                        "CruiseControlType::ADAPTIVE",
-                        "CruiseControlType::PREDICTIVE"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "CruiseControlType::STANDARD",
+                "CruiseControlType::ADAPTIVE",
+                "CruiseControlType::PREDICTIVE"
             ]
         },
         {
@@ -5399,35 +4512,41 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "CruiseControlState::ENABLED",
-                        "CruiseControlState::ACTIVATED",
-                        "CruiseControlState::USER_OVERRIDE",
-                        "CruiseControlState::SUSPENDED",
-                        "CruiseControlState::FORCED_DEACTIVATION_WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "CruiseControlState::ENABLED",
+                "CruiseControlState::ACTIVATED",
+                "CruiseControlState::USER_OVERRIDE",
+                "CruiseControlState::SUSPENDED",
+                "CruiseControlState::FORCED_DEACTIVATION_WARNING"
             ]
         },
         {
             "property": "VehicleProperty::CRUISE_CONTROL_COMMAND",
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "CruiseControlCommand::ACTIVATE",
-                        "CruiseControlCommand::SUSPEND",
-                        "CruiseControlCommand::INCREASE_TARGET_SPEED",
-                        "CruiseControlCommand::DECREASE_TARGET_SPEED",
-                        "CruiseControlCommand::INCREASE_TARGET_TIME_GAP",
-                        "CruiseControlCommand::DECREASE_TARGET_TIME_GAP"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "CruiseControlCommand::ACTIVATE",
+                "CruiseControlCommand::SUSPEND",
+                "CruiseControlCommand::INCREASE_TARGET_SPEED",
+                "CruiseControlCommand::DECREASE_TARGET_SPEED",
+                "CruiseControlCommand::INCREASE_TARGET_TIME_GAP",
+                "CruiseControlCommand::DECREASE_TARGET_TIME_GAP"
             ]
         },
         {
@@ -5439,15 +4558,15 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minFloatValue": 20.0,
-                    "maxFloatValue": 35.0,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
-            ]
+            ],
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minFloatValue": 20.0,
+            "maxFloatValue": 35.0
         },
         {
             "property": "VehicleProperty::ADAPTIVE_CRUISE_CONTROL_TARGET_TIME_GAP",
@@ -5474,17 +4593,17 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "minInt32Value": 0,
-                    "maxInt32Value": 200000,
-                    "hasSupportedValueInfo": {
-                        "hasMinSupportedValue": true,
-                        "hasMaxSupportedValue": true
-                    }
+                    "areaId": 0
                 }
             ],
             "maxSampleRate": 10.0,
-            "minSampleRate": 1.0
+            "minSampleRate": 1.0,
+            "hasSupportedValueInfo": {
+                "hasMinSupportedValue": true,
+                "hasMaxSupportedValue": true
+            },
+            "minInt32Value": 0,
+            "maxInt32Value": 200000
         },
         {
             "property": "VehicleProperty::HANDS_ON_DETECTION_ENABLED",
@@ -5503,13 +4622,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "HandsOnDetectionDriverState::HANDS_ON",
-                        "HandsOnDetectionDriverState::HANDS_OFF"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "HandsOnDetectionDriverState::HANDS_ON",
+                "HandsOnDetectionDriverState::HANDS_OFF"
             ]
         },
         {
@@ -5521,13 +4643,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "HandsOnDetectionWarning::NO_WARNING",
-                        "HandsOnDetectionWarning::WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "HandsOnDetectionWarning::NO_WARNING",
+                "HandsOnDetectionWarning::WARNING"
             ]
         },
         {
@@ -5547,20 +4672,23 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "DriverDrowsinessAttentionState::KSS_RATING_1_EXTREMELY_ALERT",
-                        "DriverDrowsinessAttentionState::KSS_RATING_2_VERY_ALERT",
-                        "DriverDrowsinessAttentionState::KSS_RATING_3_ALERT",
-                        "DriverDrowsinessAttentionState::KSS_RATING_4_RATHER_ALERT",
-                        "DriverDrowsinessAttentionState::KSS_RATING_5_NEITHER_ALERT_NOR_SLEEPY",
-                        "DriverDrowsinessAttentionState::KSS_RATING_6_SOME_SLEEPINESS",
-                        "DriverDrowsinessAttentionState::KSS_RATING_7_SLEEPY_NO_EFFORT",
-                        "DriverDrowsinessAttentionState::KSS_RATING_8_SLEEPY_SOME_EFFORT",
-                        "DriverDrowsinessAttentionState::KSS_RATING_9_VERY_SLEEPY"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "DriverDrowsinessAttentionState::KSS_RATING_1_EXTREMELY_ALERT",
+                "DriverDrowsinessAttentionState::KSS_RATING_2_VERY_ALERT",
+                "DriverDrowsinessAttentionState::KSS_RATING_3_ALERT",
+                "DriverDrowsinessAttentionState::KSS_RATING_4_RATHER_ALERT",
+                "DriverDrowsinessAttentionState::KSS_RATING_5_NEITHER_ALERT_NOR_SLEEPY",
+                "DriverDrowsinessAttentionState::KSS_RATING_6_SOME_SLEEPINESS",
+                "DriverDrowsinessAttentionState::KSS_RATING_7_SLEEPY_NO_EFFORT",
+                "DriverDrowsinessAttentionState::KSS_RATING_8_SLEEPY_SOME_EFFORT",
+                "DriverDrowsinessAttentionState::KSS_RATING_9_VERY_SLEEPY"
             ]
         },
         {
@@ -5580,13 +4708,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "DriverDrowsinessAttentionWarning::NO_WARNING",
-                        "DriverDrowsinessAttentionWarning::WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "DriverDrowsinessAttentionWarning::NO_WARNING",
+                "DriverDrowsinessAttentionWarning::WARNING"
             ]
         },
         {
@@ -5606,13 +4737,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "DriverDistractionState::NOT_DISTRACTED",
-                        "DriverDistractionState::DISTRACTED"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "DriverDistractionState::NOT_DISTRACTED",
+                "DriverDistractionState::DISTRACTED"
             ]
         },
         {
@@ -5632,13 +4766,16 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "DriverDistractionWarning::NO_WARNING",
-                        "DriverDistractionWarning::WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "DriverDistractionWarning::NO_WARNING",
+                "DriverDistractionWarning::WARNING"
             ]
         },
         {
@@ -5678,10 +4815,10 @@
             "property": "VehicleProperty::VHAL_HEARTBEAT",
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportVariableUpdateRate": false
+                    "areaId": 0
                 }
-            ]
+            ],
+            "supportVariableUpdateRate": false
         },
         {
             "property": "VehicleProperty::CLUSTER_SWITCH_UI",
@@ -5745,11 +4882,11 @@
             ],
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportVariableUpdateRate": false
+                    "areaId": 0
                 }
             ],
-            "comment": "configArray specifies it consists of int64[2] and byte[16]."
+            "comment": "configArray specifies it consists of int64[2] and byte[16].",
+            "supportVariableUpdateRate": false
         },
         {
             "property": "VehicleProperty::GENERAL_SAFETY_REGULATION_COMPLIANCE_REQUIREMENT",
@@ -5803,18 +4940,21 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "AutomaticEmergencyBrakingState::ENABLED",
-                        "AutomaticEmergencyBrakingState::ACTIVATED",
-                        "AutomaticEmergencyBrakingState::USER_OVERRIDE"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "AutomaticEmergencyBrakingState::ENABLED",
+                "AutomaticEmergencyBrakingState::ACTIVATED",
+                "AutomaticEmergencyBrakingState::USER_OVERRIDE"
             ]
         },
         {
@@ -5834,17 +4974,20 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "ForwardCollisionWarningState::NO_WARNING",
-                        "ForwardCollisionWarningState::WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "ForwardCollisionWarningState::NO_WARNING",
+                "ForwardCollisionWarningState::WARNING"
             ]
         },
         {
@@ -5864,29 +5007,23 @@
             },
             "areas": [
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_LEFT",
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "BlindSpotWarningState::NO_WARNING",
-                        "BlindSpotWarningState::WARNING"
-                    ]
+                    "areaId": "VehicleAreaMirror::DRIVER_LEFT"
                 },
                 {
-                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT",
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "BlindSpotWarningState::NO_WARNING",
-                        "BlindSpotWarningState::WARNING"
-                    ]
+                    "areaId": "VehicleAreaMirror::DRIVER_RIGHT"
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "BlindSpotWarningState::NO_WARNING",
+                "BlindSpotWarningState::WARNING"
             ]
         },
         {
@@ -5906,17 +5043,20 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "LaneDepartureWarningState::NO_WARNING",
-                        "LaneDepartureWarningState::WARNING_LEFT",
-                        "LaneDepartureWarningState::WARNING_RIGHT"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "LaneDepartureWarningState::NO_WARNING",
+                "LaneDepartureWarningState::WARNING_LEFT",
+                "LaneDepartureWarningState::WARNING_RIGHT"
             ]
         },
         {
@@ -5936,18 +5076,21 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "LaneKeepAssistState::ENABLED",
-                        "LaneKeepAssistState::ACTIVATED_STEER_LEFT",
-                        "LaneKeepAssistState::ACTIVATED_STEER_RIGHT",
-                        "LaneKeepAssistState::USER_OVERRIDE"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "LaneKeepAssistState::ENABLED",
+                "LaneKeepAssistState::ACTIVATED_STEER_LEFT",
+                "LaneKeepAssistState::ACTIVATED_STEER_RIGHT",
+                "LaneKeepAssistState::USER_OVERRIDE"
             ]
         },
         {
@@ -5970,19 +5113,22 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "LaneCenteringAssistState::ENABLED",
-                        "LaneCenteringAssistState::ACTIVATION_REQUESTED",
-                        "LaneCenteringAssistState::ACTIVATED",
-                        "LaneCenteringAssistState::USER_OVERRIDE",
-                        "LaneCenteringAssistState::FORCED_DEACTIVATION_WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "LaneCenteringAssistState::ENABLED",
+                "LaneCenteringAssistState::ACTIVATION_REQUESTED",
+                "LaneCenteringAssistState::ACTIVATED",
+                "LaneCenteringAssistState::USER_OVERRIDE",
+                "LaneCenteringAssistState::FORCED_DEACTIVATION_WARNING"
             ]
         },
         {
@@ -6002,16 +5148,19 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "LowSpeedCollisionWarningState::NO_WARNING",
-                        "LowSpeedCollisionWarningState::WARNING"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "LowSpeedCollisionWarningState::NO_WARNING",
+                "LowSpeedCollisionWarningState::WARNING"
             ]
         },
         {
@@ -6031,16 +5180,19 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_SPEED_LOW",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "ElectronicStabilityControlState::ENABLED",
-                        "ElectronicStabilityControlState::ACTIVATED"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_SPEED_LOW",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "ElectronicStabilityControlState::ENABLED",
+                "ElectronicStabilityControlState::ACTIVATED"
             ]
         },
         {
@@ -6060,21 +5212,24 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "CrossTrafficMonitoringWarningState::NO_WARNING",
-                        "CrossTrafficMonitoringWarningState::WARNING_FRONT_LEFT",
-                        "CrossTrafficMonitoringWarningState::WARNING_FRONT_RIGHT",
-                        "CrossTrafficMonitoringWarningState::WARNING_FRONT_BOTH",
-                        "CrossTrafficMonitoringWarningState::WARNING_REAR_LEFT",
-                        "CrossTrafficMonitoringWarningState::WARNING_REAR_RIGHT",
-                        "CrossTrafficMonitoringWarningState::WARNING_REAR_BOTH"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "CrossTrafficMonitoringWarningState::NO_WARNING",
+                "CrossTrafficMonitoringWarningState::WARNING_FRONT_LEFT",
+                "CrossTrafficMonitoringWarningState::WARNING_FRONT_RIGHT",
+                "CrossTrafficMonitoringWarningState::WARNING_FRONT_BOTH",
+                "CrossTrafficMonitoringWarningState::WARNING_REAR_LEFT",
+                "CrossTrafficMonitoringWarningState::WARNING_REAR_RIGHT",
+                "CrossTrafficMonitoringWarningState::WARNING_REAR_BOTH"
             ]
         },
         {
@@ -6094,17 +5249,20 @@
             },
             "areas": [
                 {
-                    "areaId": 0,
-                    "supportedEnumValues": [
-                        "ErrorState::NOT_AVAILABLE_SAFETY",
-                        "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
-                        "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
-                        "ErrorState::NOT_AVAILABLE_DISABLED",
-                        "LowSpeedAutomaticEmergencyBrakingState::ENABLED",
-                        "LowSpeedAutomaticEmergencyBrakingState::ACTIVATED",
-                        "LowSpeedAutomaticEmergencyBrakingState::USER_OVERRIDE"
-                    ]
+                    "areaId": 0
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "ErrorState::NOT_AVAILABLE_SAFETY",
+                "ErrorState::NOT_AVAILABLE_POOR_VISIBILITY",
+                "ErrorState::NOT_AVAILABLE_SPEED_HIGH",
+                "ErrorState::NOT_AVAILABLE_DISABLED",
+                "LowSpeedAutomaticEmergencyBrakingState::ENABLED",
+                "LowSpeedAutomaticEmergencyBrakingState::ACTIVATED",
+                "LowSpeedAutomaticEmergencyBrakingState::USER_OVERRIDE"
             ]
         },
         {

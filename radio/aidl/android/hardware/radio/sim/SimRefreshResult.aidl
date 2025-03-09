@@ -19,6 +19,7 @@ package android.hardware.radio.sim;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 @SuppressWarnings(value={"redundant-name"})
 parcelable SimRefreshResult {
     /**

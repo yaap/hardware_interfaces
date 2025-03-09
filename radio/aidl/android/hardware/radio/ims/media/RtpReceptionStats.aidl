@@ -17,6 +17,7 @@
 package android.hardware.radio.ims.media;
 
 @VintfStability
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RtpReceptionStats {
     /** The timestamp of the latest RTP packet received */
     int rtpTimestamp;

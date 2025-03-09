@@ -19,6 +19,7 @@ package android.hardware.radio.ims;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ConnectionFailureInfo {
     @VintfStability
     @Backing(type="int")

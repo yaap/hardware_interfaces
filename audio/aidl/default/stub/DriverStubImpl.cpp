@@ -24,19 +24,27 @@
 
 namespace aidl::android::hardware::audio::core {
 
-DriverStubImpl::DriverStubImpl(const StreamContext& context)
+DriverStubImpl::DriverStubImpl(const StreamContext& context, int asyncSleepTimeUs)
     : mBufferSizeFrames(context.getBufferSizeInFrames()),
       mFrameSizeBytes(context.getFrameSize()),
       mSampleRate(context.getSampleRate()),
       mIsAsynchronous(!!context.getAsyncCallback()),
-      mIsInput(context.isInput()) {}
+      mIsInput(context.isInput()),
+      mMixPortHandle(context.getMixPortHandle()),
+      mAsyncSleepTimeUs(asyncSleepTimeUs) {}
+
+#define LOG_ENTRY()                                                                          \
+    LOG(DEBUG) << "[" << (mIsInput ? "in" : "out") << "|ioHandle:" << mMixPortHandle << "] " \
+               << __func__;
 
 ::android::status_t DriverStubImpl::init(DriverCallbackInterface* /*callback*/) {
+    LOG_ENTRY();
     mIsInitialized = true;
     return ::android::OK;
 }
 
 ::android::status_t DriverStubImpl::drain(StreamDescriptor::DrainMode) {
+    LOG_ENTRY();
     if (!mIsInitialized) {
         LOG(FATAL) << __func__ << ": must not happen for an uninitialized driver";
     }
@@ -46,14 +54,15 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
             const size_t delayUs = static_cast<size_t>(
                     std::roundf(mBufferSizeFrames * kMicrosPerSecond / mSampleRate));
             usleep(delayUs);
-        } else {
-            usleep(500);
+        } else if (mAsyncSleepTimeUs) {
+            usleep(mAsyncSleepTimeUs);
         }
     }
     return ::android::OK;
 }
 
 ::android::status_t DriverStubImpl::flush() {
+    LOG_ENTRY();
     if (!mIsInitialized) {
         LOG(FATAL) << __func__ << ": must not happen for an uninitialized driver";
     }
@@ -61,6 +70,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
 }
 
 ::android::status_t DriverStubImpl::pause() {
+    LOG_ENTRY();
     if (!mIsInitialized) {
         LOG(FATAL) << __func__ << ": must not happen for an uninitialized driver";
     }
@@ -68,6 +78,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
 }
 
 ::android::status_t DriverStubImpl::standby() {
+    LOG_ENTRY();
     if (!mIsInitialized) {
         LOG(FATAL) << __func__ << ": must not happen for an uninitialized driver";
     }
@@ -76,6 +87,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
 }
 
 ::android::status_t DriverStubImpl::start() {
+    LOG_ENTRY();
     if (!mIsInitialized) {
         LOG(FATAL) << __func__ << ": must not happen for an uninitialized driver";
     }
@@ -87,6 +99,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
 
 ::android::status_t DriverStubImpl::transfer(void* buffer, size_t frameCount,
                                              size_t* actualFrameCount, int32_t*) {
+    // No LOG_ENTRY as this is called very often.
     if (!mIsInitialized) {
         LOG(FATAL) << __func__ << ": must not happen for an uninitialized driver";
     }
@@ -95,7 +108,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
     }
     *actualFrameCount = frameCount;
     if (mIsAsynchronous) {
-        usleep(500);
+        if (mAsyncSleepTimeUs) usleep(mAsyncSleepTimeUs);
     } else {
         mFramesSinceStart += *actualFrameCount;
         const long bufferDurationUs = (*actualFrameCount) * MICROS_PER_SECOND / mSampleRate;
@@ -120,6 +133,7 @@ DriverStubImpl::DriverStubImpl(const StreamContext& context)
 }
 
 void DriverStubImpl::shutdown() {
+    LOG_ENTRY();
     mIsInitialized = false;
 }
 

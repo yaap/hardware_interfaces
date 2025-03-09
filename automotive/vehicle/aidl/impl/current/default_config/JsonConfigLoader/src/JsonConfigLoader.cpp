@@ -95,6 +95,12 @@ using ::aidl::android::hardware::automotive::vehicle::WindshieldWipersSwitch;
 using ::android::base::Error;
 using ::android::base::Result;
 
+int32_t COMPATIBLE_API_VERSIONS[] = {
+        // The base version.
+        1,
+        // V2 supports inherit areaId fields from parent property fields.
+        2};
+
 // Defines a map from constant names to constant values, the values defined here corresponds to
 // the "Constants::XXXX" used in JSON config file.
 const std::unordered_map<std::string, int> CONSTANTS_BY_NAME = {
@@ -147,6 +153,17 @@ const std::unordered_map<std::string, int> CONSTANTS_BY_NAME = {
         {"MIRROR_DRIVER_LEFT_RIGHT",
          toInt(VehicleAreaMirror::DRIVER_LEFT) | toInt(VehicleAreaMirror::DRIVER_RIGHT)},
 };
+
+std::string nodesToStr(const std::vector<const Json::Value*>& nodePtrs) {
+    std::string nodesStr = "";
+    for (const Json::Value* nodePtr : nodePtrs) {
+        if (nodesStr != "") {
+            nodesStr += ", ";
+        }
+        nodesStr += nodePtr->toStyledString();
+    }
+    return nodesStr;
+}
 
 // A class to parse constant values for type T where T is defined as an enum in NDK AIDL backend.
 template <class T>
@@ -447,10 +464,33 @@ Result<int> JsonValueParser::parseConstantValue(
 }
 
 template <class T>
+bool JsonConfigParser::tryParseJsonValueToVariable(
+        std::vector<const Json::Value*> parentJsonNodePtrs, const std::string& fieldName,
+        bool fieldIsOptional, T* outPtr, std::vector<std::string>* errors) {
+    bool found = false;
+    for (const Json::Value* parentJsonNodePtr : parentJsonNodePtrs) {
+        bool result = tryParseJsonValueToVariable(*parentJsonNodePtr, fieldName,
+                                                  /*fieldIsOptional=*/true, outPtr, errors, &found);
+        if (!result) {
+            return result;
+        }
+        if (found) {
+            return true;
+        }
+    }
+    if (!fieldIsOptional && !found) {
+        errors->push_back("Missing required field: " + fieldName +
+                          " in nodes: " + nodesToStr(parentJsonNodePtrs));
+        return false;
+    }
+    return true;
+}
+
+template <class T>
 bool JsonConfigParser::tryParseJsonValueToVariable(const Json::Value& parentJsonNode,
                                                    const std::string& fieldName,
                                                    bool fieldIsOptional, T* outPtr,
-                                                   std::vector<std::string>* errors) {
+                                                   std::vector<std::string>* errors, bool* found) {
     if (!parentJsonNode.isObject()) {
         errors->push_back("Node: " + parentJsonNode.toStyledString() + " is not an object");
         return false;
@@ -469,6 +509,32 @@ bool JsonConfigParser::tryParseJsonValueToVariable(const Json::Value& parentJson
         return false;
     }
     *outPtr = std::move(result.value());
+    if (found != nullptr) {
+        *found = true;
+    }
+    return true;
+}
+
+template <class T>
+bool JsonConfigParser::tryParseJsonArrayToVariable(
+        std::vector<const Json::Value*> parentJsonNodePtrs, const std::string& fieldName,
+        bool fieldIsOptional, std::vector<T>* outPtr, std::vector<std::string>* errors) {
+    bool found = false;
+    for (const Json::Value* parentJsonNodePtr : parentJsonNodePtrs) {
+        bool result = tryParseJsonArrayToVariable(*parentJsonNodePtr, fieldName,
+                                                  /*fieldIsOptional=*/true, outPtr, errors, &found);
+        if (!result) {
+            return result;
+        }
+        if (found) {
+            return true;
+        }
+    }
+    if (!fieldIsOptional && !found) {
+        errors->push_back("Missing required field: " + fieldName +
+                          " in nodes: " + nodesToStr(parentJsonNodePtrs));
+        return false;
+    }
     return true;
 }
 
@@ -476,7 +542,7 @@ template <class T>
 bool JsonConfigParser::tryParseJsonArrayToVariable(const Json::Value& parentJsonNode,
                                                    const std::string& fieldName,
                                                    bool fieldIsOptional, std::vector<T>* outPtr,
-                                                   std::vector<std::string>* errors) {
+                                                   std::vector<std::string>* errors, bool* found) {
     if (!parentJsonNode.isObject()) {
         errors->push_back("Node: " + parentJsonNode.toStyledString() + " is not an object");
         return false;
@@ -495,6 +561,9 @@ bool JsonConfigParser::tryParseJsonArrayToVariable(const Json::Value& parentJson
         return false;
     }
     *outPtr = std::move(result.value());
+    if (found != nullptr) {
+        *found = true;
+    }
     return true;
 }
 
@@ -574,44 +643,60 @@ void JsonConfigParser::parseAreas(const Json::Value& parentJsonNode, const std::
         }
         VehicleAreaConfig areaConfig = {};
         areaConfig.areaId = areaId;
+        // We have already parsed the access in parentJsonNode into config, so we do not have to
+        // parse parentNode again here.
         parseAccessChangeMode(jsonAreaConfig, "access", propStr, &(config->config.access),
                               &areaConfig.access, errors);
-        tryParseJsonValueToVariable(jsonAreaConfig, "minInt32Value", /*optional=*/true,
-                                    &areaConfig.minInt32Value, errors);
-        tryParseJsonValueToVariable(jsonAreaConfig, "maxInt32Value", /*optional=*/true,
-                                    &areaConfig.maxInt32Value, errors);
-        tryParseJsonValueToVariable(jsonAreaConfig, "minInt64Value", /*optional=*/true,
-                                    &areaConfig.minInt64Value, errors);
-        tryParseJsonValueToVariable(jsonAreaConfig, "maxInt64Value", /*optional=*/true,
-                                    &areaConfig.maxInt64Value, errors);
-        tryParseJsonValueToVariable(jsonAreaConfig, "minFloatValue", /*optional=*/true,
-                                    &areaConfig.minFloatValue, errors);
-        tryParseJsonValueToVariable(jsonAreaConfig, "maxFloatValue", /*optional=*/true,
-                                    &areaConfig.maxFloatValue, errors);
+        // All the following fields may come from area config or from parent node (property config).
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "minInt32Value",
+                                    /*optional=*/true, &areaConfig.minInt32Value, errors);
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "maxInt32Value",
+                                    /*optional=*/true, &areaConfig.maxInt32Value, errors);
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "minInt64Value",
+                                    /*optional=*/true, &areaConfig.minInt64Value, errors);
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "maxInt64Value",
+                                    /*optional=*/true, &areaConfig.maxInt64Value, errors);
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "minFloatValue",
+                                    /*optional=*/true, &areaConfig.minFloatValue, errors);
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "maxFloatValue",
+                                    /*optional=*/true, &areaConfig.maxFloatValue, errors);
 
         // By default we support variable update rate for all properties except it is explicitly
         // disabled.
         areaConfig.supportVariableUpdateRate = true;
-        tryParseJsonValueToVariable(jsonAreaConfig, "supportVariableUpdateRate", /*optional=*/true,
-                                    &areaConfig.supportVariableUpdateRate, errors);
+        tryParseJsonValueToVariable({&jsonAreaConfig, &parentJsonNode}, "supportVariableUpdateRate",
+                                    /*optional=*/true, &areaConfig.supportVariableUpdateRate,
+                                    errors);
 
         std::vector<int64_t> supportedEnumValues;
-        tryParseJsonArrayToVariable(jsonAreaConfig, "supportedEnumValues", /*optional=*/true,
-                                    &supportedEnumValues, errors);
+        tryParseJsonArrayToVariable({&jsonAreaConfig, &parentJsonNode}, "supportedEnumValues",
+                                    /*optional=*/true, &supportedEnumValues, errors);
         if (!supportedEnumValues.empty()) {
             areaConfig.supportedEnumValues = std::move(supportedEnumValues);
         }
 
+        std::vector<float> supportedValues;
+        tryParseJsonArrayToVariable({&jsonAreaConfig, &parentJsonNode}, "supportedValues",
+                                    /*optional=*/true, &supportedValues, errors);
+        if (!supportedValues.empty()) {
+            config->supportedValuesForAreaId[areaId] = std::move(supportedValues);
+        }
+
+        const Json::Value* jsonHasSupportedValueInfo = nullptr;
         if (jsonAreaConfig.isMember("hasSupportedValueInfo")) {
+            jsonHasSupportedValueInfo = &jsonAreaConfig["hasSupportedValueInfo"];
+        } else if (parentJsonNode.isMember("hasSupportedValueInfo")) {
+            jsonHasSupportedValueInfo = &parentJsonNode["hasSupportedValueInfo"];
+        }
+        if (jsonHasSupportedValueInfo != nullptr) {
             HasSupportedValueInfo hasSupportedValueInfo = HasSupportedValueInfo{};
-            const Json::Value& jsonHasSupportedValueInfo = jsonAreaConfig["hasSupportedValueInfo"];
-            tryParseJsonValueToVariable(jsonHasSupportedValueInfo, "hasMinSupportedValue",
+            tryParseJsonValueToVariable(*jsonHasSupportedValueInfo, "hasMinSupportedValue",
                                         /*optional=*/true,
                                         &hasSupportedValueInfo.hasMinSupportedValue, errors);
-            tryParseJsonValueToVariable(jsonHasSupportedValueInfo, "hasMaxSupportedValue",
+            tryParseJsonValueToVariable(*jsonHasSupportedValueInfo, "hasMaxSupportedValue",
                                         /*optional=*/true,
                                         &hasSupportedValueInfo.hasMaxSupportedValue, errors);
-            tryParseJsonValueToVariable(jsonHasSupportedValueInfo, "hasSupportedValuesList",
+            tryParseJsonValueToVariable(*jsonHasSupportedValueInfo, "hasSupportedValuesList",
                                         /*optional=*/true,
                                         &hasSupportedValueInfo.hasSupportedValuesList, errors);
             areaConfig.hasSupportedValueInfo = std::move(hasSupportedValueInfo);
@@ -622,6 +707,11 @@ void JsonConfigParser::parseAreas(const Json::Value& parentJsonNode, const std::
         RawPropValues areaValue = {};
         if (parsePropValues(jsonAreaConfig, "defaultValue", &areaValue, errors)) {
             config->initialAreaValues[areaId] = std::move(areaValue);
+        } else {
+            if (config->initialValue != RawPropValues{}) {
+                // Skip empty initial values.
+                config->initialAreaValues[areaId] = config->initialValue;
+            }
         }
     }
 }
@@ -700,6 +790,21 @@ Result<std::unordered_map<int32_t, ConfigDeclaration>> JsonConfigParser::parseJs
     }
     if (!root.isObject()) {
         return Error() << "root element must be an object";
+    }
+    // Default API version is 1.
+    int32_t apiVersion = 1;
+    if (root.isMember("apiVersion")) {
+        apiVersion = static_cast<int32_t>(root["apiVersion"].asInt());
+    }
+    bool compatible = false;
+    for (int32_t compatibleApiVersion : COMPATIBLE_API_VERSIONS) {
+        if (compatibleApiVersion == apiVersion) {
+            compatible = true;
+            break;
+        }
+    }
+    if (!compatible) {
+        return Error() << "The JSON file is not compatible with the JSON loader version";
     }
     if (!root.isMember("properties") || !root["properties"].isArray()) {
         return Error() << "Missing 'properties' field in root or the field is not an array";

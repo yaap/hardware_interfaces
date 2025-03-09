@@ -22,6 +22,7 @@ package android.hardware.radio.sim;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ImsiEncryptionInfo {
     /**
      * Key type to be used for ePDG

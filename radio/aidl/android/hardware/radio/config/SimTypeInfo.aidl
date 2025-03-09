@@ -21,6 +21,7 @@ import android.hardware.radio.config.SimType;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SimTypeInfo {
     /**
      * Current SimType on the physical slot id.

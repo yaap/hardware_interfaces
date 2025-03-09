@@ -23,6 +23,7 @@ package android.hardware.radio.network;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable LteVopsInfo {
     /**
      * This indicates if the camped network supports VoLTE services. This information is received from

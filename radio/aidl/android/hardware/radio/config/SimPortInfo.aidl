@@ -19,6 +19,7 @@ package android.hardware.radio.config;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SimPortInfo {
     /**
      * Integrated Circuit Card IDentifier (ICCID) is the unique identifier of the SIM card. The file

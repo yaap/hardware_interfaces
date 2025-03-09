@@ -33,7 +33,7 @@
 
 package android.hardware.radio.sim;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable SessionInfo {
   int sessionId;
   boolean isEs10 = false;

@@ -22,6 +22,7 @@ import android.hardware.radio.ims.media.CodecType;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CodecParams {
     /** Negotiated codec type */
     CodecType codecType = CodecType.INVALID;

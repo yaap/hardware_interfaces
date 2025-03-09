@@ -61,6 +61,8 @@ class Module : public BnModule {
     // The vendor extension done via inheritance can override interface methods and augment
     // a call to the base implementation.
 
+    binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
+
     ndk::ScopedAStatus setModuleDebug(
             const ::aidl::android::hardware::audio::core::ModuleDebug& in_debug) override;
     ndk::ScopedAStatus getTelephony(std::shared_ptr<ITelephony>* _aidl_return) override;
@@ -159,6 +161,7 @@ class Module : public BnModule {
     // Multimap because both ports and configs can be used by multiple patches.
     using Patches = std::multimap<int32_t, int32_t>;
 
+    static const std::string kClipTransitionSupportName;
     const Type mType;
     std::unique_ptr<Configuration> mConfig;
     ModuleDebug mDebug;

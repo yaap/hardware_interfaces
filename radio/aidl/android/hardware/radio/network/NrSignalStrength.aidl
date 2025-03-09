@@ -21,6 +21,7 @@ import android.hardware.radio.RadioConst;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable NrSignalStrength {
     /**
      * SS reference signal received power, multiplied by -1.

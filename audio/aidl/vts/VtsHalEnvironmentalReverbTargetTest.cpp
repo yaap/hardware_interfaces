@@ -305,7 +305,7 @@ class EnvironmentalReverbParamTest
         : EnvironmentalReverbHelper(std::get<DESCRIPTOR_INDEX>(GetParam())) {
         std::tie(mTag, mParamValue) = std::get<TAG_VALUE_PAIR>(GetParam());
     }
-    void SetUp() override { SetUpReverb(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpReverb()); }
     void TearDown() override { TearDownReverb(); }
 
     EnvironmentalReverb::Tag mTag;
@@ -350,7 +350,7 @@ class EnvironmentalReverbDataTest
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
         ASSERT_NO_FATAL_FAILURE(
                 generateSineWave(kInputFrequency, mInput, 1.0, kSamplingFrequency, mChannelLayout));
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
     }
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
@@ -387,11 +387,11 @@ class EnvironmentalReverbDataTest
 };
 
 TEST_P(EnvironmentalReverbDataTest, IncreasingParamValue) {
-    assertEnergyIncreasingWithParameter(false);
+    ASSERT_NO_FATAL_FAILURE(assertEnergyIncreasingWithParameter(false));
 }
 
 TEST_P(EnvironmentalReverbDataTest, WithBypassEnabled) {
-    assertZeroEnergyWithBypass(true);
+    ASSERT_NO_FATAL_FAILURE(assertZeroEnergyWithBypass(true));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -420,7 +420,7 @@ class EnvironmentalReverbMinimumParamTest
     }
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
         createEnvParam(EnvironmentalReverb::roomLevelMb, kMinRoomLevel);
         ASSERT_NO_FATAL_FAILURE(
                 setAndVerifyParam(EX_NONE, mEnvParam, EnvironmentalReverb::roomLevelMb));
@@ -478,7 +478,7 @@ class EnvironmentalReverbDiffusionTest
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
         ASSERT_NO_FATAL_FAILURE(
                 generateSineWave(kInputFrequency, mInput, 1.0, kSamplingFrequency, mChannelLayout));
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
     }
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
@@ -559,7 +559,7 @@ class EnvironmentalReverbDensityTest
             ASSERT_NO_FATAL_FAILURE(generateSineWave(kInputFrequency, mInput, 1.0,
                                                      kSamplingFrequency, mChannelLayout));
         }
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
     }
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);

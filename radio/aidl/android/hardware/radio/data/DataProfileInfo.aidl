@@ -23,6 +23,7 @@ import android.hardware.radio.data.TrafficDescriptor;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable DataProfileInfo {
     const int ID_DEFAULT = 0;
     const int ID_TETHERED = 1;

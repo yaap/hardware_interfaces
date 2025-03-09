@@ -140,12 +140,12 @@ class AECParamTest : public ::testing::TestWithParam<AECParamTestParam>, public 
 
 TEST_P(AECParamTest, SetAndGetEchoDelay) {
     addEchoDelayParam(mEchoDelay);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(AECParamTest, SetAndGetMobileMode) {
     addMobileModeParam(mMobileMode);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 std::vector<std::pair<std::shared_ptr<IFactory>, Descriptor>> kDescPair;

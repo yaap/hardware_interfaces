@@ -56,7 +56,7 @@ using android::hardware::audio::common::testing::detail::TestExecutionTracer;
 /// Effect factory testing.
 class EffectFactoryTest : public testing::TestWithParam<std::string> {
   public:
-    void SetUp() override { connectAndGetFactory(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(connectAndGetFactory()); }
 
     void TearDown() override {
         for (auto& effect : mEffects) {
@@ -253,7 +253,7 @@ TEST_P(EffectFactoryTest, CreateDestroyWithRestart) {
     creatAndDestroyDescs(descs);
 
     restartAndGetFactory();
-    connectAndGetFactory();
+    ASSERT_NO_FATAL_FAILURE(connectAndGetFactory());
     creatAndDestroyDescs(descs);
 }
 
@@ -265,7 +265,7 @@ TEST_P(EffectFactoryTest, EffectInvalidAfterRestart) {
     std::vector<std::shared_ptr<IEffect>> effects = createWithDescs(descs);
 
     restartAndGetFactory();
-    connectAndGetFactory();
+    ASSERT_NO_FATAL_FAILURE(connectAndGetFactory());
     destroyEffects(effects, EX_ILLEGAL_ARGUMENT);
 }
 

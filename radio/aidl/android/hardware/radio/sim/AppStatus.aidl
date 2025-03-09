@@ -23,6 +23,7 @@ import android.hardware.radio.sim.PinState;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable AppStatus {
     const int APP_STATE_UNKNOWN = 0;
     const int APP_STATE_DETECTED = 1;

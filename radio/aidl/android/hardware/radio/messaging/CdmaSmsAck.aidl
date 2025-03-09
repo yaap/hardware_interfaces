@@ -19,6 +19,7 @@ package android.hardware.radio.messaging;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaSmsAck {
     /** @deprecated Legacy CDMA is unsupported. */
     boolean errorClass;

@@ -33,7 +33,7 @@
 
 package android.hardware.radio.data;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable QosSession {
   int qosSessionId;
   android.hardware.radio.data.Qos qos;

@@ -19,6 +19,7 @@ package android.hardware.radio.modem;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RadioCapability {
     /**
      * Logical Modem's (LM) initial value and value after PHASE_FINISH completes.

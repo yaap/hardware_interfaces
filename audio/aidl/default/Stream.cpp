@@ -252,9 +252,10 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
                     mState == StreamDescriptor::State::ACTIVE ||
                     mState == StreamDescriptor::State::PAUSED ||
                     mState == StreamDescriptor::State::DRAINING) {
-                    if (hasMmapFlag(mContext->getFlags())) {
-                        populateReply(&reply, mIsConnected);
-                    } else if (!read(fmqByteCount, &reply)) {
+                    if (bool success = hasMmapFlag(mContext->getFlags())
+                                               ? readMmap(&reply)
+                                               : read(fmqByteCount, &reply);
+                        !success) {
                         mState = StreamDescriptor::State::ERROR;
                     }
                     if (mState == StreamDescriptor::State::IDLE ||
@@ -383,16 +384,38 @@ bool StreamInWorkerLogic::read(size_t clientSize, StreamDescriptor::Reply* reply
     return !fatal;
 }
 
+bool StreamInWorkerLogic::readMmap(StreamDescriptor::Reply* reply) {
+    void* buffer = nullptr;
+    size_t frameCount = 0;
+    size_t actualFrameCount = 0;
+    int32_t latency = mContext->getNominalLatencyMs();
+    // use default-initialized parameter values for mmap stream.
+    if (::android::status_t status =
+                mDriver->transfer(buffer, frameCount, &actualFrameCount, &latency);
+        status == ::android::OK) {
+        populateReply(reply, mIsConnected);
+        reply->latencyMs = latency;
+        return true;
+    } else {
+        LOG(ERROR) << __func__ << ": transfer failed: " << status;
+        return false;
+    }
+}
+
 const std::string StreamOutWorkerLogic::kThreadName = "writer";
 
 void StreamOutWorkerLogic::onBufferStateChange(size_t bufferFramesLeft) {
     const StreamDescriptor::State state = mState;
-    LOG(DEBUG) << __func__ << ": state: " << toString(state)
+    const DrainState drainState = mDrainState;
+    LOG(DEBUG) << __func__ << ": state: " << toString(state) << ", drainState: " << drainState
                << ", bufferFramesLeft: " << bufferFramesLeft;
-    if (state == StreamDescriptor::State::TRANSFERRING) {
-        mState = StreamDescriptor::State::ACTIVE;
+    if (state == StreamDescriptor::State::TRANSFERRING || drainState == DrainState::EN_SENT) {
+        if (state == StreamDescriptor::State::TRANSFERRING) {
+            mState = StreamDescriptor::State::ACTIVE;
+        }
         std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
         if (asyncCallback != nullptr) {
+            LOG(VERBOSE) << __func__ << ": sending onTransferReady";
             ndk::ScopedAStatus status = asyncCallback->onTransferReady();
             if (!status.isOk()) {
                 LOG(ERROR) << __func__ << ": error from onTransferReady: " << status;
@@ -411,8 +434,10 @@ void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNext
         mState =
                 hasNextClip ? StreamDescriptor::State::TRANSFERRING : StreamDescriptor::State::IDLE;
         mDrainState = DrainState::NONE;
-        if (drainState == DrainState::ALL && asyncCallback != nullptr) {
+        if ((drainState == DrainState::ALL || drainState == DrainState::EN_SENT) &&
+            asyncCallback != nullptr) {
             LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            // For EN_SENT, this is the second onDrainReady which notifies about clip transition.
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
                 LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
@@ -523,9 +548,10 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                 if (mState != StreamDescriptor::State::ERROR &&
                     mState != StreamDescriptor::State::TRANSFERRING &&
                     mState != StreamDescriptor::State::TRANSFER_PAUSED) {
-                    if (hasMmapFlag(mContext->getFlags())) {
-                        populateReply(&reply, mIsConnected);
-                    } else if (!write(fmqByteCount, &reply)) {
+                    if (bool success = hasMmapFlag(mContext->getFlags())
+                                               ? writeMmap(&reply)
+                                               : write(fmqByteCount, &reply);
+                        !success) {
                         mState = StreamDescriptor::State::ERROR;
                     }
                     std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
@@ -539,13 +565,17 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                             mState = StreamDescriptor::State::TRANSFER_PAUSED;
                         }
                     } else if (mState == StreamDescriptor::State::IDLE ||
-                               mState == StreamDescriptor::State::DRAINING ||
-                               mState == StreamDescriptor::State::ACTIVE) {
+                               mState == StreamDescriptor::State::ACTIVE ||
+                               (mState == StreamDescriptor::State::DRAINING &&
+                                mDrainState != DrainState::EN_SENT)) {
                         if (asyncCallback == nullptr || reply.fmqByteCount == fmqByteCount) {
                             mState = StreamDescriptor::State::ACTIVE;
                         } else {
                             switchToTransientState(StreamDescriptor::State::TRANSFERRING);
                         }
+                    } else if (mState == StreamDescriptor::State::DRAINING &&
+                               mDrainState == DrainState::EN_SENT) {
+                        // keep mState
                     }
                 } else {
                     populateReplyWrongState(&reply, command);
@@ -698,6 +728,24 @@ bool StreamOutWorkerLogic::write(size_t clientSize, StreamDescriptor::Reply* rep
     }
     reply->latencyMs = latency;
     return !fatal;
+}
+
+bool StreamOutWorkerLogic::writeMmap(StreamDescriptor::Reply* reply) {
+    void* buffer = nullptr;
+    size_t frameCount = 0;
+    size_t actualFrameCount = 0;
+    int32_t latency = mContext->getNominalLatencyMs();
+    // use default-initialized parameter values for mmap stream.
+    if (::android::status_t status =
+                mDriver->transfer(buffer, frameCount, &actualFrameCount, &latency);
+        status == ::android::OK) {
+        populateReply(reply, mIsConnected);
+        reply->latencyMs = latency;
+        return true;
+    } else {
+        LOG(ERROR) << __func__ << ": transfer failed: " << status;
+        return false;
+    }
 }
 
 StreamCommonImpl::~StreamCommonImpl() {

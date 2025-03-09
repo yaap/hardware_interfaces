@@ -307,6 +307,7 @@ class StreamInWorkerLogic : public StreamWorkerCommonLogic {
 
   private:
     bool read(size_t clientSize, StreamDescriptor::Reply* reply);
+    bool readMmap(StreamDescriptor::Reply* reply);
 };
 using StreamInWorker = StreamWorkerImpl<StreamInWorkerLogic>;
 
@@ -325,6 +326,7 @@ class StreamOutWorkerLogic : public StreamWorkerCommonLogic {
 
   private:
     bool write(size_t clientSize, StreamDescriptor::Reply* reply);
+    bool writeMmap(StreamDescriptor::Reply* reply);
 
     std::shared_ptr<IStreamOutEventCallback> mEventCallback;
 
@@ -651,6 +653,12 @@ class StreamWrapper {
         return ndk::ScopedAStatus::ok();
     }
 
+    void dump(int fd, const char** args, uint32_t numArgs) const {
+        auto s = ::ndk::ICInterface::asInterface(mStreamBinder.get());
+        if (s) s->dump(fd, args, numArgs);
+        return;
+    }
+
   private:
     std::weak_ptr<StreamCommonInterface> mStream;
     ndk::SpAIBinder mStreamBinder;
@@ -691,6 +699,12 @@ class Streams {
             return it->second.setGain(gain);
         }
         return ndk::ScopedAStatus::ok();
+    }
+    void dump(int32_t portConfigId, int fd, const char** args, uint32_t numArgs) const {
+        if (auto it = mStreams.find(portConfigId); it != mStreams.end()) {
+            it->second.dump(fd, args, numArgs);
+        }
+        return;
     }
 
   private:

@@ -22,6 +22,7 @@ import android.hardware.radio.ims.media.EvsMode;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 union CodecMode {
     /** Default value */
     boolean noinit;

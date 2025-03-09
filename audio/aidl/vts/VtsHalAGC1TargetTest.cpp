@@ -140,17 +140,17 @@ class AGC1ParamTest : public ::testing::TestWithParam<AGC1ParamTestParam>, publi
 
 TEST_P(AGC1ParamTest, SetAndGetTargetPeakLevelParam) {
     addTargetPeakLevelParam(mTargetPeakLevel);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(AGC1ParamTest, SetAndGetMaxCompressionGain) {
     addMaxCompressionGainParam(mMaxCompressionGain);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(AGC1ParamTest, SetAndGetEnableLimiter) {
     addEnableLimiterParam(mEnableLimiter);
-    SetAndGetParameters();
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 std::vector<std::pair<std::shared_ptr<IFactory>, Descriptor>> kDescPair;

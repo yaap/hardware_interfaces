@@ -33,7 +33,7 @@
 
 package android.hardware.radio.modem;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable ActivityStatsTechSpecificInfo {
   android.hardware.radio.AccessNetwork rat = android.hardware.radio.AccessNetwork.UNKNOWN;
   int frequencyRange;

@@ -21,6 +21,7 @@ import android.hardware.radio.network.OperatorInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellIdentityGsm {
     /**
      * 3-digit Mobile Country Code, 0..999, empty string if unknown
