@@ -112,6 +112,7 @@ cc_fuzz {
 cc_test {
     name: "HwCryptoHalDelegatorTests",
     enabled: false,
+    require_root: true,
     srcs: [
         "delegatorTest.cpp",
     ],
@@ -124,12 +125,14 @@ cc_test {
     shared_libs: [
         "libbase",
         "liblog",
+        "libutils",
         "libbinder",
         "libbinder_ndk",
     ],
     static_libs: [
         "android.hardware.security.see.hwcrypto-V1-ndk",
         "android.hardware.security.see.hwcrypto-V1-cpp",
+        "hwcryptohallib",
     ],
 
     arch: {

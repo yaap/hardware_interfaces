@@ -1628,10 +1628,10 @@ TEST_P(CameraAidlTest, processMultiCaptureRequestPreview) {
         Stream previewStream;
         std::shared_ptr<DeviceCb> cb;
 
-        configurePreviewStreams(
+        ASSERT_NO_FATAL_FAILURE(configurePreviewStreams(
                 name, mProvider, &previewThreshold, physicalIds, &mSession, &previewStream,
                 &halStreams /*out*/, &supportsPartialResults /*out*/, &partialResultCount /*out*/,
-                &halBufManagedStreamIds /*out*/, &cb /*out*/, 0 /*streamConfigCounter*/, true);
+                &halBufManagedStreamIds /*out*/, &cb /*out*/, 0 /*streamConfigCounter*/, true));
         if (mSession == nullptr) {
             // stream combination not supported by HAL, skip test for device
             continue;
@@ -2244,10 +2244,10 @@ TEST_P(CameraAidlTest, processCaptureRequestBurstISO) {
         Stream previewStream;
         std::vector<HalStream> halStreams;
         std::shared_ptr<DeviceCb> cb;
-        configurePreviewStream(name, mProvider, &previewThreshold, &mSession /*out*/,
-                               &previewStream /*out*/, &halStreams /*out*/,
-                               &supportsPartialResults /*out*/, &partialResultCount /*out*/,
-                               &useHalBufManager /*out*/, &cb /*out*/);
+        ASSERT_NO_FATAL_FAILURE(configurePreviewStream(
+                name, mProvider, &previewThreshold, &mSession /*out*/, &previewStream /*out*/,
+                &halStreams /*out*/, &supportsPartialResults /*out*/, &partialResultCount /*out*/,
+                &useHalBufManager /*out*/, &cb /*out*/));
 
         ::aidl::android::hardware::common::fmq::MQDescriptor<
                 int8_t, aidl::android::hardware::common::fmq::SynchronizedReadWrite>
@@ -2373,10 +2373,10 @@ TEST_P(CameraAidlTest, processCaptureRequestInvalidSinglePreview) {
         bool supportsPartialResults = false;
         bool useHalBufManager = false;
         int32_t partialResultCount = 0;
-        configurePreviewStream(name, mProvider, &previewThreshold, &mSession /*out*/,
-                               &previewStream /*out*/, &halStreams /*out*/,
-                               &supportsPartialResults /*out*/, &partialResultCount /*out*/,
-                               &useHalBufManager /*out*/, &cb /*out*/);
+        ASSERT_NO_FATAL_FAILURE(configurePreviewStream(
+                name, mProvider, &previewThreshold, &mSession /*out*/, &previewStream /*out*/,
+                &halStreams /*out*/, &supportsPartialResults /*out*/, &partialResultCount /*out*/,
+                &useHalBufManager /*out*/, &cb /*out*/));
         ASSERT_NE(mSession, nullptr);
         ASSERT_FALSE(halStreams.empty());
 
@@ -2637,10 +2637,10 @@ TEST_P(CameraAidlTest, processCaptureRequestInvalidBuffer) {
         bool supportsPartialResults = false;
         bool useHalBufManager = false;
         int32_t partialResultCount = 0;
-        configurePreviewStream(name, mProvider, &previewThreshold, &mSession /*out*/,
-                               &previewStream /*out*/, &halStreams /*out*/,
-                               &supportsPartialResults /*out*/, &partialResultCount /*out*/,
-                               &useHalBufManager /*out*/, &cb /*out*/);
+        ASSERT_NO_FATAL_FAILURE(configurePreviewStream(
+                name, mProvider, &previewThreshold, &mSession /*out*/, &previewStream /*out*/,
+                &halStreams /*out*/, &supportsPartialResults /*out*/, &partialResultCount /*out*/,
+                &useHalBufManager /*out*/, &cb /*out*/));
 
         RequestTemplate reqTemplate = RequestTemplate::PREVIEW;
         ndk::ScopedAStatus ret = mSession->constructDefaultRequestSettings(reqTemplate, &settings);
@@ -2692,10 +2692,10 @@ TEST_P(CameraAidlTest, flushPreviewRequest) {
         bool useHalBufManager = false;
         int32_t partialResultCount = 0;
 
-        configurePreviewStream(name, mProvider, &previewThreshold, &mSession /*out*/,
-                               &previewStream /*out*/, &halStreams /*out*/,
-                               &supportsPartialResults /*out*/, &partialResultCount /*out*/,
-                               &useHalBufManager /*out*/, &cb /*out*/);
+        ASSERT_NO_FATAL_FAILURE(configurePreviewStream(
+                name, mProvider, &previewThreshold, &mSession /*out*/, &previewStream /*out*/,
+                &halStreams /*out*/, &supportsPartialResults /*out*/, &partialResultCount /*out*/,
+                &useHalBufManager /*out*/, &cb /*out*/));
 
         ASSERT_NE(mSession, nullptr);
         ASSERT_NE(cb, nullptr);
@@ -2817,10 +2817,10 @@ TEST_P(CameraAidlTest, flushEmpty) {
         bool useHalBufManager = false;
 
         int32_t partialResultCount = 0;
-        configurePreviewStream(name, mProvider, &previewThreshold, &mSession /*out*/,
-                               &previewStream /*out*/, &halStreams /*out*/,
-                               &supportsPartialResults /*out*/, &partialResultCount /*out*/,
-                               &useHalBufManager /*out*/, &cb /*out*/);
+        ASSERT_NO_FATAL_FAILURE(configurePreviewStream(
+                name, mProvider, &previewThreshold, &mSession /*out*/, &previewStream /*out*/,
+                &halStreams /*out*/, &supportsPartialResults /*out*/, &partialResultCount /*out*/,
+                &useHalBufManager /*out*/, &cb /*out*/));
 
         ndk::ScopedAStatus returnStatus = mSession->flush();
         ASSERT_TRUE(returnStatus.isOk());

@@ -1,0 +1,84 @@
+// Copyright (C) 2024 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "hardware_interfaces_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["hardware_interfaces_license"],
+}
+
+cc_defaults {
+    name: "android.hardware.radio-minradio@defaults",
+    relative_install_path: "hw",
+    vendor: true,
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DANDROID_UTILS_REF_BASE_DISABLE_IMPLICIT_CONSTRUCTION",
+        "-g",
+
+        // binder_to_string.h uses deprecated codecvt_utf8_utf16.
+        // We can't fix it in foreesable future.
+        "-D_LIBCPP_DISABLE_DEPRECATION_WARNINGS",
+    ],
+    shared_libs: [
+        "android.hardware.radio.config-V4-ndk",
+        "android.hardware.radio.data-V4-ndk",
+        "android.hardware.radio.modem-V4-ndk",
+        "android.hardware.radio.network-V4-ndk",
+        "android.hardware.radio.sim-V4-ndk",
+        "libbase",
+        "libbinder_ndk",
+        "libutils",
+    ],
+    sanitize: {
+        address: true,
+        all_undefined: true,
+        fuzzer: true,
+        integer_overflow: true,
+    },
+    strip: {
+        none: true,
+    },
+}
+
+cc_library {
+    name: "android.hardware.radio-library.minradio",
+    defaults: ["android.hardware.radio-minradio@defaults"],
+    export_include_dirs: ["include"],
+    srcs: [
+        "RadioSlotBase.cpp",
+        "ResponseTracker.cpp",
+        "SlotContext.cpp",
+        "config/RadioConfig.cpp",
+        "data/RadioData.cpp",
+        "modem/RadioModem.cpp",
+        "network/RadioNetwork.cpp",
+        "network/RadioNetworkResponseTracker.cpp",
+        "network/structs.cpp",
+        "response.cpp",
+        "sim/apps/AraM.cpp",
+        "sim/apps/FilesystemApp.cpp",
+        "sim/apps/tlv.cpp",
+        "sim/App.cpp",
+        "sim/AppManager.cpp",
+        "sim/Filesystem.cpp",
+        "sim/IccUtils.cpp",
+        "sim/RadioSim.cpp",
+    ],
+}

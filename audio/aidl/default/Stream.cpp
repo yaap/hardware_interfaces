@@ -65,18 +65,26 @@ void StreamContext::fillDescriptor(StreamDescriptor* desc) {
     if (mReplyMQ) {
         desc->reply = mReplyMQ->dupeDesc();
     }
+    desc->frameSizeBytes = getFrameSize();
+    desc->bufferSizeFrames = getBufferSizeInFrames();
     if (mDataMQ) {
-        desc->frameSizeBytes = getFrameSize();
-        desc->bufferSizeFrames = getBufferSizeInFrames();
         desc->audio.set<StreamDescriptor::AudioBuffer::Tag::fmq>(mDataMQ->dupeDesc());
+    } else {
+        MmapBufferDescriptor mmapDesc;  // Move-only due to `fd`.
+        mmapDesc.sharedMemory.fd = mMmapBufferDesc.sharedMemory.fd.dup();
+        mmapDesc.sharedMemory.size = mMmapBufferDesc.sharedMemory.size;
+        mmapDesc.burstSizeFrames = mMmapBufferDesc.burstSizeFrames;
+        mmapDesc.flags = mMmapBufferDesc.flags;
+        desc->audio.set<StreamDescriptor::AudioBuffer::Tag::mmap>(std::move(mmapDesc));
     }
 }
 
 size_t StreamContext::getBufferSizeInFrames() const {
     if (mDataMQ) {
         return mDataMQ->getQuantumCount() * mDataMQ->getQuantumSize() / getFrameSize();
+    } else {
+        return mMmapBufferDesc.sharedMemory.size / getFrameSize();
     }
-    return 0;
 }
 
 size_t StreamContext::getFrameSize() const {
@@ -96,9 +104,13 @@ bool StreamContext::isValid() const {
         LOG(ERROR) << "frame size is invalid";
         return false;
     }
-    if (!hasMmapFlag(mFlags) && mDataMQ && !mDataMQ->isValid()) {
+    if (!isMmap() && mDataMQ && !mDataMQ->isValid()) {
         LOG(ERROR) << "data FMQ is invalid";
         return false;
+    } else if (isMmap() &&
+               (mMmapBufferDesc.sharedMemory.fd.get() == -1 ||
+                mMmapBufferDesc.sharedMemory.size == 0 || mMmapBufferDesc.burstSizeFrames == 0)) {
+        LOG(ERROR) << "mmap info is invalid" << mMmapBufferDesc.toString();
     }
     return true;
 }
@@ -115,6 +127,7 @@ void StreamContext::reset() {
     mCommandMQ.reset();
     mReplyMQ.reset();
     mDataMQ.reset();
+    mMmapBufferDesc.sharedMemory.fd.set(-1);
 }
 
 pid_t StreamWorkerCommonLogic::getTid() const {
@@ -128,7 +141,7 @@ pid_t StreamWorkerCommonLogic::getTid() const {
 std::string StreamWorkerCommonLogic::init() {
     if (mContext->getCommandMQ() == nullptr) return "Command MQ is null";
     if (mContext->getReplyMQ() == nullptr) return "Reply MQ is null";
-    if (!hasMmapFlag(mContext->getFlags())) {
+    if (!mContext->isMmap()) {
         StreamContext::DataMQ* const dataMQ = mContext->getDataMQ();
         if (dataMQ == nullptr) return "Data MQ is null";
         if (sizeof(DataBufferElement) != dataMQ->getQuantumSize()) {
@@ -167,7 +180,7 @@ void StreamWorkerCommonLogic::populateReply(StreamDescriptor::Reply* reply,
     } else {
         reply->observable = reply->hardware = kUnknownPosition;
     }
-    if (hasMmapFlag(mContext->getFlags())) {
+    if (mContext->isMmap()) {
         if (auto status = mDriver->getMmapPositionAndLatency(&reply->hardware, &reply->latencyMs);
             status != ::android::OK) {
             reply->hardware = kUnknownPosition;
@@ -252,9 +265,8 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
                     mState == StreamDescriptor::State::ACTIVE ||
                     mState == StreamDescriptor::State::PAUSED ||
                     mState == StreamDescriptor::State::DRAINING) {
-                    if (bool success = hasMmapFlag(mContext->getFlags())
-                                               ? readMmap(&reply)
-                                               : read(fmqByteCount, &reply);
+                    if (bool success =
+                                mContext->isMmap() ? readMmap(&reply) : read(fmqByteCount, &reply);
                         !success) {
                         mState = StreamDescriptor::State::ERROR;
                     }
@@ -548,9 +560,8 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                 if (mState != StreamDescriptor::State::ERROR &&
                     mState != StreamDescriptor::State::TRANSFERRING &&
                     mState != StreamDescriptor::State::TRANSFER_PAUSED) {
-                    if (bool success = hasMmapFlag(mContext->getFlags())
-                                               ? writeMmap(&reply)
-                                               : write(fmqByteCount, &reply);
+                    if (bool success = mContext->isMmap() ? writeMmap(&reply)
+                                                          : write(fmqByteCount, &reply);
                         !success) {
                         mState = StreamDescriptor::State::ERROR;
                     }

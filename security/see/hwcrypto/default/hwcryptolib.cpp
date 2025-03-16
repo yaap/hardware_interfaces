@@ -216,6 +216,36 @@ cpp_hwcrypto::types::AesGcmMode::AesGcmModeParameters convertSymmetricModeParame
     return gcmModeParameters;
 }
 
+std::optional<cpp_hwcrypto::MemoryBufferParameter> convertMemoryBufferParameters(
+        const ndk_hwcrypto::MemoryBufferParameter& ndkMemBuffParams) {
+    cpp_hwcrypto::MemoryBufferParameter memBuffParams = cpp_hwcrypto::MemoryBufferParameter();
+    memBuffParams.sizeBytes = ndkMemBuffParams.sizeBytes;
+    android::os::ParcelFileDescriptor pfd;
+    ndk::ScopedFileDescriptor ndkFd;
+    switch (ndkMemBuffParams.bufferHandle.getTag()) {
+        case ndk_hwcrypto::MemoryBufferParameter::MemoryBuffer::input:
+            ndkFd = ndkMemBuffParams.bufferHandle
+                            .get<ndk_hwcrypto::MemoryBufferParameter::MemoryBuffer::input>()
+                            .dup();
+            pfd.reset(binder::unique_fd(ndkFd.release()));
+            memBuffParams.bufferHandle
+                    .set<cpp_hwcrypto::MemoryBufferParameter::MemoryBuffer::input>(std::move(pfd));
+            break;
+        case ndk_hwcrypto::MemoryBufferParameter::MemoryBuffer::output:
+            ndkFd = ndkMemBuffParams.bufferHandle
+                            .get<ndk_hwcrypto::MemoryBufferParameter::MemoryBuffer::output>()
+                            .dup();
+            pfd.reset(binder::unique_fd(ndkFd.release()));
+            memBuffParams.bufferHandle
+                    .set<cpp_hwcrypto::MemoryBufferParameter::MemoryBuffer::output>(std::move(pfd));
+            break;
+        default:
+            LOG(ERROR) << "unknown bufferHandle type";
+            return std::nullopt;
+    }
+    return memBuffParams;
+}
+
 std::optional<cpp_hwcrypto::OperationParameters> convertOperationParameters(
         const ndk_hwcrypto::OperationParameters& ndkOperationParameters) {
     cpp_hwcrypto::OperationParameters operationParameters = cpp_hwcrypto::OperationParameters();
@@ -427,10 +457,17 @@ class HwCryptoOperationsNdk : public ndk_hwcrypto::BnHwCryptoOperations {
                 std::optional<cpp_hwcrypto::types::OperationData> cppOperationData;
                 std::optional<cpp_hwcrypto::PatternParameters> cppPatternParameters;
                 std::optional<cpp_hwcrypto::OperationParameters> cppOperationParameters;
+                std::optional<cpp_hwcrypto::MemoryBufferParameter> cppMemBuffParams;
                 switch (operation.getTag()) {
                     case ndk_hwcrypto::CryptoOperation::setMemoryBuffer:
-                        // TODO: finish this case
-                        exit(1);
+                        cppMemBuffParams = convertMemoryBufferParameters(
+                                operation.get<ndk_hwcrypto::CryptoOperation::setMemoryBuffer>());
+                        if (cppMemBuffParams.has_value()) {
+                            cppOperation.set<cpp_hwcrypto::CryptoOperation::setMemoryBuffer>(
+                                    std::move(cppMemBuffParams.value()));
+                        } else {
+                            return convertStatus(status);
+                        }
                         break;
                     case ndk_hwcrypto::CryptoOperation::setOperationParameters:
                         cppOperationParameters = convertOperationParameters(
@@ -681,7 +718,11 @@ class OpaqueKeyNdk : public ndk_hwcrypto::BnOpaqueKey {
 
 Result<void> HwCryptoKey::connectToTrusty(const char* tipcDev) {
     assert(!mSession);
-    mSession = RpcTrustyConnectWithSessionInitializer(tipcDev, HWCRYPTO_KEY_PORT, [](auto) {});
+    auto session_initializer = [](sp<RpcSession>& session) {
+        session->setFileDescriptorTransportMode(RpcSession::FileDescriptorTransportMode::TRUSTY);
+    };
+    mSession =
+            RpcTrustyConnectWithSessionInitializer(tipcDev, HWCRYPTO_KEY_PORT, session_initializer);
     if (!mSession) {
         return ErrnoError() << "failed to connect to hwcrypto";
     }

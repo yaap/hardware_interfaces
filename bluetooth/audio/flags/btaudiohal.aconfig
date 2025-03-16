@@ -14,3 +14,10 @@ flag {
     description: "Flag for reporting lea broadcast audio config to HAL"
     bug: "321168976"
 }
+
+flag {
+    name: "leaudio_sw_offload"
+    namespace: "pixel_bluetooth"
+    description: "Flag for using sw offload path to send premium audio"
+    bug: "398885696"
+}

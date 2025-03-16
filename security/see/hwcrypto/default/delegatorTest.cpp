@@ -1,9 +1,82 @@
+#include <android/binder_manager.h>
 #include <gtest/gtest.h>
+#include <linux/dma-heap.h>
+#include <sys/auxv.h>
+#include <sys/mman.h>
 #include "hwcryptokeyimpl.h"
+
+static inline bool align_overflow(size_t size, size_t alignment, size_t* aligned) {
+    if (size % alignment == 0) {
+        *aligned = size;
+        return false;
+    }
+    size_t temp = 0;
+    bool overflow = __builtin_add_overflow(size / alignment, 1, &temp);
+    overflow |= __builtin_mul_overflow(temp, alignment, aligned);
+    return overflow;
+}
+
+static int allocate_buffers(size_t size) {
+    const char* device_name = "/dev/dma_heap/system";
+    int dma_heap_fd = open(device_name, O_RDONLY | O_CLOEXEC);
+    if (dma_heap_fd < 0) {
+        LOG(ERROR) << "Cannot open " << device_name;
+        return -1;
+    }
+    size_t aligned = 0;
+    if (align_overflow(size, getauxval(AT_PAGESZ), &aligned)) {
+        LOG(ERROR) << "Rounding up buffer size oveflowed";
+        return -1;
+    }
+    struct dma_heap_allocation_data allocation_request = {
+            .len = aligned,
+            .fd_flags = O_RDWR | O_CLOEXEC,
+    };
+    int rc = ioctl(dma_heap_fd, DMA_HEAP_IOCTL_ALLOC, &allocation_request);
+    if (rc < 0) {
+        LOG(ERROR) << "Buffer allocation request failed  " << rc;
+        return -1;
+    }
+    int fd = allocation_request.fd;
+    if (fd < 0) {
+        LOG(ERROR) << "Allocation request returned bad fd" << fd;
+        return -1;
+    }
+    return fd;
+}
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+TEST(HwCryptoHalDelegator, FdTest) {
+    const std::string instance =
+            std::string() + ndk_hwcrypto::IHwCryptoKey::descriptor + "/default";
+    ndk::SpAIBinder binder(AServiceManager_waitForService(instance.c_str()));
+    ASSERT_NE(binder, nullptr);
+    auto hwCryptoKey = ndk_hwcrypto::IHwCryptoKey::fromBinder(binder);
+    ASSERT_NE(hwCryptoKey, nullptr);
+    auto fd = allocate_buffers(4096);
+    EXPECT_GE(fd, 0);
+    ndk::ScopedFileDescriptor ndkFd(fd);
+    ndk_hwcrypto::MemoryBufferParameter memBuffParam = ndk_hwcrypto::MemoryBufferParameter();
+    memBuffParam.bufferHandle.set<ndk_hwcrypto::MemoryBufferParameter::MemoryBuffer::input>(
+            std::move(ndkFd));
+    memBuffParam.sizeBytes = 4096;
+    auto operation = ndk_hwcrypto::CryptoOperation();
+    operation.set<ndk_hwcrypto::CryptoOperation::setMemoryBuffer>(std::move(memBuffParam));
+    ndk_hwcrypto::CryptoOperationSet operationSet = ndk_hwcrypto::CryptoOperationSet();
+    operationSet.context = nullptr;
+    operationSet.operations.push_back(std::move(operation));
+    std::vector<ndk_hwcrypto::CryptoOperationSet> operationSets;
+    operationSets.push_back(std::move(operationSet));
+    std::vector<ndk_hwcrypto::CryptoOperationResult> aidl_return;
+    std::shared_ptr<ndk_hwcrypto::IHwCryptoOperations> hwCryptoOperations;
+    auto res = hwCryptoKey->getHwCryptoOperations(&hwCryptoOperations);
+    EXPECT_TRUE(res.isOk());
+    res = hwCryptoOperations->processCommandList(&operationSets, &aidl_return);
+    EXPECT_TRUE(res.isOk());
 }
 
 TEST(HwCryptoHalDelegator, keyPolicyCppToNdk) {

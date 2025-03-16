@@ -201,6 +201,13 @@ TEST_P(RadioModemTest, getDeviceIdentity) {
         GTEST_SKIP() << "Skipping getDeviceIdentity "
                         "due to undefined FEATURE_TELEPHONY";
     }
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_modem->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version >= 4) {
+        ALOGI("Skipped the test since getDeviceIdentity is deprecated");
+        GTEST_SKIP();
+    }
 
     serial = GetRandomSerialNumber();
 

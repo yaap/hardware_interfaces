@@ -104,6 +104,27 @@ class StreamContext {
           mOutEventCallback(outEventCallback),
           mStreamDataProcessor(streamDataProcessor),
           mDebugParameters(debugParameters) {}
+    StreamContext(std::unique_ptr<CommandMQ> commandMQ, std::unique_ptr<ReplyMQ> replyMQ,
+                  const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+                  const ::aidl::android::media::audio::common::AudioChannelLayout& channelLayout,
+                  int sampleRate, const ::aidl::android::media::audio::common::AudioIoFlags& flags,
+                  int32_t nominalLatencyMs, int32_t mixPortHandle, MmapBufferDescriptor&& mmapDesc,
+                  std::shared_ptr<IStreamOutEventCallback> outEventCallback,
+                  std::weak_ptr<sounddose::StreamDataProcessorInterface> streamDataProcessor,
+                  DebugParameters debugParameters)
+        : mCommandMQ(std::move(commandMQ)),
+          mInternalCommandCookie(std::rand() | 1 /* make sure it's not 0 */),
+          mReplyMQ(std::move(replyMQ)),
+          mFormat(format),
+          mChannelLayout(channelLayout),
+          mSampleRate(sampleRate),
+          mFlags(flags),
+          mNominalLatencyMs(nominalLatencyMs),
+          mMixPortHandle(mixPortHandle),
+          mMmapBufferDesc(std::move(mmapDesc)),
+          mOutEventCallback(outEventCallback),
+          mStreamDataProcessor(streamDataProcessor),
+          mDebugParameters(debugParameters) {}
 
     void fillDescriptor(StreamDescriptor* desc);
     std::shared_ptr<IStreamCallback> getAsyncCallback() const { return mAsyncCallback; }
@@ -136,6 +157,7 @@ class StreamContext {
     bool isInput() const {
         return mFlags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::input;
     }
+    bool isMmap() const { return ::aidl::android::hardware::audio::common::hasMmapFlag(mFlags); }
     bool isValid() const;
     // 'reset' is called on a Binder thread when closing the stream. Does not use
     // locking because it only cleans MQ pointers which were also set on the Binder thread.
@@ -155,7 +177,9 @@ class StreamContext {
     ::aidl::android::media::audio::common::AudioIoFlags mFlags;
     int32_t mNominalLatencyMs;
     int32_t mMixPortHandle;
+    // Only one of `mDataMQ` or `mMapBufferDesc` can be active, depending on `isMmap`
     std::unique_ptr<DataMQ> mDataMQ;
+    MmapBufferDescriptor mMmapBufferDesc;
     std::shared_ptr<IStreamCallback> mAsyncCallback;
     std::shared_ptr<IStreamOutEventCallback> mOutEventCallback;  // Only used by output streams
     std::weak_ptr<sounddose::StreamDataProcessorInterface> mStreamDataProcessor;

@@ -17,7 +17,7 @@
 package android.hardware.broadcastradio;
 
 /**
- * The severity of the subject event of the emergency alert message.
+ * The urgency of the subject event of the emergency alert message.
  *
  * <p>(see ITU-T X.1303 bis for more info).
  */

@@ -214,24 +214,33 @@ ndk::ScopedAStatus Module::createStreamContext(
     StreamContext::DebugParameters params{mDebug.streamTransientStateDelayMs,
                                           mVendorDebug.forceTransientBurst,
                                           mVendorDebug.forceSynchronousDrain};
-    std::unique_ptr<StreamContext::DataMQ> dataMQ = nullptr;
-    std::shared_ptr<IStreamCallback> streamAsyncCallback = nullptr;
     std::shared_ptr<ISoundDose> soundDose;
     if (!getSoundDose(&soundDose).isOk()) {
         LOG(ERROR) << __func__ << ": could not create sound dose instance";
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
-    if (!hasMmapFlag(flags)) {
-        dataMQ = std::make_unique<StreamContext::DataMQ>(frameSize * in_bufferSizeFrames);
-        streamAsyncCallback = asyncCallback;
+    StreamContext temp;
+    if (hasMmapFlag(flags)) {
+        MmapBufferDescriptor mmapDesc;
+        RETURN_STATUS_IF_ERROR(
+                createMmapBuffer(*portConfigIt, in_bufferSizeFrames, frameSize, &mmapDesc));
+        temp = StreamContext(
+                std::make_unique<StreamContext::CommandMQ>(1, true /*configureEventFlagWord*/),
+                std::make_unique<StreamContext::ReplyMQ>(1, true /*configureEventFlagWord*/),
+                portConfigIt->format.value(), portConfigIt->channelMask.value(),
+                portConfigIt->sampleRate.value().value, flags, nominalLatencyMs,
+                portConfigIt->ext.get<AudioPortExt::mix>().handle, std::move(mmapDesc),
+                outEventCallback, mSoundDose.getInstance(), params);
+    } else {
+        temp = StreamContext(
+                std::make_unique<StreamContext::CommandMQ>(1, true /*configureEventFlagWord*/),
+                std::make_unique<StreamContext::ReplyMQ>(1, true /*configureEventFlagWord*/),
+                portConfigIt->format.value(), portConfigIt->channelMask.value(),
+                portConfigIt->sampleRate.value().value, flags, nominalLatencyMs,
+                portConfigIt->ext.get<AudioPortExt::mix>().handle,
+                std::make_unique<StreamContext::DataMQ>(frameSize * in_bufferSizeFrames),
+                asyncCallback, outEventCallback, mSoundDose.getInstance(), params);
     }
-    StreamContext temp(
-            std::make_unique<StreamContext::CommandMQ>(1, true /*configureEventFlagWord*/),
-            std::make_unique<StreamContext::ReplyMQ>(1, true /*configureEventFlagWord*/),
-            portConfigIt->format.value(), portConfigIt->channelMask.value(),
-            portConfigIt->sampleRate.value().value, flags, nominalLatencyMs,
-            portConfigIt->ext.get<AudioPortExt::mix>().handle, std::move(dataMQ),
-            streamAsyncCallback, outEventCallback, mSoundDose.getInstance(), params);
     if (temp.isValid()) {
         *out_context = std::move(temp);
     } else {
@@ -394,9 +403,10 @@ ndk::ScopedAStatus Module::calculateBufferSizeFrames(
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-ndk::ScopedAStatus Module::createMmapBuffer(
-        const ::aidl::android::hardware::audio::core::StreamContext& context __unused,
-        ::aidl::android::hardware::audio::core::StreamDescriptor* desc __unused) {
+ndk::ScopedAStatus Module::createMmapBuffer(const AudioPortConfig& portConfig __unused,
+                                            int32_t bufferSizeFrames __unused,
+                                            int32_t frameSizeBytes __unused,
+                                            MmapBufferDescriptor* desc __unused) {
     LOG(ERROR) << __func__ << ": " << mType << ": is not implemented";
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
@@ -977,9 +987,6 @@ ndk::ScopedAStatus Module::openInputStream(const OpenInputStreamArguments& in_ar
     RETURN_STATUS_IF_ERROR(createStreamContext(in_args.portConfigId, in_args.bufferSizeFrames,
                                                nullptr, nullptr, &context));
     context.fillDescriptor(&_aidl_return->desc);
-    if (hasMmapFlag(context.getFlags())) {
-        RETURN_STATUS_IF_ERROR(createMmapBuffer(context, &_aidl_return->desc));
-    }
     std::shared_ptr<StreamIn> stream;
     RETURN_STATUS_IF_ERROR(createInputStream(std::move(context), in_args.sinkMetadata,
                                              getMicrophoneInfos(), &stream));
@@ -1027,9 +1034,6 @@ ndk::ScopedAStatus Module::openOutputStream(const OpenOutputStreamArguments& in_
                                                isNonBlocking ? in_args.callback : nullptr,
                                                in_args.eventCallback, &context));
     context.fillDescriptor(&_aidl_return->desc);
-    if (hasMmapFlag(context.getFlags())) {
-        RETURN_STATUS_IF_ERROR(createMmapBuffer(context, &_aidl_return->desc));
-    }
     std::shared_ptr<StreamOut> stream;
     RETURN_STATUS_IF_ERROR(createOutputStream(std::move(context), in_args.sourceMetadata,
                                               in_args.offloadInfo, &stream));

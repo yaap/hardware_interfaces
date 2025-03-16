@@ -523,6 +523,22 @@
             <instance>default</instance>
         </interface>
     </hal>
+    <hal format="aidl" exclusive-to="virtual-machine">
+        <name>android.hardware.security.see.storage</name>
+        <version>1</version>
+        <interface>
+            <name>ISecureStorage</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" exclusive-to="virtual-machine">
+        <name>android.hardware.security.see.authmgr</name>
+        <version>1</version>
+        <interface>
+            <name>IAuthMgrAuthorization</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
     <hal format="aidl" updatable-via-apex="true">
         <name>android.hardware.security.secureclock</name>
         <version>1</version>
