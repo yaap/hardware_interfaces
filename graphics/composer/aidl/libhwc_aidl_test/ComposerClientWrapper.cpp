@@ -458,6 +458,11 @@ ComposerClientWrapper::takeListOfRefreshRateChangedDebugData() {
     return mComposerCallback->takeListOfRefreshRateChangedDebugData();
 }
 
+std::vector<std::pair<int64_t, common::DisplayHotplugEvent>>
+ComposerClientWrapper::getAndClearLatestHotplugs() {
+    return mComposerCallback->getAndClearLatestHotplugs();
+}
+
 int64_t ComposerClientWrapper::getInvalidDisplayId() {
     // returns an invalid display id (one that has not been registered to a
     // display. Currently assuming that a device will never have close to

@@ -871,10 +871,33 @@ class DynamicsProcessingLimiterConfigDataTest
         ratio = inputOverThreshold / outputOverThreshold;
     }
 
-    void setLimiterParamsAndProcess(std::vector<float>& input, std::vector<float>& output) {
+    void setLimiterParamsAndProcess(std::vector<float>& input, std::vector<float>& output,
+                                    bool isEngineLimiterEnabled = true) {
+        mEngineConfigPreset.limiterInUse = isEngineLimiterEnabled;
         addEngineConfig(mEngineConfigPreset);
         addLimiterConfig(mLimiterConfigList);
         EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(input, output));
+    }
+
+    void testEnableDisableConfiguration(bool isLimiterEnabled, bool isEngineLimiterEnabled) {
+        cleanUpLimiterConfig();
+        std::vector<float> output(mInput.size());
+        for (int i = 0; i < mChannelCount; i++) {
+            // Set non-default values
+            fillLimiterConfig(mLimiterConfigList, i, isLimiterEnabled, kDefaultLinkerGroup,
+                              5 /*attack time*/, 5 /*release time*/, 10 /*ratio*/,
+                              -20 /*threshold*/, 5 /*postgain*/);
+        }
+        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output, isEngineLimiterEnabled));
+        float outputdB = calculateDb(output, kStartIndex);
+        if (isAllParamsValid()) {
+            if (isLimiterEnabled && isEngineLimiterEnabled) {
+                EXPECT_GT(std::abs(mInputDb - outputdB), kMinDifferenceDb)
+                        << "Input level: " << mInputDb << " Output level: " << outputdB;
+            } else {
+                EXPECT_NEAR(mInputDb, outputdB, kLimiterTestToleranceDb);
+            }
+        }
     }
 
     void cleanUpLimiterConfig() {
@@ -888,6 +911,8 @@ class DynamicsProcessingLimiterConfigDataTest
     static constexpr float kDefaultThreshold = -10;
     static constexpr float kDefaultPostGain = 0;
     static constexpr float kLimiterTestToleranceDb = 0.05;
+    static constexpr float kMinDifferenceDb = 5;
+    const std::vector<bool> kEnableValues = {true, false, true};
     std::vector<DynamicsProcessing::LimiterConfig> mLimiterConfigList;
     int mBufferSize;
 };
@@ -969,25 +994,16 @@ TEST_P(DynamicsProcessingLimiterConfigDataTest, IncreasingPostGain) {
 }
 
 TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterEnableDisable) {
-    std::vector<bool> limiterEnableValues = {false, true};
-    std::vector<float> output(mInput.size());
-    for (bool isEnabled : limiterEnableValues) {
-        cleanUpLimiterConfig();
-        for (int i = 0; i < mChannelCount; i++) {
-            // Set non-default values
-            fillLimiterConfig(mLimiterConfigList, i, isEnabled, kDefaultLinkerGroup,
-                              5 /*attack time*/, 5 /*release time*/, 10 /*ratio*/,
-                              -10 /*threshold*/, 5 /*postgain*/);
-        }
-        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output));
-        if (!isAllParamsValid()) {
-            continue;
-        }
-        if (isEnabled) {
-            EXPECT_NE(mInputDb, calculateDb(output, kStartIndex));
-        } else {
-            EXPECT_NEAR(mInputDb, calculateDb(output, kStartIndex), kLimiterTestToleranceDb);
-        }
+    for (bool isLimiterEnabled : kEnableValues) {
+        ASSERT_NO_FATAL_FAILURE(
+                testEnableDisableConfiguration(isLimiterEnabled, true /*Engine Enabled*/));
+    }
+}
+
+TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterEnableDisableViaEngine) {
+    for (bool isEngineLimiterEnabled : kEnableValues) {
+        ASSERT_NO_FATAL_FAILURE(
+                testEnableDisableConfiguration(true /*Limiter Enabled*/, isEngineLimiterEnabled));
     }
 }
 
@@ -1049,7 +1065,6 @@ class DynamicsProcessingLimiterLinkerDataTest : public DynamicsProcessingLimiter
         }
     }
 
-    static constexpr float kMinDifferenceDb = 5;
     const std::vector<std::pair<float, float>> kRatioThresholdPairValues = {{2, -10}, {5, -20}};
 };
 

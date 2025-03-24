@@ -42,6 +42,9 @@ class ModulePrimary final : public Module {
             const std::optional<::aidl::android::media::audio::common::AudioOffloadInfo>&
                     offloadInfo,
             std::shared_ptr<StreamOut>* result) override;
+    ndk::ScopedAStatus createMmapBuffer(
+            const ::aidl::android::media::audio::common::AudioPortConfig& portConfig,
+            int32_t bufferSizeFrames, int32_t frameSizeBytes, MmapBufferDescriptor* desc) override;
     int32_t getNominalLatencyMs(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig) override;
 

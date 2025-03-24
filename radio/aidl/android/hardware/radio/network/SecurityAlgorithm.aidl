@@ -88,8 +88,12 @@ enum SecurityAlgorithm {
     ENCR_AES_CBC = 100,
     AUTH_HMAC_SHA2_256_128 = 101,
 
-    /** Unknown */
+    /** Misc placeholders */
+    // Unknown is now reserved for cases involving DRBs where an integrity algorithm
+    // is not assigned (which is different from a null algorithm being used) but a
+    // notification based solely on the integrity algorithm should not be triggered.
     UNKNOWN = 113,
+    // Currently unused
     OTHER = 114,
 
     /** For proprietary algorithms */

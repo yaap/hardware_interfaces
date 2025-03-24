@@ -616,8 +616,18 @@ TEST_P(SensorsAidlTest, SetOperationMode) {
 }
 
 TEST_P(SensorsAidlTest, InjectSensorEventData) {
-    std::vector<SensorInfo> sensors = getInjectEventSensors();
-    if (sensors.size() == 0) {
+    std::vector<SensorInfo> sensorsAll = getInjectEventSensors();
+    std::vector<SensorInfo> sensors3d;
+
+    for (const auto& s : sensorsAll) {
+        if ((s.type == SensorType::ACCELEROMETER) || (s.type == SensorType::GYROSCOPE) ||
+            (s.type == SensorType::MAGNETIC_FIELD)) {
+            sensors3d.push_back(s);
+        }
+    }
+
+    // Here we only test for the sensors with vec3 data type
+    if (sensors3d.size() == 0) {
         return;
     }
 
@@ -645,7 +655,7 @@ TEST_P(SensorsAidlTest, InjectSensorEventData) {
     Event::EventPayload::Vec3 data = {1, 2, 3, SensorStatus::ACCURACY_HIGH};
     injectedEvent.payload.set<Event::EventPayload::Tag::vec3>(data);
 
-    for (const auto& s : sensors) {
+    for (const auto& s : sensors3d) {
         additionalInfoEvent.sensorHandle = s.sensorHandle;
         ASSERT_TRUE(getSensors()->injectSensorData(additionalInfoEvent).isOk());
 
@@ -655,10 +665,10 @@ TEST_P(SensorsAidlTest, InjectSensorEventData) {
     }
 
     // Wait for events to be written back to the Event FMQ
-    callback.waitForEvents(sensors, std::chrono::milliseconds(1000) /* timeout */);
+    callback.waitForEvents(sensors3d, std::chrono::milliseconds(1000) /* timeout */);
     getEnvironment()->unregisterCallback();
 
-    for (const auto& s : sensors) {
+    for (const auto& s : sensors3d) {
         auto events = callback.getEvents(s.sensorHandle);
         if (events.empty()) {
             FAIL() << "Received no events";

@@ -27,6 +27,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <variant>
 #include <vector>
 
@@ -76,6 +77,7 @@ using aidl::android::hardware::audio::core::IStreamCommon;
 using aidl::android::hardware::audio::core::IStreamIn;
 using aidl::android::hardware::audio::core::IStreamOut;
 using aidl::android::hardware::audio::core::ITelephony;
+using aidl::android::hardware::audio::core::MmapBufferDescriptor;
 using aidl::android::hardware::audio::core::ModuleDebug;
 using aidl::android::hardware::audio::core::StreamDescriptor;
 using aidl::android::hardware::audio::core::VendorParameter;
@@ -720,21 +722,8 @@ class StreamContext {
           mFlags(flags),
           mDataMQ(maybeCreateDataMQ(descriptor)),
           mIsMmapped(isMmapped(descriptor)),
-          mSharedMemoryFd(maybeGetMmapFd(descriptor)) {
-        if (isMmapped()) {
-            mSharedMemory = (int8_t*)mmap(nullptr, getBufferSizeBytes(), PROT_READ | PROT_WRITE,
-                                          MAP_SHARED, mSharedMemoryFd, 0);
-            if (mSharedMemory == MAP_FAILED) {
-                PLOG(ERROR) << __func__ << ": mmap() failed.";
-                mSharedMemory = nullptr;
-            }
-        }
-    }
-    ~StreamContext() {
-        if (mSharedMemory != nullptr) {
-            munmap(mSharedMemory, getBufferSizeBytes());
-        }
-    }
+          mMmapBurstSizeFrames(getMmapBurstSizeFrames(descriptor)),
+          mSharedMemoryFd(maybeGetMmapFd(descriptor)) {}
     void checkIsValid() const {
         EXPECT_NE(0UL, mFrameSizeBytes);
         ASSERT_NE(nullptr, mCommandMQ);
@@ -742,15 +731,14 @@ class StreamContext {
         ASSERT_NE(nullptr, mReplyMQ);
         EXPECT_TRUE(mReplyMQ->isValid());
         if (isMmapped()) {
-            ASSERT_NE(nullptr, mSharedMemory);
+            EXPECT_NE(0, mMmapBurstSizeFrames) << "MMAP burst size must not be zero";
         } else {
-            if (mDataMQ != nullptr) {
-                EXPECT_TRUE(mDataMQ->isValid());
-                EXPECT_GE(mDataMQ->getQuantumCount() * mDataMQ->getQuantumSize(),
-                          mFrameSizeBytes * mBufferSizeFrames)
-                        << "Data MQ actual buffer size is "
-                           "less than the buffer size as specified by the descriptor";
-            }
+            ASSERT_NE(nullptr, mDataMQ);
+            EXPECT_TRUE(mDataMQ->isValid());
+            EXPECT_GE(mDataMQ->getQuantumCount() * mDataMQ->getQuantumSize(),
+                      mFrameSizeBytes * mBufferSizeFrames)
+                    << "Data MQ actual buffer size is "
+                       "less than the buffer size as specified by the descriptor";
         }
     }
     size_t getBufferSizeBytes() const { return mFrameSizeBytes * mBufferSizeFrames; }
@@ -763,7 +751,8 @@ class StreamContext {
     ReplyMQ* getReplyMQ() const { return mReplyMQ.get(); }
     int getSampleRate() const { return mConfig.sampleRate; }
     bool isMmapped() const { return mIsMmapped; }
-    int8_t* getMmapMemory() const { return mSharedMemory; }
+    int32_t getMmapBurstSizeFrames() const { return mMmapBurstSizeFrames; }
+    int getMmapFd() const { return mSharedMemoryFd; }
 
   private:
     static std::unique_ptr<DataMQ> maybeCreateDataMQ(const StreamDescriptor& descriptor) {
@@ -772,6 +761,13 @@ class StreamContext {
             return std::make_unique<DataMQ>(descriptor.audio.get<Tag::fmq>());
         }
         return nullptr;
+    }
+    static int32_t getMmapBurstSizeFrames(const StreamDescriptor& descriptor) {
+        using Tag = StreamDescriptor::AudioBuffer::Tag;
+        if (descriptor.audio.getTag() == Tag::mmap) {
+            return descriptor.audio.get<Tag::mmap>().burstSizeFrames;
+        }
+        return -1;
     }
     static bool isMmapped(const StreamDescriptor& descriptor) {
         using Tag = StreamDescriptor::AudioBuffer::Tag;
@@ -793,8 +789,75 @@ class StreamContext {
     const AudioIoFlags mFlags;
     std::unique_ptr<DataMQ> mDataMQ;
     const bool mIsMmapped;
-    const int32_t mSharedMemoryFd;
-    int8_t* mSharedMemory = nullptr;
+    const int32_t mMmapBurstSizeFrames;
+    const int32_t mSharedMemoryFd;  // owned by StreamDescriptor
+};
+
+struct StreamWorkerMethods {
+    virtual ~StreamWorkerMethods() = default;
+    virtual bool createMmapBuffer(MmapBufferDescriptor* desc) = 0;
+    virtual bool supportsCreateMmapBuffer() = 0;
+};
+
+class MmapSharedMemory {
+  public:
+    explicit MmapSharedMemory(const StreamContext& context, StreamWorkerMethods* stream)
+        : mStream(stream),
+          mBufferSizeBytes(context.getBufferSizeBytes()),
+          mSharedMemoryFd(::dup(context.getMmapFd())) {}
+    ~MmapSharedMemory() { releaseSharedMemory(); }
+
+    int8_t* getMmapMemory() {
+        if (mSharedMemory != nullptr) return mSharedMemory;
+        if (mSharedMemoryFd.get() != -1) {
+            int8_t* sharedMemory = (int8_t*)mmap(nullptr, mBufferSizeBytes, PROT_READ | PROT_WRITE,
+                                                 MAP_SHARED, mSharedMemoryFd.get(), 0);
+            if (sharedMemory != MAP_FAILED && sharedMemory != nullptr) {
+                mSharedMemory = sharedMemory;
+            } else {
+                PLOG(ERROR) << __func__ << ": mmap() failed, fd " << mSharedMemoryFd.get()
+                            << ", size " << mBufferSizeBytes;
+            }
+        } else {
+            LOG(WARNING) << __func__ << ": shared memory FD has not been set yet";
+        }
+        return mSharedMemory;
+    }
+    bool updateMmapSharedMemoryIfNeeded(StreamDescriptor::State state) {
+        if (mPreviousState == StreamDescriptor::State::STANDBY &&
+            state != StreamDescriptor::State::STANDBY && state != StreamDescriptor::State::ERROR) {
+            LOG(INFO) << "Mmap stream exited standby, update Mmap buffer";
+            MmapBufferDescriptor desc;
+            if (!mStream->createMmapBuffer(&desc)) return false;
+            updateMmapSharedMemoryFd(desc);
+        }
+        mPreviousState = state;
+        return true;
+    }
+
+  private:
+    static ndk::ScopedFileDescriptor getMmapFd(const MmapBufferDescriptor& desc) {
+        return desc.sharedMemory.fd.get() != -1 ? desc.sharedMemory.fd.dup()
+                                                : ndk::ScopedFileDescriptor{};
+    }
+    void releaseSharedMemory() {
+        if (mSharedMemory != nullptr) {
+            munmap(mSharedMemory, mBufferSizeBytes);
+        }
+        mSharedMemory = nullptr;
+    }
+    void updateMmapSharedMemoryFd(const MmapBufferDescriptor& desc) {
+        mSharedMemoryFd = getMmapFd(desc);
+        releaseSharedMemory();
+    }
+
+    StreamWorkerMethods* const mStream;
+    const size_t mBufferSizeBytes;
+    ndk::ScopedFileDescriptor mSharedMemoryFd;
+    // Maps on the worker thread, may unmap in the destructor on the main thread.
+    std::atomic<int8_t*> mSharedMemory = nullptr;
+    // 'STANDBY' is always the starting state for a stream.
+    StreamDescriptor::State mPreviousState = StreamDescriptor::State::STANDBY;
 };
 
 struct StreamEventReceiver {
@@ -984,15 +1047,18 @@ struct StreamLogicDriver {
 class StreamCommonLogic : public StreamLogic {
   protected:
     StreamCommonLogic(const StreamContext& context, StreamLogicDriver* driver,
-                      StreamEventReceiver* eventReceiver)
+                      StreamWorkerMethods* stream, StreamEventReceiver* eventReceiver)
         : mCommandMQ(context.getCommandMQ()),
           mReplyMQ(context.getReplyMQ()),
           mDataMQ(context.getDataMQ()),
+          mMmap(context, stream),
           mData(context.getBufferSizeBytes()),
           mDriver(driver),
           mEventReceiver(eventReceiver),
           mIsMmapped(context.isMmapped()),
-          mSharedMemory(context.getMmapMemory()),
+          mMmapBurstSleep(mIsMmapped ? static_cast<double>(context.getMmapBurstSizeFrames()) /
+                                               context.getSampleRate()
+                                     : 0.0),
           mIsCompressOffload(context.getFlags().getTag() == AudioIoFlags::output &&
                              isBitPositionFlagSet(context.getFlags().get<AudioIoFlags::output>(),
                                                   AudioOutputFlags::COMPRESS_OFFLOAD)),
@@ -1008,7 +1074,9 @@ class StreamCommonLogic : public StreamLogic {
     bool isMmapped() const { return mIsMmapped; }
 
     std::string init() override {
-        LOG(DEBUG) << __func__;
+        LOG(DEBUG) << __func__ << ": isMmapped? " << mIsMmapped << ", MmapBurstSleep "
+                   << mMmapBurstSleep << ", isCompressOffload? " << mIsCompressOffload << ", "
+                   << mConfig.toString();
         return "";
     }
     const std::vector<int8_t>& getData() const { return mData; }
@@ -1054,32 +1122,40 @@ class StreamCommonLogic : public StreamLogic {
         return false;
     }
     bool readDataFromMmap(size_t readCount) {
-        if (mSharedMemory != nullptr) {
-            std::memcpy(mData.data(), mSharedMemory, readCount);
+        if (auto memory = mMmap.getMmapMemory(); memory != nullptr) {
+            std::memcpy(mData.data(), memory, readCount);
+            // Since MMap `burst` does not block, need to sleep here to get an updated position.
+            std::this_thread::sleep_for(mMmapBurstSleep);
             return true;
         }
-        LOG(ERROR) << __func__ << ": reading of " << readCount << " bytes from mmap failed";
+        LOG(ERROR) << __func__ << ": reading of " << readCount << " bytes from MMap failed";
         return false;
     }
     bool writeDataToMmap() {
-        if (mSharedMemory != nullptr) {
-            std::memcpy(mSharedMemory, mData.data(), mData.size());
+        if (auto memory = mMmap.getMmapMemory(); memory != nullptr) {
+            std::memcpy(memory, mData.data(), mData.size());
+            // Since MMap `burst` does not block, need to sleep here to get an updated position.
+            std::this_thread::sleep_for(mMmapBurstSleep);
             return true;
         }
-        LOG(ERROR) << __func__ << ": writing of " << mData.size() << " bytes to mmap failed";
+        LOG(ERROR) << __func__ << ": writing of " << mData.size() << " bytes to MMap failed";
         return false;
+    }
+    bool updateMmapSharedMemoryIfNeeded(StreamDescriptor::State state) {
+        return isMmapped() ? mMmap.updateMmapSharedMemoryIfNeeded(state) : true;
     }
 
   private:
     StreamContext::CommandMQ* mCommandMQ;
     StreamContext::ReplyMQ* mReplyMQ;
     StreamContext::DataMQ* mDataMQ;
+    MmapSharedMemory mMmap;
     std::vector<int8_t> mData;
     StreamLogicDriver* const mDriver;
     StreamEventReceiver* const mEventReceiver;
     int mLastEventSeq = StreamEventReceiver::kEventSeqInit;
     const bool mIsMmapped;
-    int8_t* mSharedMemory = nullptr;
+    const std::chrono::duration<double> mMmapBurstSleep;
     const bool mIsCompressOffload;
     const AudioConfigBase mConfig;
 };
@@ -1087,8 +1163,9 @@ class StreamCommonLogic : public StreamLogic {
 class StreamReaderLogic : public StreamCommonLogic {
   public:
     StreamReaderLogic(const StreamContext& context, StreamLogicDriver* driver,
-                      StreamEventReceiver* eventReceiver)
-        : StreamCommonLogic(context, driver, eventReceiver) {}
+                      StreamWorkerMethods* stream, StreamEventReceiver* eventReceiver)
+        : StreamCommonLogic(context, driver, stream, eventReceiver),
+          mMmapBurstSizeFrames(context.getMmapBurstSizeFrames()) {}
     // Should only be called after the worker has joined.
     const std::vector<int8_t>& getData() const { return StreamCommonLogic::getData(); }
 
@@ -1154,30 +1231,35 @@ class StreamReaderLogic : public StreamCommonLogic {
         }
         const bool acceptedReply = getDriver()->processValidReply(reply);
         if (const size_t readCount =
-                    !isMmapped() ? getDataMQ()->availableToRead() : reply.fmqByteCount;
+                    !isMmapped() ? getDataMQ()->availableToRead()
+                                 : (command.getTag() == StreamDescriptor::Command::Tag::burst
+                                            ? mMmapBurstSizeFrames
+                                            : 0);
             readCount > 0) {
             fillData(-1);
             if (isMmapped() ? readDataFromMmap(readCount) : readDataFromMQ(readCount)) {
                 goto checkAcceptedReply;
             }
-            LOG(ERROR) << __func__ << ": reading of " << readCount << " data bytes from MQ failed";
+            LOG(ERROR) << __func__ << ": reading of " << readCount << " data bytes failed";
             return Status::ABORT;
         }  // readCount == 0
     checkAcceptedReply:
         if (acceptedReply) {
-            return Status::CONTINUE;
+            return updateMmapSharedMemoryIfNeeded(reply.state) ? Status::CONTINUE : Status::ABORT;
         }
         LOG(ERROR) << __func__ << ": unacceptable reply: " << reply.toString();
         return Status::ABORT;
     }
+
+    const int32_t mMmapBurstSizeFrames;
 };
 using StreamReader = StreamWorker<StreamReaderLogic>;
 
 class StreamWriterLogic : public StreamCommonLogic {
   public:
     StreamWriterLogic(const StreamContext& context, StreamLogicDriver* driver,
-                      StreamEventReceiver* eventReceiver)
-        : StreamCommonLogic(context, driver, eventReceiver) {}
+                      StreamWorkerMethods* stream, StreamEventReceiver* eventReceiver)
+        : StreamCommonLogic(context, driver, stream, eventReceiver) {}
     // Should only be called after the worker has joined.
     const std::vector<int8_t>& getData() const { return StreamCommonLogic::getData(); }
 
@@ -1293,7 +1375,7 @@ class StreamWriterLogic : public StreamCommonLogic {
             return Status::ABORT;
         }
         if (getDriver()->processValidReply(reply)) {
-            return Status::CONTINUE;
+            return updateMmapSharedMemoryIfNeeded(reply.state) ? Status::CONTINUE : Status::ABORT;
         }
         LOG(ERROR) << __func__ << ": unacceptable reply: " << reply.toString();
         return Status::ABORT;
@@ -1381,7 +1463,7 @@ struct IOTraits {
 };
 
 template <typename Stream>
-class WithStream {
+class WithStream : public StreamWorkerMethods {
   public:
     static ndk::ScopedAStatus callClose(std::shared_ptr<Stream> stream) {
         std::shared_ptr<IStreamCommon> common;
@@ -1421,6 +1503,7 @@ class WithStream {
         const AudioConfigBase cfg{config.sampleRate->value, *config.channelMask, *config.format};
         mContext.emplace(mDescriptor, cfg, config.flags.value());
         ASSERT_NO_FATAL_FAILURE(mContext.value().checkIsValid());
+        ASSERT_IS_OK(mStream->getInterfaceVersion(&mInterfaceVersion));
     }
     void SetUp(IModule* module, long bufferSizeFrames) {
         ASSERT_NO_FATAL_FAILURE(SetUpPortConfig(module));
@@ -1432,13 +1515,66 @@ class WithStream {
     std::shared_ptr<Stream> getSharedPointer() const { return mStream; }
     const AudioPortConfig& getPortConfig() const { return mPortConfig.get(); }
     int32_t getPortId() const { return mPortConfig.getId(); }
+    // StreamWorkerMethods
+    bool createMmapBuffer(MmapBufferDescriptor* desc) override {
+        std::shared_ptr<IStreamCommon> common;
+        ndk::ScopedAStatus status = mStream->getStreamCommon(&common);
+        if (!status.isOk()) {
+            LOG(ERROR) << __func__ << ": getStreamCommon failed: " << status.getMessage();
+            return false;
+        }
+        if (mInterfaceVersion <= kAidlVersion3) {
+            std::vector<VendorParameter> parameters;
+            ScopedAStatus result = common->getVendorParameters({kCreateMmapBuffer}, &parameters);
+            if (result.isOk() && parameters.size() == 1) {
+                std::optional<MmapBufferDescriptor> result;
+                binder_status_t status = parameters[0].ext.getParcelable(&result);
+                if (status == ::android::OK) {
+                    *desc = std::move(*result);
+                    return true;
+                } else {
+                    LOG(ERROR) << __func__ << ": failed to extract parcelable: " << status;
+                }
+            } else {
+                LOG(ERROR) << __func__
+                           << ": failed to call 'createMmapBuffer' via 'getVendorParameter': "
+                           << result.getMessage();
+            }
+        } else {
+            // TODO: Use common->createMmapBuffer after interface update.
+        }
+        return false;
+    }
+    bool supportsCreateMmapBuffer() override {
+        if (!mHasCreateMmapBuffer.has_value()) {
+            if (mInterfaceVersion > kAidlVersion3) {
+                mHasCreateMmapBuffer = true;
+            } else {
+                std::shared_ptr<IStreamCommon> common;
+                ndk::ScopedAStatus status = mStream->getStreamCommon(&common);
+                if (status.isOk()) {
+                    VendorParameter createMmapBuffer{.id = kCreateMmapBuffer};
+                    mHasCreateMmapBuffer =
+                            common->setVendorParameters({createMmapBuffer}, false).isOk();
+                } else {
+                    LOG(ERROR) << __func__ << ": getStreamCommon failed: " << status.getMessage();
+                    return false;
+                }
+            }
+        }
+        return mHasCreateMmapBuffer.value();
+    }
 
   private:
+    static constexpr const char* kCreateMmapBuffer = "aosp.createMmapBuffer";
+
     WithAudioPortConfig mPortConfig;
     std::shared_ptr<Stream> mStream;
     StreamDescriptor mDescriptor;
     std::optional<StreamContext> mContext;
     std::shared_ptr<DefaultStreamCallback> mStreamCallback;
+    int32_t mInterfaceVersion = -1;
+    std::optional<bool> mHasCreateMmapBuffer;
 };
 
 SinkMetadata GenerateSinkMetadata(const AudioPortConfig& portConfig) {
@@ -3103,6 +3239,7 @@ class StreamFixture {
     const StreamContext* getStreamContext() const { return mStream->getContext(); }
     StreamEventReceiver* getStreamEventReceiver() { return mStream->getEventReceiver(); }
     std::shared_ptr<Stream> getStreamSharedPointer() const { return mStream->getSharedPointer(); }
+    StreamWorkerMethods* getStreamWorkerMethods() const { return mStream.get(); }
     const std::string& skipTestReason() const { return mSkipTestReason; }
 
   private:
@@ -3315,12 +3452,11 @@ std::shared_ptr<StateSequence> makeBurstCommands(bool isSync, size_t burstCount 
 static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig) {
     return (portConfig.flags.value().getTag() == AudioIoFlags::input &&
             isAnyBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::input>(),
-                                    {AudioInputFlags::MMAP_NOIRQ, AudioInputFlags::VOIP_TX,
-                                     AudioInputFlags::HW_HOTWORD, AudioInputFlags::HOTWORD_TAP})) ||
+                                    {AudioInputFlags::VOIP_TX, AudioInputFlags::HW_HOTWORD,
+                                     AudioInputFlags::HOTWORD_TAP})) ||
            (portConfig.flags.value().getTag() == AudioIoFlags::output &&
             (isAnyBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::output>(),
-                                     {AudioOutputFlags::MMAP_NOIRQ, AudioOutputFlags::VOIP_RX,
-                                      AudioOutputFlags::INCALL_MUSIC}) ||
+                                     {AudioOutputFlags::VOIP_RX, AudioOutputFlags::INCALL_MUSIC}) ||
              (isBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::output>(),
                                    AudioOutputFlags::COMPRESS_OFFLOAD) &&
               !getMediaFileInfoForConfig(portConfig))));
@@ -3329,6 +3465,12 @@ static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig) 
 // Certain types of devices can not be used without special preconditions.
 static bool skipStreamIoTestForDevice(const AudioDevice& device) {
     return device.type.type == AudioDeviceType::IN_ECHO_REFERENCE;
+}
+
+// MMap implementation on the HAL version <= 3 was not test compliant,
+// unless the stream provides 'createMmapBuffer'
+static bool skipStreamIoTestForStream(const StreamContext* context, StreamWorkerMethods* stream) {
+    return context->isMmapped() && !stream->supportsCreateMmapBuffer();
 }
 
 template <typename Stream>
@@ -3376,7 +3518,8 @@ class StreamFixtureWithWorker {
                 makeBurstCommands(mIsSync, burstCount, standbyInputWhenDone),
                 context->getFrameSizeBytes(), context->isMmapped());
         mWorker = std::make_unique<typename IOTraits<Stream>::Worker>(
-                *context, mWorkerDriver.get(), mStream->getStreamEventReceiver());
+                *context, mWorkerDriver.get(), mStream->getStreamWorkerMethods(),
+                mStream->getStreamEventReceiver());
         LOG(DEBUG) << __func__ << ": starting " << IOTraits<Stream>::directionStr << " worker...";
         ASSERT_TRUE(mWorker->start());
     }
@@ -3418,6 +3561,10 @@ class StreamFixtureWithWorker {
     void MaybeSetSkipTestReason() {
         if (skipStreamIoTestForMixPortConfig(mStream->getPortConfig())) {
             mSkipTestReason = "Mix port config is not supported for stream I/O tests";
+        }
+        if (skipStreamIoTestForStream(mStream->getStreamContext(),
+                                      mStream->getStreamWorkerMethods())) {
+            mSkipTestReason = "Stream can not be used in I/O tests";
         }
     }
 
@@ -3774,6 +3921,7 @@ class AudioStream : public AudioCoreModule {
             ASSERT_EQ("", stream.skipTestReason());
             StreamLogicDriverInvalidCommand driver(seq.second);
             typename IOTraits<Stream>::Worker worker(*stream.getStreamContext(), &driver,
+                                                     stream.getStreamWorkerMethods(),
                                                      stream.getStreamEventReceiver());
             LOG(DEBUG) << __func__ << ": starting worker...";
             ASSERT_TRUE(worker.start());
@@ -4373,11 +4521,15 @@ class AudioStreamIo : public AudioCoreModuleBase,
         ASSERT_NO_FATAL_FAILURE(
                 stream.SetUpStreamForMixPortConfig(module.get(), moduleConfig.get(), portConfig));
         if (skipStreamIoTestForDevice(stream.getDevice())) return;
+        if (skipStreamIoTestForStream(stream.getStreamContext(), stream.getStreamWorkerMethods())) {
+            return;
+        }
         ASSERT_EQ("", stream.skipTestReason());
         StreamLogicDefaultDriver driver(commandsAndStates,
                                         stream.getStreamContext()->getFrameSizeBytes(),
                                         stream.getStreamContext()->isMmapped());
         typename IOTraits<Stream>::Worker worker(*stream.getStreamContext(), &driver,
+                                                 stream.getStreamWorkerMethods(),
                                                  stream.getStreamEventReceiver());
 
         LOG(DEBUG) << __func__ << ": starting worker...";
@@ -4407,10 +4559,14 @@ class AudioStreamIo : public AudioCoreModuleBase,
         if (skipStreamIoTestForDevice(stream.getDevice())) return;
         ASSERT_EQ("", stream.skipTestReason());
         ASSERT_NO_FATAL_FAILURE(stream.TeardownPatchSetUpStream(module.get()));
+        if (skipStreamIoTestForStream(stream.getStreamContext(), stream.getStreamWorkerMethods())) {
+            return;
+        }
         StreamLogicDefaultDriver driver(commandsAndStates,
                                         stream.getStreamContext()->getFrameSizeBytes(),
                                         stream.getStreamContext()->isMmapped());
         typename IOTraits<Stream>::Worker worker(*stream.getStreamContext(), &driver,
+                                                 stream.getStreamWorkerMethods(),
                                                  stream.getStreamEventReceiver());
         ASSERT_NO_FATAL_FAILURE(stream.ReconnectPatch(module.get()));
 
@@ -4788,7 +4944,7 @@ static const int kStreamTransientStateTransitionDelayMs = 3000;
 // Allow optional routing via the TRANSFERRING state on bursts.
 StateDag::Node makeAsyncBurstCommands(StateDag* d, size_t burstCount, StateDag::Node last) {
     using State = StreamDescriptor::State;
-    std::reference_wrapper<std::remove_reference_t<StateDag::Node>> prev = last;
+    std::reference_wrapper<StateDag::value_type> prev = last;
     for (size_t i = 0; i < burstCount; ++i) {
         StateDag::Node active = d->makeNode(State::ACTIVE, kBurstCommand, prev);
         active.children().push_back(d->makeNode(State::TRANSFERRING, kTransferReadyEvent, prev));

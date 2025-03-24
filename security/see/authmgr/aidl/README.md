@@ -16,6 +16,9 @@ an AuthMgr Backend (implementor of the interface) itself. There are some additio
 requirements that are specific to Android release versions.
 
 ### Android 16
-If implementing `IAuthMgrAuthorization` in Android 16 only one AuthMgr Backend is
+- If implementing `IAuthMgrAuthorization` in Android 16 only one AuthMgr Backend is
 supported and dynamic service discovery is not supported. The AuthMgr Backend
 service must be exposed on secure partition ID 0x8001 over VSOCK port 1.
+
+- AuthMgr Front Ends must implement the "android.16" profile as described in the
+[Android Profile for DICE](https://pigweed.googlesource.com/open-dice/+/HEAD/docs/android.md#versions)

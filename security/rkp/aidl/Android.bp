@@ -35,6 +35,7 @@ aidl_interface {
                 "//apex_available:platform",
                 "com.android.virt",
             ],
+            min_sdk_version: "35",
         },
     },
     versions_with_info: [

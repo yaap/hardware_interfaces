@@ -1185,6 +1185,7 @@ int ExternalCameraDeviceSession::configureV4l2StreamLocked(const SupportedV4L2Fo
             if (numAttempt == MAX_RETRY) {
                 break;
             }
+            numAttempt++;
             if (ret < 0) {
                 ALOGW("%s: VIDIOC_STREAMON failed, wait 33ms and try again", __FUNCTION__);
                 usleep(IOCTL_RETRY_SLEEP_US);  // sleep 100 ms and try again

@@ -17,28 +17,24 @@
 #pragma once
 
 #include <mutex>
-#include <set>
 #include <string>
-#include <vector>
 
 #include "core-impl/DriverStubImpl.h"
 #include "core-impl/Stream.h"
 
 namespace aidl::android::hardware::audio::core {
 
-namespace offload {
+namespace mmap {
 
 struct DspSimulatorState {
-    static constexpr int64_t kSkipBufferNotifyFrames = -1;
-
-    const std::string formatEncoding;
+    const bool isInput;
     const int sampleRate;
-    const int64_t earlyNotifyFrames;
-    DriverCallbackInterface* callback = nullptr;  // set before starting DSP worker
+    const int frameSizeBytes;
+    const size_t bufferSizeBytes;
     std::mutex lock;
-    std::vector<int64_t> clipFramesLeft GUARDED_BY(lock);
-    int64_t bufferFramesLeft GUARDED_BY(lock) = 0;
-    int64_t bufferNotifyFrames GUARDED_BY(lock) = kSkipBufferNotifyFrames;
+    // The lock is also used to prevent un-mapping while the memory is in use.
+    uint8_t* sharedMemory GUARDED_BY(lock) = nullptr;
+    StreamDescriptor::Position mmapPos GUARDED_BY(lock);
 };
 
 class DspSimulatorLogic : public ::android::hardware::audio::common::StreamLogic {
@@ -49,6 +45,10 @@ class DspSimulatorLogic : public ::android::hardware::audio::common::StreamLogic
 
   private:
     DspSimulatorState& mSharedState;
+    uint32_t mCycleDurationUs = 0;
+    uint8_t* mMemBegin = nullptr;
+    uint8_t* mMemPos = nullptr;
+    int64_t mLastFrames = 0;
 };
 
 class DspSimulatorWorker
@@ -58,41 +58,68 @@ class DspSimulatorWorker
         : ::android::hardware::audio::common::StreamWorker<DspSimulatorLogic>(sharedState) {}
 };
 
-}  // namespace offload
+}  // namespace mmap
 
-class DriverOffloadStubImpl : public DriverStubImpl {
+class DriverMmapStubImpl : public DriverStubImpl {
   public:
-    explicit DriverOffloadStubImpl(const StreamContext& context);
+    explicit DriverMmapStubImpl(const StreamContext& context);
     ::android::status_t init(DriverCallbackInterface* callback) override;
     ::android::status_t drain(StreamDescriptor::DrainMode drainMode) override;
-    ::android::status_t flush() override;
     ::android::status_t pause() override;
     ::android::status_t start() override;
     ::android::status_t transfer(void* buffer, size_t frameCount, size_t* actualFrameCount,
                                  int32_t* latencyMs) override;
     void shutdown() override;
+    ::android::status_t refinePosition(StreamDescriptor::Position* position) override;
+    ::android::status_t getMmapPositionAndLatency(StreamDescriptor::Position* position,
+                                                  int32_t* latency) override;
+
+  protected:
+    ::android::status_t initSharedMemory(int ashmemFd);
 
   private:
+    ::android::status_t releaseSharedMemory() REQUIRES(mState.lock);
     ::android::status_t startWorkerIfNeeded();
 
-    const int64_t mBufferNotifyFrames;
-    offload::DspSimulatorState mState;
-    offload::DspSimulatorWorker mDspWorker;
+    mmap::DspSimulatorState mState;
+    mmap::DspSimulatorWorker mDspWorker;
     bool mDspWorkerStarted = false;
 };
 
-class StreamOffloadStub : public StreamCommonImpl, public DriverOffloadStubImpl {
+class StreamMmapStub : public StreamCommonImpl, public DriverMmapStubImpl {
   public:
-    static const std::set<std::string>& getSupportedEncodings();
+    static const std::string kCreateMmapBufferName;
 
-    StreamOffloadStub(StreamContext* context, const Metadata& metadata);
-    ~StreamOffloadStub();
+    StreamMmapStub(StreamContext* context, const Metadata& metadata);
+    ~StreamMmapStub();
+
+    ndk::ScopedAStatus getVendorParameters(const std::vector<std::string>& in_ids,
+                                           std::vector<VendorParameter>* _aidl_return) override;
+    ndk::ScopedAStatus setVendorParameters(const std::vector<VendorParameter>& in_parameters,
+                                           bool in_async) override;
+
+  private:
+    ndk::ScopedAStatus createMmapBuffer(MmapBufferDescriptor* desc);
+
+    ndk::ScopedFileDescriptor mSharedMemoryFd;
 };
 
-class StreamOutOffloadStub final : public StreamOut, public StreamOffloadStub {
+class StreamInMmapStub final : public StreamIn, public StreamMmapStub {
   public:
     friend class ndk::SharedRefBase;
-    StreamOutOffloadStub(
+    StreamInMmapStub(
+            StreamContext&& context,
+            const ::aidl::android::hardware::audio::common::SinkMetadata& sinkMetadata,
+            const std::vector<::aidl::android::media::audio::common::MicrophoneInfo>& microphones);
+
+  private:
+    void onClose(StreamDescriptor::State) override { defaultOnClose(); }
+};
+
+class StreamOutMmapStub final : public StreamOut, public StreamMmapStub {
+  public:
+    friend class ndk::SharedRefBase;
+    StreamOutMmapStub(
             StreamContext&& context,
             const ::aidl::android::hardware::audio::common::SourceMetadata& sourceMetadata,
             const std::optional<::aidl::android::media::audio::common::AudioOffloadInfo>&

@@ -100,6 +100,16 @@ int32_t GraphicsComposerCallback::getInvalidRefreshRateDebugEnabledCallbackCount
     return mInvalidRefreshRateDebugEnabledCallbackCount;
 }
 
+std::vector<std::pair<int64_t, common::DisplayHotplugEvent>>
+GraphicsComposerCallback::getAndClearLatestHotplugs() {
+    std::vector<std::pair<int64_t, common::DisplayHotplugEvent>> ret;
+    {
+        std::scoped_lock lock(mMutex);
+        ret.swap(mLatestHotplugs);
+    }
+    return ret;
+}
+
 ::ndk::ScopedAStatus GraphicsComposerCallback::onHotplug(int64_t in_display, bool in_connected) {
     std::scoped_lock lock(mMutex);
 
@@ -196,6 +206,11 @@ int32_t GraphicsComposerCallback::getInvalidRefreshRateDebugEnabledCallbackCount
 
 ::ndk::ScopedAStatus GraphicsComposerCallback::onHotplugEvent(int64_t in_display,
                                                               common::DisplayHotplugEvent event) {
+    {
+        std::scoped_lock lock(mMutex);
+        mLatestHotplugs.emplace_back(in_display, event);
+    }
+
     switch (event) {
         case common::DisplayHotplugEvent::CONNECTED:
             return onHotplug(in_display, true);

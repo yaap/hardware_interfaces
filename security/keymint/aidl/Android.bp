@@ -52,7 +52,7 @@ aidl_interface {
         },
 
     ],
-
+    min_sdk_version: "35",
 }
 
 // An aidl_interface_defaults that includes the latest KeyMint AIDL interface.

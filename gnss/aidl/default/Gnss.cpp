@@ -91,6 +91,52 @@ ScopedAStatus Gnss::setCallback(const std::shared_ptr<IGnssCallback>& callback) 
     if (!status.isOk()) {
         ALOGE("%s: Unable to invoke callback.gnssSetSignalTypeCapabilitiesCb", __func__);
     }
+
+    // In case when the setCallback() and close() calls are not balanced
+    mIsInitialized = false;
+    mIsActive = false;
+    mThreadBlocker.notify();
+    if (mThread.joinable()) {
+        mThread.join();
+    }
+
+    mIsInitialized = true;
+    mThreadBlocker.reset();
+    mThread = std::thread([this]() {
+        while (mIsInitialized) {
+            if (mIsActive) {
+                if (mReportedLocationCount == 0) {
+                    if (!mGnssMeasurementEnabled || mMinIntervalMs <= mGnssMeasurementIntervalMs) {
+                        this->reportSvStatus();
+                    }
+                    if (!mFirstFixReceived) {
+                        // Simulate the code start TTFF
+                        std::this_thread::sleep_for(std::chrono::milliseconds(TTFF_MILLIS));
+                        mFirstFixReceived = true;
+                    }
+                }
+                if (!mGnssMeasurementEnabled || mMinIntervalMs <= mGnssMeasurementIntervalMs) {
+                    this->reportSvStatus();
+                }
+                this->reportNmea();
+
+                auto currentLocation = getLocationFromHW();
+                mGnssPowerIndication->notePowerConsumption();
+                if (currentLocation != nullptr) {
+                    this->reportLocation(*currentLocation);
+                } else {
+                    const auto location = Utils::getMockLocation();
+                    this->reportLocation(location);
+                }
+                mReportedLocationCount += 1;
+                mThreadBlocker.wait_for(std::chrono::milliseconds(mMinIntervalMs));
+            } else {
+                // Wait indefinitely until start() or close() is called
+                mThreadBlocker.wait();
+            }
+        }
+    });
+
     return ScopedAStatus::ok();
 }
 
@@ -104,48 +150,16 @@ std::unique_ptr<GnssLocation> Gnss::getLocationFromHW() {
 }
 
 ScopedAStatus Gnss::start() {
-    ALOGD("start()");
+    ALOGD("start");
     if (mIsActive) {
         ALOGW("Gnss has started. Restarting...");
         stop();
     }
-
     mIsActive = true;
-    mThreadBlocker.reset();
     // notify measurement engine to update measurement interval
     mGnssMeasurementInterface->setLocationEnabled(true);
     this->reportGnssStatusValue(IGnssCallback::GnssStatusValue::SESSION_BEGIN);
-    mThread = std::thread([this]() {
-        if (!mGnssMeasurementEnabled || mMinIntervalMs <= mGnssMeasurementIntervalMs) {
-            this->reportSvStatus();
-        }
-        if (!mFirstFixReceived) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(TTFF_MILLIS));
-            mFirstFixReceived = true;
-        }
-        int reportGnssCount = 0;
-        do {
-            if (!mIsActive) {
-                ALOGD("Do not report location. mIsActive is false");
-                break;
-            }
-            reportGnssCount += 1;
-            if (!mGnssMeasurementEnabled || mMinIntervalMs <= mGnssMeasurementIntervalMs) {
-                this->reportSvStatus();
-            }
-            this->reportNmea();
-
-            auto currentLocation = getLocationFromHW();
-            mGnssPowerIndication->notePowerConsumption();
-            if (currentLocation != nullptr) {
-                this->reportLocation(*currentLocation);
-            } else {
-                const auto location = Utils::getMockLocation();
-                this->reportLocation(location);
-            }
-        } while (mIsActive && mThreadBlocker.wait_for(std::chrono::milliseconds(mMinIntervalMs)));
-        ALOGD("reportGnssCount: %d", reportGnssCount);
-    });
+    mThreadBlocker.notify();
     return ScopedAStatus::ok();
 }
 
@@ -154,16 +168,22 @@ ScopedAStatus Gnss::stop() {
     mIsActive = false;
     mGnssMeasurementInterface->setLocationEnabled(false);
     this->reportGnssStatusValue(IGnssCallback::GnssStatusValue::SESSION_END);
+
+    int reportedLocationCount = mReportedLocationCount;
+    ALOGD("reportedLocationCount: %d", reportedLocationCount);
+    mReportedLocationCount = 0;
     mThreadBlocker.notify();
-    if (mThread.joinable()) {
-        mThread.join();
-    }
     return ScopedAStatus::ok();
 }
 
 ScopedAStatus Gnss::close() {
     ALOGD("close");
     sGnssCallback = nullptr;
+    mIsInitialized = false;
+    mThreadBlocker.notify();
+    if (mThread.joinable()) {
+        mThread.join();
+    }
     return ScopedAStatus::ok();
 }
 

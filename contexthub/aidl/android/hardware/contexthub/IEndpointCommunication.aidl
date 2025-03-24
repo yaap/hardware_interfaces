@@ -62,7 +62,9 @@ interface IEndpointCommunication {
      *
      * Upon returning from this function, the session is in pending state, and the final result will
      * be given by an asynchronous call to onEndpointSessionOpenComplete() on success, or
-     * onCloseEndpointSession() on failure.
+     * onCloseEndpointSession() on failure. If a call to onEndpointSessionOpenComplete() is not
+     * received within 10 seconds, the session will be considered failed and
+     * onCloseEndpointSession() should be called with reason Reason.TIMEOUT.
      *
      * @param sessionId Caller-allocated session identifier, which must be unique across all active
      *         sessions, and must fall in a range allocated via requestSessionIdRange().

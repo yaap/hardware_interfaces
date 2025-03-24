@@ -15,6 +15,7 @@
  */
 
 #include <cmath>
+#include <cstdlib>
 
 #define LOG_TAG "AHAL_Stream"
 #include <android-base/logging.h>

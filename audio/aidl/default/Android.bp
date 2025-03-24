@@ -80,6 +80,7 @@ cc_library {
         "stub/ApeHeader.cpp",
         "stub/DriverStubImpl.cpp",
         "stub/ModuleStub.cpp",
+        "stub/StreamMmapStub.cpp",
         "stub/StreamOffloadStub.cpp",
         "stub/StreamStub.cpp",
         "usb/ModuleUsb.cpp",

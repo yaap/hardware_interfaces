@@ -30,6 +30,8 @@ using aidl::android::media::audio::common::MicrophoneInfo;
 
 namespace aidl::android::hardware::audio::core {
 
+namespace offload {
+
 std::string DspSimulatorLogic::init() {
     return "";
 }
@@ -89,6 +91,10 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
     }
     return Status::CONTINUE;
 }
+
+}  // namespace offload
+
+using offload::DspSimulatorState;
 
 DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     : DriverStubImpl(context, 0 /*asyncSleepTimeUs*/),

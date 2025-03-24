@@ -161,6 +161,8 @@ bool del(std::string_view dev) {
 }
 
 bool rename(std::string_view from, std::string_view to) {
+    if (!down(from)) return false;
+
     nl::MessageFactory<ifinfomsg> req(RTM_SETLINK);
     req.add(IFLA_IFNAME, to);
 

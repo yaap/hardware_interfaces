@@ -24,9 +24,13 @@ namespace helper {
 
 SimpleThread::SimpleThread() : mDone(true), mThread() {}
 SimpleThread::~SimpleThread() {
-    // Safe to call requestExitAndWait() from the destructor because requestExitAndWait() ensures
-    // that the thread is joinable before joining on it. This is different from how
-    // android::Thread worked.
+    // b/399939768: We need to be careful calling requestExitAndWait() from
+    // the destructor due to the possibility of
+    // OutputThread::threadLoop->~ExternalCameraDeviceSession->~OutputThread::requestExit()
+    // resulting in join() called on the calling thread.
+    //
+    // Rather than removing `requestExitAndExit`, we guard the `join` call
+    // in it by checking the thread id.
     requestExitAndWait();
 }
 
@@ -43,9 +47,15 @@ void SimpleThread::requestExitAndWait() {
     mDone.store(true, std::memory_order_release);
 
     // Wait for thread to exit if needed. This should happen in no more than one iteration of
-    // threadLoop
+    // threadLoop. Only call 'join' if this function is called from a thread
+    // different from the thread associated with this object. Otherwise call
+    // 'detach' so that the threadLoop can finish and clean up itself.
     if (mThread.joinable()) {
-        mThread.join();
+        if (mThread.get_id() != std::this_thread::get_id()) {
+            mThread.join();
+        } else {
+            mThread.detach();
+        }
     }
     mThread = std::thread();
 }

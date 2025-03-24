@@ -203,6 +203,8 @@ class ComposerClientWrapper {
     std::pair<ScopedAStatus, std::vector<Luts>> getLuts(int64_t display,
                                                         const std::vector<Buffer>& buffers);
 
+    std::vector<std::pair<int64_t, common::DisplayHotplugEvent>> getAndClearLatestHotplugs();
+
     static constexpr int32_t kMaxFrameIntervalNs = 50000000;  // 20fps
     static constexpr int32_t kNoFrameIntervalNs = 0;
 

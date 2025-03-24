@@ -61,7 +61,14 @@ struct ThreadBlocker {
     template <class R, class P>
     bool wait_for(std::chrono::duration<R, P> const& time) {
         std::unique_lock<std::mutex> lock(m);
+        terminate = false;
         return !cv.wait_for(lock, time, [&] { return terminate; });
+    }
+
+    void wait() {
+        std::unique_lock<std::mutex> lock(m);
+        terminate = false;
+        cv.wait(lock, [&] { return terminate; });
     }
 
     void notify() {

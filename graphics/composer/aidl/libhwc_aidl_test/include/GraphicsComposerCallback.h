@@ -50,6 +50,8 @@ class GraphicsComposerCallback : public BnComposerCallback {
 
     int32_t getInvalidRefreshRateDebugEnabledCallbackCount() const;
 
+    std::vector<std::pair<int64_t, common::DisplayHotplugEvent>> getAndClearLatestHotplugs();
+
   private:
     virtual ::ndk::ScopedAStatus onHotplug(int64_t in_display, bool in_connected) override;
     virtual ::ndk::ScopedAStatus onRefresh(int64_t in_display) override;
@@ -71,6 +73,8 @@ class GraphicsComposerCallback : public BnComposerCallback {
     mutable std::mutex mMutex;
     // the set of all currently connected displays
     std::vector<int64_t> mDisplays GUARDED_BY(mMutex);
+    std::vector<std::pair<int64_t /*display id*/, common::DisplayHotplugEvent>> mLatestHotplugs
+            GUARDED_BY(mMutex);
     // true only when vsync is enabled
     bool mVsyncAllowed GUARDED_BY(mMutex) = true;
     // true only when RefreshRateChangedCallbackDebugEnabled is set to true.
