@@ -58,12 +58,15 @@ RadioIndication& CallbackManager::indication() const {
 }
 
 void CallbackManager::setResponseFunctionsDelayed() {
+    LOG(INFO) << "CallbackManager: defer setResponseFunctions";
     std::unique_lock<std::mutex> lock(mDelayedSetterGuard);
     mDelayedSetterDeadline = std::chrono::steady_clock::now() + kDelayedSetterDelay;
     mDelayedSetterCv.notify_all();
 }
 
 void CallbackManager::delayedSetterThread() {
+    // TODO(b/405830123): remove or degrade logs from this file once the race condition is solved
+    LOG(INFO) << "CallbackManager: setting up delay thread";
     while (!mDestroy) {
         std::unique_lock<std::mutex> lock(mDelayedSetterGuard);
         auto deadline = mDelayedSetterDeadline;
@@ -76,13 +79,16 @@ void CallbackManager::delayedSetterThread() {
 
         // waiting to set response functions, but not yet
         if (*deadline > std::chrono::steady_clock::now()) {
+            LOG(INFO) << "CallbackManager: wait until " << deadline->time_since_epoch().count();
             mDelayedSetterCv.wait_until(lock, *deadline);
             continue;
         }
 
+        LOG(INFO) << "CallbackManager: calling deferred setResponseFunctions";
         mHidlHal->setResponseFunctions(mRadioResponse, mRadioIndication).assertOk();
         mDelayedSetterDeadline = std::nullopt;
     }
+    LOG(INFO) << "CallbackManager: delay thread destroyed";
 }
 
 }  // namespace android::hardware::radio::compat
