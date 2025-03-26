@@ -8198,6 +8198,18 @@ TEST_P(GetHardwareInfoTest, GetHardwareInfo) {
     EXPECT_EQ(info, info2);
 }
 
+TEST_P(GetHardwareInfoTest, GetHardwareInfoNonEmptyNames) {
+    KeyMintHardwareInfo info;
+    ASSERT_TRUE(keyMint().getHardwareInfo(&info).isOk());
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level <= 202504) {
+        GTEST_SKIP() << "Applies only to vendor API level > 202504, but this device is: "
+                     << vendor_api_level;
+    }
+    EXPECT_NE(info.keyMintName, "");
+    EXPECT_NE(info.keyMintAuthorName, "");
+}
+
 INSTANTIATE_KEYMINT_AIDL_TEST(GetHardwareInfoTest);
 
 typedef KeyMintAidlTestBase AddEntropyTest;

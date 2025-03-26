@@ -60,6 +60,8 @@ constexpr uint8_t MAX_CHALLENGE_SIZE = 64;
 const string KEYMINT_STRONGBOX_INSTANCE_NAME =
         "android.hardware.security.keymint.IKeyMintDevice/strongbox";
 
+const string FEATURE_AUTOMOTIVE = "android.hardware.type.automotive";
+
 constexpr std::string_view kVerifiedBootState = "ro.boot.verifiedbootstate";
 constexpr std::string_view kDeviceState = "ro.boot.vbmeta.device_state";
 constexpr std::string_view kDefaultValue = "";
@@ -283,6 +285,11 @@ TEST(NonParameterizedTests, requireDiceOnDefaultInstanceIfStrongboxPresent) {
 
     if (!AServiceManager_isDeclared(KEYMINT_STRONGBOX_INSTANCE_NAME.c_str())) {
         GTEST_SKIP() << "Strongbox is not present on this device.";
+    }
+
+    // Skip on auto due to GAS requirement G-SH-917.
+    if (check_feature(FEATURE_AUTOMOTIVE)) {
+        GTEST_SKIP() << "This is an automotive device.";
     }
 
     auto rpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);

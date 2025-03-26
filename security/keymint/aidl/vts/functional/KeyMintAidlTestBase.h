@@ -173,7 +173,9 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     ErrorCode Begin(KeyPurpose purpose, const AuthorizationSet& in_params);
 
     ErrorCode UpdateAad(const string& input);
-    ErrorCode Update(const string& input, string* output);
+    ErrorCode Update(const string& input, string* output) { return Update(input, output, {}, {}); }
+    ErrorCode Update(const string& input, string* output, std::optional<HardwareAuthToken> hat,
+                     std::optional<secureclock::TimeStampToken> time_token);
 
     ErrorCode Finish(const string& message, const string& signature, string* output,
                      std::optional<HardwareAuthToken> hat = std::nullopt,

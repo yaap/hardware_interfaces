@@ -730,7 +730,9 @@ ErrorCode KeyMintAidlTestBase::UpdateAad(const string& input) {
                                              {} /* verificationToken */));
 }
 
-ErrorCode KeyMintAidlTestBase::Update(const string& input, string* output) {
+ErrorCode KeyMintAidlTestBase::Update(const string& input, string* output,
+                                      std::optional<HardwareAuthToken> hat,
+                                      std::optional<secureclock::TimeStampToken> time_token) {
     SCOPED_TRACE("Update");
 
     Status result;
@@ -740,7 +742,7 @@ ErrorCode KeyMintAidlTestBase::Update(const string& input, string* output) {
     if (!op_) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
     std::vector<uint8_t> o_put;
-    result = op_->update(vector<uint8_t>(input.begin(), input.end()), {}, {}, &o_put);
+    result = op_->update(vector<uint8_t>(input.begin(), input.end()), hat, time_token, &o_put);
 
     if (result.isOk()) {
         output->append(o_put.begin(), o_put.end());
