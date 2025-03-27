@@ -31,9 +31,10 @@ using namespace std::string_literals;
 static std::vector<std::shared_ptr<ndk::ICInterface>> gPublishedHals;
 
 static void publishRadioConfig() {
+    const auto instance = RadioConfig::descriptor + "/default"s;
+    LOG(DEBUG) << "Publishing " << instance;
     auto aidlHal = ndk::SharedRefBase::make<RadioConfig>();
     gPublishedHals.push_back(aidlHal);
-    const auto instance = RadioConfig::descriptor + "/default"s;
     const auto status = AServiceManager_addService(aidlHal->asBinder().get(), instance.c_str());
     CHECK_EQ(status, STATUS_OK);
 }
@@ -47,9 +48,9 @@ static void publishRadioHal(const std::string& slot,
         return;
     }
     LOG(DEBUG) << "Publishing " << instance;
-
     auto aidlHal = ndk::SharedRefBase::make<T>(context);
     gPublishedHals.push_back(aidlHal);
+    context->addHal(aidlHal);
     const auto status = AServiceManager_addService(aidlHal->asBinder().get(), instance.c_str());
     CHECK_EQ(status, STATUS_OK);
 }
@@ -63,13 +64,15 @@ void main() {
     ABinderProcess_startThreadPool();
 
     auto slot1Context = std::make_shared<minimal::SlotContext>(1);
-
     publishRadioConfig();
     publishRadioHal<RadioData>("slot1", slot1Context);
     publishRadioHal<RadioModem>("slot1", slot1Context);
     publishRadioHal<RadioNetwork>("slot1", slot1Context);
     publishRadioHal<RadioSim>("slot1", slot1Context);
 
+    // Non-virtual implementation would set up and initialize connection to the modem here
+
+    slot1Context->setConnected();
     LOG(DEBUG) << "Minimal Radio HAL service is operational";
     ABinderProcess_joinThreadPool();
     LOG(FATAL) << "Minimal Radio HAL service has stopped";

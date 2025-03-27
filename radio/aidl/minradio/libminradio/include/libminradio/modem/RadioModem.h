@@ -29,6 +29,8 @@ class RadioModem : public RadioSlotBase,
                std::vector<aidl::android::hardware::radio::RadioTechnology> rats);
 
   protected:
+    void onUpdatedResponseFunctions() override;
+
     ::ndk::ScopedAStatus enableModem(int32_t serial, bool on) override;
     ::ndk::ScopedAStatus getBasebandVersion(int32_t serial) override;
     ::ndk::ScopedAStatus getDeviceIdentity(int32_t serial) override;

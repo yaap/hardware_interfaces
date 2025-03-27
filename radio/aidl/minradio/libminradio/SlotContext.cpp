@@ -16,12 +16,33 @@
 
 #include <libminradio/SlotContext.h>
 
+#include <android-base/logging.h>
+#include <libminradio/RadioSlotBase.h>
+
 namespace android::hardware::radio::minimal {
 
 SlotContext::SlotContext(unsigned slotIndex) : mSlotIndex(slotIndex) {}
 
+void SlotContext::setConnected() {
+    CHECK(!mIsConnected) << "Can't setConnected twice";
+    mIsConnected = true;
+    for (auto weakHal : mHals) {
+        auto hal = weakHal.lock();
+        if (!hal) continue;
+        hal->onConnected();
+    }
+}
+
+bool SlotContext::isConnected() const {
+    return mIsConnected;
+}
+
 unsigned SlotContext::getSlotIndex() const {
     return mSlotIndex;
+}
+
+void SlotContext::addHal(std::weak_ptr<RadioSlotBase> hal) {
+    mHals.push_back(hal);
 }
 
 }  // namespace android::hardware::radio::minimal

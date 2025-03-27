@@ -137,6 +137,7 @@ ScopedAStatus RadioData::setResponseFunctions(
     CHECK(indication);
     respond = response;
     indicate = indication;
+    setResponseFunctionsBase();
     return ok();
 }
 

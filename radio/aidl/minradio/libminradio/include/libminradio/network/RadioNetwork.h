@@ -30,6 +30,7 @@ class RadioNetwork : public RadioSlotBase,
 
   protected:
     std::vector<::aidl::android::hardware::radio::network::CellInfo> getCellInfoListBase();
+    void onUpdatedResponseFunctions() override;
 
     ::ndk::ScopedAStatus getAllowedNetworkTypesBitmap(int32_t serial) override;
     ::ndk::ScopedAStatus getAvailableBandModes(int32_t serial) override;

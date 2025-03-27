@@ -22,11 +22,28 @@
 namespace android::hardware::radio::minimal {
 
 class RadioSlotBase {
+  private:
+    bool mHasResponseFunctions = false;
+
   protected:
     std::shared_ptr<SlotContext> mContext;
 
+    void setResponseFunctionsBase();
+
+    /**
+     * Called when new response functions are set. This is the place to send initial indications,
+     * such as rilConnected or radioStateChanged.
+     *
+     * This callback is deferred if the RIL is not connected. In such case, it will be called after
+     * getting rilConnected indication.
+     */
+    virtual void onUpdatedResponseFunctions();
+
   public:
     RadioSlotBase(std::shared_ptr<SlotContext> context);
+    virtual ~RadioSlotBase() = default;
+
+    void onConnected();
 };
 
 }  // namespace android::hardware::radio::minimal

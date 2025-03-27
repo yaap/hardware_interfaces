@@ -15,16 +15,31 @@
  */
 #pragma once
 
+#include <memory>
+#include <vector>
+
 namespace android::hardware::radio::minimal {
+
+class RadioSlotBase;
 
 class SlotContext {
   public:
     SlotContext(unsigned slotIndex);
 
+    /**
+     * Mark this RIL/modem as connected. This triggers communication with the framework.
+     */
+    void setConnected();
+    bool isConnected() const;
+
     unsigned getSlotIndex() const;
 
+    void addHal(std::weak_ptr<RadioSlotBase> hal);
+
   private:
+    bool mIsConnected = false;
     unsigned mSlotIndex;
+    std::vector<std::weak_ptr<RadioSlotBase>> mHals;
 };
 
 }  // namespace android::hardware::radio::minimal

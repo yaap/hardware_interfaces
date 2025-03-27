@@ -20,4 +20,15 @@ namespace android::hardware::radio::minimal {
 
 RadioSlotBase::RadioSlotBase(std::shared_ptr<SlotContext> context) : mContext(context) {}
 
+void RadioSlotBase::setResponseFunctionsBase() {
+    mHasResponseFunctions = true;
+    if (mContext->isConnected()) onUpdatedResponseFunctions();
+}
+
+void RadioSlotBase::onUpdatedResponseFunctions() {}
+
+void RadioSlotBase::onConnected() {
+    if (mHasResponseFunctions) setResponseFunctionsBase();
+}
+
 }  // namespace android::hardware::radio::minimal

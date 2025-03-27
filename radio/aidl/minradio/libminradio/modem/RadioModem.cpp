@@ -190,11 +190,13 @@ ScopedAStatus RadioModem::setResponseFunctions(
     CHECK(indication);
     respond = response;
     indicate = indication;
+    setResponseFunctionsBase();
+    return ok();
+}
 
+void RadioModem::onUpdatedResponseFunctions() {
     indicate()->rilConnected(RadioIndicationType::UNSOLICITED);
     indicate()->radioStateChanged(RadioIndicationType::UNSOLICITED, aidl::RadioState::ON);
-
-    return ok();
 }
 
 }  // namespace android::hardware::radio::minimal
