@@ -113,6 +113,14 @@ inline ::testing::AssertionResult assertResultOrUnknownTransaction(
         }                                                                                         \
     })
 
+#define SKIP_TEST_IF_VERSION_UNSUPPORTED(effect, minVersion)               \
+    ({                                                                     \
+        if (int version = getHalVersion(effect); version < (minVersion)) { \
+            GTEST_SKIP() << "Skipping for HAL version: " << version        \
+                         << ", minimal version: " << (minVersion) << "\n"; \
+        }                                                                  \
+    })
+
 // Test that the transaction status 'isOk' if it is a known transaction
 #define EXPECT_IS_OK_OR_UNKNOWN_TRANSACTION(ret)                                                 \
     EXPECT_PRED_FORMAT1(                                                                         \

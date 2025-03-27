@@ -115,7 +115,7 @@ ndk::ScopedAStatus ModulePrimary::createMmapBuffer(const AudioPortConfig& portCo
     desc->sharedMemory.fd = ndk::ScopedFileDescriptor(fd);
     desc->sharedMemory.size = bufferSizeBytes;
     desc->burstSizeFrames = bufferSizeFrames / 2;
-    desc->flags = 0;
+    desc->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
     LOG(DEBUG) << __func__ << ": " << desc->toString();
     return ndk::ScopedAStatus::ok();
 }

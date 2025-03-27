@@ -217,10 +217,7 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
         ASSERT_NO_FATAL_FAILURE(SetUpDownmix(mInputChannelLayout));
-        if (int32_t version;
-            mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
-            GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
-        }
+        SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
         if (!isLayoutValid(mInputChannelLayout)) {
             GTEST_SKIP() << "Layout not supported \n";
         }
@@ -372,10 +369,7 @@ class DownmixStripDataTest : public ::testing::TestWithParam<DownmixStripDataTes
 
     void SetUp() override {
         ASSERT_NO_FATAL_FAILURE(SetUpDownmix(mInputChannelLayout));
-        if (int32_t version;
-            mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
-            GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
-        }
+        SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
         if (!isLayoutValid(mInputChannelLayout)) {
             GTEST_SKIP() << "Layout not supported \n";
         }

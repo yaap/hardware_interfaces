@@ -72,8 +72,9 @@ class AudioEffectTest : public testing::TestWithParam<EffectTestParam>, public E
             mEffect.reset();
         }
     }
-
-    static const long kInputFrameCount = 0x100, kOutputFrameCount = 0x100;
+    // Ensuring frame count keeps input clip duration above 10 ms, as
+    // preprocessing effect tests pass only for durations exceeding 10 ms.
+    static const long kInputFrameCount = 512, kOutputFrameCount = 512;
     std::shared_ptr<IFactory> mFactory;
     std::shared_ptr<IEffect> mEffect;
     Descriptor mDescriptor;

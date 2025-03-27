@@ -269,7 +269,7 @@ ndk::ScopedAStatus StreamMmapStub::createMmapBuffer(MmapBufferDescriptor* desc) 
     desc->sharedMemory.fd = mSharedMemoryFd.dup();
     desc->sharedMemory.size = bufferSizeBytes;
     desc->burstSizeFrames = bufferSizeFrames / 2;
-    desc->flags = 0;
+    desc->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
     LOG(DEBUG) << __func__ << ": " << desc->toString();
     return ndk::ScopedAStatus::ok();
 }

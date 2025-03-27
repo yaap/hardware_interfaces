@@ -298,10 +298,7 @@ class HapticGeneratorDataTest : public ::testing::TestWithParam<HapticGeneratorD
 
     void SetUp() override {
         ASSERT_NO_FATAL_FAILURE(SetUpHapticGenerator(mChMask));
-        if (int32_t version;
-            mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
-            GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
-        }
+        SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
     }
 
     void TearDown() override { ASSERT_NO_FATAL_FAILURE(TearDownHapticGenerator()); }

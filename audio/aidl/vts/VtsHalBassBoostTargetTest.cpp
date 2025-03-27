@@ -167,10 +167,7 @@ class BassBoostDataTest : public ::testing::TestWithParam<BassBoostDataTestParam
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
         ASSERT_NO_FATAL_FAILURE(SetUpBassBoost(mChannelLayout));
-        if (int32_t version;
-            mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
-            GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
-        }
+        SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
     }
 
     void TearDown() override {
