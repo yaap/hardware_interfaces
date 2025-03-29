@@ -25,15 +25,15 @@ aidl::android::hardware::radio::RadioResponseInfo notSupported(int32_t serial);
 aidl::android::hardware::radio::RadioResponseInfo errorResponse(
         int32_t serial, aidl::android::hardware::radio::RadioError error);
 
-#define RESPOND_ERROR_IF_NOT_CONNECTED(responseMethod) \
-    if (!mContext->isConnected()) RESPOND_NOT_CONNECTED(responseMethod);
+#define RESPOND_ERROR_IF_NOT_CONNECTED(responseMethod, ...) \
+    if (!mContext->isConnected()) RESPOND_NOT_CONNECTED(responseMethod, __VA_ARGS__);
 
-#define RESPOND_NOT_CONNECTED(responseMethod)                                               \
+#define RESPOND_NOT_CONNECTED(responseMethod, ...)                                          \
     {                                                                                       \
         LOG(WARNING) << (RADIO_MODULE ".") << __func__ << " called before rilConnected";    \
         const auto responseInfo = ::android::hardware::radio::minimal::errorResponse(       \
                 serial, ::aidl::android::hardware::radio::RadioError::RADIO_NOT_AVAILABLE); \
-        respond()->responseMethod(responseInfo, {});                                        \
+        respond()->responseMethod(responseInfo __VA_OPT__(, ) __VA_ARGS__);                 \
         return ok();                                                                        \
     }
 

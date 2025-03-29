@@ -56,14 +56,10 @@ class ResponseTrackerResult : public ResponseTrackerResultBase {
 
   public:
     ResponseTrackerResult() : ResponseTrackerResultBase(ResultData::descriptor) {}
-    ResponseTrackerResult(::aidl::android::hardware::radio::RadioError error)
-        : ResponseTrackerResultBase(ResultData::descriptor, error) {}
     ResponseTrackerResult(::ndk::ScopedAStatus st)
         : ResponseTrackerResultBase(ResultData::descriptor, std::move(st)) {}
-    ResponseTrackerResult(ResultData data)
-        : ResponseTrackerResultBase(ResultData::descriptor,
-                                    ::aidl::android::hardware::radio::RadioError::NONE),
-          mResultData(data) {}
+    ResponseTrackerResult(ResultData data, ::aidl::android::hardware::radio::RadioError error)
+        : ResponseTrackerResultBase(ResultData::descriptor, error), mResultData(data) {}
 
     const ResultData& get() const {
         CHECK(expectOk()) << "Request failed";
@@ -126,7 +122,7 @@ class ResponseTrackerBase {
     ::ndk::ScopedAStatus handle(const ::aidl::android::hardware::radio::RadioResponseInfo& info,
                                 const ResultData& data) {
         std::unique_ptr<ResponseTrackerResultBase> result =
-                std::make_unique<ResponseTrackerResult<ResultData>>(data);
+                std::make_unique<ResponseTrackerResult<ResultData>>(data, info.error);
         return handle(info, std::move(result));
     }
 
