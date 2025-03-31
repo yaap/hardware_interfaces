@@ -268,7 +268,8 @@ class GraphicsTestsBase {
                                                 buffer.data(), sizeRequired);
     }
 
-    void verifyRGBA8888PlaneLayouts(const std::vector<PlaneLayout>& planeLayouts) {
+    void verifyRGBATypePlaneLayouts(const std::vector<PlaneLayout>& planeLayouts,
+                                    PixelFormat format) {
         ASSERT_EQ(1, planeLayouts.size());
 
         const auto& planeLayout = planeLayouts.front();
@@ -299,10 +300,22 @@ class GraphicsTestsBase {
             }
         }
 
-        EXPECT_EQ(0, offsetInBitsR);
-        EXPECT_EQ(8, offsetInBitsG);
-        EXPECT_EQ(16, offsetInBitsB);
-        EXPECT_EQ(24, offsetInBitsA);
+        switch (format) {
+            case PixelFormat::RGBA_8888:
+                EXPECT_EQ(0, offsetInBitsR);
+                EXPECT_EQ(8, offsetInBitsG);
+                EXPECT_EQ(16, offsetInBitsB);
+                EXPECT_EQ(24, offsetInBitsA);
+                break;
+            case PixelFormat::BGRA_8888:
+                EXPECT_EQ(0, offsetInBitsB);
+                EXPECT_EQ(8, offsetInBitsG);
+                EXPECT_EQ(16, offsetInBitsR);
+                EXPECT_EQ(24, offsetInBitsA);
+                break;
+            default:
+                FAIL();
+        }
 
         EXPECT_EQ(0, planeLayout.offsetInBytes);
         EXPECT_EQ(32, planeLayout.sampleIncrementInBits);
@@ -313,21 +326,21 @@ class GraphicsTestsBase {
         EXPECT_EQ(1, planeLayout.verticalSubsampling);
     }
 
-    void fillRGBA8888(uint8_t* data, uint32_t height, size_t strideInBytes, size_t widthInBytes) {
+    void fillRGBAType(uint8_t* data, uint32_t height, size_t strideInBytes, size_t widthInBytes) {
         for (uint32_t y = 0; y < height; y++) {
             memset(data, y, widthInBytes);
             data += strideInBytes;
         }
     }
 
-    void verifyRGBA8888(const buffer_handle_t bufferHandle, const uint8_t* data, uint32_t height,
-                        size_t strideInBytes, size_t widthInBytes) {
+    void verifyRGBAType(const buffer_handle_t bufferHandle, const uint8_t* data, uint32_t height,
+                        size_t strideInBytes, size_t widthInBytes, PixelFormat format) {
         auto decodeResult = getStandardMetadata<StandardMetadataType::PLANE_LAYOUTS>(bufferHandle);
         ASSERT_TRUE(decodeResult.has_value());
         const auto& planeLayouts = *decodeResult;
         ASSERT_TRUE(planeLayouts.size() > 0);
 
-        verifyRGBA8888PlaneLayouts(planeLayouts);
+        verifyRGBATypePlaneLayouts(planeLayouts, format);
 
         for (uint32_t y = 0; y < height; y++) {
             for (size_t i = 0; i < widthInBytes; i++) {
@@ -708,13 +721,14 @@ TEST_P(GraphicsMapperStableCTests, FreeBufferNegative) {
  * Test IMapper::lock and IMapper::unlock.
  */
 TEST_P(GraphicsMapperStableCTests, LockUnlockBasic) {
+    constexpr auto format = PixelFormat::RGBA_8888;
     constexpr auto usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN;
     auto buffer = allocate({
             .name = {"VTS_TEMP"},
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = format,
             .usage = usage,
             .reservedSize = 0,
     });
@@ -729,8 +743,7 @@ TEST_P(GraphicsMapperStableCTests, LockUnlockBasic) {
     ASSERT_EQ(AIMAPPER_ERROR_NONE,
               mapper()->v5.lock(*handle, static_cast<int64_t>(usage), region, -1, (void**)&data));
 
-    // RGBA_8888
-    fillRGBA8888(data, info.height, stride * 4, info.width * 4);
+    fillRGBAType(data, info.height, stride * 4, info.width * 4);
 
     int releaseFence = -1;
     ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
@@ -740,7 +753,8 @@ TEST_P(GraphicsMapperStableCTests, LockUnlockBasic) {
                                                      releaseFence, (void**)&data));
     releaseFence = -1;
 
-    ASSERT_NO_FATAL_FAILURE(verifyRGBA8888(*handle, data, info.height, stride * 4, info.width * 4));
+    ASSERT_NO_FATAL_FAILURE(
+            verifyRGBAType(*handle, data, info.height, stride * 4, info.width * 4, format));
 
     releaseFence = -1;
     ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
@@ -1214,6 +1228,49 @@ TEST_P(GraphicsMapperStableCTests, LockBadAccessRegion) {
                                                           region, -1, (void**)&data));
 }
 
+TEST_P(GraphicsMapperStableCTests, Lock_BGRA_8888) {
+    constexpr auto format = PixelFormat::BGRA_8888;
+    constexpr auto usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN;
+    auto buffer = allocate({
+            .name = {"VTS_TEMP"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 1,
+            .format = format,
+            .usage = usage,
+            .reservedSize = 0,
+    });
+    ASSERT_NE(nullptr, buffer.get());
+
+    // lock buffer for writing
+    const auto& info = buffer->info();
+    const auto stride = buffer->stride();
+    const ARect region{0, 0, info.width, info.height};
+    auto handle = buffer->import();
+    uint8_t* data = nullptr;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE,
+              mapper()->v5.lock(*handle, static_cast<int64_t>(usage), region, -1, (void**)&data));
+
+    fillRGBAType(data, info.height, stride * 4, info.width * 4);
+
+    int releaseFence = -1;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
+
+    // lock again for reading
+    ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.lock(*handle, static_cast<int64_t>(usage), region,
+                                                     releaseFence, (void**)&data));
+    releaseFence = -1;
+
+    ASSERT_NO_FATAL_FAILURE(
+            verifyRGBAType(*handle, data, info.height, stride * 4, info.width * 4, format));
+
+    releaseFence = -1;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
+    if (releaseFence != -1) {
+        close(releaseFence);
+    }
+}
+
 TEST_P(GraphicsMapperStableCTests, UnlockNegative) {
     native_handle_t* invalidHandle = nullptr;
     int releaseFence = -1;
@@ -1301,13 +1358,13 @@ TEST_P(GraphicsMapperStableCTests, FlushRereadBasic) {
               mapper()->v5.lock(*readHandle, static_cast<uint64_t>(BufferUsage::CPU_READ_OFTEN),
                                 region, -1, (void**)&readData));
 
-    fillRGBA8888(writeData, info.height, stride * 4, info.width * 4);
+    fillRGBAType(writeData, info.height, stride * 4, info.width * 4);
 
     EXPECT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.flushLockedBuffer(*writeHandle));
     EXPECT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.rereadLockedBuffer(*readHandle));
 
-    ASSERT_NO_FATAL_FAILURE(
-            verifyRGBA8888(*readHandle, readData, info.height, stride * 4, info.width * 4));
+    ASSERT_NO_FATAL_FAILURE(verifyRGBAType(*readHandle, readData, info.height, stride * 4,
+                                           info.width * 4, PixelFormat::RGBA_8888));
 
     int releaseFence = -1;
 
@@ -1553,7 +1610,7 @@ TEST_P(GraphicsMapperStableCTests, GetPlaneLayouts) {
     ASSERT_TRUE(bufferHandle);
     auto value = getStandardMetadata<StandardMetadataType::PLANE_LAYOUTS>(*bufferHandle);
     ASSERT_TRUE(value.has_value());
-    ASSERT_NO_FATAL_FAILURE(verifyRGBA8888PlaneLayouts(*value));
+    ASSERT_NO_FATAL_FAILURE(verifyRGBATypePlaneLayouts(*value, PixelFormat::RGBA_8888));
 }
 
 TEST_P(GraphicsMapperStableCTests, GetCrop) {

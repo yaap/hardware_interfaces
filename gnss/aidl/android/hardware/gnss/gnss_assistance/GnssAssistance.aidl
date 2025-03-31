@@ -63,16 +63,16 @@ parcelable GnssAssistance {
     @VintfStability
     parcelable GpsAssistance {
         /** The GPS almanac. */
-        GnssAlmanac almanac;
+        @nullable GnssAlmanac almanac;
 
         /** The Klobuchar ionospheric model. */
-        KlobucharIonosphericModel ionosphericModel;
+        @nullable KlobucharIonosphericModel ionosphericModel;
 
         /** The UTC model. */
-        UtcModel utcModel;
+        @nullable UtcModel utcModel;
 
         /** The leap seconds model. */
-        LeapSecondsModel leapSecondsModel;
+        @nullable LeapSecondsModel leapSecondsModel;
 
         /** The array of time models. */
         TimeModel[] timeModels;
@@ -86,24 +86,30 @@ parcelable GnssAssistance {
         /** The array of GPS satellite corrections. */
         GnssSatelliteCorrections[] satelliteCorrections;
 
-        /** The auxiliary information. */
+        /**
+         *  The auxiliary information.
+         *  @deprecated use auxiliaryInformations
+         */
         AuxiliaryInformation auxiliaryInformation;
+
+        /** The array of auxiliary information. */
+        AuxiliaryInformation[] auxiliaryInformations = {};
     }
 
     /** Contains Galileo assistance. */
     @VintfStability
     parcelable GalileoAssistance {
         /** The Galileo almanac. */
-        GnssAlmanac almanac;
+        @nullable GnssAlmanac almanac;
 
         /** The Galileo ionospheric model. */
-        GalileoIonosphericModel ionosphericModel;
+        @nullable GalileoIonosphericModel ionosphericModel;
 
         /** The UTC model. */
-        UtcModel utcModel;
+        @nullable UtcModel utcModel;
 
         /** The leap seconds model. */
-        LeapSecondsModel leapSecondsModel;
+        @nullable LeapSecondsModel leapSecondsModel;
 
         /** The array of time models. */
         TimeModel[] timeModels;
@@ -117,18 +123,24 @@ parcelable GnssAssistance {
         /** The array of Galileo satellite corrections. */
         GnssSatelliteCorrections[] satelliteCorrections;
 
-        /** The auxiliary information. */
+        /**
+         *  The auxiliary information.
+         *  @deprecated use auxiliaryInformations
+         */
         AuxiliaryInformation auxiliaryInformation;
+
+        /** The array of auxiliary information. */
+        AuxiliaryInformation[] auxiliaryInformations = {};
     }
 
     /** Contains Glonass assistance. */
     @VintfStability
     parcelable GlonassAssistance {
         /** The Glonass almanac. */
-        GlonassAlmanac almanac;
+        @nullable GlonassAlmanac almanac;
 
         /** The UTC model. */
-        UtcModel utcModel;
+        @nullable UtcModel utcModel;
 
         /** The array of time models. */
         TimeModel[] timeModels;
@@ -139,24 +151,33 @@ parcelable GnssAssistance {
         /** The array of Glonass satellite corrections. */
         GnssSatelliteCorrections[] satelliteCorrections;
 
-        /** The auxiliary information. */
+        /**
+         *  The auxiliary information.
+         *  @deprecated use auxiliaryInformations
+         */
         AuxiliaryInformation auxiliaryInformation;
+
+        /** The array of real time integrity models. */
+        RealTimeIntegrityModel[] realTimeIntegrityModels = {};
+
+        /** The array of auxiliary information. */
+        AuxiliaryInformation[] auxiliaryInformations = {};
     }
 
     /** Contains QZSS assistance. */
     @VintfStability
     parcelable QzssAssistance {
         /** The QZSS almanac. */
-        GnssAlmanac almanac;
+        @nullable GnssAlmanac almanac;
 
         /** The Klobuchar ionospheric model. */
-        KlobucharIonosphericModel ionosphericModel;
+        @nullable KlobucharIonosphericModel ionosphericModel;
 
         /** The UTC model. */
-        UtcModel utcModel;
+        @nullable UtcModel utcModel;
 
         /** The leap seconds model. */
-        LeapSecondsModel leapSecondsModel;
+        @nullable LeapSecondsModel leapSecondsModel;
 
         /** The array of time models. */
         TimeModel[] timeModels;
@@ -170,24 +191,30 @@ parcelable GnssAssistance {
         /** The array of QZSS satellite corrections. */
         GnssSatelliteCorrections[] satelliteCorrections;
 
-        /** The auxiliary information. */
+        /**
+         *  The auxiliary information.
+         *  @deprecated use auxiliaryInformations
+         */
         AuxiliaryInformation auxiliaryInformation;
+
+        /** The array of auxiliary information. */
+        AuxiliaryInformation[] auxiliaryInformations = {};
     }
 
     /** Contains Beidou assistance. */
     @VintfStability
     parcelable BeidouAssistance {
         /** The Beidou almanac. */
-        GnssAlmanac almanac;
+        @nullable GnssAlmanac almanac;
 
         /** The Klobuchar ionospheric model. */
-        KlobucharIonosphericModel ionosphericModel;
+        @nullable KlobucharIonosphericModel ionosphericModel;
 
         /** The UTC model. */
-        UtcModel utcModel;
+        @nullable UtcModel utcModel;
 
         /** The leap seconds model. */
-        LeapSecondsModel leapSecondsModel;
+        @nullable LeapSecondsModel leapSecondsModel;
 
         /** The array of time models. */
         TimeModel[] timeModels;
@@ -201,22 +228,28 @@ parcelable GnssAssistance {
         /** The array of Beidou satellite corrections. */
         GnssSatelliteCorrections[] satelliteCorrections;
 
-        /** The auxiliary information. */
+        /**
+         *  The auxiliary information.
+         *  @deprecated use auxiliaryInformations
+         */
         AuxiliaryInformation auxiliaryInformation;
+
+        /** The array of auxiliary information. */
+        AuxiliaryInformation[] auxiliaryInformations = {};
     }
 
     /** GPS assistance. */
-    GpsAssistance gpsAssistance;
+    @nullable GpsAssistance gpsAssistance;
 
     /** Glonass assistance. */
-    GlonassAssistance glonassAssistance;
+    @nullable GlonassAssistance glonassAssistance;
 
     /** Galileo assistance. */
-    GalileoAssistance galileoAssistance;
+    @nullable GalileoAssistance galileoAssistance;
 
     /** Beidou assistance. */
-    BeidouAssistance beidouAssistance;
+    @nullable BeidouAssistance beidouAssistance;
 
     /** QZSS assistance. */
-    QzssAssistance qzssAssistance;
+    @nullable QzssAssistance qzssAssistance;
 }

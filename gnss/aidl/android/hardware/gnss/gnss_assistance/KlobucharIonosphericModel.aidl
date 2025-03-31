@@ -20,8 +20,6 @@ package android.hardware.gnss.gnss_assistance;
  * Contains Klobuchar ionospheric model coefficients used by GPS, BDS, QZSS.
  * This is defined in IS-GPS-200 20.3.3.5.1.7.
  *
- * If all coefficients are 0, the KlobucharIonosphericModel is not available.
- *
  * @hide
  */
 @VintfStability

@@ -20,8 +20,6 @@ package android.hardware.gnss.gnss_assistance;
  * Contains Glonass almanac data.
  * This is defined in Glonass ICD v5.1, section 4.5.
  *
- * If issueDateMs is -1, the GlonassAlmanac is not available.
- *
  * @hide
  */
 @VintfStability
@@ -79,10 +77,7 @@ parcelable GlonassAlmanac {
         double omega;
     }
 
-    /**
-     * Almanac issue date in milliseconds (UTC).
-     * If it is -1, the GlonassAlmanac is not available.
-     */
+    /** Almanac issue date in milliseconds (UTC). */
     long issueDateMs;
 
     /** Array of GlonassSatelliteAlmanac. */

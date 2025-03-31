@@ -24,8 +24,6 @@ package android.hardware.gnss.gnss_assistance;
  * For QZSS, this is defined in IS-QZSS-PNT section 4.1.2.6.
  * For Galileo, this is defined in Galileo-OS-SIS-ICD-v2.1 section 5.1.10.
  *
- * If weekNumber is -1, the GnssAlmanac is not available.
- *
  * @hide
  */
 @VintfStability
@@ -46,7 +44,6 @@ parcelable GnssAlmanac {
 
     /**
      * Almanac reference week number.
-     * If it is -1, the GnssAlmanac is not available.
      *
      * For GPS and QZSS, this is GPS week number (modulo 1024).
      * For Beidou, this is Baidou week number (modulo 8192).

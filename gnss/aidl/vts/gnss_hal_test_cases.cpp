@@ -74,12 +74,15 @@ using android::hardware::gnss::IGnssPsds;
 using android::hardware::gnss::PsdsType;
 using android::hardware::gnss::SatellitePvt;
 using android::hardware::gnss::common::Utils;
+using android::hardware::gnss::gnss_assistance::AuxiliaryInformation;
 using android::hardware::gnss::gnss_assistance::GnssAssistance;
+using android::hardware::gnss::gnss_assistance::GpsSatelliteEphemeris;
 using android::hardware::gnss::gnss_assistance::IGnssAssistanceInterface;
 using android::hardware::gnss::measurement_corrections::IMeasurementCorrectionsInterface;
 using android::hardware::gnss::visibility_control::IGnssVisibilityControl;
 
 using GnssConstellationTypeV2_0 = android::hardware::gnss::V2_0::GnssConstellationType;
+using GpsAssistance = android::hardware::gnss::gnss_assistance::GnssAssistance::GpsAssistance;
 
 static bool IsAutomotiveDevice() {
     char buffer[PROPERTY_VALUE_MAX] = {0};
@@ -1923,17 +1926,24 @@ TEST_P(GnssHalTest, TestSvStatusIntervals) {
  * Test GnssAssistanceExtension:
  * 1. Gets the GnssAssistanceExtension
  * 2. Injects empty GnssAssistance data and verifies that it returns an error.
+ * 3. Injects non-empty GnssAssistance data and verifies that a success status is returned.
  */
 TEST_P(GnssHalTest, TestGnssAssistanceExtension) {
     // Only runs on devices launched in Android 16+
-    if (aidl_gnss_hal_->getInterfaceVersion() <= 4) {
+    if (aidl_gnss_hal_->getInterfaceVersion() <= 5) {
         return;
     }
     sp<IGnssAssistanceInterface> iGnssAssistance;
     auto status = aidl_gnss_hal_->getExtensionGnssAssistanceInterface(&iGnssAssistance);
     if (status.isOk() && iGnssAssistance != nullptr) {
-        GnssAssistance gnssAssistance = {};
-        status = iGnssAssistance->injectGnssAssistance(gnssAssistance);
+        GnssAssistance emptyGnssAssistance;
+        status = iGnssAssistance->injectGnssAssistance(emptyGnssAssistance);
         ASSERT_FALSE(status.isOk());
+
+        GnssAssistance nonEmptyGnssAssistance;
+        nonEmptyGnssAssistance.gpsAssistance.emplace();
+        nonEmptyGnssAssistance.gpsAssistance->satelliteEphemeris.emplace_back();
+        status = iGnssAssistance->injectGnssAssistance(nonEmptyGnssAssistance);
+        ASSERT_TRUE(status.isOk());
     }
 }

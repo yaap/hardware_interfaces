@@ -35,9 +35,12 @@ ndk::ScopedAStatus GnssAssistanceInterface::setCallback(
 ndk::ScopedAStatus GnssAssistanceInterface::injectGnssAssistance(
         const GnssAssistance& gnssAssistance) {
     ALOGD("injectGnssAssistance. %s", gnssAssistance.toString().c_str());
-    if (gnssAssistance.gpsAssistance.satelliteEphemeris.size() == 0 &&
-        gnssAssistance.gpsAssistance.satelliteCorrections.size() == 0) {
-        ALOGE("Empty GnssAssistance");
+    if (!gnssAssistance.gpsAssistance) {
+        ALOGE("Empty GpsAssistance");
+        return ndk::ScopedAStatus::fromServiceSpecificError(IGnss::ERROR_INVALID_ARGUMENT);
+    }
+    if (gnssAssistance.gpsAssistance->satelliteEphemeris.size() == 0) {
+        ALOGE("Empty SatelliteEphemeris");
         return ndk::ScopedAStatus::fromServiceSpecificError(IGnss::ERROR_INVALID_ARGUMENT);
     }
     return ndk::ScopedAStatus::ok();
