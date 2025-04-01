@@ -21,3 +21,10 @@ flag {
     description: "Flag for using sw offload path to send premium audio"
     bug: "398885696"
 }
+
+flag {
+    name: "le_audio_allow_opus"
+    namespace: "pixel_bluetooth"
+    description: "Flag for using allowing OPUS configuration for LE"
+    bug: "407477263"
+}

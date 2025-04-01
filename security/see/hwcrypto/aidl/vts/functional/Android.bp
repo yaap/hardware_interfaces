@@ -36,6 +36,9 @@ rust_defaults {
         arm64: {
             enabled: true,
         },
+        arm: {
+            enabled: true,
+        },
     },
 }
 
