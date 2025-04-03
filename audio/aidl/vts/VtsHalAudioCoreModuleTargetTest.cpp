@@ -1512,6 +1512,7 @@ class WithStream : public StreamWorkerMethods {
     Stream* get() const { return mStream.get(); }
     const StreamContext* getContext() const { return mContext ? &(mContext.value()) : nullptr; }
     StreamEventReceiver* getEventReceiver() { return mStreamCallback->getEventReceiver(); }
+    int32_t getInterfaceVersion() const { return mInterfaceVersion; }
     std::shared_ptr<Stream> getSharedPointer() const { return mStream; }
     const AudioPortConfig& getPortConfig() const { return mPortConfig.get(); }
     int32_t getPortId() const { return mPortConfig.getId(); }
@@ -3238,6 +3239,7 @@ class StreamFixture {
     Stream* getStream() const { return mStream->get(); }
     const StreamContext* getStreamContext() const { return mStream->getContext(); }
     StreamEventReceiver* getStreamEventReceiver() { return mStream->getEventReceiver(); }
+    int32_t getStreamInterfaceVersion() const { return mStream->getInterfaceVersion(); }
     std::shared_ptr<Stream> getStreamSharedPointer() const { return mStream->getSharedPointer(); }
     StreamWorkerMethods* getStreamWorkerMethods() const { return mStream.get(); }
     const std::string& skipTestReason() const { return mSkipTestReason; }
@@ -3449,7 +3451,8 @@ std::shared_ptr<StateSequence> makeBurstCommands(bool isSync, size_t burstCount 
                                                  bool standbyInputWhenDone = false);
 
 // Certain types of ports can not be used without special preconditions.
-static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig) {
+static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig,
+                                             int32_t aidlVersion) {
     return (portConfig.flags.value().getTag() == AudioIoFlags::input &&
             isAnyBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::input>(),
                                     {AudioInputFlags::VOIP_TX, AudioInputFlags::HW_HOTWORD,
@@ -3459,7 +3462,7 @@ static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig) 
                                      {AudioOutputFlags::VOIP_RX, AudioOutputFlags::INCALL_MUSIC}) ||
              (isBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::output>(),
                                    AudioOutputFlags::COMPRESS_OFFLOAD) &&
-              !getMediaFileInfoForConfig(portConfig))));
+              (aidlVersion < kAidlVersion3 || !getMediaFileInfoForConfig(portConfig)))));
 }
 
 // Certain types of devices can not be used without special preconditions.
@@ -3559,7 +3562,8 @@ class StreamFixtureWithWorker {
 
   private:
     void MaybeSetSkipTestReason() {
-        if (skipStreamIoTestForMixPortConfig(mStream->getPortConfig())) {
+        if (skipStreamIoTestForMixPortConfig(mStream->getPortConfig(),
+                                             mStream->getStreamInterfaceVersion())) {
             mSkipTestReason = "Mix port config is not supported for stream I/O tests";
         }
         if (skipStreamIoTestForStream(mStream->getStreamContext(),
@@ -4453,7 +4457,7 @@ class AudioStreamIo : public AudioCoreModuleBase,
             ASSERT_TRUE(port.has_value());
             SCOPED_TRACE(port->toString());
             SCOPED_TRACE(portConfig.toString());
-            if (skipStreamIoTestForMixPortConfig(portConfig)) continue;
+            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) continue;
             const bool isNonBlocking =
                     IOTraits<Stream>::is_input
                             ? false
