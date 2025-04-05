@@ -194,7 +194,7 @@ void DriverMmapStubImpl::shutdown() {
         std::lock_guard l(mState.lock);
         *position = mState.mmapPos;
     }
-    const size_t latencyFrames = mBufferSizeFrames / 2;
+    const size_t latencyFrames = mBufferSizeFrames / 4;
     if (position->frames != StreamDescriptor::Position::UNKNOWN) {
         position->frames += latencyFrames;
     }
@@ -268,7 +268,7 @@ ndk::ScopedAStatus StreamMmapStub::createMmapBuffer(MmapBufferDescriptor* desc) 
     }
     desc->sharedMemory.fd = mSharedMemoryFd.dup();
     desc->sharedMemory.size = bufferSizeBytes;
-    desc->burstSizeFrames = bufferSizeFrames / 2;
+    desc->burstSizeFrames = bufferSizeFrames / 4;
     desc->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
     LOG(DEBUG) << __func__ << ": " << desc->toString();
     return ndk::ScopedAStatus::ok();
