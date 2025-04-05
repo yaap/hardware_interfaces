@@ -2502,7 +2502,7 @@ TEST_P(RadioNetworkTest, setSatellitePlmn) {
     }
 
     serial = GetRandomSerialNumber();
-    radio_network->setSatellitePlmn(serial, {"123456"}, {"123456, 3456789"});
+    radio_network->setSatellitePlmn(serial, {"123456"}, {"123456", "345678"});
     EXPECT_EQ(std::cv_status::no_timeout, wait());
     EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
     EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
