@@ -559,15 +559,28 @@ void AudioSetConfigurationProviderJson::processSubconfig(
   if (ase_cnt == 2) directionAseConfiguration.push_back(config);
 }
 
-// Comparing if 2 AseDirectionConfiguration is equal.
-// Configuration are copied in, so we can remove some fields for comparison
-// without affecting the result.
-bool isAseConfigurationEqual(AseDirectionConfiguration cfg_a,
-                             AseDirectionConfiguration cfg_b) {
-  // Remove unneeded fields when comparing.
-  cfg_a.aseConfiguration.metadata = std::nullopt;
-  cfg_b.aseConfiguration.metadata = std::nullopt;
-  return cfg_a == cfg_b;
+// Comparing if 2 AseDirectionConfiguration is asymmetrical.
+bool isAseConfigurationAsymmetrical(AseDirectionConfiguration cfg_a,
+                                    AseDirectionConfiguration cfg_b) {
+  // Comparing samplingFrequency of these 2 config.
+  std::optional<CodecSpecificConfigurationLtv> cfg_a_fr = std::nullopt;
+  std::optional<CodecSpecificConfigurationLtv> cfg_b_fr = std::nullopt;
+  for (auto ltv : cfg_a.aseConfiguration.codecConfiguration) {
+    if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
+      cfg_a_fr = ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>();
+      break;
+    }
+  }
+  for (auto ltv : cfg_b.aseConfiguration.codecConfiguration) {
+    if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
+      cfg_b_fr = ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>();
+      break;
+    }
+  }
+  if (cfg_a_fr.has_value() && cfg_b_fr.has_value()) {
+    return cfg_a_fr.value() != cfg_b_fr.value();
+  }
+  return false;
 }
 
 void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
@@ -649,26 +662,21 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
     // After putting all subconfig, check if it's an asymmetric configuration
     // and populate information for ConfigurationFlags
     if (!sinkAseConfiguration.empty() && !sourceAseConfiguration.empty()) {
-      if (sinkAseConfiguration.size() == sourceAseConfiguration.size()) {
-        for (int i = 0; i < sinkAseConfiguration.size(); ++i) {
-          if (sinkAseConfiguration[i].has_value() !=
-              sourceAseConfiguration[i].has_value()) {
-            // Different configuration: one is not empty and other is.
+      for (int i = 0; i < sinkAseConfiguration.size(); ++i) {
+        // Only check for comparable source and sink configuration.
+        if (sourceAseConfiguration.size() <= i) break;
+        if (sinkAseConfiguration[i].has_value() &&
+            sourceAseConfiguration[i].has_value()) {
+          // Has both direction, comparing inner fields:
+          if (isAseConfigurationAsymmetrical(
+                  sinkAseConfiguration[i].value(),
+                  sourceAseConfiguration[i].value())) {
             configurationFlags.bitmask |=
                 ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
-          } else if (sinkAseConfiguration[i].has_value()) {
-            // Both is not empty, comparing inner fields:
-            if (!isAseConfigurationEqual(sinkAseConfiguration[i].value(),
-                                         sourceAseConfiguration[i].value())) {
-              configurationFlags.bitmask |=
-                  ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
-            }
+            // Already detect asymmetrical config.
+            break;
           }
         }
-      } else {
-        // Different number of ASE, is a different configuration.
-        configurationFlags.bitmask |=
-            ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
       }
     }
   } else {

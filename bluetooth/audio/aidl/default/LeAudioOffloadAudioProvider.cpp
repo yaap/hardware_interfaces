@@ -740,9 +740,9 @@ LeAudioOffloadAudioProvider::matchWithRequirement(
     // Try to match configuration flags
     if (isMatchFlags) {
       if (!setting.flags.has_value()) continue;
-      if ((setting.flags.value().bitmask & requirement_flags_bitmask) !=
-          requirement_flags_bitmask)
-        continue;
+      // Flag matching is a strict match.
+      // This prevent configuration meanted for other usecases to be matched.
+      if (setting.flags.value().bitmask != requirement_flags_bitmask) continue;
       LOG(DEBUG) << __func__
                  << ": Setting with matched flags: name: " << setting_name
                  << ", setting: " << setting.toString();
@@ -848,15 +848,13 @@ ndk::ScopedAStatus LeAudioOffloadAudioProvider::getLeAudioAseConfiguration(
     // If we cannot match, return an empty result.
 
     // Matching priority list:
-    // Matched configuration flags, i.e. for asymmetric requirement.
-    // Preferred context - exact match with allocation
-    // Preferred context - loose match with allocation
-    // Any context - exact match with allocation
-    // Any context - loose match with allocation
+    // Exact match with allocation: strict matching for the correct topology.
+    // Preferred context: Prefer the correct context to get the best config.
+    // Matched configuration flags: Prefer the config for supported usecases.
     bool found = false;
-    for (bool match_flag : {true, false}) {
+    for (bool match_exact : {true, false}) {
       for (bool match_context : {true, false}) {
-        for (bool match_exact : {true, false}) {
+        for (bool match_flag : {true, false}) {
           auto matched_setting = matchWithRequirement(
               matched_ase_configuration_settings, requirement, match_context,
               match_exact, match_flag);

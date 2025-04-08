@@ -2654,14 +2654,18 @@ TEST_P(AudioCoreModule, SetVendorParameters) {
 
 // See b/262930731. In the absence of offloaded effect implementations,
 // currently we can only pass a nullptr, and the HAL module must either reject
-// it as an invalid argument, or say that offloaded effects are not supported.
+// it as an invalid/null argument, or say that offloaded effects are not supported.
 TEST_P(AudioCoreModule, AddRemoveEffectInvalidArguments) {
-    ndk::ScopedAStatus addEffectStatus = module->addDeviceEffect(-1, nullptr);
-    ndk::ScopedAStatus removeEffectStatus = module->removeDeviceEffect(-1, nullptr);
-    if (addEffectStatus.getExceptionCode() != EX_UNSUPPORTED_OPERATION) {
-        EXPECT_EQ(EX_ILLEGAL_ARGUMENT, addEffectStatus.getExceptionCode());
-        EXPECT_EQ(EX_ILLEGAL_ARGUMENT, removeEffectStatus.getExceptionCode());
-    } else if (removeEffectStatus.getExceptionCode() != EX_UNSUPPORTED_OPERATION) {
+    const binder_exception_t addException = module->addDeviceEffect(-1, nullptr).getExceptionCode();
+    const binder_exception_t removeException =
+            module->removeDeviceEffect(-1, nullptr).getExceptionCode();
+    EXPECT_EQ(addException, removeException);
+    if (addException != EX_UNSUPPORTED_OPERATION) {
+        EXPECT_TRUE(addException == EX_ILLEGAL_ARGUMENT || addException == EX_NULL_POINTER)
+                << "unexpected addException: " << addException;
+        EXPECT_TRUE(removeException == EX_ILLEGAL_ARGUMENT || removeException == EX_NULL_POINTER)
+                << "unexpected removeException: " << removeException;
+    } else if (removeException != EX_UNSUPPORTED_OPERATION) {
         GTEST_FAIL() << "addDeviceEffect and removeDeviceEffect must be either supported or "
                      << "not supported together";
     } else {
@@ -2673,8 +2677,15 @@ TEST_P(AudioCoreModule, AddRemoveEffectInvalidArguments) {
     for (const auto& config : configs) {
         WithAudioPortConfig portConfig(config);
         ASSERT_NO_FATAL_FAILURE(portConfig.SetUp(module.get()));
-        EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, module->addDeviceEffect(portConfig.getId(), nullptr));
-        EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, module->removeDeviceEffect(portConfig.getId(), nullptr));
+        const binder_exception_t addException =
+                module->addDeviceEffect(portConfig.getId(), nullptr).getExceptionCode();
+        const binder_exception_t removeException =
+                module->removeDeviceEffect(portConfig.getId(), nullptr).getExceptionCode();
+        EXPECT_EQ(addException, removeException);
+        EXPECT_TRUE(addException == EX_ILLEGAL_ARGUMENT || addException == EX_NULL_POINTER)
+                << "unexpected addException: " << addException;
+        EXPECT_TRUE(removeException == EX_ILLEGAL_ARGUMENT || removeException == EX_NULL_POINTER)
+                << "unexpected removeException: " << removeException;
     }
 }
 
@@ -3850,7 +3861,7 @@ class AudioStream : public AudioCoreModule {
 
     // See b/262930731. In the absence of offloaded effect implementations,
     // currently we can only pass a nullptr, and the HAL module must either reject
-    // it as an invalid argument, or say that offloaded effects are not supported.
+    // it as an invalid/null argument, or say that offloaded effects are not supported.
     void AddRemoveEffectInvalidArguments() {
         constexpr bool connectedOnly = true;
         const auto ports = moduleConfig->getMixPorts(IOTraits<Stream>::is_input, connectedOnly);
@@ -3869,13 +3880,19 @@ class AudioStream : public AudioCoreModule {
             std::shared_ptr<IStreamCommon> streamCommon;
             ASSERT_IS_OK(stream.getStream()->getStreamCommon(&streamCommon));
             ASSERT_NE(nullptr, streamCommon);
-            ndk::ScopedAStatus addEffectStatus = streamCommon->addEffect(nullptr);
-            ndk::ScopedAStatus removeEffectStatus = streamCommon->removeEffect(nullptr);
-            if (addEffectStatus.getExceptionCode() != EX_UNSUPPORTED_OPERATION) {
-                EXPECT_EQ(EX_ILLEGAL_ARGUMENT, addEffectStatus.getExceptionCode());
-                EXPECT_EQ(EX_ILLEGAL_ARGUMENT, removeEffectStatus.getExceptionCode());
+            const binder_exception_t addException =
+                    streamCommon->addEffect(nullptr).getExceptionCode();
+            const binder_exception_t removeException =
+                    streamCommon->removeEffect(nullptr).getExceptionCode();
+            EXPECT_EQ(addException, removeException);
+            if (addException != EX_UNSUPPORTED_OPERATION) {
+                EXPECT_TRUE(addException == EX_ILLEGAL_ARGUMENT || addException == EX_NULL_POINTER)
+                        << "unexpected addException: " << addException;
+                EXPECT_TRUE(removeException == EX_ILLEGAL_ARGUMENT ||
+                            removeException == EX_NULL_POINTER)
+                        << "unexpected removeException: " << removeException;
                 atLeastOneSupports = true;
-            } else if (removeEffectStatus.getExceptionCode() != EX_UNSUPPORTED_OPERATION) {
+            } else if (removeException != EX_UNSUPPORTED_OPERATION) {
                 ADD_FAILURE() << "addEffect and removeEffect must be either supported or "
                               << "not supported together";
                 atLeastOneSupports = true;
