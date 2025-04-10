@@ -716,6 +716,19 @@ class OpaqueKeyNdk : public ndk_hwcrypto::BnOpaqueKey {
     }
 };
 
+static void create_key_mapping_if_success(Status status,
+                                          sp<cpp_hwcrypto::IOpaqueKey>& binder_return,
+                                          std::shared_ptr<ndk_hwcrypto::IOpaqueKey>* aidl_return) {
+    if (status.isOk()) {
+        if ((binder_return != nullptr)) {
+            insertBinderMapping<cpp_hwcrypto::IOpaqueKey, ndk_hwcrypto::IOpaqueKey, OpaqueKeyNdk,
+                                keyMapping>(binder_return, aidl_return);
+        } else {
+            *aidl_return = nullptr;
+        }
+    }
+}
+
 Result<void> HwCryptoKey::connectToTrusty(const char* tipcDev) {
     assert(!mSession);
     auto session_initializer = [](sp<RpcSession>& session) {
@@ -810,14 +823,7 @@ ndk::ScopedAStatus HwCryptoKey::importClearKey(
         return convertStatus(status);
     }
     status = mHwCryptoServer->importClearKey(explicitKeyCpp.value(), cppKeyPolicy, &binder_return);
-    if (status.isOk()) {
-        if ((binder_return != nullptr)) {
-            insertBinderMapping<cpp_hwcrypto::IOpaqueKey, ndk_hwcrypto::IOpaqueKey, OpaqueKeyNdk,
-                                keyMapping>(binder_return, aidl_return);
-        } else {
-            *aidl_return = nullptr;
-        }
-    }
+    create_key_mapping_if_success(status, binder_return, aidl_return);
     return convertStatus(status);
 }
 
@@ -840,10 +846,7 @@ ndk::ScopedAStatus HwCryptoKey::keyTokenImport(
     // trying first a shallow copy of the vector
     requestedKeyCpp.keyToken = requestedKey.keyToken;
     status = mHwCryptoServer->keyTokenImport(requestedKeyCpp, sealingDicePolicy, &binder_return);
-    if (status.isOk()) {
-        std::shared_ptr<ndk_hwcrypto::IOpaqueKey> opaqueKey = OpaqueKeyNdk::Create(binder_return);
-        *aidl_return = opaqueKey;
-    }
+    create_key_mapping_if_success(status, binder_return, aidl_return);
     return convertStatus(status);
 }
 
