@@ -3764,8 +3764,8 @@ enum VehicleProperty {
      * The maxInt32Value and minInt32Value in each VehicleAreaConfig must be defined. All integers
      * between minInt32Value and maxInt32Value must be supported.
      *
-     * The minInt32Value represents the maximum movement speed of the seat's headrest while moving
-     * into a shallow position.
+     * The minInt32Value represents the maximum movement speed of the seat's headrest while
+     * reclining.
      *
      * The maxInt32Value represents the maximum movement speed of the seat's headrest while moving
      * into an upright/forward position.
@@ -4250,9 +4250,9 @@ enum VehicleProperty {
      *  parameter will work with negative values as follows:
      *    Max = sunroof completely open
      *    0 = sunroof closed.
-     *    Min = sunroof vent completely open
+     *    Min = sunroof vent completely vented
      *
-     *    Note that in this mode, 0 indicates the window is closed.
+     *    Note that in all modes, 0 indicates the window is closed.
      *
      * If {@code HasSupportedValueInfo} for a specific area ID is not {@code null}:
      * {@code HasSupportedValueInfo#hasMinSupportedValue} and
