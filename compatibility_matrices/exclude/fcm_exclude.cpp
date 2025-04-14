@@ -120,7 +120,6 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.soundtrigger@2.1",
             "android.hardware.soundtrigger@2.2",
             "android.hardware.tetheroffload.control@1.0",
-            "android.hardware.vr@1.0",
             "android.hardware.wifi.supplicant@1.0",
             "android.hardware.wifi.supplicant@1.1",
             "android.hardware.wifi@1.0",

@@ -86,78 +86,20 @@ class GraphicsCompositionTestBase : public ::testing::Test {
 
     void setUpDisplayProperties() {
         for (const auto& display : mAllDisplays) {
-            int64_t displayId = display.getDisplayId();
-
-            // Set testColorModes
-            const auto& [status, modes] = mComposerClient->getColorModes(displayId);
-            ASSERT_TRUE(status.isOk());
-            std::vector<ColorMode> testColorModes;
-            for (ColorMode mode : modes) {
-                if (std::find(ReadbackHelper::colorModes.begin(), ReadbackHelper::colorModes.end(),
-                              mode) != ReadbackHelper::colorModes.end()) {
-                    testColorModes.push_back(mode);
-                }
-            }
-
-            // Set pixelFormat and dataspace
-            auto [readbackStatus, readBackBufferAttributes] =
-                    mComposerClient->getReadbackBufferAttributes(displayId);
-            if (readbackStatus.isOk()) {
-            } else {
-                EXPECT_NO_FATAL_FAILURE(assertServiceSpecificError(
-                        readbackStatus, IComposerClient::EX_UNSUPPORTED));
-            }
-
-            // Set testRenderEngine and clientCompositionDisplaySettings
-            EXPECT_TRUE(mComposerClient->setPowerMode(displayId, PowerMode::ON).isOk());
-            const auto format = readbackStatus.isOk() ? readBackBufferAttributes.format
-                                                      : common::PixelFormat::RGBA_8888;
-            std::unique_ptr<TestRenderEngine> testRenderEngine;
-            ASSERT_NO_FATAL_FAILURE(
-                    testRenderEngine = std::unique_ptr<TestRenderEngine>(new TestRenderEngine(
-                            ::android::renderengine::RenderEngineCreationArgs::Builder()
-                                    .setPixelFormat(static_cast<int>(format))
-                                    .setImageCacheSize(
-                                            TestRenderEngine::sMaxFrameBufferAcquireBuffers)
-                                    .setEnableProtectedContext(false)
-                                    .setPrecacheToneMapperShaderOnly(false)
-                                    .setContextPriority(::android::renderengine::RenderEngine::
-                                                                ContextPriority::HIGH)
-                                    .build())));
-
-            ::android::renderengine::DisplaySettings clientCompositionDisplaySettings;
-            clientCompositionDisplaySettings.physicalDisplay =
-                    Rect(display.getDisplayWidth(), display.getDisplayHeight());
-            clientCompositionDisplaySettings.clip =
-                    clientCompositionDisplaySettings.physicalDisplay;
-
-            testRenderEngine->initGraphicBuffer(
-                    static_cast<uint32_t>(display.getDisplayWidth()),
-                    static_cast<uint32_t>(display.getDisplayHeight()),
-                    /*layerCount*/ 1U,
-                    static_cast<uint64_t>(
-                            static_cast<uint64_t>(common::BufferUsage::CPU_READ_OFTEN) |
-                            static_cast<uint64_t>(common::BufferUsage::CPU_WRITE_OFTEN) |
-                            static_cast<uint64_t>(common::BufferUsage::GPU_RENDER_TARGET)));
-            testRenderEngine->setDisplaySettings(clientCompositionDisplaySettings);
-
-            DisplayProperties displayProperties(displayId, testColorModes,
-                                                std::move(testRenderEngine),
-                                                std::move(clientCompositionDisplaySettings),
-                                                std::move(readBackBufferAttributes.format));
-
-            mDisplayProperties.emplace(displayId, std::move(displayProperties));
+            auto props = ReadbackHelper::setupDisplayProperty(display, mComposerClient);
+            mDisplayProperties.emplace(display.getDisplayId(), std::move(props));
         }
     }
 
-    // Get the dataspace and check if readback is supported given the default pixel format and the
-    // current dataspace. Dataspace can get updated after calls to
+    // Gets and Updates the dataspace and check if readback is supported given the default pixel
+    // format and the current dataspace. Dataspace can get updated after calls to
     // ComposerClientWrapper::setColorMode so it's essential to get the latest dataspace.
     std::pair<common::Dataspace, bool> GetDataspaceAndIfReadBackSupported(int64_t displayId) {
         auto [status, readBackBufferAttributes] =
                 mComposerClient->getReadbackBufferAttributes(displayId);
         if (status.isOk()) {
             auto dataspace = readBackBufferAttributes.dataspace;
+            mDisplayProperties.at(displayId).dataspace = dataspace;
 
             // We are making an assumption that Pixel Format never changes, so assert for this
             // assumption. If this is not the case on any display, then we should stop caching it.
@@ -217,26 +159,6 @@ class GraphicsCompositionTestBase : public ::testing::Test {
 
         mDisplayProperties.at(displayId).reader.parse(std::move(results));
     }
-
-    struct DisplayProperties {
-        DisplayProperties(int64_t displayId, std::vector<ColorMode> testColorModes,
-                          std::unique_ptr<TestRenderEngine> testRenderEngine,
-                          ::android::renderengine::DisplaySettings clientCompositionDisplaySettings,
-                          common::PixelFormat pixelFormat)
-            : testColorModes(testColorModes),
-              pixelFormat(pixelFormat),
-              testRenderEngine(std::move(testRenderEngine)),
-              clientCompositionDisplaySettings(std::move(clientCompositionDisplaySettings)),
-              writer(displayId),
-              reader(displayId) {}
-
-        std::vector<ColorMode> testColorModes = {};
-        common::PixelFormat pixelFormat = common::PixelFormat::UNSPECIFIED;
-        std::unique_ptr<TestRenderEngine> testRenderEngine = nullptr;
-        ::android::renderengine::DisplaySettings clientCompositionDisplaySettings = {};
-        ComposerClientWriter writer;
-        ComposerClientReader reader;
-    };
 
     std::shared_ptr<ComposerClientWrapper> mComposerClient;
     std::vector<DisplayWrapper> mAllDisplays;
