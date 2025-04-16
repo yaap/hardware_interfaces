@@ -15,6 +15,14 @@
  */
 
 #include <sys/types.h>
+
+#include <cstdint>
+#include <optional>
+
+#include "aidl/android/hardware/bluetooth/audio/CodecId.h"
+#include "aidl/android/hardware/bluetooth/audio/CodecSpecificConfigurationLtv.h"
+#include "aidl/android/hardware/bluetooth/audio/CodecType.h"
+#include "aidl/android/hardware/bluetooth/audio/OpusConfiguration.h"
 #define LOG_TAG "BTAudioSessionAidl"
 
 #include <android-base/logging.h>
@@ -24,6 +32,7 @@
 #include <hardware/audio.h>
 
 #include "BluetoothAudioSession.h"
+#include "BluetoothAudioType.h"
 
 namespace aidl {
 namespace android {
@@ -98,6 +107,121 @@ void BluetoothAudioSession::OnSessionEnded() {
  *
  ***/
 
+std::vector<CodecSpecificConfigurationLtv>
+getCodecConfigFromVendorCodecConfiguration(
+    std::vector<uint8_t>& vendor_codec_config) {
+  std::vector<CodecSpecificConfigurationLtv> codec_config;
+  int i = 0;
+  while (i < vendor_codec_config.size()) {
+    auto opcode = vendor_codec_config[i++];
+    auto subopcode = vendor_codec_config[i++];
+    if (opcode == kCodecConfigOpcode) {
+      if (subopcode == kSamplingFrequencySubOpcode) {
+        auto p =
+            codec_cfg_map_to_sampling_rate_ltv.find(vendor_codec_config[i++]);
+        if (p != codec_cfg_map_to_sampling_rate_ltv.end()) {
+          codec_config.push_back(p->second);
+        }
+      } else if (subopcode == kFrameDurationSubOpcode) {
+        auto p =
+            codec_cfg_map_to_frame_duration_ltv.find(vendor_codec_config[i++]);
+        if (p != codec_cfg_map_to_frame_duration_ltv.end()) {
+          codec_config.push_back(p->second);
+        }
+      } else if (subopcode == kFrameBlocksPerSDUSubOpcode) {
+        auto frame_block =
+            CodecSpecificConfigurationLtv::CodecFrameBlocksPerSDU();
+        frame_block.value = vendor_codec_config[i++];
+        codec_config.push_back(frame_block);
+      }
+    } else if (opcode == kAudioChannelAllocationOpcode) {
+      auto allocation = CodecSpecificConfigurationLtv::AudioChannelAllocation();
+      for (int b = 0; b < 4; ++b) {
+        allocation.bitmask |= (vendor_codec_config[i++] << (b * 8));
+      }
+      codec_config.push_back(allocation);
+    } else if (opcode == kOctetsPerCodecFrameOpcode) {
+      auto octet = CodecSpecificConfigurationLtv::OctetsPerCodecFrame();
+      for (int b = 0; b < 2; ++b) {
+        octet.value |= (vendor_codec_config[i++] << (b * 8));
+      }
+      codec_config.push_back(octet);
+    }
+  }
+  return codec_config;
+}
+
+OpusConfiguration getOpusConfigFromCodecConfig(
+    std::vector<CodecSpecificConfigurationLtv> codecConfiguration) {
+  OpusConfiguration opus_config;
+  opus_config.pcmBitDepth = 16;
+  for (auto ltv : codecConfiguration) {
+    if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
+      auto p = sampling_rate_ltv_map.find(
+          ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>());
+      if (p != sampling_rate_ltv_map.end()) {
+        opus_config.samplingFrequencyHz = p->second;
+      }
+    } else if (ltv.getTag() == CodecSpecificConfigurationLtv::frameDuration) {
+      auto p = frame_duration_ltv_map.find(
+          ltv.get<CodecSpecificConfigurationLtv::frameDuration>());
+      if (p != frame_duration_ltv_map.end()) {
+        opus_config.frameDurationUs = p->second;
+      }
+    } else if (ltv.getTag() ==
+               CodecSpecificConfigurationLtv::octetsPerCodecFrame) {
+      auto octet =
+          ltv.get<CodecSpecificConfigurationLtv::octetsPerCodecFrame>();
+      opus_config.octetsPerFrame = octet.value;
+    } else if (ltv.getTag() ==
+               CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU) {
+      auto block =
+          ltv.get<CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU>();
+      opus_config.blocksPerSdu = block.value;
+    }
+  }
+  return opus_config;
+}
+
+std::optional<AudioConfiguration> convertToOpusAudioConfiguration(
+    const AudioConfiguration& audio_config_) {
+  if (audio_config_.getTag() == AudioConfiguration::leAudioConfig) {
+    auto le_audio_config =
+        audio_config_.get<AudioConfiguration::leAudioConfig>();
+    // Conversion from extension to Lc3Configuration
+    LOG(DEBUG) << __func__ << ": leAudioConfig detected, len = "
+               << le_audio_config.streamMap.size();
+    for (auto info : le_audio_config.streamMap) {
+      LOG(DEBUG) << __func__ << ": info is " << info.toString();
+      if (info.aseConfiguration.has_value()) {
+        auto ase_config = info.aseConfiguration.value();
+        auto codec_id = ase_config.codecId;
+        if (codec_id.has_value() &&
+            codec_id.value().getTag() == CodecId::vendor) {
+          auto cid = codec_id.value().get<CodecId::vendor>();
+          if (cid == opus_codec &&
+              ase_config.vendorCodecConfiguration.has_value()) {
+            OpusConfiguration opus_config = getOpusConfigFromCodecConfig(
+                getCodecConfigFromVendorCodecConfiguration(
+                    ase_config.vendorCodecConfiguration.value()));
+            LOG(DEBUG) << __func__ << ": converted and set to OPUS config: "
+                       << opus_config.toString();
+            LeAudioConfiguration audio_config;
+            audio_config.leAudioCodecConfig = opus_config;
+            audio_config.codecType = CodecType::OPUS;
+            audio_config.streamMap = le_audio_config.streamMap;
+            audio_config.peerDelayUs = le_audio_config.peerDelayUs;
+            audio_config.vendorSpecificMetadata =
+                le_audio_config.vendorSpecificMetadata;
+            return audio_config;
+          }
+        }
+      }
+    }
+  }
+  return std::nullopt;
+}
+
 const AudioConfiguration BluetoothAudioSession::GetAudioConfig() {
   std::lock_guard<std::recursive_mutex> guard(mutex_);
   if (!IsSessionReady()) {
@@ -129,20 +253,21 @@ void BluetoothAudioSession::ReportAudioConfigChanged(
             SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
       if (audio_config.getTag() != AudioConfiguration::leAudioConfig) {
         LOG(ERROR) << __func__ << " invalid audio config type for SessionType ="
-                  << toString(session_type_);
+                   << toString(session_type_);
         return;
       }
     } else if (session_type_ ==
-            SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+               SessionType::
+                   LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
       if (audio_config.getTag() != AudioConfiguration::leAudioBroadcastConfig) {
         LOG(ERROR) << __func__ << " invalid audio config type for SessionType ="
-                  << toString(session_type_);
+                   << toString(session_type_);
         return;
       }
-    } else if(session_type_ == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH) {
+    } else if (session_type_ == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH) {
       if (audio_config.getTag() != AudioConfiguration::hfpConfig) {
         LOG(ERROR) << __func__ << " invalid audio config type for SessionType ="
-                  << toString(session_type_);
+                   << toString(session_type_);
         return;
       }
     } else if (session_type_ == SessionType::HFP_SOFTWARE_DECODING_DATAPATH ||
@@ -153,8 +278,8 @@ void BluetoothAudioSession::ReportAudioConfigChanged(
         return;
       }
     } else {
-      LOG(ERROR) << __func__ << " invalid SessionType ="
-                 << toString(session_type_);
+      LOG(ERROR) << __func__
+                 << " invalid SessionType =" << toString(session_type_);
       return;
     }
   } else {
@@ -167,10 +292,10 @@ void BluetoothAudioSession::ReportAudioConfigChanged(
                    << toString(session_type_);
         return;
       }
-    } else if(session_type_ == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH) {
+    } else if (session_type_ == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH) {
       if (audio_config.getTag() != AudioConfiguration::hfpConfig) {
         LOG(ERROR) << __func__ << " invalid audio config type for SessionType ="
-                  << toString(session_type_);
+                   << toString(session_type_);
         return;
       }
     } else if (session_type_ == SessionType::HFP_SOFTWARE_DECODING_DATAPATH ||
@@ -188,6 +313,11 @@ void BluetoothAudioSession::ReportAudioConfigChanged(
   }
 
   audio_config_ = std::make_unique<AudioConfiguration>(audio_config);
+  auto opus_audio_config = convertToOpusAudioConfiguration(audio_config);
+  if (opus_audio_config.has_value()) {
+    audio_config_ =
+        std::make_unique<AudioConfiguration>(opus_audio_config.value());
+  }
 
   if (observers_.empty()) {
     LOG(WARNING) << __func__ << " - SessionType=" << toString(session_type_)
@@ -384,6 +514,11 @@ bool BluetoothAudioSession::UpdateAudioConfig(
     return false;
   }
   audio_config_ = std::make_unique<AudioConfiguration>(audio_config);
+  auto opus_audio_config = convertToOpusAudioConfiguration(audio_config);
+  if (opus_audio_config.has_value()) {
+    audio_config_ =
+        std::make_unique<AudioConfiguration>(opus_audio_config.value());
+  }
   return true;
 }
 
