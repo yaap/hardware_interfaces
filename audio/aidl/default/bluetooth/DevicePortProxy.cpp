@@ -155,7 +155,7 @@ bool BluetoothAudioPortAidl::initSessionType(const AudioDeviceDescription& descr
 
 void BluetoothAudioPortAidl::unregisterPort() {
     if (!inUse()) {
-        LOG(WARNING) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(WARNING) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return;
     }
     BluetoothAudioSessionControl::UnregisterControlResultCback(mSessionType, mCookie);
@@ -256,14 +256,14 @@ bool BluetoothAudioPortAidl::inUse() const {
 
 bool BluetoothAudioPortAidl::getPreferredDataIntervalUs(size_t& interval_us) const {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
 
     const AudioConfiguration& hal_audio_cfg =
             BluetoothAudioSessionControl::GetAudioConfig(mSessionType);
     if (hal_audio_cfg.getTag() != AudioConfiguration::pcmConfig) {
-        LOG(ERROR) << __func__ << ": unsupported audio cfg tag";
+        LOG(ERROR) << __func__ << debugMessage() << ": unsupported audio cfg tag";
         return false;
     }
 
@@ -273,20 +273,23 @@ bool BluetoothAudioPortAidl::getPreferredDataIntervalUs(size_t& interval_us) con
 
 bool BluetoothAudioPortAidl::loadAudioConfig(PcmConfiguration& audio_cfg) {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
 
     const AudioConfiguration& hal_audio_cfg =
             BluetoothAudioSessionControl::GetAudioConfig(mSessionType);
     if (hal_audio_cfg.getTag() != AudioConfiguration::pcmConfig) {
-        LOG(ERROR) << __func__ << ": unsupported audio cfg tag";
+        LOG(ERROR) << __func__ << debugMessage()
+                   << ": unsupported audio cfg tag: " << toString(hal_audio_cfg.getTag());
         return false;
     }
     audio_cfg = hal_audio_cfg.get<AudioConfiguration::pcmConfig>();
     LOG(VERBOSE) << __func__ << debugMessage() << ", state*=" << getState() << ", PcmConfig=["
                  << audio_cfg.toString() << "]";
     if (audio_cfg.channelMode == ChannelMode::UNKNOWN) {
+        LOG(ERROR) << __func__ << debugMessage()
+                   << ": unsupported channel mode: " << toString(audio_cfg.channelMode);
         return false;
     }
     return true;
@@ -298,14 +301,15 @@ bool BluetoothAudioPortAidlOut::loadAudioConfig(PcmConfiguration& audio_cfg) {
     if (audio_cfg.channelMode == ChannelMode::MONO && audio_cfg.bitsPerSample == 16) {
         mIsStereoToMono = true;
         audio_cfg.channelMode = ChannelMode::STEREO;
-        LOG(INFO) << __func__ << ": force channels = to be AUDIO_CHANNEL_OUT_STEREO";
+        LOG(INFO) << __func__ << debugMessage()
+                  << ": force channels = to be AUDIO_CHANNEL_OUT_STEREO";
     }
     return true;
 }
 
 bool BluetoothAudioPortAidl::standby() {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     std::lock_guard guard(mCvMutex);
@@ -348,7 +352,7 @@ bool BluetoothAudioPortAidl::condWaitState(BluetoothStreamState state) {
 
 bool BluetoothAudioPortAidl::start() {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     LOG(VERBOSE) << __func__ << debugMessage() << ", state=" << getState()
@@ -401,7 +405,7 @@ bool BluetoothAudioPortAidl::start() {
 
 bool BluetoothAudioPortAidl::suspend() {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     LOG(VERBOSE) << __func__ << debugMessage() << ", state=" << getState() << " request";
@@ -452,7 +456,7 @@ bool BluetoothAudioPortAidl::suspend() {
 
 void BluetoothAudioPortAidl::stop() {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return;
     }
     std::lock_guard guard(mCvMutex);
@@ -466,12 +470,12 @@ void BluetoothAudioPortAidl::stop() {
 
 size_t BluetoothAudioPortAidlOut::writeData(const void* buffer, size_t bytes) const {
     if (!buffer) {
-        LOG(ERROR) << __func__ << ": bad input arg";
+        LOG(ERROR) << __func__ << debugMessage() << ": bad input arg";
         return 0;
     }
 
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return 0;
     }
 
@@ -493,12 +497,12 @@ size_t BluetoothAudioPortAidlOut::writeData(const void* buffer, size_t bytes) co
 
 size_t BluetoothAudioPortAidlIn::readData(void* buffer, size_t bytes) const {
     if (!buffer) {
-        LOG(ERROR) << __func__ << ": bad input arg";
+        LOG(ERROR) << __func__ << debugMessage() << ": bad input arg";
         return 0;
     }
 
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return 0;
     }
 
@@ -508,7 +512,7 @@ size_t BluetoothAudioPortAidlIn::readData(void* buffer, size_t bytes) const {
 bool BluetoothAudioPortAidl::getPresentationPosition(
         PresentationPosition& presentation_position) const {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     bool retval = BluetoothAudioSessionControl::GetPresentationPosition(mSessionType,
@@ -521,7 +525,7 @@ bool BluetoothAudioPortAidl::getPresentationPosition(
 
 bool BluetoothAudioPortAidl::updateSourceMetadata(const SourceMetadata& source_metadata) const {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     LOG(DEBUG) << __func__ << debugMessage() << ", state=" << getState() << ", "
@@ -532,7 +536,7 @@ bool BluetoothAudioPortAidl::updateSourceMetadata(const SourceMetadata& source_m
 
 bool BluetoothAudioPortAidl::updateSinkMetadata(const SinkMetadata& sink_metadata) const {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     LOG(DEBUG) << __func__ << debugMessage() << ", state=" << getState() << ", "
@@ -547,11 +551,11 @@ BluetoothStreamState BluetoothAudioPortAidl::getState() const {
 
 bool BluetoothAudioPortAidl::setState(BluetoothStreamState state) {
     if (!inUse()) {
-        LOG(ERROR) << __func__ << ": BluetoothAudioPortAidl is not in use";
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
     std::lock_guard guard(mCvMutex);
-    LOG(DEBUG) << __func__ << ": BluetoothAudioPortAidl old state = " << mState
+    LOG(DEBUG) << __func__ << debugMessage() << ": BluetoothAudioPortAidl old state = " << mState
                << " new state = " << state;
     mState = state;
     return true;
