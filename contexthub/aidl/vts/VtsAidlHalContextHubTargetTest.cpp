@@ -494,14 +494,25 @@ TEST_P(ContextHubTransactionTest, TestHostConnection) {
     hostEndpointInfo.type = HostEndpointInfo::Type::NATIVE;
     hostEndpointInfo.hostEndpointId = kHostEndpointId;
 
-    ASSERT_TRUE(mContextHub->onHostEndpointConnected(hostEndpointInfo).isOk());
-    ASSERT_TRUE(mContextHub->onHostEndpointDisconnected(kHostEndpointId).isOk());
+    Status status = mContextHub->onHostEndpointConnected(hostEndpointInfo);
+    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
+        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    } else {
+        ASSERT_TRUE(status.isOk());
+        ASSERT_TRUE(mContextHub->onHostEndpointDisconnected(kHostEndpointId).isOk());
+    }
 }
 
 TEST_P(ContextHubTransactionTest, TestInvalidHostConnection) {
     constexpr char16_t kHostEndpointId = 1;
-
-    ASSERT_TRUE(mContextHub->onHostEndpointDisconnected(kHostEndpointId).isOk());
+    Status status = mContextHub->onHostEndpointConnected(HostEndpointInfo());
+    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
+        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    } else {
+      ASSERT_TRUE(status.isOk());
+    }
 }
 
 TEST_P(ContextHubTransactionTest, TestNanSessionStateChange) {

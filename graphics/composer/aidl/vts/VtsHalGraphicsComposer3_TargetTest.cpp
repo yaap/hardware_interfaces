@@ -3577,6 +3577,7 @@ TEST_P(GraphicsComposerAidlCommandV4Test, GetLuts) {
 
 TEST_P(GraphicsComposerAidlCommandV4Test, SetUnsupportedLayerLuts) {
     for (const DisplayWrapper& display : mDisplays) {
+        EXPECT_TRUE(mComposerClient->setPowerMode(display.getDisplayId(), PowerMode::ON).isOk());
         auto& writer = getWriter(display.getDisplayId());
         const auto& [layerStatus, layer] =
                 mComposerClient->createLayer(display.getDisplayId(), kBufferSlotCount, &writer);
