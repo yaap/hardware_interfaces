@@ -59,6 +59,9 @@ class StreamBluetooth : public StreamCommonImpl {
     ndk::ScopedAStatus prepareToClose() override;
     ndk::ScopedAStatus bluetoothParametersUpdated() override;
 
+  protected:
+    void dump(int fd);
+
   private:
     const size_t mFrameSizeBytes;
     const bool mIsInput;
@@ -91,6 +94,8 @@ class StreamInBluetooth final : public StreamIn, public StreamBluetooth {
     ndk::ScopedAStatus getActiveMicrophones(
             std::vector<::aidl::android::media::audio::common::MicrophoneDynamicInfo>* _aidl_return)
             override;
+
+    binder_status_t dump(int fd, const char**, uint32_t) override;
 };
 
 class StreamOutBluetooth final : public StreamOut, public StreamBluetooth {
@@ -111,6 +116,8 @@ class StreamOutBluetooth final : public StreamOut, public StreamBluetooth {
 
   private:
     void onClose(StreamDescriptor::State) override { defaultOnClose(); }
+
+    binder_status_t dump(int fd, const char**, uint32_t) override;
 };
 
 }  // namespace aidl::android::hardware::audio::core

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <inttypes.h>
 #include <algorithm>
 
 #define LOG_TAG "AHAL_StreamBluetooth"
@@ -232,6 +233,10 @@ ndk::ScopedAStatus StreamBluetooth::bluetoothParametersUpdated() {
     return ndk::ScopedAStatus::ok();
 }
 
+void StreamBluetooth::dump(int fd) {
+    dprintf(fd, "    Frames transferred: %" PRId64 "\n", getContext().getFrameCount());
+}
+
 // static
 int32_t StreamInBluetooth::getNominalLatencyMs(size_t dataIntervalUs) {
     if (dataIntervalUs == 0) dataIntervalUs = kBluetoothDefaultInputBufferMs * 1000LL;
@@ -253,6 +258,11 @@ ndk::ScopedAStatus StreamInBluetooth::getActiveMicrophones(
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
+binder_status_t StreamInBluetooth::dump(int fd, const char**, uint32_t) {
+    StreamBluetooth::dump(fd);
+    return ::android::OK;
+}
+
 // static
 int32_t StreamOutBluetooth::getNominalLatencyMs(size_t dataIntervalUs) {
     if (dataIntervalUs == 0) dataIntervalUs = kBluetoothDefaultOutputBufferMs * 1000LL;
@@ -268,5 +278,10 @@ StreamOutBluetooth::StreamOutBluetooth(StreamContext&& context,
     : StreamOut(std::move(context), offloadInfo),
       StreamBluetooth(&mContextInstance, sourceMetadata, std::move(btProfileHandles), btDeviceProxy,
                       pcmConfig) {}
+
+binder_status_t StreamOutBluetooth::dump(int fd, const char**, uint32_t) {
+    StreamBluetooth::dump(fd);
+    return ::android::OK;
+}
 
 }  // namespace aidl::android::hardware::audio::core

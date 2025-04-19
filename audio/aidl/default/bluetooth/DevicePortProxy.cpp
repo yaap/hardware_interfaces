@@ -324,29 +324,19 @@ bool BluetoothAudioPortAidl::standby() {
 
 bool BluetoothAudioPortAidl::condWaitState(BluetoothStreamState state) {
     const auto waitTime = std::chrono::milliseconds(kMaxWaitingTimeMs);
-    std::unique_lock lock(mCvMutex);
-    base::ScopedLockAssertion lock_assertion(mCvMutex);
-    switch (state) {
-        case BluetoothStreamState::STARTING: {
-            LOG(VERBOSE) << __func__ << debugMessage() << " waiting for STARTED";
-            mInternalCv.wait_for(lock, waitTime, [this] {
-                base::ScopedLockAssertion lock_assertion(mCvMutex);
-                return mState != BluetoothStreamState::STARTING;
-            });
-            return mState == BluetoothStreamState::STARTED;
-        }
-        case BluetoothStreamState::SUSPENDING: {
-            LOG(VERBOSE) << __func__ << debugMessage() << " waiting for SUSPENDED";
-            mInternalCv.wait_for(lock, waitTime, [this] {
-                base::ScopedLockAssertion lock_assertion(mCvMutex);
-                return mState != BluetoothStreamState::SUSPENDING;
-            });
-            return mState == BluetoothStreamState::STANDBY;
-        }
-        default:
-            LOG(WARNING) << __func__ << debugMessage() << " waiting for KNOWN";
-            return false;
+    LOG(DEBUG) << __func__ << debugMessage() << " waiting to change from " << state;
+    if (state == BluetoothStreamState::STARTING || state == BluetoothStreamState::SUSPENDING) {
+        std::unique_lock lock(mCvMutex);
+        base::ScopedLockAssertion lock_assertion(mCvMutex);
+        mInternalCv.wait_for(lock, waitTime, [this, state] {
+            base::ScopedLockAssertion lock_assertion(mCvMutex);
+            return mState != state;
+        });
+        LOG(DEBUG) << __func__ << debugMessage() << " changed from " << state << " to " << mState;
+        return mState == (state == BluetoothStreamState::STARTING ? BluetoothStreamState::STARTED
+                                                                  : BluetoothStreamState::STANDBY);
     }
+    LOG(ERROR) << __func__ << debugMessage() << " called to wait when in " << state;
     return false;
 }
 
@@ -355,12 +345,12 @@ bool BluetoothAudioPortAidl::start() {
         LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
-    LOG(VERBOSE) << __func__ << debugMessage() << ", state=" << getState()
-                 << ", mono=" << (mIsStereoToMono ? "true" : "false") << " request";
 
     {
         std::unique_lock lock(mCvMutex);
         base::ScopedLockAssertion lock_assertion(mCvMutex);
+        LOG(VERBOSE) << __func__ << debugMessage() << ", state=" << mState
+                     << ", mono=" << (mIsStereoToMono ? "true" : "false") << " request";
         if (mState == BluetoothStreamState::STARTED) {
             return true;  // nop, return
         } else if (mState == BluetoothStreamState::SUSPENDING ||
@@ -388,16 +378,15 @@ bool BluetoothAudioPortAidl::start() {
                 retval = condWaitState(BluetoothStreamState::STARTING);
             } else {
                 LOG(ERROR) << __func__ << debugMessage() << ", state=" << getState()
-                           << " Hal fails";
+                           << " StartStream failed";
             }
         }
-    }
-
-    if (retval) {
-        LOG(INFO) << __func__ << debugMessage() << ", state=" << getState()
-                  << ", mono=" << (mIsStereoToMono ? "true" : "false") << " done";
-    } else {
-        LOG(ERROR) << __func__ << debugMessage() << ", state=" << getState() << " failure";
+        if (retval) {
+            LOG(INFO) << __func__ << debugMessage() << ", state=" << mState
+                      << ", mono=" << (mIsStereoToMono ? "true" : "false") << " done";
+        } else {
+            LOG(ERROR) << __func__ << debugMessage() << ", state=" << mState << " failure";
+        }
     }
 
     return retval;  // false if any failure like timeout
@@ -408,11 +397,11 @@ bool BluetoothAudioPortAidl::suspend() {
         LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
         return false;
     }
-    LOG(VERBOSE) << __func__ << debugMessage() << ", state=" << getState() << " request";
 
     {
         std::unique_lock lock(mCvMutex);
         base::ScopedLockAssertion lock_assertion(mCvMutex);
+        LOG(VERBOSE) << __func__ << debugMessage() << ", state=" << mState << " request";
         if (mState == BluetoothStreamState::STANDBY) {
             return true;  // nop, return
         } else if (mState == BluetoothStreamState::SUSPENDING ||
@@ -440,15 +429,14 @@ bool BluetoothAudioPortAidl::suspend() {
                 retval = condWaitState(BluetoothStreamState::SUSPENDING);
             } else {
                 LOG(ERROR) << __func__ << debugMessage() << ", state=" << getState()
-                           << " failure to suspend stream";
+                           << " SuspendStream failed";
             }
         }
-    }
-
-    if (retval) {
-        LOG(INFO) << __func__ << debugMessage() << ", state=" << getState() << " done";
-    } else {
-        LOG(ERROR) << __func__ << debugMessage() << ", state=" << getState() << " failure";
+        if (retval) {
+            LOG(INFO) << __func__ << debugMessage() << ", state=" << mState << " done";
+        } else {
+            LOG(ERROR) << __func__ << debugMessage() << ", state=" << mState << " failure";
+        }
     }
 
     return retval;  // false if any failure like timeout
