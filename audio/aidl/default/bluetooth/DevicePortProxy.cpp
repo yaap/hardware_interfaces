@@ -30,6 +30,7 @@ using aidl::android::hardware::bluetooth::audio::AudioConfiguration;
 using aidl::android::hardware::bluetooth::audio::BluetoothAudioSessionControl;
 using aidl::android::hardware::bluetooth::audio::BluetoothAudioStatus;
 using aidl::android::hardware::bluetooth::audio::ChannelMode;
+using aidl::android::hardware::bluetooth::audio::LatencyMode;
 using aidl::android::hardware::bluetooth::audio::PcmConfiguration;
 using aidl::android::hardware::bluetooth::audio::PortStatusCallbacks;
 using aidl::android::hardware::bluetooth::audio::PresentationPosition;
@@ -66,10 +67,11 @@ std::ostream& operator<<(std::ostream& os, const BluetoothStreamState& state) {
     }
 }
 
-BluetoothAudioPortAidl::BluetoothAudioPortAidl()
+BluetoothAudioPortAidl::BluetoothAudioPortAidl(std::optional<bool> supportsLowLatency)
     : mCookie(::aidl::android::hardware::bluetooth::audio::kObserversCookieUndefined),
       mState(BluetoothStreamState::DISABLED),
-      mSessionType(SessionType::UNKNOWN) {}
+      mSessionType(SessionType::UNKNOWN),
+      mSupportsLowLatency(supportsLowLatency) {}
 
 BluetoothAudioPortAidl::~BluetoothAudioPortAidl() {
     unregisterPort();
@@ -91,10 +93,14 @@ bool BluetoothAudioPortAidl::registerPort(const AudioDeviceDescription& descript
     auto session_changed_cb = [port = this](uint16_t cookie) {
         port->sessionChangedHandler(cookie);
     };
-    // TODO: Add audio_config_changed_cb
+    auto low_latency_allowed_cb = [port = this](uint16_t cookie, bool allowed) {
+        port->lowLatencyAllowedHandler(cookie, allowed);
+    };
+
     PortStatusCallbacks cbacks = {
             .control_result_cb_ = control_result_cb,
             .session_changed_cb_ = session_changed_cb,
+            .low_latency_mode_allowed_cb_ = low_latency_allowed_cb,
     };
     mCookie = BluetoothAudioSessionControl::RegisterControlResultCback(mSessionType, cbacks);
     auto isOk = (mCookie != ::aidl::android::hardware::bluetooth::audio::kObserversCookieUndefined);
@@ -232,6 +238,25 @@ void BluetoothAudioPortAidl::controlResultHandler(uint16_t cookie,
     mInternalCv.notify_all();
 }
 
+void BluetoothAudioPortAidl::lowLatencyAllowedHandler(uint16_t cookie, bool allowed) {
+    if (mCookie != cookie) {
+        LOG(ERROR) << "low_latency_allowed_cb: proxy of device port (cookie="
+                   << StringPrintf("%#hx", cookie) << ") is corrupted";
+        return;
+    }
+    LOG(INFO) << "low_latency_allowed_cb:" << debugMessage() << ", allowed=" << allowed;
+    std::vector<LatencyMode> latency_modes;
+    if (!getRecommendedLatencyModes(&latency_modes)) return;
+    std::shared_ptr<BluetoothAudioPortCallbacks> callbacks;
+    {
+        std::lock_guard guard(mCvMutex);
+        callbacks = mCallbacks;
+    }
+    if (callbacks) {
+        callbacks->onRecommendedLatencyModeChanged(latency_modes);
+    }
+}
+
 void BluetoothAudioPortAidl::sessionChangedHandler(uint16_t cookie) {
     std::lock_guard guard(mCvMutex);
     if (!inUse()) {
@@ -268,6 +293,22 @@ bool BluetoothAudioPortAidl::getPreferredDataIntervalUs(size_t& interval_us) con
     }
 
     interval_us = hal_audio_cfg.get<AudioConfiguration::pcmConfig>().dataIntervalUs;
+    return true;
+}
+
+bool BluetoothAudioPortAidl::getRecommendedLatencyModes(std::vector<LatencyMode>* latency_modes) {
+    if (!inUse()) {
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
+        return false;
+    }
+    *latency_modes = BluetoothAudioSessionControl::GetSupportedLatencyModes(mSessionType);
+    LOG(INFO) << __func__ << debugMessage() << ": "
+              << ::android::internal::ToString(*latency_modes);
+    {
+        std::lock_guard guard(mCvMutex);
+        mSupportsLowLatency = std::find(latency_modes->begin(), latency_modes->end(),
+                                        LatencyMode::LOW_LATENCY) != latency_modes->end();
+    }
     return true;
 }
 
@@ -372,9 +413,14 @@ bool BluetoothAudioPortAidl::start() {
         if (mState == BluetoothStreamState::STARTED) {
             retval = true;
         } else if (mState == BluetoothStreamState::STANDBY) {
+            if (!mSupportsLowLatency.has_value()) {
+                std::vector<LatencyMode> latency_modes;
+                getRecommendedLatencyModes(&latency_modes);
+            }
+            const bool low_latency = mSupportsLowLatency.value_or(false);
             mState = BluetoothStreamState::STARTING;
             lock.unlock();
-            if (BluetoothAudioSessionControl::StartStream(mSessionType)) {
+            if (BluetoothAudioSessionControl::StartStream(mSessionType, low_latency)) {
                 retval = condWaitState(BluetoothStreamState::STARTING);
             } else {
                 LOG(ERROR) << __func__ << debugMessage() << ", state=" << getState()
@@ -483,6 +529,17 @@ size_t BluetoothAudioPortAidlOut::writeData(const void* buffer, size_t bytes) co
     return totalWrite * 2;
 }
 
+bool BluetoothAudioPortAidlOut::setLatencyMode(
+        ::aidl::android::hardware::bluetooth::audio::LatencyMode latency_mode) {
+    if (!inUse()) {
+        LOG(ERROR) << __func__ << debugMessage() << ": BluetoothAudioPortAidl is not in use";
+        return false;
+    }
+    LOG(INFO) << __func__ << debugMessage() << ": " << toString(latency_mode);
+    BluetoothAudioSessionControl::SetLatencyMode(mSessionType, latency_mode);
+    return true;
+}
+
 size_t BluetoothAudioPortAidlIn::readData(void* buffer, size_t bytes) const {
     if (!buffer) {
         LOG(ERROR) << __func__ << debugMessage() << ": bad input arg";
@@ -547,6 +604,12 @@ bool BluetoothAudioPortAidl::setState(BluetoothStreamState state) {
                << " new state = " << state;
     mState = state;
     return true;
+}
+
+void BluetoothAudioPortAidl::setCallbacks(
+        const std::shared_ptr<BluetoothAudioPortCallbacks>& callbacks) {
+    std::lock_guard l(mCvMutex);
+    mCallbacks = callbacks;
 }
 
 bool BluetoothAudioPortAidl::isA2dp() const {

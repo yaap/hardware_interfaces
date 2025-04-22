@@ -165,6 +165,12 @@ ndk::ScopedAStatus ModuleBluetooth::setAudioPortConfig(const AudioPortConfig& in
     return Module::setAudioPortConfigImpl(in_requested, fillConfig, out_suggested, _aidl_return);
 }
 
+ndk::ScopedAStatus ModuleBluetooth::supportsVariableLatency(bool* _aidl_return) {
+    LOG(DEBUG) << __func__ << ": " << getType();
+    *_aidl_return = true;
+    return ndk::ScopedAStatus::ok();
+}
+
 ndk::ScopedAStatus ModuleBluetooth::checkAudioPatchEndpointsMatch(
         const std::vector<AudioPortConfig*>& sources, const std::vector<AudioPortConfig*>& sinks) {
     // Both sources and sinks must be non-empty, this is guaranteed by 'setAudioPatch'.

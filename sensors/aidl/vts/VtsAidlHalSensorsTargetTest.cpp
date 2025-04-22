@@ -314,6 +314,7 @@ class SensorsAidlTest : public testing::TestWithParam<std::string> {
     }
 
   protected:
+    std::vector<SensorInfo> getValidSensors();
     std::vector<SensorInfo> getNonOneShotSensors();
     std::vector<SensorInfo> getNonOneShotAndNonSpecialSensors();
     std::vector<SensorInfo> getNonOneShotAndNonOnChangeAndNonSpecialSensors();
@@ -356,6 +357,7 @@ class SensorsAidlTest : public testing::TestWithParam<std::string> {
     }
 
     ndk::ScopedAStatus activate(int32_t sensorHandle, bool enable);
+    void activateSensors(const std::vector<SensorInfo>& sensors, bool enable);
     void activateAllSensors(bool enable);
 
     ndk::ScopedAStatus batch(int32_t sensorHandle, int64_t samplingPeriodNs,
@@ -428,14 +430,30 @@ ndk::ScopedAStatus SensorsAidlTest::activate(int32_t sensorHandle, bool enable) 
     return getSensors()->activate(sensorHandle, enable);
 }
 
+void SensorsAidlTest::activateSensors(const std::vector<SensorInfo>& sensors, bool enable) {
+    for (const SensorInfo& sensorInfo : sensors) {
+        SCOPED_TRACE(::testing::Message()
+                     << "enable=" << enable << " handle=0x" << std::hex << std::setw(8)
+                     << std::setfill('0') << sensorInfo.sensorHandle << std::dec << " type="
+                     << sensorInfo.typeAsString << " name=" << sensorInfo.name);
+        checkIsOk(batch(sensorInfo.sensorHandle, sensorInfo.minDelayUs,
+                        0 /* maxReportLatencyNs */));
+        checkIsOk(activate(sensorInfo.sensorHandle, enable));
+    }
+}
+
 void SensorsAidlTest::activateAllSensors(bool enable) {
-    for (const SensorInfo& sensorInfo : getSensorsList()) {
-        if (isValidType(sensorInfo.type)) {
-            checkIsOk(batch(sensorInfo.sensorHandle, sensorInfo.minDelayUs,
-                            0 /* maxReportLatencyNs */));
-            checkIsOk(activate(sensorInfo.sensorHandle, enable));
+    activateSensors(getValidSensors(), enable);
+}
+
+std::vector<SensorInfo> SensorsAidlTest::getValidSensors() {
+    std::vector<SensorInfo> validSensors;
+    for (const SensorInfo& info : getSensorsList()) {
+        if (isValidType(info.type)) {
+            validSensors.push_back(info);
         }
     }
+    return validSensors;
 }
 
 std::vector<SensorInfo> SensorsAidlTest::getNonOneShotSensors() {
@@ -506,30 +524,39 @@ void SensorsAidlTest::runFlushTest(const std::vector<SensorInfo>& sensors, bool 
     EventCallback callback;
     getEnvironment()->registerCallback(&callback);
 
-    for (const SensorInfo& sensor : sensors) {
-        // Configure and activate the sensor
-        batch(sensor.sensorHandle, sensor.maxDelayUs, 0 /* maxReportLatencyNs */);
-        activate(sensor.sensorHandle, activateSensor);
+    constexpr size_t kMaxSensorsToActivateInParallel = 20;
+    size_t nextStartIndex = 0;
+    while (nextStartIndex < sensors.size()) {
+        size_t startIndex = nextStartIndex;
+        size_t endIndex = std::min(startIndex + kMaxSensorsToActivateInParallel, sensors.size());
+        for (size_t i = startIndex; i < endIndex; ++i) {
+            // Configure and activate the sensor
+            const SensorInfo& sensor = sensors[i];
+            batch(sensor.sensorHandle, sensor.maxDelayUs, 0 /* maxReportLatencyNs */);
+            activate(sensor.sensorHandle, activateSensor);
 
-        // Flush the sensor
-        for (int32_t i = 0; i < flushCalls; i++) {
-            SCOPED_TRACE(::testing::Message()
-                         << "Flush " << i << "/" << flushCalls << ": "
-                         << " handle=0x" << std::hex << std::setw(8) << std::setfill('0')
-                         << sensor.sensorHandle << std::dec
-                         << " type=" << static_cast<int>(sensor.type) << " name=" << sensor.name);
+            // Flush the sensor
+            for (int32_t i = 0; i < flushCalls; i++) {
+                SCOPED_TRACE(::testing::Message()
+                            << "Flush " << i << "/" << flushCalls << ": "
+                            << " handle=0x" << std::hex << std::setw(8) << std::setfill('0')
+                            << sensor.sensorHandle << std::dec
+                            << " type=" << static_cast<int>(sensor.type) << " name=" << sensor.name);
 
-            EXPECT_EQ(flush(sensor.sensorHandle).isOk(), expectedResult);
+                EXPECT_EQ(flush(sensor.sensorHandle).isOk(), expectedResult);
+            }
         }
-    }
 
-    // Wait up to one second for the flush events
-    callback.waitForFlushEvents(sensors, flushCalls, std::chrono::milliseconds(1000) /* timeout */);
+        // Wait up to one second for the flush events
+        callback.waitForFlushEvents(sensors, flushCalls, std::chrono::milliseconds(1000) /* timeout */);
 
-    // Deactivate all sensors after waiting for flush events so pending flush events are not
-    // abandoned by the HAL.
-    for (const SensorInfo& sensor : sensors) {
-        activate(sensor.sensorHandle, false);
+        // Deactivate all sensors after waiting for flush events so pending flush events are not
+        // abandoned by the HAL.
+        for (size_t i = startIndex; i < endIndex; ++i) {
+            const SensorInfo& sensor = sensors[i];
+            activate(sensor.sensorHandle, false);
+        }
+        nextStartIndex += kMaxSensorsToActivateInParallel;
     }
     getEnvironment()->unregisterCallback();
 
@@ -724,15 +751,16 @@ TEST_P(SensorsAidlTest, CallInitializeTwice) {
         return;  // Exit early if setting up the new environment failed
     }
 
-    size_t numNonOneShotAndNonSpecialSensors = getNonOneShotAndNonSpecialSensors().size();
-    activateAllSensors(true);
+    const std::vector<SensorInfo> sensors = getNonOneShotAndNonOnChangeAndNonSpecialSensors();
+    size_t numNonOneShotAndNonSpecialSensors = sensors.size();
+    activateSensors(sensors, true);
     // Verify that the old environment does not receive any events
     EXPECT_EQ(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), 0);
     if (numNonOneShotAndNonSpecialSensors > 0) {
         // Verify that the new event queue receives sensor events
         EXPECT_GE(newEnv.get()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
     }
-    activateAllSensors(false);
+    activateSensors(sensors, false);
 
     // Cleanup the test environment
     newEnv->TearDown();
@@ -745,21 +773,22 @@ TEST_P(SensorsAidlTest, CallInitializeTwice) {
     }
 
     // Ensure that the original environment is receiving events
-    activateAllSensors(true);
+    activateSensors(sensors, true);
     if (numNonOneShotAndNonSpecialSensors > 0) {
         EXPECT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
     }
-    activateAllSensors(false);
+    activateSensors(sensors, false);
 }
 
 TEST_P(SensorsAidlTest, CleanupConnectionsOnInitialize) {
-    activateAllSensors(true);
+    const std::vector<SensorInfo> sensors = getNonOneShotAndNonOnChangeAndNonSpecialSensors();
+    activateSensors(sensors, true);
 
     // Verify that events are received
     constexpr useconds_t kCollectionTimeoutUs = 1000 * 1000;  // 1s
     constexpr int32_t kNumEvents = 1;
 
-    size_t numNonOneShotAndNonSpecialSensors = getNonOneShotAndNonSpecialSensors().size();
+    size_t numNonOneShotAndNonSpecialSensors = sensors.size();
     if (numNonOneShotAndNonSpecialSensors > 0) {
         ASSERT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
     }
@@ -775,13 +804,13 @@ TEST_P(SensorsAidlTest, CleanupConnectionsOnInitialize) {
 
     // Verify no events are received until sensors are re-activated
     ASSERT_EQ(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), 0);
-    activateAllSensors(true);
+    activateSensors(sensors, true);
     if (numNonOneShotAndNonSpecialSensors > 0) {
         ASSERT_GE(getEnvironment()->collectEvents(kCollectionTimeoutUs, kNumEvents).size(), kNumEvents);
     }
 
     // Disable sensors
-    activateAllSensors(false);
+    activateSensors(sensors, false);
 
     // Restore active sensors prior to clearing the environment
     mSensorHandles = handles;
@@ -846,12 +875,12 @@ TEST_P(SensorsAidlTest, Batch) {
         checkIsOk(batch(sensor.sensorHandle, samplingPeriodNs, 0 /* maxReportLatencyNs */));
 
         // Activate the sensor
-        activate(sensor.sensorHandle, true /* enabled */);
+        activate(sensor.sensorHandle, true /* enable */);
 
         // Call batch on an active sensor
         checkIsOk(batch(sensor.sensorHandle, sensor.maxDelayUs, 0 /* maxReportLatencyNs */));
+        activate(sensor.sensorHandle, false /* enable */);
     }
-    activateAllSensors(false /* enable */);
 
     // Call batch on an invalid sensor
     SensorInfo sensor = getSensorsList().front();
@@ -910,13 +939,13 @@ TEST_P(SensorsAidlTest, NoStaleEvents) {
     }
 
     // Activate the sensors so that they start generating events
-    activateAllSensors(true);
+    activateSensors(sensors, true);
 
     // According to the CDD, the first sample must be generated within 400ms + 2 * sample_time
     // and the maximum reporting latency is 100ms + 2 * sample_time. Wait a sufficient amount
     // of time to guarantee that a sample has arrived.
     callback.waitForEvents(sensors, kFiveHundredMs + (5 * maxMinDelay));
-    activateAllSensors(false);
+    activateSensors(sensors, false);
 
     // Save the last received event for each sensor
     std::map<int32_t, int64_t> lastEventTimestampMap;
@@ -935,9 +964,9 @@ TEST_P(SensorsAidlTest, NoStaleEvents) {
     // Allow some time to pass, reset the callback, then reactivate the sensors
     usleep(duration_cast<std::chrono::microseconds>(kOneSecond + (5 * maxMinDelay)).count());
     callback.reset();
-    activateAllSensors(true);
+    activateSensors(sensors, true);
     callback.waitForEvents(sensors, kFiveHundredMs + (5 * maxMinDelay));
-    activateAllSensors(false);
+    activateSensors(sensors, false);
 
     getEnvironment()->unregisterCallback();
 

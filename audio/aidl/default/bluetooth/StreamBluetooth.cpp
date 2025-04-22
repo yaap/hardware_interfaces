@@ -28,6 +28,7 @@ using aidl::android::hardware::audio::common::SinkMetadata;
 using aidl::android::hardware::audio::common::SourceMetadata;
 using aidl::android::hardware::audio::core::VendorParameter;
 using aidl::android::hardware::bluetooth::audio::ChannelMode;
+using aidl::android::hardware::bluetooth::audio::LatencyMode;
 using aidl::android::hardware::bluetooth::audio::PcmConfiguration;
 using aidl::android::hardware::bluetooth::audio::PresentationPosition;
 using aidl::android::media::audio::common::AudioChannelLayout;
@@ -36,6 +37,7 @@ using aidl::android::media::audio::common::AudioDevice;
 using aidl::android::media::audio::common::AudioDeviceAddress;
 using aidl::android::media::audio::common::AudioFormatDescription;
 using aidl::android::media::audio::common::AudioFormatType;
+using aidl::android::media::audio::common::AudioLatencyMode;
 using aidl::android::media::audio::common::AudioOffloadInfo;
 using aidl::android::media::audio::common::MicrophoneDynamicInfo;
 using aidl::android::media::audio::common::MicrophoneInfo;
@@ -51,6 +53,54 @@ constexpr int kBluetoothDefaultOutputBufferMs = 10;
 // constexpr int kBluetoothSpatializerOutputBufferMs = 10;
 constexpr int kBluetoothDefaultRemoteDelayMs = 200;
 
+namespace {
+
+LatencyMode audio2bt_LatencyMode(AudioLatencyMode mode) {
+    switch (mode) {
+        case AudioLatencyMode::FREE:
+            return LatencyMode::FREE;
+        case AudioLatencyMode::LOW:
+            return LatencyMode::LOW_LATENCY;
+        case AudioLatencyMode::DYNAMIC_SPATIAL_AUDIO_SOFTWARE:
+            return LatencyMode::DYNAMIC_SPATIAL_AUDIO_SOFTWARE;
+        case AudioLatencyMode::DYNAMIC_SPATIAL_AUDIO_HARDWARE:
+            return LatencyMode::DYNAMIC_SPATIAL_AUDIO_HARDWARE;
+    }
+    return LatencyMode::UNKNOWN;
+}
+
+std::optional<AudioLatencyMode> bt2audio_LatencyMode(LatencyMode mode) {
+    switch (mode) {
+        case LatencyMode::UNKNOWN:
+            return std::nullopt;
+        case LatencyMode::FREE:
+            return AudioLatencyMode::FREE;
+        case LatencyMode::LOW_LATENCY:
+            return AudioLatencyMode::LOW;
+        case LatencyMode::DYNAMIC_SPATIAL_AUDIO_SOFTWARE:
+            return AudioLatencyMode::DYNAMIC_SPATIAL_AUDIO_SOFTWARE;
+        case LatencyMode::DYNAMIC_SPATIAL_AUDIO_HARDWARE:
+            return AudioLatencyMode::DYNAMIC_SPATIAL_AUDIO_HARDWARE;
+    }
+    return std::nullopt;
+}
+
+std::vector<AudioLatencyMode> bt2audio_LatencyModes(const std::vector<LatencyMode>& modes) {
+    std::vector<AudioLatencyMode> result;
+    for (const auto m : modes) {
+        if (const auto alm = bt2audio_LatencyMode(m); alm.has_value()) {
+            result.push_back(*alm);
+        }
+    }
+    return result;
+}
+
+}  // namespace
+
+void PortCallbacksHandler::onRecommendedLatencyModeChanged(const std::vector<LatencyMode>& modes) {
+    mStreamCallback->onRecommendedLatencyModeChanged(bt2audio_LatencyModes(modes));
+}
+
 StreamBluetooth::StreamBluetooth(StreamContext* context, const Metadata& metadata,
                                  ModuleBluetooth::BtProfileHandles&& btHandles,
                                  const std::shared_ptr<BluetoothAudioPortAidl>& btDeviceProxy,
@@ -65,7 +115,12 @@ StreamBluetooth::StreamBluetooth(StreamContext* context, const Metadata& metadat
                                        : (mIsInput ? kBluetoothDefaultInputBufferMs
                                                    : kBluetoothDefaultOutputBufferMs) *
                                                  1000),
-      mBtDeviceProxy(btDeviceProxy) {}
+      mCallbacksHandler(new PortCallbacksHandler(getContext().getOutEventCallback())),
+      mBtDeviceProxy(btDeviceProxy) {
+    if (mCallbacksHandler->hasCallback()) {
+        mBtDeviceProxy->setCallbacks(mCallbacksHandler);
+    }
+}
 
 StreamBluetooth::~StreamBluetooth() {
     cleanupWorker();
@@ -233,6 +288,29 @@ ndk::ScopedAStatus StreamBluetooth::bluetoothParametersUpdated() {
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus StreamBluetooth::getRecommendedLatencyModes(
+        std::vector<AudioLatencyMode>* _aidl_return) {
+    LOG(DEBUG) << __func__;
+    std::vector<LatencyMode> modes;
+    std::lock_guard guard(mLock);
+    if (!mBtDeviceProxy || !mBtDeviceProxy->getRecommendedLatencyModes(&modes)) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    *_aidl_return = bt2audio_LatencyModes(modes);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus StreamBluetooth::setLatencyMode(AudioLatencyMode in_mode) {
+    LOG(DEBUG) << __func__ << ": " << toString(in_mode);
+    std::lock_guard guard(mLock);
+    if (mBtDeviceProxy != nullptr) {
+        return mBtDeviceProxy->setLatencyMode(audio2bt_LatencyMode(in_mode))
+                       ? ndk::ScopedAStatus::ok()
+                       : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+}
+
 void StreamBluetooth::dump(int fd) {
     dprintf(fd, "    Frames transferred: %" PRId64 "\n", getContext().getFrameCount());
 }
@@ -278,6 +356,15 @@ StreamOutBluetooth::StreamOutBluetooth(StreamContext&& context,
     : StreamOut(std::move(context), offloadInfo),
       StreamBluetooth(&mContextInstance, sourceMetadata, std::move(btProfileHandles), btDeviceProxy,
                       pcmConfig) {}
+
+ndk::ScopedAStatus StreamOutBluetooth::getRecommendedLatencyModes(
+        std::vector<AudioLatencyMode>* _aidl_return) {
+    return StreamBluetooth::getRecommendedLatencyModes(_aidl_return);
+}
+
+ndk::ScopedAStatus StreamOutBluetooth::setLatencyMode(AudioLatencyMode in_mode) {
+    return StreamBluetooth::setLatencyMode(in_mode);
+}
 
 binder_status_t StreamOutBluetooth::dump(int fd, const char**, uint32_t) {
     StreamBluetooth::dump(fd);

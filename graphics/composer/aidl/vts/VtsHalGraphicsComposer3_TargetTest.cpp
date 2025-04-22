@@ -2369,7 +2369,7 @@ TEST_P(GraphicsComposerAidlCommandTest, DisplayDecoration) {
 
         const auto format = (error.isOk() && support) ? support->format
                         : aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888;
-        const auto decorBuffer = allocate(display.getDisplayHeight(), display.getDisplayWidth(),
+        const auto decorBuffer = allocate(display.getDisplayWidth(), display.getDisplayHeight(),
                                           static_cast<::android::PixelFormat>(format));
         ASSERT_NE(nullptr, decorBuffer);
         if (::android::OK != decorBuffer->initCheck()) {

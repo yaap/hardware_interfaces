@@ -16,6 +16,7 @@ enum ClientState {
     Opened {
         callbacks: Strong<dyn IUwbClientCallback>,
         _death_recipient: DeathRecipient,
+        initialized: bool,
     },
 }
 
@@ -97,11 +98,18 @@ impl UwbChip {
 
                     log::debug!(" <-- {:?}", &buffer[0..total_packet_length]);
 
-                    let service_state = service_state.lock().await;
-                    if let ClientState::Opened { ref callbacks, .. } = service_state.client_state {
-                        callbacks
+                    let mut service_state = service_state.lock().await;
+                    if let ClientState::Opened { ref callbacks, ref mut initialized, .. } = service_state.client_state {
+                        if !*initialized {
+                            if matches!(&buffer[0..total_packet_length], [0x40, 0x00, 0x00, 0x01, 0x00]
+                            ) {
+                                *initialized = true;
+                            }
+                        } else {
+                            callbacks
                             .onUciMessage(&buffer[0..total_packet_length])
                             .unwrap();
+                        }
                     }
                 }
             })
@@ -147,7 +155,23 @@ impl IUwbChipAsyncServer for UwbChip {
         service_state.client_state = ClientState::Opened {
             callbacks: callbacks.clone(),
             _death_recipient: death_recipient,
+            initialized: false,
         };
+
+        // Send the command Device Reset to stop all running activities
+        // on the UWBS emulator. This is necessary because the emulator
+        // is otherwise not notified of the power down (the serial stays
+        // open).
+        //
+        // The response to the command will be handled so it won't be sent
+        // to uci layer.
+        let uci_core_device_reset_cmd = [0x20, 0x00, 0x00, 0x01, 0x00];
+
+        service_state
+            .writer
+            .write_all(&uci_core_device_reset_cmd)
+            .await
+            .expect("failed to write UCI Device Reset command");
 
         Ok(())
     }
@@ -161,21 +185,6 @@ impl IUwbChipAsyncServer for UwbChip {
             log::error!("the state is already closed");
             return Err(binder::ExceptionCode::ILLEGAL_STATE.into());
         }
-
-        // Send the command Device Reset to stop all running activities
-        // on the UWBS emulator. This is necessary because the emulator
-        // is otherwise not notified of the power down (the serial stays
-        // open).
-        //
-        // The response to the command will be dropped by the polling loop,
-        // as the callbacks will have been removed then.
-        let uci_core_device_reset_cmd = [0x20, 0x00, 0x00, 0x01, 0x00];
-
-        service_state
-            .writer
-            .write_all(&uci_core_device_reset_cmd)
-            .await
-            .expect("failed to write UCI Device Reset command");
 
         if let ClientState::Opened { ref callbacks, .. } = service_state.client_state {
             callbacks.onHalEvent(UwbEvent::CLOSE_CPLT, UwbStatus::OK)?;
