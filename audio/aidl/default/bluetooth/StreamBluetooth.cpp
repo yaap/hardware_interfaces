@@ -117,7 +117,7 @@ StreamBluetooth::StreamBluetooth(StreamContext* context, const Metadata& metadat
                                                  1000),
       mCallbacksHandler(new PortCallbacksHandler(getContext().getOutEventCallback())),
       mBtDeviceProxy(btDeviceProxy) {
-    if (mCallbacksHandler->hasCallback()) {
+    if (mBtDeviceProxy != nullptr && mCallbacksHandler->hasCallback()) {
         mBtDeviceProxy->setCallbacks(mCallbacksHandler);
     }
 }
@@ -155,13 +155,8 @@ StreamBluetooth::~StreamBluetooth() {
     std::lock_guard guard(mLock);
     *actualFrameCount = 0;
     *latencyMs = StreamDescriptor::LATENCY_UNKNOWN;
-    if (mBtDeviceProxy == nullptr || mBtDeviceProxy->getState() == BluetoothStreamState::DISABLED) {
-        // The BT session is turned down, silently ignore write.
-        return ::android::OK;
-    }
-    if (!mBtDeviceProxy->start()) {
-        LOG(WARNING) << __func__ << ": state= " << mBtDeviceProxy->getState()
-                     << " failed to start, will retry";
+    if (mBtDeviceProxy == nullptr || !mBtDeviceProxy->start()) {
+        // The BT session is turned down.
         return ::android::OK;
     }
     *latencyMs = 0;
@@ -217,9 +212,7 @@ bool StreamBluetooth::checkConfigParams(const PcmConfiguration& pcmConfig,
 ndk::ScopedAStatus StreamBluetooth::prepareToClose() {
     std::lock_guard guard(mLock);
     if (mBtDeviceProxy != nullptr) {
-        if (mBtDeviceProxy->getState() != BluetoothStreamState::DISABLED) {
-            mBtDeviceProxy->stop();
-        }
+        mBtDeviceProxy->stop();
     }
     return ndk::ScopedAStatus::ok();
 }

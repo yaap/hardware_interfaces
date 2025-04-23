@@ -155,6 +155,11 @@ void check_crl_distribution_points_extension_not_present(X509* certificate) {
 }
 
 void check_attestation_version(uint32_t attestation_version, int32_t aidl_version) {
+    if (get_vendor_api_level() > AVendorSupport_getVendorApiLevelOf(36)) {
+        EXPECT_EQ(attestation_version, (aidl_version * 100));
+        return;
+    }
+
     // Version numbers in attestation extensions should be a multiple of 100.
     EXPECT_EQ(attestation_version % 100, 0);
 

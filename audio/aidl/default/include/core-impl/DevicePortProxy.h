@@ -192,9 +192,8 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
 
     /**
      * Return the current BluetoothStreamState
-     * Note: This method is used for logging, does not lock, so value returned may not be latest
      */
-    BluetoothStreamState getState() const override NO_THREAD_SAFETY_ANALYSIS;
+    BluetoothStreamState getState() const override;
 
     bool setState(BluetoothStreamState state) override;
 
@@ -235,7 +234,7 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
     bool initSessionType(
             const ::aidl::android::media::audio::common::AudioDeviceDescription& description);
 
-    bool condWaitState(BluetoothStreamState state);
+    bool condWaitState(std::unique_lock<std::mutex>* lock) REQUIRES(mCvMutex);
 
     void controlResultHandler(
             uint16_t cookie,
