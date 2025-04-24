@@ -285,6 +285,18 @@ int32_t ModuleBluetooth::getNominalLatencyMs(const AudioPortConfig& portConfig) 
     return Module::getNominalLatencyMs(portConfig);
 }
 
+binder_status_t ModuleBluetooth::dump(int fd, const char** args, uint32_t numArgs) {
+    if (!::aidl::android::hardware::audio::common::hasArgument(
+                args, numArgs,
+                ::aidl::android::hardware::audio::common::kDumpFromAudioServerArgument)) {
+        // Streams are dumped as part of audio flinger threads dump,
+        // no need for a separate dump since the module itself does not
+        // have anything interesting.
+        Module::dump(fd, args, numArgs);
+    }
+    return ::android::OK;
+}
+
 ndk::ScopedAStatus ModuleBluetooth::createProxy(const AudioPort& audioPort, int32_t instancePortId,
                                                 CachedProxy& proxy) {
     const bool isInput = audioPort.flags.getTag() == AudioIoFlags::input;

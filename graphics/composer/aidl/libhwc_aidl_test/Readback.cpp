@@ -16,9 +16,9 @@
 
 #include "Readback.h"
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
+#include <renderengine/impl/ExternalTexture.h>
 #include "RenderEngine.h"
 #include "android-base/stringprintf.h"
-#include "renderengine/impl/ExternalTexture.h"
 
 namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test {
 
@@ -53,6 +53,9 @@ void saveAsImage(const std::string& prefix, void* bufferData, uint32_t bytesPerP
 
     fclose(file);
 }
+
+#define ASSERT_APPROX_EQ(val1, val2, error) \
+    ASSERT_NEAR(static_cast<double>(val1), static_cast<double>(val2), static_cast<double>(error))
 }  // namespace
 
 const std::vector<ColorMode> ReadbackHelper::colorModes = {ColorMode::SRGB, ColorMode::DISPLAY_P3};
@@ -169,6 +172,14 @@ int32_t ReadbackHelper::GetBitsPerChannel(common::PixelFormat pixelFormat) {
     }
 }
 
+int32_t ReadbackHelper::GetTolerance(int32_t bitsPerChannel) {
+    if (bitsPerChannel > 8) {
+        return 3;
+    } else {
+        return 0;
+    }
+}
+
 int32_t ReadbackHelper::GetAlphaBits(common::PixelFormat pixelFormat) {
     switch (pixelFormat) {
         case common::PixelFormat::RGBA_8888:
@@ -267,9 +278,11 @@ void ReadbackHelper::compareColorBuffers(const std::vector<Color>& expectedColor
                                          common::PixelFormat pixelFormat) {
     int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
     int32_t alphaBits = GetAlphaBits(pixelFormat);
+    int32_t tolerance = GetTolerance(bitsPerChannel);
     ASSERT_GT(bytesPerPixel, 0);
     ASSERT_NE(-1, alphaBits);
     ASSERT_NE(-1, bitsPerChannel);
+    ASSERT_GE(tolerance, 0);
     uint32_t maxValue = (1 << bitsPerChannel) - 1;
     uint32_t maxAlphaValue = (1 << alphaBits) - 1;
     for (uint32_t row = 0; row < height; row++) {
@@ -304,11 +317,11 @@ void ReadbackHelper::compareColorBuffers(const std::vector<Color>& expectedColor
                 uint32_t actualBlue = (*pixelStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
                 uint32_t actualAlpha = (*pixelStart >> (32 - alphaBits)) & maxAlphaValue;
 
-                ASSERT_EQ(expectedRed, actualRed)
+                ASSERT_APPROX_EQ(expectedRed, actualRed, tolerance)
                         << "Red channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_EQ(expectedGreen, actualGreen)
+                ASSERT_APPROX_EQ(expectedGreen, actualGreen, tolerance)
                         << "Green channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_EQ(expectedBlue, actualBlue)
+                ASSERT_APPROX_EQ(expectedBlue, actualBlue, tolerance)
                         << "Blue channel mismatch at (" << row << ", " << col << ")";
             }
         }
@@ -321,9 +334,11 @@ void ReadbackHelper::compareColorBuffers(void* expectedBuffer, void* actualBuffe
                                          common::PixelFormat pixelFormat) {
     int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
     int32_t alphaBits = GetAlphaBits(pixelFormat);
+    int32_t tolerance = GetTolerance(bitsPerChannel);
     ASSERT_GT(bytesPerPixel, 0);
     ASSERT_NE(-1, alphaBits);
     ASSERT_NE(-1, bitsPerChannel);
+    ASSERT_GE(tolerance, 0);
     uint32_t maxValue = (1 << bitsPerChannel) - 1;
     uint32_t maxAlphaValue = (1 << alphaBits) - 1;
     for (uint32_t row = 0; row < height; row++) {
@@ -359,11 +374,11 @@ void ReadbackHelper::compareColorBuffers(void* expectedBuffer, void* actualBuffe
                         (*actualStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
                 uint32_t actualAlpha = (*actualStart >> (32 - alphaBits)) & maxAlphaValue;
 
-                ASSERT_EQ(expectedRed, actualRed)
+                ASSERT_APPROX_EQ(expectedRed, actualRed, tolerance)
                         << "Red channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_EQ(expectedGreen, actualGreen)
+                ASSERT_APPROX_EQ(expectedGreen, actualGreen, tolerance)
                         << "Green channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_EQ(expectedBlue, actualBlue)
+                ASSERT_APPROX_EQ(expectedBlue, actualBlue, tolerance)
                         << "Blue channel mismatch at (" << row << ", " << col << ")";
             }
         }

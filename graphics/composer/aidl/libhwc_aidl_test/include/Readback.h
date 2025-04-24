@@ -143,6 +143,7 @@ class ReadbackHelper {
     static Dataspace getDataspaceForColorMode(ColorMode mode);
 
     static int32_t GetBitsPerChannel(PixelFormat pixelFormat);
+    static int32_t GetTolerance(int32_t bitsPerChannel);
     static int32_t GetAlphaBits(PixelFormat pixelFormat);
 
     static void fillBuffer(uint32_t width, uint32_t height, uint32_t stride, int32_t bytesPerPixel,

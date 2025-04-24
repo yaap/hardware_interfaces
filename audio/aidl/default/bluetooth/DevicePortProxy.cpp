@@ -626,4 +626,8 @@ std::string BluetoothAudioPortAidl::debugMessage() const {
     return StringPrintf(": session_type=%s, cookie=%#hx", toString(mSessionType).c_str(), mCookie);
 }
 
+std::string BluetoothAudioPortAidl::getSessionNameForDebug() const {
+    return toString(mSessionType);
+}
+
 }  // namespace android::bluetooth::audio::aidl

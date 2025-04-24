@@ -80,6 +80,8 @@ class ModuleBluetooth final : public Module {
     int32_t getNominalLatencyMs(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig) override;
 
+    binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
+
     ndk::ScopedAStatus createProxy(
             const ::aidl::android::media::audio::common::AudioPort& audioPort,
             int32_t instancePortId, CachedProxy& proxy);

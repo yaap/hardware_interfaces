@@ -117,8 +117,11 @@ StreamBluetooth::StreamBluetooth(StreamContext* context, const Metadata& metadat
                                                  1000),
       mCallbacksHandler(new PortCallbacksHandler(getContext().getOutEventCallback())),
       mBtDeviceProxy(btDeviceProxy) {
-    if (mBtDeviceProxy != nullptr && mCallbacksHandler->hasCallback()) {
-        mBtDeviceProxy->setCallbacks(mCallbacksHandler);
+    if (mBtDeviceProxy != nullptr) {
+        mSessionTypeName = mBtDeviceProxy->getSessionNameForDebug();
+        if (mCallbacksHandler->hasCallback()) {
+            mBtDeviceProxy->setCallbacks(mCallbacksHandler);
+        }
     }
 }
 
@@ -304,8 +307,21 @@ ndk::ScopedAStatus StreamBluetooth::setLatencyMode(AudioLatencyMode in_mode) {
     return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
 }
 
-void StreamBluetooth::dump(int fd) {
-    dprintf(fd, "    Frames transferred: %" PRId64 "\n", getContext().getFrameCount());
+void StreamBluetooth::dump(int fd, const char** args, uint32_t numArgs) {
+    const int indent = 4;
+    if (::aidl::android::hardware::audio::common::hasArgument(
+                args, numArgs,
+                ::aidl::android::hardware::audio::common::kDumpFromAudioServerArgument)) {
+        // Just provide the frames count.
+        dprintf(fd, "%*sFrames transferred: %" PRId64 "\n", indent, "",
+                getContext().getFrameCount());
+        return;
+    }
+    dprintf(fd, "%*sI/O handle %d:\n", indent, "", getContext().getMixPortHandle());
+    dprintf(fd, "%*sFrames transferred: %" PRId64 "\n", indent + 2, "",
+            getContext().getFrameCount());
+    dprintf(fd, "%*sSession type: %s\n", indent + 2, "", mSessionTypeName.c_str());
+    dprintf(fd, "%*sSample rate: %d\n", indent + 2, "", getContext().getSampleRate());
 }
 
 // static
@@ -329,8 +345,8 @@ ndk::ScopedAStatus StreamInBluetooth::getActiveMicrophones(
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-binder_status_t StreamInBluetooth::dump(int fd, const char**, uint32_t) {
-    StreamBluetooth::dump(fd);
+binder_status_t StreamInBluetooth::dump(int fd, const char** args, uint32_t numArgs) {
+    StreamBluetooth::dump(fd, args, numArgs);
     return ::android::OK;
 }
 
@@ -359,8 +375,8 @@ ndk::ScopedAStatus StreamOutBluetooth::setLatencyMode(AudioLatencyMode in_mode) 
     return StreamBluetooth::setLatencyMode(in_mode);
 }
 
-binder_status_t StreamOutBluetooth::dump(int fd, const char**, uint32_t) {
-    StreamBluetooth::dump(fd);
+binder_status_t StreamOutBluetooth::dump(int fd, const char** args, uint32_t numArgs) {
+    StreamBluetooth::dump(fd, args, numArgs);
     return ::android::OK;
 }
 

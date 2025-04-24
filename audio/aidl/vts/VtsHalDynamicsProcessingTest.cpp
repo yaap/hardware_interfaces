@@ -587,9 +587,9 @@ DynamicsProcessing::MbcBandConfig createMbcBandConfig(int channel, int band, flo
 void fillMbcBandConfig(std::vector<DynamicsProcessing::MbcBandConfig>& cfgs, int channelIndex,
                        float threshold, float ratio, float noiseGate, float expanderRatio,
                        int bandIndex, int cutoffFreqHz, float preGain, float postGain,
-                       float attackTime = 0, float releaseTime = 0) {
+                       float attackTime = 0, float releaseTime = 0, float kneewidth = 0) {
     cfgs.push_back(createMbcBandConfig(channelIndex, bandIndex, static_cast<float>(cutoffFreqHz),
-                                       attackTime, releaseTime, ratio, threshold, 0 /*kneewidth*/,
+                                       attackTime, releaseTime, ratio, threshold, kneewidth,
                                        noiseGate, expanderRatio, preGain, postGain));
 }
 
@@ -1086,8 +1086,9 @@ TEST_P(DynamicsProcessingLimiterConfigDataTest, IncreasingPostGain) {
     std::vector<float> output(mInput.size());
     for (float postGainDb : postGainDbValues) {
         cleanUpConfigs(mLimiterConfigList);
-        ASSERT_NO_FATAL_FAILURE(generateSineWave(kInputFrequency, mInput, dBToAmplitude(postGainDb),
-                                                 kSamplingFrequency, mChannelLayout));
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(kInputFrequency, mInput,
+                                                 dBToAmplitude(-postGainDb), kSamplingFrequency,
+                                                 mChannelLayout));
         mInputDb = calculateDb(mInput);
         EXPECT_NEAR(mInputDb, kSineFullScaleDb - postGainDb, kLimiterTestToleranceDb);
         for (int i = 0; i < mChannelCount; i++) {
@@ -1498,7 +1499,7 @@ class DynamicsProcessingEqBandConfigDataTest
 TEST_P(DynamicsProcessingEqBandConfigDataTest, IncreasingPreEqGain) {
     for (float gainDb : kTestGainDbValues) {
         ASSERT_NO_FATAL_FAILURE(generateSineWave(mMultitoneTestFrequencies, mInput,
-                                                 dBToAmplitude(gainDb), kSamplingFrequency,
+                                                 dBToAmplitude(-gainDb), kSamplingFrequency,
                                                  mChannelLayout));
         cleanUpConfigs(mCfgs);
         ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(gainDb, true /*pre-equalizer*/));
@@ -1508,7 +1509,7 @@ TEST_P(DynamicsProcessingEqBandConfigDataTest, IncreasingPreEqGain) {
 TEST_P(DynamicsProcessingEqBandConfigDataTest, IncreasingPostEqGain) {
     for (float gainDb : kTestGainDbValues) {
         ASSERT_NO_FATAL_FAILURE(generateSineWave(mMultitoneTestFrequencies, mInput,
-                                                 dBToAmplitude(gainDb), kSamplingFrequency,
+                                                 dBToAmplitude(-gainDb), kSamplingFrequency,
                                                  mChannelLayout));
         cleanUpConfigs(mCfgs);
         ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(gainDb, false /*post-equalizer*/));
@@ -1685,12 +1686,34 @@ class DynamicsProcessingMbcBandConfigDataTest
         }
     }
 
+    void computeAndValidateCompressionRatios(const std::vector<float>& inputDbValues,
+                                             const std::vector<float>& outputDbValues,
+                                             float expectedRatio) {
+        std::vector<float> compressionRatios;
+        for (size_t i = 0; i < outputDbValues.size() - 1; i += 2) {
+            ASSERT_NE(outputDbValues[i + 1] - outputDbValues[i], 0);
+            compressionRatios.push_back((inputDbValues[i + 1] - inputDbValues[i]) /
+                                        (outputDbValues[i + 1] - outputDbValues[i]));
+        }
+        // For soft compression,
+        // The compression ratio increases with increase in the input signal level in range
+        //      [threshold - kneewidth/2, threshold + kneewidth/2].
+        // The compression ratio remains same for inputs greater than threshold + kneewidth/2.
+        for (size_t i = 0; i < compressionRatios.size() - 1; ++i) {
+            EXPECT_GT(compressionRatios[i + 1], compressionRatios[i]);
+        }
+        EXPECT_NEAR(compressionRatios[compressionRatios.size() - 1], expectedRatio,
+                    kRatioTolerance);
+    }
+
     static constexpr float kDefaultPostGainDb = 0;
     static constexpr float kDefaultPreGainDb = 0;
     static constexpr float kDefaultThresholdDb = 0;
     static constexpr float kDefaultNoiseGateDb = -10;
     static constexpr float kDefaultExpanderRatio = 1;
     static constexpr float kDefaultRatio = 1;
+    static constexpr float kRatioTolerance = 0.5;
+    static constexpr int kDefaultCutOffFrequency = 2000;
     const std::vector<float> kMBCReleaseTimeMsValues = {0, 10, 20, 30, 40, 50};
     std::vector<DynamicsProcessing::MbcBandConfig> mCfgs;
 };
@@ -1720,14 +1743,14 @@ TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingPostGain) {
     std::vector<float> output(mInput.size());
     for (float postGainDb : postGainDbValues) {
         ASSERT_NO_FATAL_FAILURE(generateSineWave(mMultitoneTestFrequencies, mInput,
-                                                 dBToAmplitude(postGainDb), kSamplingFrequency,
+                                                 dBToAmplitude(-postGainDb), kSamplingFrequency,
                                                  mChannelLayout));
         mInputDb = calculateDb(mInput);
         EXPECT_NEAR(mInputDb, kSineMultitoneFullScaleDb - postGainDb, kToleranceDb);
         cleanUpConfigs(mCfgs);
         for (int i = 0; i < mChannelCount; i++) {
             fillMbcBandConfig(mCfgs, i, kDefaultThresholdDb, kDefaultRatio, kDefaultNoiseGateDb,
-                              kDefaultExpanderRatio, 0 /*band index*/, 2000 /*cutoffFrequency*/,
+                              kDefaultExpanderRatio, 0 /*band index*/, kDefaultCutOffFrequency,
                               kDefaultPreGainDb, postGainDb);
         }
         EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(mCfgs, output));
@@ -1772,7 +1795,7 @@ TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingPreGain) {
             for (int i = 0; i < mChannelCount; i++) {
                 fillMbcBandConfig(mCfgs, i, thresholdDb, ratio /*compressor ratio*/, noiseGateDb,
                                   ratio /*expander ratio*/, 0 /*band index*/,
-                                  2000 /*cutoffFrequency*/, preGainDb, kDefaultPostGainDb);
+                                  kDefaultCutOffFrequency, preGainDb, kDefaultPostGainDb);
             }
             EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(mCfgs, output));
             if (!isAllParamsValid()) {
@@ -1795,6 +1818,51 @@ TEST_P(DynamicsProcessingMbcBandConfigDataTest, MBCNotEngagedReleaseTime) {
     // Using threshold value such that limiter does not engage with the input
     float thresholdDb = -1;
     ASSERT_NO_FATAL_FAILURE(testAndValidateReleaseTimeOutput(mCfgs, thresholdDb, false));
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, kneewidthTest) {
+    std::vector<float> output(mInput.size());
+    const float thresholdDb = -10;
+    const float ratio = 8;
+    std::vector<float> kneewidthDbValues = {20, 40, 60, 80, 100};
+
+    for (float kneewidthDb : kneewidthDbValues) {
+        // Define the lower, midpoint, and upper dB thresholds for soft knee compression region
+        float lower = thresholdDb - kneewidthDb / 2;
+        float mid = thresholdDb;
+        float upper = thresholdDb + kneewidthDb / 2;
+        // Define a set of input dB values placed around the soft knee region to compute expected
+        // compression.
+        std::vector<float> inputDbValues = {lower, lower + 1, mid, mid + 1, upper, upper + 1};
+        std::vector<float> outputDbValues;
+
+        for (float inputDb : inputDbValues) {
+            cleanUpConfigs(mCfgs);
+            ASSERT_NO_FATAL_FAILURE(
+                    generateSineWave(mMultitoneTestFrequencies, mInput,
+                                     dBToAmplitude(inputDb, kSineMultitoneFullScaleDb),
+                                     kSamplingFrequency, mChannelLayout));
+            EXPECT_NEAR(inputDb, calculateDb(mInput), kToleranceDb);
+            for (int i = 0; i < mChannelCount; i++) {
+                fillMbcBandConfig(mCfgs, i, thresholdDb, ratio /*compressor ratio*/,
+                                  kDefaultExpanderRatio, kDefaultExpanderRatio, 0 /*band index*/,
+                                  kDefaultCutOffFrequency, kDefaultPreGainDb, kDefaultPostGainDb, 0,
+                                  0, kneewidthDb);
+            }
+            EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(mCfgs, output));
+            if (!isAllParamsValid()) {
+                FAIL() << "Invalid MBC parameters. Skip output dB calculation and further "
+                          "processing.";
+            }
+            outputDbValues.push_back(calculateDb(output, kStartIndex));
+        }
+        if (inputDbValues.size() != outputDbValues.size()) {
+            FAIL() << "inputDbValues and outputDbValues sizes are not same. Skipping output "
+                      "validation.";
+        }
+        ASSERT_NO_FATAL_FAILURE(
+                computeAndValidateCompressionRatios(inputDbValues, outputDbValues, ratio));
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingMbcBandConfigDataTest,

@@ -161,6 +161,8 @@ class BluetoothAudioPort {
     }
 
     virtual void setCallbacks(const std::shared_ptr<BluetoothAudioPortCallbacks>&) = 0;
+
+    virtual std::string getSessionNameForDebug() const = 0;
 };
 
 class BluetoothAudioPortAidl : public BluetoothAudioPort {
@@ -208,6 +210,8 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
             override;
 
     void setCallbacks(const std::shared_ptr<BluetoothAudioPortCallbacks>& callbacks) override;
+
+    std::string getSessionNameForDebug() const override;
 
   protected:
     uint16_t mCookie;
