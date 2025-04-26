@@ -33,6 +33,7 @@ using aidl::android::media::audio::common::AudioDevice;
 using aidl::android::media::audio::common::AudioDeviceAddress;
 using aidl::android::media::audio::common::AudioDeviceDescription;
 using aidl::android::media::audio::common::AudioDeviceType;
+using aidl::android::media::audio::common::AudioLatencyMode;
 using aidl::android::media::audio::common::AudioOffloadInfo;
 using aidl::android::media::audio::common::MicrophoneInfo;
 using android::base::GetBoolProperty;
@@ -293,6 +294,19 @@ ndk::ScopedAStatus StreamOutPrimary::setHwVolume(const std::vector<float>& in_ch
                      << ", from mixer: " << ::android::internal::ToString(volumes);
     }
     return ndk::ScopedAStatus::ok();
+}
+
+// TODO(b/413497881): Fix AudioFlinger and remove this workaround
+ndk::ScopedAStatus StreamOutPrimary::getRecommendedLatencyModes(
+        std::vector<AudioLatencyMode>* _aidl_return) {
+    _aidl_return->push_back(AudioLatencyMode::FREE);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus StreamOutPrimary::setLatencyMode(AudioLatencyMode in_mode) {
+    return in_mode == AudioLatencyMode::FREE
+                   ? ndk::ScopedAStatus::ok()
+                   : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
 }
 
 }  // namespace aidl::android::hardware::audio::core

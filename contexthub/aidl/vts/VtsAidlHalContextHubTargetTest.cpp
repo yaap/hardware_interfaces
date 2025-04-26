@@ -510,7 +510,7 @@ TEST_P(ContextHubTransactionTest, TestHostConnection) {
 
 TEST_P(ContextHubTransactionTest, TestInvalidHostConnection) {
     constexpr char16_t kHostEndpointId = 1;
-    Status status = mContextHub->onHostEndpointConnected(HostEndpointInfo());
+    Status status = mContextHub->onHostEndpointDisconnected(kHostEndpointId);
     if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
         status.transactionError() == android::UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";

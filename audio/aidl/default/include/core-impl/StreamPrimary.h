@@ -108,6 +108,12 @@ class StreamOutPrimary final : public StreamOut,
 
     ndk::ScopedAStatus getHwVolume(std::vector<float>* _aidl_return) override;
     ndk::ScopedAStatus setHwVolume(const std::vector<float>& in_channelVolumes) override;
+
+    ndk::ScopedAStatus getRecommendedLatencyModes(
+            std::vector<::aidl::android::media::audio::common::AudioLatencyMode>* _aidl_return)
+            override;
+    ndk::ScopedAStatus setLatencyMode(
+            ::aidl::android::media::audio::common::AudioLatencyMode in_mode) override;
 };
 
 }  // namespace aidl::android::hardware::audio::core

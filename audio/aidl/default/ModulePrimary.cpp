@@ -129,4 +129,10 @@ int32_t ModulePrimary::getNominalLatencyMs(const AudioPortConfig& portConfig) {
     return hasMmapFlag(portConfig.flags.value()) ? kLowLatencyMs : kStandardLatencyMs;
 }
 
+// TODO(b/413497881): Fix AudioFlinger and remove this workaround
+ndk::ScopedAStatus ModulePrimary::supportsVariableLatency(bool* _aidl_return) {
+    *_aidl_return = true;
+    return ndk::ScopedAStatus::ok();
+}
+
 }  // namespace aidl::android::hardware::audio::core
