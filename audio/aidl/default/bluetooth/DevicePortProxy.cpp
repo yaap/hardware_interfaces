@@ -113,6 +113,8 @@ bool BluetoothAudioPortAidl::registerPort(const AudioDeviceDescription& descript
 }
 
 bool BluetoothAudioPortAidl::initSessionType(const AudioDeviceDescription& description) {
+    ::aidl::android::hardware::bluetooth::audio::SessionType fallbackSessionType =
+            SessionType::UNKNOWN;
     if (description.connection == AudioDeviceDescription::CONNECTION_BT_A2DP &&
         (description.type == AudioDeviceType::OUT_DEVICE ||
          description.type == AudioDeviceType::OUT_HEADPHONE ||
@@ -131,11 +133,13 @@ bool BluetoothAudioPortAidl::initSessionType(const AudioDeviceDescription& descr
         LOG(VERBOSE) << __func__ << ": device=AUDIO_DEVICE_OUT_BLE_HEADSET (MEDIA/VOICE) ("
                      << description.toString() << ")";
         mSessionType = SessionType::LE_AUDIO_SOFTWARE_ENCODING_DATAPATH;
+        fallbackSessionType = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH;
     } else if (description.connection == AudioDeviceDescription::CONNECTION_BT_LE &&
                description.type == AudioDeviceType::OUT_SPEAKER) {
         LOG(VERBOSE) << __func__ << ": device=AUDIO_DEVICE_OUT_BLE_SPEAKER (MEDIA) ("
                      << description.toString() << ")";
         mSessionType = SessionType::LE_AUDIO_SOFTWARE_ENCODING_DATAPATH;
+        fallbackSessionType = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH;
     } else if (description.connection == AudioDeviceDescription::CONNECTION_BT_LE &&
                description.type == AudioDeviceType::IN_HEADSET) {
         LOG(VERBOSE) << __func__ << ": device=AUDIO_DEVICE_IN_BLE_HEADSET (VOICE) ("
@@ -152,6 +156,19 @@ bool BluetoothAudioPortAidl::initSessionType(const AudioDeviceDescription& descr
     }
 
     if (!BluetoothAudioSessionControl::IsSessionReady(mSessionType)) {
+        if (fallbackSessionType != SessionType::UNKNOWN) {
+            LOG(WARNING) << __func__
+                         << ": Retry fallback session_type=" << toString(fallbackSessionType)
+                         << " for session_type=" << toString(mSessionType);
+            if (BluetoothAudioSessionControl::IsSessionReady(fallbackSessionType, false)) {
+                mSessionType = fallbackSessionType;
+                return true;
+            } else {
+                LOG(ERROR) << __func__
+                           << ": fallback session_type=" << toString(fallbackSessionType)
+                           << " is not ready";
+            }
+        }
         LOG(ERROR) << __func__ << ": device=" << description.toString()
                    << ", session_type=" << toString(mSessionType) << " is not ready";
         return false;

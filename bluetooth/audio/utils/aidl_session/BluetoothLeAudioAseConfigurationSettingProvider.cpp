@@ -306,7 +306,13 @@ void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
 
   // Populate maxSdu
   if (octet.has_value()) {
-    qos.maxSdu = ase_channel_cnt * octet.value().value * frameBlockValue;
+    // Vendor logic: maxSdu = octet.value().value to allow set directly.
+    if (ase.codecId.has_value() &&
+        ase.codecId.value().getTag() == CodecId::vendor) {
+      qos.maxSdu = octet.value().value * frameBlockValue;
+    } else {
+      qos.maxSdu = ase_channel_cnt * octet.value().value * frameBlockValue;
+    }
   }
   // Populate sduIntervalUs
   if (frameDuration.has_value()) {

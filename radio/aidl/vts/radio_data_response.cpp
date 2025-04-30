@@ -112,3 +112,15 @@ ndk::ScopedAStatus RadioDataResponse::stopKeepaliveResponse(const RadioResponseI
     parent_data.notify(info.serial);
     return ndk::ScopedAStatus::ok();
 }
+
+ndk::ScopedAStatus RadioDataResponse::setUserDataEnabledResponse(const RadioResponseInfo& info) {
+    rspInfo = info;
+    parent_data.notify(info.serial);
+    return ndk::ScopedAStatus::ok();
+}
+ndk::ScopedAStatus RadioDataResponse::setUserDataRoamingEnabledResponse(
+        const RadioResponseInfo& info) {
+    rspInfo = info;
+    parent_data.notify(info.serial);
+    return ndk::ScopedAStatus::ok();
+}

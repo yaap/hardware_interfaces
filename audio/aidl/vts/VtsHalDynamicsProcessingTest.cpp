@@ -152,7 +152,11 @@ class DynamicsProcessingTestHelper : public EffectHelper {
                 (std::is_same_v<ConfigType, DynamicsProcessing::MbcBandConfig>)
     void testAndValidateReleaseTimeOutput(std::vector<ConfigType>& configs, float thresholdDb,
                                           bool isEffectEngaged);
-
+    template <typename ConfigType>
+        requires(std::is_same_v<ConfigType, DynamicsProcessing::LimiterConfig>) ||
+                (std::is_same_v<ConfigType, DynamicsProcessing::MbcBandConfig>)
+    void testAndValidateAttackTimeOutput(std::vector<ConfigType>& configs, float thresholdDb,
+                                         bool isEffectEngaged);
     // enqueue test parameters
     void addEngineConfig(const DynamicsProcessing::EngineArchitecture& cfg);
     void addPreEqChannelConfig(const std::vector<DynamicsProcessing::ChannelConfig>& cfg);
@@ -169,6 +173,7 @@ class DynamicsProcessingTestHelper : public EffectHelper {
     static constexpr int kSamplingFrequency = 44100;
     static constexpr int kFrameCount = 2048;
     static constexpr int kInputFrequency = 1000;
+    static constexpr int kDefaultCutOffFrequency = 2000;
     static constexpr size_t kStartIndex = 15 * kSamplingFrequency / 1000;  // skip 15ms
     static constexpr float kToleranceDb = 0.5;
     static constexpr int kNPointFFT = 1024;
@@ -628,8 +633,8 @@ void DynamicsProcessingTestHelper::testAndValidateReleaseTimeOutput(
             } else {
                 fillMbcBandConfig(configs, i /*channel*/, thresholdDb, 4 /*compressor ratio*/,
                                   0 /*Noise gate dB*/, 1 /*expander ratio*/, 0 /*band index*/,
-                                  2000 /*cutoffFrequency*/, 0 /*preGain*/, 0 /*postGain*/,
-                                  0 /*attackTime*/, releaseTimeMs);
+                                  kDefaultCutOffFrequency /*cutoffFrequency*/, 0 /*preGain*/,
+                                  0 /*postGain*/, 0 /*attackTime*/, releaseTimeMs);
             }
         }
         ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(configs, output));
@@ -647,6 +652,50 @@ void DynamicsProcessingTestHelper::testAndValidateReleaseTimeOutput(
         } else {
             // No change in the outputdB when the limiter is not enganged
             EXPECT_NEAR(outputDb, referenceDb, kToleranceDb) << "Release Time: " << releaseTimeMs;
+        }
+    }
+}
+
+template <typename ConfigType>
+    requires(std::is_same_v<ConfigType, DynamicsProcessing::LimiterConfig>) ||
+            (std::is_same_v<ConfigType, DynamicsProcessing::MbcBandConfig>)
+void DynamicsProcessingTestHelper::testAndValidateAttackTimeOutput(std::vector<ConfigType>& configs,
+                                                                   float thresholdDb,
+                                                                   bool isEffectEngaged) {
+    float referenceDb;
+    if (isEffectEngaged) {
+        ASSERT_GT(mInputDb, thresholdDb);
+        referenceDb = -FLT_MAX;
+    } else {
+        ASSERT_LE(mInputDb, thresholdDb);
+        referenceDb = mInputDb;
+    }
+    std::vector<float> output(mInput.size());
+    std::vector<float> testAttackTimeMsValues = {0, 10, 20, 30, 40, 50};
+    for (float attackTimeMs : testAttackTimeMsValues) {
+        cleanUpConfigs(configs);
+        for (int i = 0; i < mChannelCount; i++) {
+            if constexpr (std::is_same_v<ConfigType, DynamicsProcessing::LimiterConfig>) {
+                fillLimiterConfig(configs, i /*channel*/, true /*enable*/, 0 /*linkGroup*/,
+                                  attackTimeMs /*attackTime*/, 0 /*releaseTime*/,
+                                  4 /*compression ratio*/, thresholdDb, 0 /*postGain*/);
+            } else {
+                fillMbcBandConfig(configs, i /*channel*/, thresholdDb, 4 /*compressor ratio*/,
+                                  0 /*Noise gate dB*/, 1 /*expander ratio*/, 0 /*band index*/,
+                                  kDefaultCutOffFrequency /*cutoffFrequency*/, 0 /*preGain*/,
+                                  0 /*postGain*/, attackTimeMs /*attackTime*/, 0 /*releaseTime*/);
+            }
+        }
+        ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(configs, output));
+        if (!isAllParamsValid()) {
+            continue;
+        }
+        float outputDb = calculateDb(output, kStartIndex);
+        if (isEffectEngaged) {
+            ASSERT_GT(outputDb, referenceDb) << "AttackTime: " << attackTimeMs;
+            referenceDb = outputDb;
+        } else {
+            EXPECT_NEAR(outputDb, referenceDb, kToleranceDb) << "AttackTime: " << attackTimeMs;
         }
     }
 }
@@ -1132,6 +1181,19 @@ TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterNotEngagedReleaseTimeTest
     float thresholdDb = -1;
     ASSERT_NO_FATAL_FAILURE(
             testAndValidateReleaseTimeOutput(mLimiterConfigList, thresholdDb, false));
+}
+
+TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterAttackTime) {
+    // Using a threshold dB value that compresses the input.
+    float thresholdDb = -10;
+    ASSERT_NO_FATAL_FAILURE(testAndValidateAttackTimeOutput(mLimiterConfigList, thresholdDb, true));
+}
+
+TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterNotEngagedAttackTime) {
+    // Using threshold value such that limiter does not engage with the input
+    float thresholdDb = -1;
+    ASSERT_NO_FATAL_FAILURE(
+            testAndValidateAttackTimeOutput(mLimiterConfigList, thresholdDb, false));
 }
 
 INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingLimiterConfigDataTest,
@@ -1713,7 +1775,6 @@ class DynamicsProcessingMbcBandConfigDataTest
     static constexpr float kDefaultExpanderRatio = 1;
     static constexpr float kDefaultRatio = 1;
     static constexpr float kRatioTolerance = 0.5;
-    static constexpr int kDefaultCutOffFrequency = 2000;
     const std::vector<float> kMBCReleaseTimeMsValues = {0, 10, 20, 30, 40, 50};
     std::vector<DynamicsProcessing::MbcBandConfig> mCfgs;
 };
@@ -1815,7 +1876,7 @@ TEST_P(DynamicsProcessingMbcBandConfigDataTest, MBCReleaseTime) {
 }
 
 TEST_P(DynamicsProcessingMbcBandConfigDataTest, MBCNotEngagedReleaseTime) {
-    // Using threshold value such that limiter does not engage with the input
+    // Using threshold value such that MBC does not engage with the input
     float thresholdDb = -1;
     ASSERT_NO_FATAL_FAILURE(testAndValidateReleaseTimeOutput(mCfgs, thresholdDb, false));
 }
@@ -1863,6 +1924,18 @@ TEST_P(DynamicsProcessingMbcBandConfigDataTest, kneewidthTest) {
         ASSERT_NO_FATAL_FAILURE(
                 computeAndValidateCompressionRatios(inputDbValues, outputDbValues, ratio));
     }
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, MBCAttackTime) {
+    // Using a threshold dB value that compresses the input
+    float thresholdDb = -10;
+    ASSERT_NO_FATAL_FAILURE(testAndValidateAttackTimeOutput(mCfgs, thresholdDb, true));
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, MBCNotEngagedAttackTime) {
+    // Using threshold value such that MBC does not engage with the input
+    float thresholdDb = -1;
+    ASSERT_NO_FATAL_FAILURE(testAndValidateAttackTimeOutput(mCfgs, thresholdDb, false));
 }
 
 INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingMbcBandConfigDataTest,

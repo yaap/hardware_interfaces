@@ -182,4 +182,16 @@ ScopedAStatus RadioData::stopKeepalive(int32_t serial, int32_t sessionHandle) {
     return ok();
 }
 
+ScopedAStatus RadioData::setUserDataEnabled(int32_t serial, bool enabled) {
+    LOG_CALL << serial << " " << enabled;
+    respond()->setUserDataEnabledResponse(notSupported(serial));
+    return ok();
+}
+
+ScopedAStatus RadioData::setUserDataRoamingEnabled(int32_t serial, bool enabled) {
+    LOG_CALL << serial << " " << enabled;
+    respond()->setUserDataRoamingEnabledResponse(notSupported(serial));
+    return ok();
+}
+
 }  // namespace android::hardware::radio::compat

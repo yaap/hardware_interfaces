@@ -48,6 +48,7 @@
 #include <aidl/android/media/audio/common/AudioOutputFlags.h>
 #include <android-base/chrono_utils.h>
 #include <android/binder_enums.h>
+#include <audio_utils/Statistics.h>
 #include <error/expected_utils.h>
 #include <fmq/AidlMessageQueue.h>
 
@@ -1089,6 +1090,7 @@ class StreamCommonLogic : public StreamLogic {
                    << mConfig.toString();
         return "";
     }
+    const std::vector<int64_t>& getBurstOccurrences() const { return mBurstOccurrences; }
     const std::vector<int8_t>& getData() const { return mData; }
     void fillData(int8_t filler) { std::fill(mData.begin(), mData.end(), filler); }
     void loadData(std::ifstream& is, size_t* size) {
@@ -1115,6 +1117,7 @@ class StreamCommonLogic : public StreamLogic {
         }
         return std::get<StreamDescriptor::Command>(trigger);
     }
+    void registerBurstNow() { mBurstOccurrences.push_back(::android::uptimeNanos()); }
     bool readDataFromMQ(size_t readCount) {
         std::vector<int8_t> data(readCount);
         if (mDataMQ->read(data.data(), readCount)) {
@@ -1161,6 +1164,7 @@ class StreamCommonLogic : public StreamLogic {
     StreamContext::DataMQ* mDataMQ;
     MmapSharedMemory mMmap;
     std::vector<int8_t> mData;
+    std::vector<int64_t> mBurstOccurrences;
     StreamLogicDriver* const mDriver;
     StreamEventReceiver* const mEventReceiver;
     int mLastEventSeq = StreamEventReceiver::kEventSeqInit;
@@ -1177,7 +1181,8 @@ class StreamReaderLogic : public StreamCommonLogic {
         : StreamCommonLogic(context, driver, stream, eventReceiver),
           mMmapBurstSizeFrames(context.getMmapBurstSizeFrames()) {}
     // Should only be called after the worker has joined.
-    const std::vector<int8_t>& getData() const { return StreamCommonLogic::getData(); }
+    using StreamCommonLogic::getBurstOccurrences;
+    using StreamCommonLogic::getData;
 
   protected:
     Status cycle() override {
@@ -1255,6 +1260,7 @@ class StreamReaderLogic : public StreamCommonLogic {
         }  // readCount == 0
     checkAcceptedReply:
         if (acceptedReply) {
+            registerBurstNow();
             return updateMmapSharedMemoryIfNeeded(reply.state) ? Status::CONTINUE : Status::ABORT;
         }
         LOG(ERROR) << __func__ << ": unacceptable reply: " << reply.toString();
@@ -1271,7 +1277,8 @@ class StreamWriterLogic : public StreamCommonLogic {
                       StreamWorkerMethods* stream, StreamEventReceiver* eventReceiver)
         : StreamCommonLogic(context, driver, stream, eventReceiver) {}
     // Should only be called after the worker has joined.
-    const std::vector<int8_t>& getData() const { return StreamCommonLogic::getData(); }
+    using StreamCommonLogic::getBurstOccurrences;
+    using StreamCommonLogic::getData;
 
   protected:
     std::string init() override {
@@ -1335,6 +1342,7 @@ class StreamWriterLogic : public StreamCommonLogic {
             if (isMmapped() ? !writeDataToMmap() : !writeDataToMQ()) {
                 return Status::ABORT;
             }
+            registerBurstNow();
         }
         LOG(DEBUG) << "Writing command: " << command.toString();
         if (!getCommandMQ()->writeBlocking(&command, 1)) {
@@ -3566,12 +3574,14 @@ class StreamFixtureWithWorker {
             EXPECT_FALSE(mWorkerDriver->hasHardwareRetrogradePosition());
         }
         mLastData = mWorker->getData();
+        mBurstOccurrences = mWorker->getBurstOccurrences();
         mWorker.reset();
         mWorkerDriver.reset();
     }
 
     void TeardownPatch() { mStream->TeardownPatch(); }
 
+    const std::vector<int64_t>& getBurstOccurrences() const { return mBurstOccurrences; }
     const AudioDevice& getDevice() const { return mStream->getDevice(); }
     const AudioPortConfig& getDevicePortConfig() const { return mStream->getDevicePortConfig(); }
     const std::vector<int8_t>& getLastData() const { return mLastData; }
@@ -3599,6 +3609,7 @@ class StreamFixtureWithWorker {
     std::unique_ptr<StreamLogicDefaultDriver> mWorkerDriver;
     std::unique_ptr<typename IOTraits<Stream>::Worker> mWorker;
     std::vector<int8_t> mLastData;
+    std::vector<int64_t> mBurstOccurrences;
 };
 
 template <typename Stream>
@@ -5624,6 +5635,15 @@ class WithRemoteSubmix {
     }
 
     std::optional<AudioDeviceAddress> getAudioDeviceAddress() const { return mAddress; }
+    std::vector<int64_t> getBurstIntervals() const {
+        const auto& occurrences = mStream.getBurstOccurrences();
+        if (occurrences.empty()) return {};
+        std::vector<int64_t> result;
+        for (size_t i = 0; i < occurrences.size() - 1; ++i) {
+            result.push_back(occurrences[i + 1] - occurrences[i]);
+        }
+        return result;
+    }
     const AudioPortConfig& getDevicePortConfig() const { return mStream.getDevicePortConfig(); }
     int8_t getLastBurstIteration() const { return mStream.getLastData()[0]; }
     const AudioPortConfig& getPortConfig() const { return mStream.getPortConfig(); }
@@ -5769,6 +5789,41 @@ TEST_P(AudioModuleRemoteSubmix, OpenInputMultipleTimes) {
     }
     ASSERT_NO_FATAL_FAILURE(
             streamOut->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
+}
+
+TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformity) {
+    ASSERT_NO_FATAL_FAILURE(CreateOutputStream());
+    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
+    // Start writing into the output stream.
+    const int kBurstCount = 50;
+    ASSERT_NO_FATAL_FAILURE(streamOut->StartWorkerToSendBurstCommands(kBurstCount));
+    // Keep writing for some time before starting reads.
+    usleep(100000);
+    ASSERT_NO_FATAL_FAILURE(
+            streamIn->SendBurstCommands(false /*callPrepareToCloseBeforeJoin*/, kBurstCount));
+    ASSERT_NO_FATAL_FAILURE(
+            streamOut->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
+    const double kAlpha =
+            .9;  // Write durations may vary in the beginning, window out first samples.
+    ::android::audio_utils::Statistics<double> inputIntervals(kAlpha), outputIntervals(kAlpha);
+    for (const auto a : streamIn->getBurstIntervals()) {
+        inputIntervals.add(a);
+    }
+    for (const auto a : streamOut->getBurstIntervals()) {
+        outputIntervals.add(a);
+    }
+    EXPECT_NEAR(inputIntervals.getN(), outputIntervals.getN(), 2)
+            << "input intervals: " << ::android::internal::ToString(streamIn->getBurstIntervals())
+            << ", output intervals: "
+            << ::android::internal::ToString(streamOut->getBurstIntervals());
+    EXPECT_NEAR(inputIntervals.getMean(), outputIntervals.getMean(), 1'000'000 /*1 ms*/)
+            << "input intervals: " << ::android::internal::ToString(streamIn->getBurstIntervals())
+            << ", output intervals: "
+            << ::android::internal::ToString(streamOut->getBurstIntervals());
+    EXPECT_LT(inputIntervals.getStdDev(), 3'000'000 /*3 ms*/)
+            << ::android::internal::ToString(streamIn->getBurstIntervals());
+    EXPECT_LT(outputIntervals.getStdDev(), 3'000'000 /*3 ms*/)
+            << ::android::internal::ToString(streamOut->getBurstIntervals());
 }
 
 INSTANTIATE_TEST_SUITE_P(AudioModuleRemoteSubmixTest, AudioModuleRemoteSubmix,

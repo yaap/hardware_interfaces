@@ -119,6 +119,12 @@ const CodecId::Vendor opus_codec{
     .id = kLeAudioVendorCompanyIdGoogle,
 };
 
+/* Opus Hi-res */
+constexpr uint32_t kOpusHiresSamplingFrequency = 96000;
+constexpr uint32_t kOpusHiresBitPerSample = 24;
+constexpr uint32_t kOpusHiresComplexity = 10;
+constexpr bool kOpusHiresVbr = false;
+
 /* Utility conversion */
 const std::map<CodecSpecificConfigurationLtv::SamplingFrequency, uint32_t>
     sampling_rate_ltv_map = {
@@ -180,7 +186,9 @@ const std::map<uint8_t, CodecSpecificConfigurationLtv::SamplingFrequency>
         {kLeAudioSamplingFreq44100Hz,
          CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100},
         {kLeAudioSamplingFreq48000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000}};
+         CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000},
+        {kLeAudioSamplingFreq96000Hz,
+         CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000}};
 
 /* Helper map for matching various frame durations notations */
 const std::map<uint8_t, CodecSpecificConfigurationLtv::FrameDuration>

@@ -51,4 +51,6 @@ interface IRadioData {
   oneway void startHandover(in int serial, in int callId);
   oneway void startKeepalive(in int serial, in android.hardware.radio.data.KeepaliveRequest keepalive);
   oneway void stopKeepalive(in int serial, in int sessionHandle);
+  oneway void setUserDataEnabled(in int serial, in boolean enabled);
+  oneway void setUserDataRoamingEnabled(in int serial, in boolean enabled);
 }

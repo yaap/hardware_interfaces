@@ -305,4 +305,30 @@ oneway interface IRadioData {
      * This is available when android.hardware.telephony.data is defined.
      */
     void stopKeepalive(in int serial, in int sessionHandle);
+
+    /**
+     * Set the user data setting to the modem. This API is for informational purposes. The modem
+     * must not block any subsequent setup data call requests.
+     *
+     * @param serial Serial number of request.
+     * @param enabled Whether the user mobile data is enabled.
+     *
+     * Response function is IRadioDataResponse.setUserDataEnabledResponse()
+     *
+     * This is available when android.hardware.telephony.data is defined.
+     */
+    void setUserDataEnabled(in int serial, in boolean enabled);
+
+    /**
+     * Set the user data roaming setting to the modem. This API is for informational purposes. The
+     * modem must not block any subsequent setup data call requests.
+     *
+     * @param serial Serial number of request.
+     * @param enabled Whether the user mobile data roaming is enabled.
+     *
+     * Response function is IRadioDataResponse.setUserDataRoamingEnabledResponse()
+     *
+     * This is available when android.hardware.telephony.data is defined.
+     */
+    void setUserDataRoamingEnabled(in int serial, in boolean enabled);
 }
