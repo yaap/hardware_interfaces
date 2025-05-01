@@ -121,6 +121,29 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.wifi@1.0",
             "android.hardware.wifi@1.1",
             "android.hardware.wifi@1.2",
+
+            // b/400531264 for HIDL HALs deprecated in S
+            "android.hardware.automotive.sv@1.0",
+            "android.hardware.bluetooth.audio@2.0",
+            "android.hardware.bluetooth.audio@2.1",
+            "android.hardware.contexthub@1.2",
+            "android.hardware.dumpstate@1.1",
+            "android.hardware.health@2.1",
+            "android.hardware.input.classifier@1.0",
+            "android.hardware.ir@1.0",
+            // TODO(b/410953636) these android.hardware.radio HALs
+            // are left in temporarily due to build failures. Uncomment when the
+            // bug is fixed.
+            //"android.hardware.radio.config@1.1",
+            //"android.hardware.radio.config@1.3",
+            //"android.hardware.radio@1.6",
+            "android.hardware.wifi.hostapd@1.0",
+            "android.hardware.wifi.hostapd@1.1",
+            "android.hardware.wifi.hostapd@1.2",
+            "android.hardware.wifi.hostapd@1.3",
+            "android.hardware.wifi.supplicant@1.2",
+            "android.hardware.wifi.supplicant@1.3",
+            "android.hardware.wifi.supplicant@1.4",
     };
 
     auto package_has_prefix = [&](const std::string& prefix) {
@@ -193,6 +216,12 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             // Deprecated HALs.
             "android.hardware.audio.sounddose@3",
             "android.hardware.bluetooth.audio@1",
+
+            // b/400531264 for AIDL HALs deprecated in S
+            "android.hardware.biometrics.face@1",
+            "android.hardware.biometrics.fingerprint@1",
+            "android.hardware.gnss@1",
+            "android.hardware.power@1",
     };
 
     auto package_has_prefix = [&](const std::string& prefix) {
