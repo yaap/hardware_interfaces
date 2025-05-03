@@ -579,51 +579,33 @@ class HwCryptoOperationsNdk : public ndk_hwcrypto::BnHwCryptoOperations {
             return convertStatus(Status::fromExceptionCode(Status::EX_ILLEGAL_ARGUMENT));
         }
         for (unsigned setIdx = 0; setIdx < cppOperationSets.size(); ++setIdx) {
-            if (cppOperationSets[setIdx].operations.size() !=
-                (*operationSets)[setIdx].operations.size()) {
-                LOG(ERROR) << "ndk and cpp operations on set " << setIdx
-                           << " had a different number of elements";
-                return convertStatus(Status::fromExceptionCode(Status::EX_ILLEGAL_ARGUMENT));
-            }
-            for (unsigned operationIdx = 0;
-                 operationIdx < cppOperationSets[setIdx].operations.size(); ++operationIdx) {
-                if (cppOperationSets[setIdx].operations[operationIdx].getTag() ==
-                    cpp_hwcrypto::CryptoOperation::dataOutput) {
-                    if ((*operationSets)[setIdx].operations[operationIdx].getTag() !=
-                        ndk_hwcrypto::CryptoOperation::dataOutput) {
-                        LOG(ERROR)
-                                << "ndk and cpp operations on set " << setIdx << " and operation "
-                                << operationIdx << " had a different operation type";
-                        return convertStatus(
-                                Status::fromExceptionCode(Status::EX_ILLEGAL_ARGUMENT));
-                    }
-                    if (cppOperationSets[setIdx]
-                                .operations[operationIdx]
-                                .get<cpp_hwcrypto::CryptoOperation::dataOutput>()
-                                .getTag() == cpp_hwcrypto::types::OperationData::dataBuffer) {
-                        // This is the only case on which we need to move the data backto the
-                        // original array
-                        if ((*operationSets)[setIdx]
-                                    .operations[operationIdx]
-                                    .get<ndk_hwcrypto::CryptoOperation::dataOutput>()
-                                    .getTag() != ndk_hwcrypto::types::OperationData::dataBuffer) {
-                            LOG(ERROR) << "ndk and cpp operations on set " << setIdx
-                                       << " and operation " << operationIdx
-                                       << " had a different operation data output type";
-                            return convertStatus(
-                                    Status::fromExceptionCode(Status::EX_ILLEGAL_ARGUMENT));
-                        }
-                        (*operationSets)[setIdx]
-                                .operations[operationIdx]
-                                .get<ndk_hwcrypto::CryptoOperation::dataOutput>()
-                                .set<ndk_hwcrypto::types::OperationData::dataBuffer>(
-                                        cppOperationSets[setIdx]
-                                                .operations[operationIdx]
-                                                .get<cpp_hwcrypto::CryptoOperation::dataOutput>()
-                                                .get<cpp_hwcrypto::types::OperationData::
-                                                             dataBuffer>());
-                    }
+            // We will get rid of all inputs on the operation set parameter and then copy the return
+            // results. This will contain only the operations that contain generated outputs from
+            // the service.
+            (*operationSets)[setIdx].operations.clear();
+            int operationIdx = 0;
+            for (auto& cppOperation : cppOperationSets[setIdx].operations) {
+                if (cppOperation.getTag() != cpp_hwcrypto::CryptoOperation::dataOutput) {
+                    LOG(ERROR) << "cpp operations on set " << setIdx << " and operation "
+                               << operationIdx << " is not CryptoOperation::dataOutput";
+                    return convertStatus(Status::fromExceptionCode(Status::EX_ILLEGAL_ARGUMENT));
                 }
+                auto cppDataOperation =
+                        cppOperation.get<cpp_hwcrypto::CryptoOperation::dataOutput>();
+                if (cppDataOperation.getTag() != cpp_hwcrypto::types::OperationData::dataBuffer) {
+                    LOG(ERROR) << "cpp operations on set " << setIdx << " and operation "
+                               << operationIdx
+                               << " is not CryptoOperation::dataOutput(OperationData::dataBuffer)";
+                    return convertStatus(Status::fromExceptionCode(Status::EX_ILLEGAL_ARGUMENT));
+                }
+                ndk_hwcrypto::types::OperationData ndkOperationData;
+                ndkOperationData.set<ndk_hwcrypto::types::OperationData::dataBuffer>(
+                        cppDataOperation.get<cpp_hwcrypto::types::OperationData::dataBuffer>());
+                ndk_hwcrypto::CryptoOperation ndkOperation;
+                ndkOperation.set<ndk_hwcrypto::CryptoOperation::dataOutput>(
+                        std::move(ndkOperationData));
+                (*operationSets)[setIdx].operations.push_back(std::move(ndkOperation));
+                ++operationIdx;
             }
         }
         return convertStatus(status);

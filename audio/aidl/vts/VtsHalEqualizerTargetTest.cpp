@@ -48,8 +48,8 @@ using android::hardware::audio::common::testing::detail::TestExecutionTracer;
  */
 
 enum ParamName { PARAM_INSTANCE_NAME, PARAM_PRESET, PARAM_BAND_LEVEL };
-using EqualizerTestParam = std::tuple<std::pair<std::shared_ptr<IFactory>, Descriptor>, int,
-                                      std::vector<Equalizer::BandLevel>>;
+using EqualizerParamTestParam = std::tuple<std::pair<std::shared_ptr<IFactory>, Descriptor>, int,
+                                           std::vector<Equalizer::BandLevel>>;
 
 /*
 Testing parameter range, assuming the parameter supported by effect is in this range.
@@ -73,11 +73,17 @@ class EqualizerTestHelper : public EffectHelper {
         ASSERT_NE(nullptr, mFactory);
         ASSERT_NO_FATAL_FAILURE(create(mFactory, mEffect, mDescriptor));
 
+        AudioChannelLayout inputLayout = AudioChannelLayout::make<AudioChannelLayout::layoutMask>(
+                AudioChannelLayout::LAYOUT_MONO);
+        AudioChannelLayout outputLayout = inputLayout;
+
         Parameter::Common common = createParamCommon(
-                0 /* session */, 1 /* ioHandle */, 44100 /* iSampleRate */, 44100 /* oSampleRate */,
-                kInputFrameCount /* iFrameCount */, kOutputFrameCount /* oFrameCount */);
+                0 /* session */, 1 /* ioHandle */, kSamplingFrequency /* iSampleRate */,
+                kSamplingFrequency /* oSampleRate */, kInputFrameCount /* iFrameCount */,
+                kOutputFrameCount /* oFrameCount */, inputLayout, outputLayout);
         ASSERT_NO_FATAL_FAILURE(open(mEffect, common, std::nullopt, &mOpenEffectReturn, EX_NONE));
         ASSERT_NE(nullptr, mEffect);
+        mVersion = EffectFactoryHelper::getHalVersion(mFactory);
     }
 
     void TearDownEqualizer() {
@@ -168,10 +174,11 @@ class EqualizerTestHelper : public EffectHelper {
                 {Equalizer::bandLevels, Equalizer::make<Equalizer::bandLevels>(bandLevels)});
     }
 
-    static const long kInputFrameCount = 0x100, kOutputFrameCount = 0x100;
+    static const long kInputFrameCount = 0x10000, kOutputFrameCount = 0x10000;
     const std::shared_ptr<IFactory> mFactory;
     const int mPresetIndex;
     const std::vector<Equalizer::BandLevel> mBandLevel;
+    int mVersion = 0;
     std::shared_ptr<IEffect> mEffect;
     IEffect::OpenEffectReturn mOpenEffectReturn;
 
@@ -180,7 +187,7 @@ class EqualizerTestHelper : public EffectHelper {
     void CleanUp() { mTags.clear(); }
 };
 
-class EqualizerParamTest : public ::testing::TestWithParam<EqualizerTestParam>,
+class EqualizerParamTest : public ::testing::TestWithParam<EqualizerParamTestParam>,
                            public EqualizerTestHelper {
   public:
     EqualizerParamTest()
@@ -199,9 +206,109 @@ TEST_P(EqualizerParamTest, SetAndGetParams) {
     ASSERT_NO_FATAL_FAILURE(SetAndGetEqualizerParameters());
 }
 
+using EqualizerDataTestParam = std::pair<std::shared_ptr<IFactory>, Descriptor>;
+
+class EqualizerDataTest : public ::testing::TestWithParam<EqualizerDataTestParam>,
+                          public EqualizerTestHelper {
+  public:
+    EqualizerDataTest()
+        : EqualizerTestHelper(GetParam()),
+          mInputBuffer(kInputFrameCount),
+          mOutputBuffer(kOutputFrameCount) {}
+
+    void SetUp() override {
+        ASSERT_NO_FATAL_FAILURE(SetUpEqualizer());
+        SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
+    }
+
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(TearDownEqualizer()); }
+
+    template <Equalizer::Tag TagValue>
+    auto getEqualizerParam() {
+        Parameter getParam;
+        Equalizer::Id eqId = Equalizer::Id::make<Equalizer::Id::commonTag>(TagValue);
+        Parameter::Id id = Parameter::Id::make<Parameter::Id::equalizerTag>(eqId);
+        EXPECT_STATUS(EX_NONE, mEffect->getParameter(id, &getParam));
+        return getParam.get<Parameter::specific>()
+                .get<Parameter::Specific::equalizer>()
+                .get<TagValue>();  // Attempting to use the Tag type
+    }
+
+    static constexpr float kBinWidth = (float)kSamplingFrequency / kNPointFFT;
+    std::vector<float> mInputBuffer;
+    std::vector<float> mOutputBuffer;
+};
+
+TEST_P(EqualizerDataTest, testBandLevels) {
+    auto bandLevels = getEqualizerParam<Equalizer::bandLevels>();
+    auto bandFrequencies = getEqualizerParam<Equalizer::bandFrequencies>();
+    auto centerFrequencies = getEqualizerParam<Equalizer::centerFreqMh>();
+
+    ASSERT_EQ(bandFrequencies.size(), bandLevels.size());
+    ASSERT_EQ(centerFrequencies.size(), bandLevels.size());
+
+    // convert center frequencies into Hz unit
+    for (auto& freq : centerFrequencies) {
+        freq = freq / 1000;
+    }
+
+    std::vector<int> binOffsets(centerFrequencies.size());
+    std::vector<float> outputMag(binOffsets.size());
+
+    roundToFreqCenteredToFftBin(centerFrequencies, binOffsets, kBinWidth);
+
+    ASSERT_NO_FATAL_FAILURE(generateSineWave(centerFrequencies, mInputBuffer, 1.0,
+                                             kSamplingFrequency, AudioChannelLayout::LAYOUT_MONO));
+
+    std::vector<Equalizer::BandLevel> testBandLevelMb(bandLevels.size());
+    for (size_t i = 0; i < testBandLevelMb.size(); i++) {
+        testBandLevelMb[i] = {static_cast<int>(i), 0};
+    }
+
+    constexpr float kScalingFactor = 3.0;
+    std::vector<int> testlevelMbValues = {-1500, -1000, -500, 500, 1000, 1500};
+    size_t centerBandIndex = bandLevels.size() / 2;
+
+    for (int levelMb : testlevelMbValues) {
+        for (size_t i = 0; i < bandLevels.size(); i++) {
+            // set bandLevel
+            testBandLevelMb[i] = {static_cast<int>(i), levelMb};
+            Parameter::Specific specific =
+                    Parameter::Specific::make<Parameter::Specific::equalizer>(
+                            Equalizer::make<Equalizer::bandLevels>(testBandLevelMb));
+            Parameter expectParam = Parameter::make<Parameter::specific>(specific);
+            EXPECT_STATUS(EX_NONE, mEffect->setParameter(expectParam))
+                    << expectParam.toString() << "\n"
+                    << mDescriptor.toString();
+
+            ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput(mInputBuffer, mOutputBuffer, mEffect,
+                                                            &mOpenEffectReturn, mVersion));
+
+            EXPECT_NO_FATAL_FAILURE(
+                    calculateMagnitudeMono(outputMag, mOutputBuffer, binOffsets, kNPointFFT));
+
+            size_t referenceBandIndex = (i == centerBandIndex) ? 0 : centerBandIndex;
+
+            if (levelMb > 0) {
+                EXPECT_GE(outputMag[i] - outputMag[referenceBandIndex], levelMb)
+                        << "Output magnitude difference from reference band should be greater than "
+                           "or equal to set levelMb value ("
+                        << levelMb << " mB)";
+            } else {
+                EXPECT_LT(outputMag[i] - outputMag[referenceBandIndex],
+                          (float)levelMb / kScalingFactor)
+                        << "Output magnitude difference from reference band should be lesser than "
+                           "set levelMb value / scaling factor ("
+                        << levelMb << " mB / " << kScalingFactor << ") in case of negative gain";
+            }
+            testBandLevelMb[i] = {static_cast<int>(i), 0};
+        }
+    }
+}
+
 std::vector<std::pair<std::shared_ptr<IFactory>, Descriptor>> kDescPair;
 INSTANTIATE_TEST_SUITE_P(
-        EqualizerParamTest, EqualizerParamTest,
+        EqualizerTest, EqualizerParamTest,
         ::testing::Combine(
                 testing::ValuesIn(kDescPair = EffectFactoryHelper::getAllEffectDescriptors(
                                           IFactory::descriptor, getEffectTypeUuidEqualizer())),
@@ -227,6 +334,20 @@ INSTANTIATE_TEST_SUITE_P(
             return name;
         });
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EqualizerParamTest);
+
+INSTANTIATE_TEST_SUITE_P(EqualizerTest, EqualizerDataTest,
+                         testing::ValuesIn(kDescPair = EffectFactoryHelper::getAllEffectDescriptors(
+                                                   IFactory::descriptor,
+                                                   getEffectTypeUuidEqualizer())),
+                         [](const testing::TestParamInfo<EqualizerDataTest::ParamType>& info) {
+                             auto descriptor = (info.param).second;
+                             std::string name = getPrefix(descriptor);
+                             std::replace_if(
+                                     name.begin(), name.end(),
+                                     [](const char c) { return !std::isalnum(c); }, '_');
+                             return name;
+                         });
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EqualizerDataTest);
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

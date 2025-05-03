@@ -1868,6 +1868,19 @@ int get_vendor_api_level() {
     return std::min(product_api_level, vendor_api_level);
 }
 
+int get_first_vendor_api_level() {
+    // `ro.board.first_api_level` is only populated for GRF chipsets.
+    int first_vendor_api_level = ::android::base::GetIntProperty("ro.board.first_api_level", -1);
+    if (first_vendor_api_level != -1) {
+        return first_vendor_api_level;
+    }
+
+    // `ro.product.first_api_level` is always populated.
+    first_vendor_api_level = ::android::base::GetIntProperty("ro.product.first_api_level", -1);
+    EXPECT_NE(first_vendor_api_level, -1) << "Could not find ro.product.first_api_level";
+    return first_vendor_api_level;
+}
+
 bool is_gsi_image() {
     std::ifstream ifs("/system/system_ext/etc/init/init.gsi.rc");
     return ifs.good();
