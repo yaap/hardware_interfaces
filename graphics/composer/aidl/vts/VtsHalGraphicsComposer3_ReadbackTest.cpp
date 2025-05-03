@@ -801,6 +801,11 @@ TEST_P(GraphicsCompositionTest, MixedColorSpaces) {
                             .reader.takeChangedCompositionTypes(display.getDisplayId());
             ASSERT_TRUE(changedCompositionTypes.empty());
             ASSERT_TRUE(mDisplayProperties.at(display.getDisplayId()).reader.takeErrors().empty());
+
+            mComposerClient->destroyLayer(display.getDisplayId(), srgbLayer->getLayer(),
+                    &mDisplayProperties.at(display.getDisplayId()).writer);
+            mComposerClient->destroyLayer(display.getDisplayId(), displayP3Layer->getLayer(),
+                    &mDisplayProperties.at(display.getDisplayId()).writer);
         }
     }
 }
