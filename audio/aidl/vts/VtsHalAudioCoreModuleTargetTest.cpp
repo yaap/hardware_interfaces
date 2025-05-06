@@ -921,17 +921,23 @@ struct Dag : public std::forward_list<DagNode<T>> {
 };
 
 // Transition to the next state happens either due to a command from the client,
-// or after an event received from the server.
-using TransitionTrigger = std::variant<StreamDescriptor::Command, StreamEventReceiver::Event>;
+// or after an event received from the server. It can also be an integer amount of
+// nanoseconds to sleep.
+using TransitionTrigger =
+        std::variant<StreamDescriptor::Command, StreamEventReceiver::Event, int64_t>;
 std::string toString(const TransitionTrigger& trigger) {
     if (std::holds_alternative<StreamDescriptor::Command>(trigger)) {
         return std::string("'")
                 .append(toString(std::get<StreamDescriptor::Command>(trigger).getTag()))
                 .append("' command");
+    } else if (std::holds_alternative<StreamEventReceiver::Event>(trigger)) {
+        return std::string("'")
+                .append(toString(std::get<StreamEventReceiver::Event>(trigger)))
+                .append("' event");
     }
-    return std::string("'")
-            .append(toString(std::get<StreamEventReceiver::Event>(trigger)))
-            .append("' event");
+    return std::string("sleep for ")
+            .append(std::to_string(std::get<int64_t>(trigger)))
+            .append(" ns");
 }
 
 struct StateSequence {
@@ -1114,6 +1120,11 @@ class StreamCommonLogic : public StreamLogic {
             // via 'getStatus'.
             return StreamDescriptor::Command::make<StreamDescriptor::Command::Tag::getStatus>(
                     Void{});
+        } else if (int64_t* sleepNs = std::get_if<int64_t>(&trigger); sleepNs != nullptr) {
+            LOG(INFO) << __func__ << ": sleeping for " << *sleepNs << " ns";
+            std::this_thread::sleep_for(std::chrono::nanoseconds(*sleepNs));
+            return StreamDescriptor::Command::make<StreamDescriptor::Command::Tag::getStatus>(
+                    Void{});
         }
         return std::get<StreamDescriptor::Command>(trigger);
     }
@@ -1260,7 +1271,7 @@ class StreamReaderLogic : public StreamCommonLogic {
         }  // readCount == 0
     checkAcceptedReply:
         if (acceptedReply) {
-            registerBurstNow();
+            if (command.getTag() == StreamDescriptor::Command::Tag::burst) registerBurstNow();
             return updateMmapSharedMemoryIfNeeded(reply.state) ? Status::CONTINUE : Status::ABORT;
         }
         LOG(ERROR) << __func__ << ": unacceptable reply: " << reply.toString();
@@ -3478,6 +3489,8 @@ class StreamLogicDefaultDriver : public StreamLogicDriver {
 // Defined later together with state transition sequences.
 std::shared_ptr<StateSequence> makeBurstCommands(bool isSync, size_t burstCount = 10,
                                                  bool standbyInputWhenDone = false);
+std::shared_ptr<StateSequence> makeSyncOutBurstStandbyCommands(size_t burstCount, size_t cycleCount,
+                                                               int interCycleSleepNs);
 
 // Certain types of ports can not be used without special preconditions.
 static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig,
@@ -3541,19 +3554,31 @@ class StreamFixtureWithWorker {
         ASSERT_NO_FATAL_FAILURE(JoinWorkerAfterBurstCommands(validatePosition));
     }
 
-    void StartWorkerToSendBurstCommands(size_t burstCount = 10, bool standbyInputWhenDone = false) {
-        if (!IOTraits<Stream>::is_input) {
-            ASSERT_FALSE(standbyInputWhenDone) << "Only supported for input";
-        }
+    void StartWorkerWithStateSequence(std::shared_ptr<StateSequence> seq) {
         const StreamContext* context = mStream->getStreamContext();
         mWorkerDriver = std::make_unique<StreamLogicDefaultDriver>(
-                makeBurstCommands(mIsSync, burstCount, standbyInputWhenDone),
-                context->getFrameSizeBytes(), context->isMmapped());
+                seq, context->getFrameSizeBytes(), context->isMmapped());
         mWorker = std::make_unique<typename IOTraits<Stream>::Worker>(
                 *context, mWorkerDriver.get(), mStream->getStreamWorkerMethods(),
                 mStream->getStreamEventReceiver());
         LOG(DEBUG) << __func__ << ": starting " << IOTraits<Stream>::directionStr << " worker...";
         ASSERT_TRUE(mWorker->start());
+    }
+
+    void StartWorkerToSendBurstCommands(size_t burstCount = 10, bool standbyInputWhenDone = false) {
+        if (!IOTraits<Stream>::is_input) {
+            ASSERT_FALSE(standbyInputWhenDone) << "standbyInputWhenDone only supported for input";
+        }
+        ASSERT_NO_FATAL_FAILURE(StartWorkerWithStateSequence(
+                makeBurstCommands(mIsSync, burstCount, standbyInputWhenDone)));
+    }
+
+    void StartOutWorkerForBurstStandbyCycle(size_t burstCount, size_t cycleCount,
+                                            int interCycleSleepNs) {
+        ASSERT_FALSE(IOTraits<Stream>::is_input) << "Only supported for output";
+        ASSERT_TRUE(mIsSync) << "Only supported for synchronous I/O";
+        ASSERT_NO_FATAL_FAILURE(StartWorkerWithStateSequence(
+                makeSyncOutBurstStandbyCommands(burstCount, cycleCount, interCycleSleepNs)));
     }
 
     void JoinWorkerAfterBurstCommands(bool validatePosition = true,
@@ -5565,6 +5590,27 @@ INSTANTIATE_TEST_SUITE_P(AudioPatchTest, AudioModulePatch,
                          android::PrintInstanceNameToString);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AudioModulePatch);
 
+std::shared_ptr<StateSequence> makeSyncOutBurstStandbyCommands(size_t burstCount, size_t cycleCount,
+                                                               int interCycleSleepNs) {
+    using State = StreamDescriptor::State;
+    using NodeRef = std::reference_wrapper<DagNode<StateTransitionFrom>>;
+    auto d = std::make_unique<StateDag>();
+    // Note: the DAG is built in a reverse order, starting from the final node.
+    NodeRef prevCycle(d->makeFinalNode(State::STANDBY));
+    for (size_t i = 0; i < cycleCount; ++i) {
+        StateDag::Node standby = d->makeNodes({std::make_pair(State::ACTIVE, kPauseCommand),
+                                               std::make_pair(State::PAUSED, kFlushCommand),
+                                               std::make_pair(State::IDLE, kStandbyCommand),
+                                               std::make_pair(State::STANDBY, interCycleSleepNs)},
+                                              prevCycle.get());
+        StateDag::Node idle =
+                d->makeNode(State::IDLE, kBurstCommand,
+                            d->makeNodes(State::ACTIVE, kBurstCommand, burstCount, standby));
+        prevCycle = NodeRef(d->makeNode(State::STANDBY, kStartCommand, idle));
+    }
+    return std::make_shared<StateSequenceFollower>(std::move(d));
+}
+
 static std::vector<std::string> getRemoteSubmixModuleInstance() {
     auto instances = android::getAidlHalInstanceNames(IModule::descriptor);
     for (auto instance : instances) {
@@ -5614,6 +5660,12 @@ class WithRemoteSubmix {
                 mStream.StartWorkerToSendBurstCommands(burstCount, standbyInputWhenDone));
     }
 
+    void StartOutWorkerForBurstStandbyCycle(size_t burstCount, size_t cycleCount,
+                                            int interCycleSleepNs) {
+        ASSERT_NO_FATAL_FAILURE(mStream.StartOutWorkerForBurstStandbyCycle(burstCount, cycleCount,
+                                                                           interCycleSleepNs));
+    }
+
     void JoinWorkerAfterBurstCommands(bool callPrepareToCloseBeforeJoin) {
         ASSERT_NO_FATAL_FAILURE(mStream.JoinWorkerAfterBurstCommands(
                 true /*validatePositionIncrease*/, callPrepareToCloseBeforeJoin));
@@ -5656,11 +5708,17 @@ class WithRemoteSubmix {
 
 class AudioModuleRemoteSubmix : public AudioCoreModule {
   public:
+    static constexpr const auto kStreamStartOffset = std::chrono::nanoseconds(100ms);
+    static constexpr const int kBurstCount = 50;
+    static constexpr const int kBurstCountTolerance = 2;
+    static constexpr const auto kIntervalsStdDevTolerance = std::chrono::nanoseconds(3ms).count();
+
     void SetUp() override {
         // Turn off "debug" which enables connections simulation. Since devices of the remote
         // submix module are virtual, there is no need for simulation.
         ASSERT_NO_FATAL_FAILURE(SetUpImpl(GetParam(), false /*setUpDebug*/));
-        if (int32_t version; module->getInterfaceVersion(&version).isOk() && version < 2) {
+        if (int32_t version;
+            module->getInterfaceVersion(&version).isOk() && version < kAidlVersion2) {
             GTEST_SKIP() << "V1 uses a deprecated remote submix device type encoding";
         }
         ASSERT_NO_FATAL_FAILURE(SetUpModuleConfig());
@@ -5671,35 +5729,69 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
         streamOut.reset();
     }
 
-    void CreateOutputStream() {
-        streamOut = std::make_unique<WithRemoteSubmix<IStreamOut>>();
-        ASSERT_NO_FATAL_FAILURE(streamOut->SetUp(module.get(), moduleConfig.get()));
-        // Note: any issue with connection attempts is considered as a problem.
-        ASSERT_EQ("", streamOut->skipTestReason());
-        ASSERT_TRUE(streamOut->getAudioDeviceAddress().has_value());
-    }
-
     void CreateInputStream(const std::optional<AudioDeviceAddress>& address = std::nullopt) {
-        if (address.has_value()) {
-            streamIn = std::make_unique<WithRemoteSubmix<IStreamIn>>(address.value());
-        } else {
-            ASSERT_TRUE(streamOut->getAudioDeviceAddress().has_value());
-            streamIn = std::make_unique<WithRemoteSubmix<IStreamIn>>(
-                    streamOut->getAudioDeviceAddress().value());
+        CreateStream<IStreamIn, IStreamOut>(streamIn, streamOut, address);
+    }
+
+    void CreateOutputStream(const std::optional<AudioDeviceAddress>& address = std::nullopt) {
+        CreateStream<IStreamOut, IStreamIn>(streamOut, streamIn, address);
+    }
+
+    void VerifyBurstIntervalsUniformity() {
+        const double kAlpha =
+                .9;  // Write durations may vary in the beginning, window out first samples.
+        ::android::audio_utils::Statistics<double> inputIntervals(kAlpha), outputIntervals(kAlpha);
+        for (const auto a : streamIn->getBurstIntervals()) {
+            inputIntervals.add(a);
         }
-        ASSERT_NO_FATAL_FAILURE(streamIn->SetUp(module.get(), moduleConfig.get()));
-        ASSERT_EQ("", streamIn->skipTestReason());
-        auto inAddress = streamIn->getAudioDeviceAddress();
-        ASSERT_TRUE(inAddress.has_value());
+        for (const auto a : streamOut->getBurstIntervals()) {
+            outputIntervals.add(a);
+        }
+        EXPECT_NEAR(inputIntervals.getN(), outputIntervals.getN(), kBurstCountTolerance)
+                << "input intervals: "
+                << ::android::internal::ToString(streamIn->getBurstIntervals())
+                << ", output intervals: "
+                << ::android::internal::ToString(streamOut->getBurstIntervals());
+        EXPECT_NEAR(inputIntervals.getMean(), outputIntervals.getMean(),
+                    std::chrono::nanoseconds(1ms).count())
+                << "input intervals: "
+                << ::android::internal::ToString(streamIn->getBurstIntervals())
+                << ", output intervals: "
+                << ::android::internal::ToString(streamOut->getBurstIntervals());
+        EXPECT_LT(inputIntervals.getStdDev(), kIntervalsStdDevTolerance)
+                << ::android::internal::ToString(streamIn->getBurstIntervals());
+        EXPECT_LT(outputIntervals.getStdDev(), kIntervalsStdDevTolerance)
+                << ::android::internal::ToString(streamOut->getBurstIntervals());
+    }
+
+  private:
+    template <class ThisStream, class OtherStream>
+    void CreateStream(std::unique_ptr<WithRemoteSubmix<ThisStream>>& thisStream,
+                      std::unique_ptr<WithRemoteSubmix<OtherStream>>& otherStream,
+                      const std::optional<AudioDeviceAddress>& address) {
+        std::optional<AudioDeviceAddress> requestedAddress;
         if (address.has_value()) {
-            if (address.value() != AudioDeviceAddress{}) {
-                ASSERT_EQ(address.value(), inAddress.value());
-            }
+            requestedAddress = address;
+        } else if (otherStream) {
+            ASSERT_TRUE(otherStream->getAudioDeviceAddress().has_value());
+            requestedAddress = otherStream->getAudioDeviceAddress().value();
+        }
+        if (requestedAddress.has_value()) {
+            thisStream = std::make_unique<WithRemoteSubmix<ThisStream>>(requestedAddress.value());
         } else {
-            ASSERT_EQ(streamOut->getAudioDeviceAddress().value(), inAddress.value());
+            thisStream = std::make_unique<WithRemoteSubmix<ThisStream>>();
+        }
+        ASSERT_NO_FATAL_FAILURE(thisStream->SetUp(module.get(), moduleConfig.get()));
+        // Note: any issue with connection attempts is considered as a problem.
+        ASSERT_EQ("", thisStream->skipTestReason());
+        const auto actualAddress = thisStream->getAudioDeviceAddress();
+        ASSERT_TRUE(actualAddress.has_value());
+        if (requestedAddress.has_value() && requestedAddress.value() != AudioDeviceAddress{}) {
+            ASSERT_EQ(requestedAddress.value(), actualAddress.value());
         }
     }
 
+  public:
     std::unique_ptr<WithRemoteSubmix<IStreamOut>> streamOut;
     std::unique_ptr<WithRemoteSubmix<IStreamIn>> streamIn;
 };
@@ -5791,39 +5883,65 @@ TEST_P(AudioModuleRemoteSubmix, OpenInputMultipleTimes) {
             streamOut->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
 }
 
+// Create and start output, then input.
 TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformity) {
     ASSERT_NO_FATAL_FAILURE(CreateOutputStream());
-    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
     // Start writing into the output stream.
-    const int kBurstCount = 50;
     ASSERT_NO_FATAL_FAILURE(streamOut->StartWorkerToSendBurstCommands(kBurstCount));
     // Keep writing for some time before starting reads.
-    usleep(100000);
+    std::this_thread::sleep_for(kStreamStartOffset);
+    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
     ASSERT_NO_FATAL_FAILURE(
             streamIn->SendBurstCommands(false /*callPrepareToCloseBeforeJoin*/, kBurstCount));
     ASSERT_NO_FATAL_FAILURE(
             streamOut->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
-    const double kAlpha =
-            .9;  // Write durations may vary in the beginning, window out first samples.
-    ::android::audio_utils::Statistics<double> inputIntervals(kAlpha), outputIntervals(kAlpha);
+    EXPECT_NO_FATAL_FAILURE(VerifyBurstIntervalsUniformity());
+}
+
+// Create and start input, then output.
+TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformity2) {
+    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
+    // Start reading from the input stream.
+    ASSERT_NO_FATAL_FAILURE(streamIn->StartWorkerToSendBurstCommands(kBurstCount));
+    // Keep reading some time before starting writes.
+    std::this_thread::sleep_for(kStreamStartOffset);
+    ASSERT_NO_FATAL_FAILURE(CreateOutputStream());
+    ASSERT_NO_FATAL_FAILURE(
+            streamOut->SendBurstCommands(false /*callPrepareToCloseBeforeJoin*/, kBurstCount));
+    ASSERT_NO_FATAL_FAILURE(
+            streamIn->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
+    EXPECT_NO_FATAL_FAILURE(VerifyBurstIntervalsUniformity());
+}
+
+// Output goes through a number of transferring/standby cycles
+TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformityOutputStandbyCycle) {
+    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
+    // Since there are several cycles of transfer/standby, use more bursts.
+    constexpr const int kInputBurstCount = kBurstCount * 2;
+    // Start reading from the input stream.
+    ASSERT_NO_FATAL_FAILURE(streamIn->StartWorkerToSendBurstCommands(
+            kInputBurstCount, true /*standbyInputWhenDone*/));
+    std::this_thread::sleep_for(kStreamStartOffset);
+    ASSERT_NO_FATAL_FAILURE(CreateOutputStream());
+    constexpr const int kCycleCount = 3;
+    // Since output stream has gaps, account for them by reducing the bursts count used for writing
+    // by 75%.
+    constexpr const int kWriteCycleBurstCount = (kInputBurstCount * 3 / 4) / kCycleCount;
+    ASSERT_NO_FATAL_FAILURE(streamOut->StartOutWorkerForBurstStandbyCycle(
+            kWriteCycleBurstCount, kCycleCount, kStreamStartOffset.count()));
+    ASSERT_NO_FATAL_FAILURE(
+            streamOut->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
+    ASSERT_NO_FATAL_FAILURE(
+            streamIn->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
+    // Verify input intervals only.
+    ::android::audio_utils::Statistics<double> inputIntervals(.99);
     for (const auto a : streamIn->getBurstIntervals()) {
         inputIntervals.add(a);
     }
-    for (const auto a : streamOut->getBurstIntervals()) {
-        outputIntervals.add(a);
-    }
-    EXPECT_NEAR(inputIntervals.getN(), outputIntervals.getN(), 2)
-            << "input intervals: " << ::android::internal::ToString(streamIn->getBurstIntervals())
-            << ", output intervals: "
-            << ::android::internal::ToString(streamOut->getBurstIntervals());
-    EXPECT_NEAR(inputIntervals.getMean(), outputIntervals.getMean(), 1'000'000 /*1 ms*/)
-            << "input intervals: " << ::android::internal::ToString(streamIn->getBurstIntervals())
-            << ", output intervals: "
-            << ::android::internal::ToString(streamOut->getBurstIntervals());
-    EXPECT_LT(inputIntervals.getStdDev(), 3'000'000 /*3 ms*/)
+    EXPECT_NEAR(inputIntervals.getN(), kInputBurstCount, kBurstCountTolerance)
             << ::android::internal::ToString(streamIn->getBurstIntervals());
-    EXPECT_LT(outputIntervals.getStdDev(), 3'000'000 /*3 ms*/)
-            << ::android::internal::ToString(streamOut->getBurstIntervals());
+    EXPECT_LT(inputIntervals.getStdDev(), kIntervalsStdDevTolerance)
+            << ::android::internal::ToString(streamIn->getBurstIntervals());
 }
 
 INSTANTIATE_TEST_SUITE_P(AudioModuleRemoteSubmixTest, AudioModuleRemoteSubmix,

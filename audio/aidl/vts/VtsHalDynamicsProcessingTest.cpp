@@ -1714,11 +1714,10 @@ class DynamicsProcessingMbcBandConfigDataTest
 
     void TearDown() override { ASSERT_NO_FATAL_FAILURE(tearDownDataTest()); }
 
-    void validateOutput(const std::vector<float>& output, float threshold, float ratio,
-                        size_t bandIndex) {
+    void validateOutput(const std::vector<float>& output, size_t bandIndex, bool checkEquality) {
         std::vector<float> outputMag(mBinOffsets.size());
         EXPECT_NO_FATAL_FAILURE(getMagnitudeValue(output, outputMag));
-        if (threshold >= mInputDb || ratio == 1) {
+        if (checkEquality) {
             EXPECT_NO_FATAL_FAILURE(checkInputAndOutputEquality(outputMag));
         } else {
             // Current band's magnitude is less than the other band's magnitude
@@ -1726,15 +1725,19 @@ class DynamicsProcessingMbcBandConfigDataTest
         }
     }
 
-    void analyseMultiBandOutput(float threshold, float ratio) {
+    void analyseMultiBandOutput(float thresholdDb, float ratio, float noiseGateDb,
+                                float expanderRatio) {
         std::vector<float> output(mInput.size());
         roundToFreqCenteredToFftBin(mMultitoneTestFrequencies, mBinOffsets, kBinWidth);
-        // Set MBC values for two bands
+
         for (size_t i = 0; i < kCutoffFreqHz.size(); i++) {
             for (int channelIndex = 0; channelIndex < mChannelCount; channelIndex++) {
-                fillMbcBandConfig(mCfgs, channelIndex, threshold, ratio, kDefaultNoiseGateDb,
-                                  kDefaultExpanderRatio, i, kCutoffFreqHz[i], kDefaultPreGainDb,
+                // Set MBC values for the current band
+                fillMbcBandConfig(mCfgs, channelIndex, thresholdDb, ratio, noiseGateDb,
+                                  expanderRatio, i, kCutoffFreqHz[i], kDefaultPreGainDb,
                                   kDefaultPostGainDb);
+
+                // Set MBC values for the other band
                 fillMbcBandConfig(mCfgs, channelIndex, kDefaultThresholdDb, kDefaultRatio,
                                   kDefaultNoiseGateDb, kDefaultExpanderRatio, i ^ 1,
                                   kCutoffFreqHz[i ^ 1], kDefaultPreGainDb, kDefaultPostGainDb);
@@ -1742,7 +1745,9 @@ class DynamicsProcessingMbcBandConfigDataTest
             ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(mCfgs, output));
 
             if (isAllParamsValid()) {
-                ASSERT_NO_FATAL_FAILURE(validateOutput(output, threshold, ratio, i));
+                bool checkEquality = (noiseGateDb <= mInputDb || expanderRatio == 1) &&
+                                     (thresholdDb >= mInputDb || ratio == 1);
+                ASSERT_NO_FATAL_FAILURE(validateOutput(output, i, checkEquality));
             }
             cleanUpConfigs(mCfgs);
         }
@@ -1781,21 +1786,45 @@ class DynamicsProcessingMbcBandConfigDataTest
 
 TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingThreshold) {
     float ratio = 20;
-    std::vector<float> thresholdValues = {-200, -100, 0, 100, 200};
+    std::vector<float> thresholdDbValues = {-200, -100, 0, 100, 200};
 
-    for (float threshold : thresholdValues) {
+    for (float thresholdDb : thresholdDbValues) {
         cleanUpConfigs(mCfgs);
-        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(threshold, ratio));
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(thresholdDb, ratio, kDefaultNoiseGateDb,
+                                                       kDefaultExpanderRatio));
     }
 }
 
 TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingRatio) {
-    float threshold = -20;
+    float thresholdDb = -20;
     std::vector<float> ratioValues = {1, 10, 20, 30, 40, 50};
 
     for (float ratio : ratioValues) {
         cleanUpConfigs(mCfgs);
-        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(threshold, ratio));
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(thresholdDb, ratio, kDefaultNoiseGateDb,
+                                                       kDefaultExpanderRatio));
+    }
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingNoiseGate) {
+    float expanderRatio = 20;
+    std::vector<float> noiseGateDbValues = {-200, -100, 0, 100, 200};
+
+    for (float noiseGateDb : noiseGateDbValues) {
+        cleanUpConfigs(mCfgs);
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(kDefaultThresholdDb, kDefaultRatio,
+                                                       noiseGateDb, expanderRatio));
+    }
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingExpanderRatio) {
+    float noiseGateDb = -3;
+    std::vector<float> expanderRatioValues = {1, 10, 20, 30, 40, 50};
+
+    for (float expanderRatio : expanderRatioValues) {
+        cleanUpConfigs(mCfgs);
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(kDefaultThresholdDb, kDefaultRatio,
+                                                       noiseGateDb, expanderRatio));
     }
 }
 

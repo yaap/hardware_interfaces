@@ -227,30 +227,37 @@ std::optional<AudioConfiguration> convertToOpusAudioConfiguration(
                     kOpusHiresSamplingFrequency) {
               LOG(INFO) << __func__
                         << ": Detect premium audio, use software offload path.";
+
+              if (info.streamHandle != 0) {
+                swoff::AudioConfig audio_config_sw_off = {
+                    .bitdepth = kOpusHiresBitPerSample,
+                    .sample_rate = kOpusHiresSamplingFrequency,
+                    .frame_duration_us = opus_config.frameDurationUs,
+                    .codec_type = swoff::OPUS,
+                    .codec_config.opus = {opus_config.octetsPerFrame,
+                                          kOpusHiresVbr, kOpusHiresComplexity}};
+
+                std::vector<swoff::IsoStream> iso_streams = {
+                    {info.streamHandle,
+                     static_cast<uint32_t>(info.audioChannelAllocation)}};
+
+                LeAudioSwOffloadInstance::sw_offload_cbacks_ =
+                    std::make_shared<LeAudioSwOffloadCallbacks>();
+                LeAudioSwOffloadInstance::sw_offload_streams_ =
+                    std::make_shared<swoff::LeAudioStream>(
+                        iso_streams, audio_config_sw_off,
+                        LeAudioSwOffloadInstance::sw_offload_cbacks_);
+              } else {
+                LOG(WARNING) << __func__
+                             << ": ISO stream handle is 0, do not initialte "
+                                "stream in software offload library.";
+              }
+
               PcmConfiguration pcm_config{
                   .sampleRateHz = kOpusHiresSamplingFrequency,
                   .channelMode = ChannelMode::STEREO,
                   .bitsPerSample = kOpusHiresBitPerSample,
                   .dataIntervalUs = opus_config.frameDurationUs};
-
-              swoff::AudioConfig audio_config_sw_off = {
-                  .bitdepth = kOpusHiresBitPerSample,
-                  .sample_rate = kOpusHiresSamplingFrequency,
-                  .frame_duration_us = opus_config.frameDurationUs,
-                  .codec_type = swoff::OPUS,
-                  .codec_config.opus = {opus_config.octetsPerFrame,
-                                        kOpusHiresVbr, kOpusHiresComplexity}};
-
-              std::vector<swoff::IsoStream> iso_streams = {
-                  {info.streamHandle,
-                   static_cast<uint32_t>(info.audioChannelAllocation)}};
-
-              LeAudioSwOffloadInstance::sw_offload_cbacks_ =
-                  std::make_shared<LeAudioSwOffloadCallbacks>();
-              LeAudioSwOffloadInstance::sw_offload_streams_ =
-                  std::make_shared<swoff::LeAudioStream>(
-                      iso_streams, audio_config_sw_off,
-                      LeAudioSwOffloadInstance::sw_offload_cbacks_);
 
               LeAudioSwOffloadInstance::is_using_swoffload_ = true;
               return pcm_config;
@@ -412,10 +419,9 @@ bool BluetoothAudioSession::IsSessionReady(bool is_primary_hal) {
       ::android::base::GetBoolProperty(kPropertyLeaSwOffload, false)) {
     if (session_type_ ==
         SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
-      bool sw_offload_enabled =
-          LeAudioSwOffloadInstance::is_using_swoffload_.load();
-      is_mq_valid &=
-          (is_primary_hal ? !sw_offload_enabled : sw_offload_enabled);
+      if (!is_primary_hal) {
+        is_mq_valid &= LeAudioSwOffloadInstance::is_using_swoffload_.load();
+      }
     }
   }
 
