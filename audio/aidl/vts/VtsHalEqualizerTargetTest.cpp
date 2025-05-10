@@ -216,13 +216,6 @@ class EqualizerDataTest : public ::testing::TestWithParam<EqualizerDataTestParam
           mInputBuffer(kInputFrameCount),
           mOutputBuffer(kOutputFrameCount) {}
 
-    void SetUp() override {
-        ASSERT_NO_FATAL_FAILURE(SetUpEqualizer());
-        SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-    }
-
-    void TearDown() override { ASSERT_NO_FATAL_FAILURE(TearDownEqualizer()); }
-
     template <Equalizer::Tag TagValue>
     auto getEqualizerParam() {
         Parameter getParam;
@@ -234,43 +227,53 @@ class EqualizerDataTest : public ::testing::TestWithParam<EqualizerDataTestParam
                 .get<TagValue>();  // Attempting to use the Tag type
     }
 
+    void SetUp() override {
+        ASSERT_NO_FATAL_FAILURE(SetUpEqualizer());
+        SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
+        mBandLevels = getEqualizerParam<Equalizer::bandLevels>();
+
+        auto centerFrequencies = getEqualizerParam<Equalizer::centerFreqMh>();
+        ASSERT_EQ(centerFrequencies.size(), mBandLevels.size());
+        // convert center frequencies into Hz unit
+        for (auto& freq : centerFrequencies) {
+            freq = freq / 1000;
+        }
+
+        mBinOffsets.resize(centerFrequencies.size());
+        mOutputMag.resize(mBinOffsets.size());
+
+        roundToFreqCenteredToFftBin(centerFrequencies, mBinOffsets, kBinWidth);
+
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(centerFrequencies, mInputBuffer, 1.0,
+                                                 kSamplingFrequency,
+                                                 AudioChannelLayout::LAYOUT_MONO));
+    }
+
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(TearDownEqualizer()); }
+
     static constexpr float kBinWidth = (float)kSamplingFrequency / kNPointFFT;
     std::vector<float> mInputBuffer;
     std::vector<float> mOutputBuffer;
+    std::vector<Equalizer::BandLevel> mBandLevels;
+    std::vector<int> mBinOffsets;
+    std::vector<float> mOutputMag;
 };
 
 TEST_P(EqualizerDataTest, testBandLevels) {
-    auto bandLevels = getEqualizerParam<Equalizer::bandLevels>();
     auto bandFrequencies = getEqualizerParam<Equalizer::bandFrequencies>();
-    auto centerFrequencies = getEqualizerParam<Equalizer::centerFreqMh>();
+    ASSERT_EQ(bandFrequencies.size(), mBandLevels.size());
 
-    ASSERT_EQ(bandFrequencies.size(), bandLevels.size());
-    ASSERT_EQ(centerFrequencies.size(), bandLevels.size());
-
-    // convert center frequencies into Hz unit
-    for (auto& freq : centerFrequencies) {
-        freq = freq / 1000;
-    }
-
-    std::vector<int> binOffsets(centerFrequencies.size());
-    std::vector<float> outputMag(binOffsets.size());
-
-    roundToFreqCenteredToFftBin(centerFrequencies, binOffsets, kBinWidth);
-
-    ASSERT_NO_FATAL_FAILURE(generateSineWave(centerFrequencies, mInputBuffer, 1.0,
-                                             kSamplingFrequency, AudioChannelLayout::LAYOUT_MONO));
-
-    std::vector<Equalizer::BandLevel> testBandLevelMb(bandLevels.size());
+    std::vector<Equalizer::BandLevel> testBandLevelMb(mBandLevels.size());
     for (size_t i = 0; i < testBandLevelMb.size(); i++) {
         testBandLevelMb[i] = {static_cast<int>(i), 0};
     }
 
     constexpr float kScalingFactor = 3.0;
     std::vector<int> testlevelMbValues = {-1500, -1000, -500, 500, 1000, 1500};
-    size_t centerBandIndex = bandLevels.size() / 2;
+    size_t centerBandIndex = mBandLevels.size() / 2;
 
     for (int levelMb : testlevelMbValues) {
-        for (size_t i = 0; i < bandLevels.size(); i++) {
+        for (size_t i = 0; i < mBandLevels.size(); i++) {
             // set bandLevel
             testBandLevelMb[i] = {static_cast<int>(i), levelMb};
             Parameter::Specific specific =
@@ -285,23 +288,85 @@ TEST_P(EqualizerDataTest, testBandLevels) {
                                                             &mOpenEffectReturn, mVersion));
 
             EXPECT_NO_FATAL_FAILURE(
-                    calculateMagnitudeMono(outputMag, mOutputBuffer, binOffsets, kNPointFFT));
+                    calculateMagnitudeMono(mOutputMag, mOutputBuffer, mBinOffsets, kNPointFFT));
 
             size_t referenceBandIndex = (i == centerBandIndex) ? 0 : centerBandIndex;
 
             if (levelMb > 0) {
-                EXPECT_GE(outputMag[i] - outputMag[referenceBandIndex], levelMb)
+                EXPECT_GE(mOutputMag[i] - mOutputMag[referenceBandIndex], levelMb)
                         << "Output magnitude difference from reference band should be greater than "
                            "or equal to set levelMb value ("
                         << levelMb << " mB)";
             } else {
-                EXPECT_LT(outputMag[i] - outputMag[referenceBandIndex],
+                EXPECT_LT(mOutputMag[i] - mOutputMag[referenceBandIndex],
                           (float)levelMb / kScalingFactor)
                         << "Output magnitude difference from reference band should be lesser than "
                            "set levelMb value / scaling factor ("
                         << levelMb << " mB / " << kScalingFactor << ") in case of negative gain";
             }
             testBandLevelMb[i] = {static_cast<int>(i), 0};
+        }
+    }
+}
+
+TEST_P(EqualizerDataTest, testPresets) {
+    constexpr float kToleranceDb = 1.0;
+    constexpr int kCustomPresetIndex = -1;
+
+    auto presets = getEqualizerParam<Equalizer::presets>();
+
+    std::vector<float> inputMag(mBinOffsets.size());
+    EXPECT_NO_FATAL_FAILURE(
+            calculateMagnitudeMono(inputMag, mInputBuffer, mBinOffsets, kNPointFFT));
+
+    for (auto preset : presets) {
+        // Skip for 'Custom' preset value as it is currently not supported
+        if (preset.index == kCustomPresetIndex) {
+            continue;
+        }
+        // set preset
+        Parameter::Specific specific = Parameter::Specific::make<Parameter::Specific::equalizer>(
+                Equalizer::make<Equalizer::preset>(static_cast<int>(preset.index)));
+        Parameter expectParam = Parameter::make<Parameter::specific>(specific);
+        EXPECT_STATUS(EX_NONE, mEffect->setParameter(expectParam)) << expectParam.toString() << "\n"
+                                                                   << mDescriptor.toString();
+
+        ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput(mInputBuffer, mOutputBuffer, mEffect,
+                                                        &mOpenEffectReturn, mVersion));
+
+        EXPECT_NO_FATAL_FAILURE(
+                calculateMagnitudeMono(mOutputMag, mOutputBuffer, mBinOffsets, kNPointFFT));
+
+        // get band levels
+        mBandLevels = getEqualizerParam<Equalizer::bandLevels>();
+
+        for (size_t i = 1; i < mBandLevels.size(); i++) {
+            int expectedAdjacentBandLevelMbDiff =
+                    (mBandLevels[i].levelMb - mBandLevels[i - 1].levelMb);
+
+            ASSERT_NE(inputMag[i], 0);
+            if (i == 1) {
+                ASSERT_NE(inputMag[i - 1], 0);
+            }
+            float actualAdjacentBandGainDbDiff = 20 * (log10(mOutputMag[i] / inputMag[i]) -
+                                                       log10(mOutputMag[i - 1] / inputMag[i - 1]));
+
+            if (expectedAdjacentBandLevelMbDiff == 0) {
+                EXPECT_LT(abs(actualAdjacentBandGainDbDiff), kToleranceDb)
+                        << "For eq preset : " << preset.name << "(" << preset.index << ")"
+                        << ", between bands " << i << " and " << i - 1
+                        << ", expected relative gain is less than kToleranceDb, got relative gain "
+                           ": "
+                        << actualAdjacentBandGainDbDiff;
+            } else {
+                EXPECT_GT(expectedAdjacentBandLevelMbDiff * actualAdjacentBandGainDbDiff, 0)
+                        << "For eq preset : " << preset.name << "(" << preset.index << ")"
+                        << ", between bands " << i << " and " << i - 1
+                        << ", expected relative gain and seen relative magnitude difference are of "
+                           "opposite signs. Expected relative gain : "
+                        << expectedAdjacentBandLevelMbDiff
+                        << ", seen magnitude difference : " << actualAdjacentBandGainDbDiff;
+            }
         }
     }
 }

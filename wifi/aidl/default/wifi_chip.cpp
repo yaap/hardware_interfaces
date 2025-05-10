@@ -1916,7 +1916,6 @@ void WifiChip::invalidateAndClearBridgedApAll() {
 
 void WifiChip::deleteApIface(const std::string& if_name) {
     if (if_name.empty()) return;
-    const auto iface = findUsingName(ap_ifaces_, if_name);
     // delete bridged interfaces if any
     for (auto const& it : br_ifaces_ap_instances_) {
         if (it.first == if_name) {

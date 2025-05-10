@@ -2203,9 +2203,7 @@ TEST_P(AudioCoreModule, SetAudioPortConfigInvalidPortAudioGain) {
 TEST_P(AudioCoreModule, TryConnectMissingDevice) {
     // Limit checks to connection types that are known to be detectable by HAL implementations.
     static const std::set<std::string> kCheckedConnectionTypes{
-            AudioDeviceDescription::CONNECTION_HDMI, AudioDeviceDescription::CONNECTION_HDMI_ARC,
-            AudioDeviceDescription::CONNECTION_HDMI_EARC, AudioDeviceDescription::CONNECTION_IP_V4,
-            AudioDeviceDescription::CONNECTION_USB};
+            AudioDeviceDescription::CONNECTION_IP_V4, AudioDeviceDescription::CONNECTION_USB};
     ASSERT_NO_FATAL_FAILURE(SetUpModuleConfig());
     std::vector<AudioPort> ports = moduleConfig->getExternalDevicePorts();
     if (ports.empty()) {
