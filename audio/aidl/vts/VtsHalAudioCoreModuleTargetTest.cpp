@@ -5831,9 +5831,10 @@ TEST_P(AudioModuleRemoteSubmix, BlockedOutputUnblocksOnClose) {
 }
 
 TEST_P(AudioModuleRemoteSubmix, OutputBlocksUntilInputStarts) {
+    // Create and start output stream before creating the input side.
     ASSERT_NO_FATAL_FAILURE(CreateOutputStream());
-    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
     ASSERT_NO_FATAL_FAILURE(streamOut->StartWorkerToSendBurstCommands());
+    ASSERT_NO_FATAL_FAILURE(CreateInputStream());
     // Read the head of the pipe and check that it starts with the first output burst, that is,
     // the contents of the very first write has not been superseded due to pipe overflow.
     // The burstCount is '0' because the very first burst is used to exit from the 'IDLE' state,
@@ -5889,8 +5890,8 @@ TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformity) {
     // Keep writing for some time before starting reads.
     std::this_thread::sleep_for(kStreamStartOffset);
     ASSERT_NO_FATAL_FAILURE(CreateInputStream());
-    ASSERT_NO_FATAL_FAILURE(
-            streamIn->SendBurstCommands(false /*callPrepareToCloseBeforeJoin*/, kBurstCount));
+    ASSERT_NO_FATAL_FAILURE(streamIn->SendBurstCommands(
+            false /*callPrepareToCloseBeforeJoin*/, kBurstCount, true /*standbyInputWhenDone*/));
     ASSERT_NO_FATAL_FAILURE(
             streamOut->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
     EXPECT_NO_FATAL_FAILURE(VerifyBurstIntervalsUniformity());
@@ -5900,7 +5901,8 @@ TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformity) {
 TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformity2) {
     ASSERT_NO_FATAL_FAILURE(CreateInputStream());
     // Start reading from the input stream.
-    ASSERT_NO_FATAL_FAILURE(streamIn->StartWorkerToSendBurstCommands(kBurstCount));
+    ASSERT_NO_FATAL_FAILURE(
+            streamIn->StartWorkerToSendBurstCommands(kBurstCount, true /*standbyInputWhenDone*/));
     // Keep reading some time before starting writes.
     std::this_thread::sleep_for(kStreamStartOffset);
     ASSERT_NO_FATAL_FAILURE(CreateOutputStream());

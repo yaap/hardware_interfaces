@@ -48,8 +48,6 @@ class ModulePrimary final : public Module {
     int32_t getNominalLatencyMs(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig) override;
 
-    ndk::ScopedAStatus supportsVariableLatency(bool* _aidl_return) override;
-
   private:
     ChildInterface<ITelephony> mTelephony;
 };
