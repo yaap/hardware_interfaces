@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, The Android Open Source Project
+ * Copyright 2025, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,19 +33,7 @@
 
 package android.hardware.graphics.composer3;
 @VintfStability
-parcelable DisplayCommand {
-  long display;
-  android.hardware.graphics.composer3.LayerCommand[] layers;
-  @nullable float[] colorTransformMatrix;
-  @nullable android.hardware.graphics.composer3.DisplayBrightness brightness;
-  @nullable android.hardware.graphics.composer3.ClientTarget clientTarget;
-  @nullable android.hardware.graphics.composer3.Buffer virtualDisplayOutputBuffer;
-  @nullable android.hardware.graphics.composer3.ClockMonotonicTimestamp expectedPresentTime;
-  boolean validateDisplay;
-  boolean acceptDisplayChanges;
-  boolean presentDisplay;
-  boolean presentOrValidateDisplay;
-  int frameIntervalNs;
-  long pictureProfileId;
-  @nullable android.hardware.graphics.composer3.ActiveConfigCommand activeConfig;
+parcelable ActiveConfigCommand {
+  int configId;
+  boolean seamlessRequired;
 }

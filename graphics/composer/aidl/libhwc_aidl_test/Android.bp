@@ -51,7 +51,7 @@ cc_library_static {
         "libgui",
     ],
     header_libs: [
-        "android.hardware.graphics.composer3-command-buffer",
+        "android.hardware.graphics.composer3-command-buffer-V5",
     ],
     static_libs: [
         "android.hardware.graphics.common@1.2",

@@ -52,7 +52,7 @@ cc_test {
         "server_configurable_flags",
     ],
     header_libs: [
-        "android.hardware.graphics.composer3-command-buffer",
+        "android.hardware.graphics.composer3-command-buffer-V5",
     ],
     static_libs: [
         "android.hardware.graphics.common@1.2",

@@ -100,7 +100,7 @@ cc_defaults {
 aidl_interface_defaults {
     name: "android.hardware.graphics.composer3-latest",
     imports: [
-        "android.hardware.graphics.composer3-V4",
+        "android.hardware.graphics.composer3-V5",
     ],
 }
 
@@ -110,7 +110,7 @@ cc_defaults {
         linux: {
             static_libs: [
                 "android.hardware.drm.common-V1-ndk",
-                "android.hardware.graphics.composer3-V4-ndk",
+                "android.hardware.graphics.composer3-V5-ndk",
             ],
         },
     },
@@ -122,7 +122,7 @@ cc_defaults {
         linux: {
             shared_libs: [
                 "android.hardware.drm.common-V1-ndk",
-                "android.hardware.graphics.composer3-V4-ndk",
+                "android.hardware.graphics.composer3-V5-ndk",
             ],
         },
     },
