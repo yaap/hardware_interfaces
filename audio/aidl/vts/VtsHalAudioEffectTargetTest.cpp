@@ -243,7 +243,7 @@ TEST_P(AudioEffectTest, IdleStateAfterReset) {
     ASSERT_NO_FATAL_FAILURE(destroy(mFactory, mEffect));
 }
 
-// An effect instance transfer to INIT after IEffect.ASSERT_NO_FATAL_FAILURE(close().
+// An effect instance transfer to INIT after close.
 TEST_P(AudioEffectTest, InitStateAfterClose) {
     ASSERT_NO_FATAL_FAILURE(create(mFactory, mEffect, mDescriptor));
     ASSERT_NO_FATAL_FAILURE(open(mEffect));

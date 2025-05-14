@@ -1,8 +1,7 @@
 <compatibility-matrix version="1.0" type="framework" level="6">
     <!--
-    TODO(b/410953636) leaving the android.hardware.radio entries here for now
-    in order to be able to submit this CL before the in-tree devices are fixed.
-    These interfaces will be removed ASAP, well before Android 17 release.
+    Android 17 has special extended support for IRadio for devices launching
+    using FCM Level 6.
     -->
     <hal format="hidl">
         <name>android.hardware.radio</name>

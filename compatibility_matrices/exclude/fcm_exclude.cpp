@@ -102,8 +102,6 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.power@1.3",
 
             // b/392700935 for HALs deprecated in R
-            "android.hardware.automotive.audiocontrol@1.0",
-            "android.hardware.automotive.audiocontrol@2.0",
             "android.hardware.boot@1.1",
             "android.hardware.contexthub@1.0",
             "android.hardware.contexthub@1.1",

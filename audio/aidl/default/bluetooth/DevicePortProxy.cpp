@@ -409,6 +409,8 @@ bool BluetoothAudioPortAidl::start() {
                      << ", mono=" << (mIsStereoToMono ? "true" : "false") << " request";
         if (mState == BluetoothStreamState::STARTED) {
             return true;  // nop, return
+        } else if (mState == BluetoothStreamState::DISABLED) {
+            return false; // avoid logspam when called from `transfer`
         } else if (mState == BluetoothStreamState::SUSPENDING ||
                    mState == BluetoothStreamState::STARTING) {
             /* If port is in transient state, give some time to respond */
