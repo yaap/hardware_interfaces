@@ -198,8 +198,10 @@ OpusConfiguration getOpusConfigFromCodecConfig(
 }
 
 std::optional<AudioConfiguration> convertToOpusAudioConfiguration(
-    const AudioConfiguration& audio_config_) {
+    const AudioConfiguration& audio_config_,
+    std::optional<bool>& is_stream_active) {
   if (audio_config_.getTag() == AudioConfiguration::leAudioConfig) {
+    is_stream_active = false;
     auto le_audio_config =
         audio_config_.get<AudioConfiguration::leAudioConfig>();
     // Conversion from extension to Lc3Configuration
@@ -207,6 +209,9 @@ std::optional<AudioConfiguration> convertToOpusAudioConfiguration(
                << le_audio_config.streamMap.size();
     for (auto info : le_audio_config.streamMap) {
       LOG(DEBUG) << __func__ << ": info is " << info.toString();
+      if (info.streamHandle != 0) {
+        is_stream_active = true;
+      }
       if (info.aseConfiguration.has_value()) {
         auto ase_config = info.aseConfiguration.value();
         auto codec_id = ase_config.codecId;
@@ -377,10 +382,20 @@ void BluetoothAudioSession::ReportAudioConfigChanged(
   }
 
   audio_config_ = std::make_unique<AudioConfiguration>(audio_config);
-  auto opus_audio_config = convertToOpusAudioConfiguration(audio_config);
+
+  std::optional<bool> is_stream_active;
+  auto opus_audio_config =
+      convertToOpusAudioConfiguration(audio_config, is_stream_active);
+
   if (opus_audio_config.has_value()) {
     audio_config_ =
         std::make_unique<AudioConfiguration>(opus_audio_config.value());
+  }
+
+  if (is_stream_active.has_value() && !is_stream_active.value()) {
+    LOG(WARNING) << __func__ << " - SessionType=" << toString(session_type_)
+                 << " has NO active stream.";
+    return;
   }
 
   if (observers_.empty()) {
@@ -614,7 +629,10 @@ bool BluetoothAudioSession::UpdateAudioConfig(
   }
 
   audio_config_ = std::make_unique<AudioConfiguration>(audio_config);
-  auto opus_audio_config = convertToOpusAudioConfiguration(audio_config);
+
+  std::optional<bool> is_stream_active;
+  auto opus_audio_config =
+      convertToOpusAudioConfiguration(audio_config, is_stream_active);
   if (opus_audio_config.has_value()) {
     audio_config_ =
         std::make_unique<AudioConfiguration>(opus_audio_config.value());
