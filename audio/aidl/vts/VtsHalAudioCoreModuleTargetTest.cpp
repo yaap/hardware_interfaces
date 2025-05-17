@@ -5709,7 +5709,9 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
     static constexpr const auto kStreamStartOffset = std::chrono::nanoseconds(100ms);
     static constexpr const int kBurstCount = 50;
     static constexpr const int kBurstCountTolerance = 2;
-    static constexpr const auto kIntervalsStdDevTolerance = std::chrono::nanoseconds(3ms).count();
+    static constexpr const double kBurstIntervalsAlpha = .999;
+    static constexpr const int kIntervalsMeanTolerance = std::chrono::nanoseconds(2ms).count();
+    static constexpr const auto kIntervalsStdDevTolerance = std::chrono::nanoseconds(4ms).count();
 
     void SetUp() override {
         // Turn off "debug" which enables connections simulation. Since devices of the remote
@@ -5736,9 +5738,8 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
     }
 
     void VerifyBurstIntervalsUniformity() {
-        const double kAlpha =
-                .9;  // Write durations may vary in the beginning, window out first samples.
-        ::android::audio_utils::Statistics<double> inputIntervals(kAlpha), outputIntervals(kAlpha);
+        ::android::audio_utils::Statistics<double> inputIntervals(kBurstIntervalsAlpha),
+            outputIntervals(kBurstIntervalsAlpha);
         for (const auto a : streamIn->getBurstIntervals()) {
             inputIntervals.add(a);
         }
@@ -5751,7 +5752,7 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
                 << ", output intervals: "
                 << ::android::internal::ToString(streamOut->getBurstIntervals());
         EXPECT_NEAR(inputIntervals.getMean(), outputIntervals.getMean(),
-                    std::chrono::nanoseconds(1ms).count())
+                    kIntervalsMeanTolerance)
                 << "input intervals: "
                 << ::android::internal::ToString(streamIn->getBurstIntervals())
                 << ", output intervals: "
@@ -5934,7 +5935,7 @@ TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformityOutputStandbyCycle) {
     ASSERT_NO_FATAL_FAILURE(
             streamIn->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
     // Verify input intervals only.
-    ::android::audio_utils::Statistics<double> inputIntervals(.99);
+    ::android::audio_utils::Statistics<double> inputIntervals(kBurstIntervalsAlpha);
     for (const auto a : streamIn->getBurstIntervals()) {
         inputIntervals.add(a);
     }

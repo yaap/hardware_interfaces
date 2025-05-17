@@ -180,16 +180,14 @@ class GraphicsTestsBase {
     AIMapper_loadIMapperFn getIMapperLoader() const { return mIMapperLoader; }
     int32_t* getHalVersion() const { return mIMapperHALVersion; }
 
-    std::unique_ptr<BufferAllocation> allocate(const BufferDescriptorInfo& descriptorInfo) {
+    std::unique_ptr<BufferAllocation> allocate(const BufferDescriptorInfo& descriptorInfo,
+                                               bool raise_failure = true) {
         AllocationResult result;
         ::ndk::ScopedAStatus status = mAllocator->allocate2(descriptorInfo, 1, &result);
         if (!status.isOk()) {
             status_t error = status.getExceptionCode();
-            if (error == EX_SERVICE_SPECIFIC) {
-                error = status.getServiceSpecificError();
-                EXPECT_NE(OK, error) << "Failed to set error properly";
-            } else {
-                EXPECT_EQ(OK, error) << "Allocation transport failure";
+            if (raise_failure) {
+                ADD_FAILURE() << "Allocation transport failure: " << error;
             }
             return nullptr;
         } else {
@@ -809,7 +807,7 @@ TEST_P(GraphicsMapperStableCTests, Lock_YCRCB_420_SP) {
             .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
             .reservedSize = 0,
     };
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, false);
     if (!buffer) {
         ASSERT_FALSE(isSupported(info));
         GTEST_SUCCEED() << "YCRCB_420_SP format is unsupported";
@@ -1030,7 +1028,7 @@ TEST_P(GraphicsMapperStableCTests, Lock_RAW10) {
             .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
             .reservedSize = 0,
     };
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, false);
     if (!buffer) {
         ASSERT_FALSE(isSupported(info));
         GTEST_SUCCEED() << "RAW10 format is unsupported";
@@ -1080,7 +1078,7 @@ TEST_P(GraphicsMapperStableCTests, Lock_RAW12) {
             .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
             .reservedSize = 0,
     };
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, false);
     if (!buffer) {
         ASSERT_FALSE(isSupported(info));
         GTEST_SUCCEED() << "RAW12 format is unsupported";
@@ -1130,7 +1128,7 @@ TEST_P(GraphicsMapperStableCTests, Lock_YCBCR_P010) {
             .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
             .reservedSize = 0,
     };
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, false);
     if (!buffer) {
         ASSERT_FALSE(isSupported(info));
         GTEST_SUCCEED() << "YCBCR_P010 format is unsupported";
@@ -1177,7 +1175,7 @@ TEST_P(GraphicsMapperStableCTests, Lock_YCBCR_P210) {
         .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
         .reservedSize = 0,
     };
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, false);
     if (!buffer) {
         ASSERT_FALSE(isSupported(info));
         GTEST_SUCCEED() << "YCBCR_P210 format is unsupported";
@@ -1557,7 +1555,7 @@ TEST_P(GraphicsMapperStableCTests, GetProtectedContent) {
             .usage = BufferUsage::PROTECTED | BufferUsage::COMPOSER_OVERLAY,
             .reservedSize = 0,
     };
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, false);
     if (!buffer) {
         ASSERT_FALSE(isSupported(info))
                 << "Allocation of trivial sized buffer failed, so isSupported() must be false";

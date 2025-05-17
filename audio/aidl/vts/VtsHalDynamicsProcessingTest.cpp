@@ -128,7 +128,7 @@ class DynamicsProcessingTestHelper : public EffectHelper {
 
     void tearDownDataTest();
 
-    void createChannelConfig();
+    void createChannelConfig(bool isEnabled);
 
     struct PreEqConfigs {
         std::vector<DynamicsProcessing::EqBandConfig> configs;
@@ -138,14 +138,18 @@ class DynamicsProcessingTestHelper : public EffectHelper {
         std::vector<DynamicsProcessing::EqBandConfig> configs;
     };
 
-    void applyConfig(const PreEqConfigs& configs);
-    void applyConfig(const PostEqConfigs& configs);
-    void applyConfig(const std::vector<DynamicsProcessing::MbcBandConfig>& configs);
-    void applyConfig(const std::vector<DynamicsProcessing::LimiterConfig>& configs);
-    void applyConfig(const std::vector<DynamicsProcessing::InputGain>& configs);
+    void applyConfig(const PreEqConfigs& configs, bool isChannelConfigEnabled);
+    void applyConfig(const PostEqConfigs& configs, bool isChannelConfigEnabled);
+    void applyConfig(const std::vector<DynamicsProcessing::MbcBandConfig>& configs,
+                     bool isChannelConfigEnabled);
+    void applyConfig(const std::vector<DynamicsProcessing::LimiterConfig>& configs,
+                     [[maybe_unused]] bool isChannelConfigEnabled);
+    void applyConfig(const std::vector<DynamicsProcessing::InputGain>& configs,
+                     [[maybe_unused]] bool isChannelConfigEnabled);
 
     template <typename ConfigType>
-    void setParamsAndProcess(ConfigType& configs, std::vector<float>& output);
+    void setParamsAndProcess(ConfigType& configs, std::vector<float>& output,
+                             bool isChannelConfigEnabled = true);
 
     template <typename ConfigType>
         requires(std::is_same_v<ConfigType, DynamicsProcessing::LimiterConfig>) ||
@@ -499,22 +503,24 @@ void DynamicsProcessingTestHelper::tearDownDataTest() {
     ASSERT_NO_FATAL_FAILURE(TearDownDynamicsProcessingEffect());
 }
 
-void DynamicsProcessingTestHelper::createChannelConfig() {
+void DynamicsProcessingTestHelper::createChannelConfig(bool isEnabled) {
     for (int i = 0; i < mChannelCount; i++) {
-        mChannelConfig.push_back(DynamicsProcessing::ChannelConfig(i, true));
+        mChannelConfig.push_back(DynamicsProcessing::ChannelConfig(i, isEnabled));
     }
 }
 
-void DynamicsProcessingTestHelper::applyConfig(const PreEqConfigs& configs) {
-    createChannelConfig();
+void DynamicsProcessingTestHelper::applyConfig(const PreEqConfigs& configs,
+                                               bool isChannelConfigEnabled = true) {
+    createChannelConfig(isChannelConfigEnabled);
     mEngineConfigPreset.preEqStage.bandCount = configs.configs.size();
     addEngineConfig(mEngineConfigPreset);
     addPreEqChannelConfig(mChannelConfig);
     addPreEqBandConfigs(configs.configs);
 }
 
-void DynamicsProcessingTestHelper::applyConfig(const PostEqConfigs& configs) {
-    createChannelConfig();
+void DynamicsProcessingTestHelper::applyConfig(const PostEqConfigs& configs,
+                                               bool isChannelConfigEnabled = true) {
+    createChannelConfig(isChannelConfigEnabled);
     mEngineConfigPreset.postEqStage.bandCount = configs.configs.size();
     addEngineConfig(mEngineConfigPreset);
     addPostEqChannelConfig(mChannelConfig);
@@ -522,8 +528,9 @@ void DynamicsProcessingTestHelper::applyConfig(const PostEqConfigs& configs) {
 }
 
 void DynamicsProcessingTestHelper::applyConfig(
-        const std::vector<DynamicsProcessing::MbcBandConfig>& configs) {
-    createChannelConfig();
+        const std::vector<DynamicsProcessing::MbcBandConfig>& configs,
+        bool isChannelConfigEnabled = true) {
+    createChannelConfig(isChannelConfigEnabled);
     mEngineConfigPreset.mbcStage.bandCount = configs.size();
     addEngineConfig(mEngineConfigPreset);
     addMbcChannelConfig(mChannelConfig);
@@ -531,20 +538,23 @@ void DynamicsProcessingTestHelper::applyConfig(
 }
 
 void DynamicsProcessingTestHelper::applyConfig(
-        const std::vector<DynamicsProcessing::LimiterConfig>& configs) {
+        const std::vector<DynamicsProcessing::LimiterConfig>& configs,
+        [[maybe_unused]] bool isChannelConfigEnabled = true) {
     addEngineConfig(mEngineConfigPreset);
     addLimiterConfig(configs);
 }
 
 void DynamicsProcessingTestHelper::applyConfig(
-        const std::vector<DynamicsProcessing::InputGain>& configs) {
+        const std::vector<DynamicsProcessing::InputGain>& configs,
+        [[maybe_unused]] bool isChannelConfigEnabled = true) {
     addInputGain(configs);
 }
 
 template <typename ConfigType>
 void DynamicsProcessingTestHelper::setParamsAndProcess(ConfigType& configs,
-                                                       std::vector<float>& output) {
-    applyConfig(configs);
+                                                       std::vector<float>& output,
+                                                       bool isChannelConfigEnabled) {
+    applyConfig(configs, isChannelConfigEnabled);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
     if (isAllParamsValid()) {
         ASSERT_NO_FATAL_FAILURE(
@@ -1515,10 +1525,10 @@ class DynamicsProcessingEqBandConfigDataTest
     }
 
     void validateOutput(const std::vector<float>& output, float gainDb, size_t bandIndex,
-                        bool enable) {
+                        bool enable, bool isStageEnabled) {
         std::vector<float> outputMag(mBinOffsets.size());
         EXPECT_NO_FATAL_FAILURE(getMagnitudeValue(output, outputMag));
-        if (gainDb == 0 || !enable) {
+        if (gainDb == 0 || !enable || !isStageEnabled) {
             EXPECT_NO_FATAL_FAILURE(checkInputAndOutputEquality(outputMag));
         } else if (gainDb > 0) {
             // For positive gain, current band's magnitude is greater than the other band's
@@ -1530,7 +1540,8 @@ class DynamicsProcessingEqBandConfigDataTest
         }
     }
 
-    void analyseMultiBandOutput(float gainDb, bool isPreEq, bool enable = true) {
+    void analyseMultiBandOutput(float gainDb, bool isPreEq, bool enable = true,
+                                bool isStageEnabled = true) {
         std::vector<float> output(mInput.size());
         roundToFreqCenteredToFftBin(mMultitoneTestFrequencies, mBinOffsets, kBinWidth);
         // Set Equalizer values for two bands
@@ -1541,14 +1552,14 @@ class DynamicsProcessingEqBandConfigDataTest
             }
             if (isPreEq) {
                 PreEqConfigs preEqConfigs{mCfgs};
-                ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(preEqConfigs, output));
+                ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(preEqConfigs, output, isStageEnabled));
             } else {
                 PostEqConfigs postEqConfigs{mCfgs};
-                ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(postEqConfigs, output));
+                ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(postEqConfigs, output, isStageEnabled));
             }
 
             if (isAllParamsValid()) {
-                ASSERT_NO_FATAL_FAILURE(validateOutput(output, gainDb, i, enable));
+                ASSERT_NO_FATAL_FAILURE(validateOutput(output, gainDb, i, enable, isStageEnabled));
             }
             cleanUpConfigs(mCfgs);
         }
@@ -1586,6 +1597,20 @@ TEST_P(DynamicsProcessingEqBandConfigDataTest, PreEqEnableDisable) {
 TEST_P(DynamicsProcessingEqBandConfigDataTest, PostEqEnableDisable) {
     ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(10 /*gain dB*/, false /*post-equalizer*/,
                                                    false /*disable equalizer*/));
+}
+
+TEST_P(DynamicsProcessingEqBandConfigDataTest, PreEqStageEnableDisable) {
+    for (bool isStageEnabled : testing::Bool()) {
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(10 /*gain dB*/, true /*pre-equalizer*/,
+                                                       true /*enable equalizer*/, isStageEnabled));
+    }
+}
+
+TEST_P(DynamicsProcessingEqBandConfigDataTest, PostEqStageEnableDisable) {
+    for (bool isStageEnabled : testing::Bool()) {
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(10 /*gain dB*/, false /*post-equalizer*/,
+                                                       true /*enable equalizer*/, isStageEnabled));
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingEqBandConfigDataTest,
@@ -1726,7 +1751,7 @@ class DynamicsProcessingMbcBandConfigDataTest
     }
 
     void analyseMultiBandOutput(float thresholdDb, float ratio, float noiseGateDb,
-                                float expanderRatio) {
+                                float expanderRatio, bool isStageEnabled = true) {
         std::vector<float> output(mInput.size());
         roundToFreqCenteredToFftBin(mMultitoneTestFrequencies, mBinOffsets, kBinWidth);
 
@@ -1742,11 +1767,12 @@ class DynamicsProcessingMbcBandConfigDataTest
                                   kDefaultNoiseGateDb, kDefaultExpanderRatio, i ^ 1,
                                   kCutoffFreqHz[i ^ 1], kDefaultPreGainDb, kDefaultPostGainDb);
             }
-            ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(mCfgs, output));
+            ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(mCfgs, output, isStageEnabled));
 
             if (isAllParamsValid()) {
-                bool checkEquality = (noiseGateDb <= mInputDb || expanderRatio == 1) &&
-                                     (thresholdDb >= mInputDb || ratio == 1);
+                bool checkEquality = ((noiseGateDb <= mInputDb || expanderRatio == 1) &&
+                                      (thresholdDb >= mInputDb || ratio == 1)) ||
+                                     !isStageEnabled;
                 ASSERT_NO_FATAL_FAILURE(validateOutput(output, i, checkEquality));
             }
             cleanUpConfigs(mCfgs);
@@ -1965,6 +1991,16 @@ TEST_P(DynamicsProcessingMbcBandConfigDataTest, MBCNotEngagedAttackTime) {
     // Using threshold value such that MBC does not engage with the input
     float thresholdDb = -1;
     ASSERT_NO_FATAL_FAILURE(testAndValidateAttackTimeOutput(mCfgs, thresholdDb, false));
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, StageEnableDisableMBC) {
+    const float threshold = -20;
+    const float ratio = 10;
+    for (bool isMbcStageEnabled : testing::Bool()) {
+        cleanUpConfigs(mCfgs);
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(threshold, ratio, kDefaultNoiseGateDb,
+                                                       kDefaultExpanderRatio, isMbcStageEnabled));
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingMbcBandConfigDataTest,
