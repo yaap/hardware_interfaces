@@ -46,7 +46,15 @@ parcelable Luts {
      *
      * For 3D LUT buffers:
      * -   Values must be normalized to the range [0.0, 1.0], inclusive. 1.0 is the maximum panel luminance.
-     * -   If N is the dimension, the data is organized in RGB order: R0, R1, ..., RN, G0, G1, ..., GN, B0, B1, ..., BN.
+     * -   If N is the size of each dimension, the data is arranged in RGB order:
+     *     R(0, 0, 0), R(0, 0, 1), ..., R(0, 0, N - 1),
+     *     R(0, 1, 0), ..., R(0, 1, N - 1), ..., R(0, N - 1, N - 1),
+     *     R(1, 0, 0), ..., R(1, 0, N - 1), ..., R(1, N - 1, N - 1), ..., R(N - 1, N - 1, N - 1),
+     *     G(0, 0, 0), ..., G(N - 1, N - 1, N - 1),
+     *     B(0, 0, 0), ..., B(N - 1, N - 1, N - 1)
+     * -   When a GPU shader samples 3D Lut data, it's accessed in a flat, one-dimensional arrangement.
+     *     Assuming that we have a 3D array ORIGINAL[N][N][N],
+     *     then ORIGINAL[x][y][z] is mapped to FLAT[z + N * (y + N * x)].
      */
     @nullable ParcelFileDescriptor pfd;
 
