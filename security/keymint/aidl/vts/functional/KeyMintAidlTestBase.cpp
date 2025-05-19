@@ -1878,7 +1878,7 @@ int get_first_vendor_api_level() {
     // `ro.product.first_api_level` is always populated.
     first_vendor_api_level = ::android::base::GetIntProperty("ro.product.first_api_level", -1);
     EXPECT_NE(first_vendor_api_level, -1) << "Could not find ro.product.first_api_level";
-    return first_vendor_api_level;
+    return AVendorSupport_getVendorApiLevelOf(first_vendor_api_level);
 }
 
 bool is_gsi_image() {
