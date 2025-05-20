@@ -5709,7 +5709,9 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
     static constexpr const auto kStreamStartOffset = std::chrono::nanoseconds(100ms);
     static constexpr const int kBurstCount = 50;
     static constexpr const int kBurstCountTolerance = 2;
-    static constexpr const double kBurstIntervalsAlpha = .999;
+    static constexpr const double kBurstInputIntervalsAlpha = .999;
+    // Output bursts are regulated by MonoPipe and exhibit shorter interval times at start.
+    static constexpr const double kBurstOutputIntervalsAlpha = .99;
     static constexpr const int kIntervalsMeanTolerance = std::chrono::nanoseconds(2ms).count();
     static constexpr const auto kIntervalsStdDevTolerance = std::chrono::nanoseconds(4ms).count();
 
@@ -5738,8 +5740,8 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
     }
 
     void VerifyBurstIntervalsUniformity() {
-        ::android::audio_utils::Statistics<double> inputIntervals(kBurstIntervalsAlpha),
-            outputIntervals(kBurstIntervalsAlpha);
+        ::android::audio_utils::Statistics<double> inputIntervals(kBurstInputIntervalsAlpha),
+            outputIntervals(kBurstOutputIntervalsAlpha);
         for (const auto a : streamIn->getBurstIntervals()) {
             inputIntervals.add(a);
         }
@@ -5935,7 +5937,7 @@ TEST_P(AudioModuleRemoteSubmix, BurstIntervalsUniformityOutputStandbyCycle) {
     ASSERT_NO_FATAL_FAILURE(
             streamIn->JoinWorkerAfterBurstCommands(false /*callPrepareToCloseBeforeJoin*/));
     // Verify input intervals only.
-    ::android::audio_utils::Statistics<double> inputIntervals(kBurstIntervalsAlpha);
+    ::android::audio_utils::Statistics<double> inputIntervals(kBurstInputIntervalsAlpha);
     for (const auto a : streamIn->getBurstIntervals()) {
         inputIntervals.add(a);
     }
