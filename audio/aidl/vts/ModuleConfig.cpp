@@ -182,8 +182,17 @@ std::vector<AudioPort> ModuleConfig::getNonBlockingMixPorts(bool connectedOnly,
 
 std::vector<AudioPort> ModuleConfig::getOffloadMixPorts(bool connectedOnly, bool singlePort) const {
     return findMixPorts(false /*isInput*/, connectedOnly, singlePort, [&](const AudioPort& port) {
-        return isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::output>(),
-                                    AudioOutputFlags::COMPRESS_OFFLOAD);
+        if (isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::output>(),
+                                 AudioOutputFlags::COMPRESS_OFFLOAD)) {
+            // Check if the port supports non-PCM formats. If it's only PCM, then
+            // it's a "PCM Offload" port and it may not support features needed
+            // for playing compressed formats.
+            for (const auto& profile : port.profiles) {
+                if (!profile.format.encoding.empty()) return true;
+            }
+            return false;
+        }
+        return false;
     });
 }
 

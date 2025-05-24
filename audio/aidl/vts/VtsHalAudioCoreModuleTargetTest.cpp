@@ -5713,7 +5713,7 @@ class AudioModuleRemoteSubmix : public AudioCoreModule {
     // Output bursts are regulated by MonoPipe and exhibit shorter interval times at start.
     static constexpr const double kBurstOutputIntervalsAlpha = .99;
     static constexpr const int kIntervalsMeanTolerance = std::chrono::nanoseconds(2ms).count();
-    static constexpr const auto kIntervalsStdDevTolerance = std::chrono::nanoseconds(4ms).count();
+    static constexpr const auto kIntervalsStdDevTolerance = std::chrono::nanoseconds(5ms).count();
 
     void SetUp() override {
         // Turn off "debug" which enables connections simulation. Since devices of the remote

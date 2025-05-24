@@ -104,6 +104,8 @@ impl UwbChip {
                             if matches!(&buffer[0..total_packet_length], [0x40, 0x00, 0x00, 0x01, 0x00]
                             ) {
                                 *initialized = true;
+                                callbacks.onHalEvent(UwbEvent::OPEN_CPLT, UwbStatus::OK)
+                                    .expect("failed to call onHalEvent");
                             }
                         } else {
                             callbacks
@@ -150,7 +152,6 @@ impl IUwbChipAsyncServer for UwbChip {
         };
 
         callbacks.as_binder().link_to_death(&mut death_recipient)?;
-        callbacks.onHalEvent(UwbEvent::OPEN_CPLT, UwbStatus::OK)?;
 
         service_state.client_state = ClientState::Opened {
             callbacks: callbacks.clone(),
