@@ -26,6 +26,7 @@
 #include <ui/GraphicBuffer.h>
 #include <ui/PixelFormat.h>
 #include <ui/Rect.h>
+#include <algorithm>
 #include <cstdint>
 #include <unordered_map>
 #include "ComposerClientWrapper.h"
@@ -607,6 +608,24 @@ TEST_P(GraphicsCompositionTest, Luts) {
         GTEST_SKIP();
     }
 
+    bool supportsHlg = false;
+    for (const auto& i : properties.combinations) {
+        bool supportsBt2020Gamut =
+                std::any_of(i.standards.cbegin(), i.standards.cend(), [](const auto& standard) {
+                    return standard == common::Dataspace::STANDARD_BT2020;
+                });
+        bool supportsHlgTransfer = std::any_of(
+                i.transfers.cbegin(), i.transfers.cend(),
+                [](const auto& transfer) { return transfer == common::Dataspace::TRANSFER_HLG; });
+        bool supportsFullRange = std::any_of(
+                i.ranges.cbegin(), i.ranges.cend(),
+                [](const auto& range) { return range == common::Dataspace::RANGE_FULL; });
+        supportsHlg = supportsBt2020Gamut && supportsHlgTransfer && supportsFullRange;
+        if (supportsHlg) {
+            break;
+        }
+    }
+
     for (const DisplayWrapper display : mAllDisplays) {
         ASSERT_TRUE(
                 mComposerClient
@@ -650,7 +669,10 @@ TEST_P(GraphicsCompositionTest, Luts) {
                             mDisplayProperties.at(display.getDisplayId()).writer);
                     layer->setDisplayFrame(coloredSquare);
                     layer->setZOrder(10);
-                    layer->setDataspace(Dataspace::SRGB);
+                    // Fallback to sRGB support if the device doesn't support HLG
+                    // This is to accommodate nascent devices that support LUTs but only for HDR
+                    // formats, without compromising test coverage of the LUT feature altogether
+                    layer->setDataspace(supportsHlg ? Dataspace::BT2020_HLG : Dataspace::SRGB);
 
                     Luts luts;
                     generateLuts(&luts, l.dimension, l.size, key);
@@ -675,12 +697,9 @@ TEST_P(GraphicsCompositionTest, Luts) {
                                                     ComposerClientWriter::kNoTimestamp,
                                                     ComposerClientWrapper::kNoFrameIntervalNs);
                     execute(display.getDisplayId());
-                    if (!mDisplayProperties.at(display.getDisplayId())
-                                 .reader.takeChangedCompositionTypes(display.getDisplayId())
-                                 .empty()) {
-                        continue;
-                    }
 
+                    // We should be guaranteed to use DPU composition here
+                    ASSERT_TRUE(supportsHlg);
                     auto changedCompositionTypes =
                             mDisplayProperties.at(display.getDisplayId())
                                     .reader.takeChangedCompositionTypes(display.getDisplayId());
@@ -703,6 +722,9 @@ TEST_P(GraphicsCompositionTest, Luts) {
                     testRenderEngine->setRenderLayers(layers);
                     ASSERT_NO_FATAL_FAILURE(testRenderEngine->drawLayers());
                     ASSERT_NO_FATAL_FAILURE(testRenderEngine->checkColorBuffer(expectedColors));
+                    mComposerClient->destroyLayer(
+                            display.getDisplayId(), layer->getLayer(),
+                            &mDisplayProperties.at(display.getDisplayId()).writer);
                 }
             }
         }

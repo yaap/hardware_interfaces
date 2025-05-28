@@ -203,18 +203,18 @@ std::vector<AudioPort> ModuleConfig::getPrimaryMixPorts(bool connectedOnly, bool
     });
 }
 
-std::vector<AudioPort> ModuleConfig::getMmapOutMixPorts(bool connectedOnly, bool singlePort) const {
-    return findMixPorts(false /*isInput*/, connectedOnly, singlePort, [&](const AudioPort& port) {
-        return isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::output>(),
-                                    AudioOutputFlags::MMAP_NOIRQ);
-    });
-}
-
-std::vector<AudioPort> ModuleConfig::getMmapInMixPorts(bool connectedOnly, bool singlePort) const {
-    return findMixPorts(true /*isInput*/, connectedOnly, singlePort, [&](const AudioPort& port) {
+std::vector<AudioPort> ModuleConfig::getMmapMixPorts(bool isInput, bool connectedOnly,
+                                                     bool singlePort) const {
+    static const auto inputFlagMatcher = [&](const AudioPort& port) {
         return isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::input>(),
                                     AudioInputFlags::MMAP_NOIRQ);
-    });
+    };
+    static const auto outputFlagMatcher = [&](const AudioPort& port) {
+        return isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::output>(),
+                                    AudioOutputFlags::MMAP_NOIRQ);
+    };
+    return isInput ? findMixPorts(isInput, connectedOnly, singlePort, inputFlagMatcher)
+                   : findMixPorts(isInput, connectedOnly, singlePort, outputFlagMatcher);
 }
 
 std::vector<AudioPort> ModuleConfig::getRemoteSubmixPorts(bool isInput, bool singlePort) const {

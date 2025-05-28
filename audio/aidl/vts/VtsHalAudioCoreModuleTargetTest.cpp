@@ -1208,6 +1208,11 @@ class StreamReaderLogic : public StreamCommonLogic {
             LOG(ERROR) << __func__ << ": no next command";
             return Status::ABORT;
         }
+        if (isMmapped() && command.getTag() == StreamDescriptor::Command::Tag::burst &&
+            command.get<StreamDescriptor::Command::Tag::burst>() > 0) {
+            // The value of a valid 'burst' command for MMap must be '0'.
+            command.get<StreamDescriptor::Command::Tag::burst>() = 0;
+        }
         LOG(DEBUG) << "Writing command: " << command.toString();
         if (!getCommandMQ()->writeBlocking(&command, 1)) {
             LOG(ERROR) << __func__ << ": writing of command into MQ failed";
@@ -1353,6 +1358,10 @@ class StreamWriterLogic : public StreamCommonLogic {
             if (isMmapped() ? !writeDataToMmap() : !writeDataToMQ()) {
                 return Status::ABORT;
             }
+            if (isMmapped()) {
+                // The value of the 'burst' command for MMap must be '0'.
+                command.get<StreamDescriptor::Command::Tag::burst>() = 0;
+            }
             registerBurstNow();
         }
         LOG(DEBUG) << "Writing command: " << command.toString();
@@ -1489,6 +1498,9 @@ struct IOTraits {
     static constexpr bool is_input = std::is_same_v<T, IStreamIn>;
     static constexpr const char* directionStr = is_input ? "input" : "output";
     using Worker = std::conditional_t<is_input, StreamReader, StreamWriter>;
+    using IoFlags = std::conditional_t<is_input, AudioInputFlags, AudioOutputFlags>;
+    static constexpr AudioIoFlags::Tag flagTag =
+            is_input ? AudioIoFlags::Tag::input : AudioIoFlags::Tag::output;
 };
 
 template <typename Stream>
@@ -3789,11 +3801,40 @@ class AudioStream : public AudioCoreModule {
     }
 
     void SendInvalidCommand() {
-        const auto portConfig = moduleConfig->getSingleConfigForMixPort(IOTraits<Stream>::is_input);
-        if (!portConfig.has_value()) {
+        // Since the processing of the 'burst' command is different for MMAP and non-MMAP
+        // streams, test them separately.
+        bool hasAtLeastOnePort = false;
+        {
+            auto ports =
+                    moduleConfig->getMixPorts(IOTraits<Stream>::is_input, true /*connectedOnly*/);
+            auto portIt = std::find_if(ports.begin(), ports.end(), [&](const AudioPort& port) {
+                return !isBitPositionFlagSet(port.flags.get<IOTraits<Stream>::flagTag>(),
+                                             IOTraits<Stream>::IoFlags::MMAP_NOIRQ);
+            });
+            if (portIt != ports.end()) {
+                const auto portConfig = moduleConfig->getSingleConfigForMixPort(
+                        IOTraits<Stream>::is_input, *portIt);
+                if (portConfig.has_value()) {
+                    hasAtLeastOnePort = true;
+                    EXPECT_NO_FATAL_FAILURE(SendInvalidCommandImpl(portConfig.value()));
+                }
+            }
+        }
+        {
+            auto ports = moduleConfig->getMmapMixPorts(IOTraits<Stream>::is_input,
+                                                       true /*connectedOnly*/, true /*singlePort*/);
+            if (!ports.empty()) {
+                const auto portConfig = moduleConfig->getSingleConfigForMixPort(
+                        IOTraits<Stream>::is_input, *ports.begin());
+                if (portConfig.has_value()) {
+                    hasAtLeastOnePort = true;
+                    EXPECT_NO_FATAL_FAILURE(SendInvalidCommandImpl(portConfig.value()));
+                }
+            }
+        }
+        if (!hasAtLeastOnePort) {
             GTEST_SKIP() << "No mix port for attached devices";
         }
-        EXPECT_NO_FATAL_FAILURE(SendInvalidCommandImpl(portConfig.value()));
     }
 
     void UpdateHwAvSyncId() {
