@@ -470,15 +470,16 @@ enum VehicleProperty {
     /**
      * Reports wheel ticks
      *
-     * The first element in the vector is a reset count.  A reset indicates
-     * previous tick counts are not comparable with this and future ones.  Some
-     * sort of discontinuity in tick counting has occurred.
+     * The first element in the vector is a reset count. A reset indicates previous tick counts are
+     * not comparable with this and future ones - some sort of discontinuity in tick counting has
+     * occurred. Conversely, tick measurements must be comparable if their corresponding reset count
+     * is the same. This value must be a monotonically increasing value where each time a reset
+     * happens, the value increases by 1.
      *
-     * The next four elements represent ticks for individual wheels in the
-     * following order: front left, front right, rear right, rear left.  All
-     * tick counts are cumulative.  Tick counts increment when the vehicle
-     * moves forward, and decrement when vehicles moves in reverse.  The ticks
-     * should be reset to 0 when the vehicle is started by the user.
+     * The next four elements represent ticks for individual wheels in the following order: front
+     * left, front right, rear right, rear left. All tick counts are cumulative. Tick counts
+     * increment when the vehicle moves forward, and decrement when vehicles moves in reverse.
+     * The ticks should be reset to 0 when the vehicle is started by the user.
      *
      *  int64Values[0] = reset count
      *  int64Values[1] = front left ticks
@@ -486,8 +487,8 @@ enum VehicleProperty {
      *  int64Values[3] = rear right ticks
      *  int64Values[4] = rear left ticks
      *
-     * configArray is used to indicate the micrometers-per-wheel-tick value and
-     * which wheels are supported.  configArray is set as follows:
+     * configArray is used to indicate the micrometers-per-wheel-tick value and which wheels are
+     * supported. configArray is set as follows:
      *
      *  configArray[0], bits [0:3] = supported wheels. Uses enum Wheel. For example, if all wheels
      *    are supported, then configArray[0] = VehicleAreaWheel::LEFT_FRONT
@@ -498,7 +499,7 @@ enum VehicleProperty {
      *  configArray[3] = micrometers per rear right wheel tick
      *  configArray[4] = micrometers per rear left wheel tick
      *
-     * NOTE:  If a wheel is not supported, its value shall always be set to 0.
+     * NOTE: If a wheel is not supported, its value shall always be set to 0.
      *
      * VehiclePropValue.timestamp must be correctly filled in.
      *
