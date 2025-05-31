@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,14 +33,13 @@
 
 package android.hardware.radio.ims;
 /* @hide */
-@VintfStability
-interface IRadioImsResponse {
-  oneway void setSrvccCallInfoResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void updateImsRegistrationInfoResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void startImsTrafficResponse(in android.hardware.radio.RadioResponseInfo info, in @nullable android.hardware.radio.ims.ConnectionFailureInfo failureInfo);
-  oneway void stopImsTrafficResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void triggerEpsFallbackResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void sendAnbrQueryResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void updateImsCallStatusResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void updateAllowedServicesResponse(in android.hardware.radio.RadioResponseInfo info);
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
+parcelable ImsService {
+  android.hardware.radio.ims.ImsServiceType serviceType = android.hardware.radio.ims.ImsServiceType.INVALID;
+  android.hardware.radio.ims.ImsService.RoamingType roamingType = android.hardware.radio.ims.ImsService.RoamingType.ANY;
+  @Backing(type="int")
+  enum RoamingType {
+    ANY = 0,
+    HOME_ONLY = 1,
+  }
 }
