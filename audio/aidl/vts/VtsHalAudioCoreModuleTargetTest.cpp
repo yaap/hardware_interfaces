@@ -4382,8 +4382,10 @@ TEST_P(AudioStreamOut, PlaybackRate) {
     EXPECT_LE(factors.minSpeed, factors.maxSpeed);
     EXPECT_LE(factors.minPitch, factors.maxPitch);
     EXPECT_LE(factors.minSpeed, 1.0f);
+    EXPECT_GE(factors.minSpeed, 0);
     EXPECT_GE(factors.maxSpeed, 1.0f);
     EXPECT_LE(factors.minPitch, 1.0f);
+    EXPECT_GE(factors.minPitch, 0);
     EXPECT_GE(factors.maxPitch, 1.0f);
     constexpr auto tsDefault = AudioPlaybackRate::TimestretchMode::DEFAULT;
     constexpr auto tsVoice = AudioPlaybackRate::TimestretchMode::VOICE;
@@ -4418,8 +4420,18 @@ TEST_P(AudioStreamOut, PlaybackRate) {
             // is "mute".
             AudioPlaybackRate{factors.maxSpeed * 2, factors.maxPitch * 2, tsDefault, fbMute},
             AudioPlaybackRate{factors.minSpeed / 2, factors.minPitch / 2, tsDefault, fbMute},
+            AudioPlaybackRate{-factors.maxSpeed, -factors.maxPitch, tsDefault, fbMute},
+            AudioPlaybackRate{-factors.minSpeed, -factors.minPitch, tsDefault, fbMute},
+            AudioPlaybackRate{std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::infinity(), tsDefault, fbMute},
+            AudioPlaybackRate{NAN, NAN, tsDefault, fbMute},
             AudioPlaybackRate{factors.maxSpeed * 2, factors.maxPitch * 2, tsVoice, fbMute},
             AudioPlaybackRate{factors.minSpeed / 2, factors.minPitch / 2, tsVoice, fbMute},
+            AudioPlaybackRate{-factors.maxSpeed, -factors.maxPitch, tsVoice, fbMute},
+            AudioPlaybackRate{-factors.minSpeed, -factors.minPitch, tsVoice, fbMute},
+            AudioPlaybackRate{std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::infinity(), tsVoice, fbMute},
+            AudioPlaybackRate{NAN, NAN, tsVoice, fbMute},
     };
     bool atLeastOneSupports = false;
     for (const auto& port : offloadMixPorts) {
@@ -4427,6 +4439,14 @@ TEST_P(AudioStreamOut, PlaybackRate) {
         ASSERT_TRUE(portConfig.has_value()) << "No profiles specified for output mix port";
         WithStream<IStreamOut> stream(portConfig.value());
         ASSERT_NO_FATAL_FAILURE(stream.SetUp(module.get(), kDefaultLargeBufferSizeFrames));
+        if (stream.getInterfaceVersion() >= kAidlVersion3) {
+            AudioPlaybackRate playbackRate;
+            status = stream.get()->getPlaybackRateParameters(&playbackRate);
+            if (status.getExceptionCode() != EX_UNSUPPORTED_OPERATION) {
+                EXPECT_NE(playbackRate.speed, 0);
+                EXPECT_NE(playbackRate.pitch, 0);
+            }
+        }
         bool isSupported = false;
         EXPECT_NO_FATAL_FAILURE(TestAccessors<AudioPlaybackRate>(
                 stream.get(), &IStreamOut::getPlaybackRateParameters,

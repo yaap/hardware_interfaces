@@ -89,7 +89,7 @@ MATCHER(IsValidSerialNumber, "") {
     if (!arg) {
         return true;
     }
-    if (arg->size() < 6) {
+    if (arg->size() < 4) {
         return false;
     }
     for (const auto& c : *arg) {
