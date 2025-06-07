@@ -319,7 +319,7 @@ enum PixelFormat {
 
     /**
      * 32-bit packed format that has 2-bit A, 10-bit B, G, and R components,
-     * in that order, from the most-sigfinicant bits to the least-significant
+     * in that order, from the most-significant bits to the least-significant
      * bits.
      *
      * The component values are unsigned normalized to the range [0, 1], whose
@@ -630,4 +630,13 @@ enum PixelFormat {
      */
     RGBA_14141414_UINT = 0x42,
 
+    /**
+     * 32-bit packed format that has 2-bit A, 10-bit R, G, and B components,
+     * in that order, from the most-significant bits to the least-significant
+     * bits.
+     *
+     * The component values are unsigned normalized to the range [0, 1], whose
+     * interpretation is defined by the dataspace.
+     */
+    BGRA_1010102 = 0x43,
 }

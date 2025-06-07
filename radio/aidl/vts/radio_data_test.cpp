@@ -844,3 +844,38 @@ TEST_P(RadioDataTest, setUserDataRoamingEnabled) {
                  RadioError::OP_NOT_ALLOWED_BEFORE_REG_TO_NW, RadioError::REQUEST_NOT_SUPPORTED}));
     }
 }
+
+/*
+ * Test IRadioData.notifyImsDataNetwork() for the response returned.
+ */
+TEST_P(RadioDataTest, notifyImsDataNetwork) {
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_data->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 5) {
+        ALOGI("Skipped the test since"
+              " notifyImsDataNetwork is not supported on version < 5");
+        GTEST_SKIP();
+    }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_DATA)) {
+        GTEST_SKIP() << "Skipping notifyImsDataNetwork "
+                        "due to undefined FEATURE_TELEPHONY_DATA";
+    }
+
+    serial = GetRandomSerialNumber();
+    AccessNetwork accessNetwork = AccessNetwork::EUTRAN;
+    DataNetworkState dataNetworkState = DataNetworkState::CONNECTED;
+    TransportType physicalTransportType = TransportType::WWAN;
+    int physicalNetworkModemId = 0;
+
+    radio_data->notifyImsDataNetwork(serial, accessNetwork, dataNetworkState, physicalTransportType,
+                                     physicalNetworkModemId);
+
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_data->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_data->rspInfo.serial);
+
+    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
+        EXPECT_EQ(RadioError::NONE, radioRsp_data->rspInfo.error);
+    }
+}

@@ -52,4 +52,5 @@ interface IRadioDataResponse {
   oneway void stopKeepaliveResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void setUserDataEnabledResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void setUserDataRoamingEnabledResponse(in android.hardware.radio.RadioResponseInfo info);
+  oneway void notifyImsDataNetworkResponse(in android.hardware.radio.RadioResponseInfo info);
 }
