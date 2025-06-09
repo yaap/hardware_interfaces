@@ -28,6 +28,7 @@
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/test/mock/mock_android_base_wrapper.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -56,6 +57,7 @@ using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::hci::HciRouterCallback;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;
 
 constexpr int kMaxKeyNumPerVsc = 12;
@@ -78,13 +80,9 @@ class TestBluetoothFinderHandler : public BluetoothFinderHandler {
   TestBluetoothFinderHandler() = default;
   ~TestBluetoothFinderHandler() override = default;
 
-  void SimulateBluetoothChipReady() {
-    OnHalStateChanged(HalState::kBtChipReady, HalState::kFirmwareReady);
-  }
+  void SimulateBluetoothChipReady() { OnBluetoothChipReady(); }
 
-  void SimulateBluetoothChipNotReady() {
-    OnHalStateChanged(HalState::kFirmwareReady, HalState::kBtChipReady);
-  }
+  void SimulateBluetoothChipNotReady() { OnBluetoothChipClosed(); }
 
   HalPacket BuildFinderResetCommandWrapper() {
     return BuildFinderResetCommand();
@@ -116,8 +114,11 @@ class BluetoothFinderHandlerTest : public Test {
     MockHciRouter::SetMockRouter(&mock_hci_router_);
     MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
 
-    EXPECT_CALL(mock_hci_router_, RegisterCallback(NotNull()))
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterRouterClient(NotNull()))
         .WillOnce(DoAll(SaveArg<0>(&router_callback_), Return(true)));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(false));
 
     handler_ = std::make_unique<TestBluetoothFinderHandler>();
 
@@ -127,7 +128,8 @@ class BluetoothFinderHandlerTest : public Test {
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_, UnregisterCallback(handler_.get()))
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                UnregisterRouterClient(handler_.get()))
         .WillOnce(Return(true));
     handler_.reset();
     MockHciRouter::SetMockRouter(nullptr);
@@ -149,10 +151,23 @@ class BluetoothFinderHandlerTest : public Test {
     return event_packet;
   }
 
+  void SimulateBluetoothChipReady() {
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(true));
+    handler_->SimulateBluetoothChipReady();
+  }
+
+  void SimulateBluetoothChipNotReady() {
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(false));
+    handler_->SimulateBluetoothChipNotReady();
+  }
+
   std::unique_ptr<TestBluetoothFinderHandler> handler_;
   HciRouterCallback* router_callback_ = nullptr;
   StrictMock<MockHciRouter> mock_hci_router_;
   StrictMock<MockAndroidBaseWrapper> mock_android_base_wrapper_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
 
   std::vector<Eid> test_keys_;
 };
@@ -228,7 +243,7 @@ class StartFinderProcessTest : public BluetoothFinderHandlerTest {
 };
 
 TEST_F(StartFinderProcessTest, StartPofButNotEnabled) {
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
   handler_->SetPoweredOffFinderMode(false);
 
   EXPECT_TRUE(handler_->SendEids(test_keys_));
@@ -237,7 +252,7 @@ TEST_F(StartFinderProcessTest, StartPofButNotEnabled) {
 }
 
 TEST_F(StartFinderProcessTest, StartPofButNotShuttingDown) {
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
   EXPECT_CALL(mock_android_base_wrapper_, GetProperty(_, _))
       .Times(1)
       .WillOnce(Return(""));
@@ -254,14 +269,14 @@ TEST_F(StartFinderProcessTest, StartPofButAlreadyStarted) {
 }
 
 TEST_F(StartFinderProcessTest, StartPofButBluetoothOff) {
-  handler_->SimulateBluetoothChipNotReady();
+  SimulateBluetoothChipNotReady();
 
   EXPECT_FALSE(handler_->StartPoweredOffFinderMode());
   EXPECT_EQ(handler_->GetState(), BluetoothFinderHandler::State::kIdle);
 }
 
 TEST_F(StartFinderProcessTest, StartPofButNoKeys) {
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
 
   EXPECT_FALSE(handler_->StartPoweredOffFinderMode());
   EXPECT_EQ(handler_->GetState(), BluetoothFinderHandler::State::kIdle);
@@ -270,7 +285,7 @@ TEST_F(StartFinderProcessTest, StartPofButNoKeys) {
 TEST_F(StartFinderProcessTest, StartPofWithSingleKeyBatchReturnSuccess) {
   ASSERT_NE(router_callback_, nullptr) << "Callback was not captured";
 
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
   test_keys_ = CreateEids(5);
 
   EXPECT_TRUE(handler_->SendEids(test_keys_));
@@ -343,7 +358,7 @@ TEST_F(StartFinderProcessTest, StartPofWithSingleKeyBatchReturnSuccess) {
 TEST_F(StartFinderProcessTest, StartPofWithMultipleKeyBatchesReturnSuccess) {
   ASSERT_NE(router_callback_, nullptr) << "Callback was not captured";
 
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
 
   // Create more keys than fit in one VSC batch.
   const size_t num_keys_first_batch = kMaxKeyNumPerVsc;
@@ -434,7 +449,7 @@ TEST_F(StartFinderProcessTest, StartPofWithMultipleKeyBatchesReturnSuccess) {
 
 TEST_F(StartFinderProcessTest, StartPofFailOnReset) {
   ASSERT_NE(router_callback_, nullptr);
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
   test_keys_ = CreateEids(5);
   EXPECT_TRUE(handler_->SendEids(test_keys_));
 
@@ -471,7 +486,7 @@ TEST_F(StartFinderProcessTest, StartPofFailOnReset) {
 
 TEST_F(StartFinderProcessTest, StartPofFailOnSetKeys) {
   ASSERT_NE(router_callback_, nullptr);
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
   test_keys_ = CreateEids(5);
   EXPECT_TRUE(handler_->SendEids(test_keys_));
 
@@ -521,7 +536,7 @@ TEST_F(StartFinderProcessTest, StartPofFailOnSetKeys) {
 
 TEST_F(StartFinderProcessTest, StartPofFailOnStartPof) {
   ASSERT_NE(router_callback_, nullptr);
-  handler_->SimulateBluetoothChipReady();
+  SimulateBluetoothChipReady();
   test_keys_ = CreateEids(5);
   EXPECT_TRUE(handler_->SendEids(test_keys_));
 

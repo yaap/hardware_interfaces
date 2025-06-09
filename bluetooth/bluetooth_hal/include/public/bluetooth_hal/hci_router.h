@@ -92,25 +92,6 @@ class HciRouter {
   virtual bool SendCommandNoAck(const HalPacket& packet) = 0;
 
   /**
-   * @brief Reigster HciRouterCallback for a client of the HciRouter.
-   *
-   * @param callback The callback for the HciRouter client.
-   * @return true if the callback is registered, otherwise false.
-   *
-   */
-  virtual bool RegisterCallback(HciRouterCallback* callback) = 0;
-
-  /**
-   * @brief Unreigster HciRouterCallback for a client of the HciRouter.
-   *
-   * @param callback The callback for the HciRouter client.
-   *
-   * @return true if the callback is registered, otherwise false.
-   *
-   */
-  virtual bool UnregisterCallback(HciRouterCallback* callback) = 0;
-
-  /**
    * @brief Get the current state of the HciRouter state machine.
    *
    * @return The current state of the state machine.

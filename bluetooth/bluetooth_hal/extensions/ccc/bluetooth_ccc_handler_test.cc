@@ -27,6 +27,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "bluetooth_hal/test/mock/mock_system_call_wrapper.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -40,11 +41,13 @@ using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::hci::BluetoothAddress;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 using ::bluetooth_hal::hci::MonitorMode;
 using ::bluetooth_hal::util::MockSystemCallWrapper;
 using ::testing::_;
 using ::testing::DoAll;
 using ::testing::Invoke;
+using ::testing::NotNull;
 using ::testing::Return;
 using ::testing::SetArrayArgument;
 using ::testing::Test;
@@ -56,12 +59,15 @@ class BluetoothCccHandlerTestInstance : public BluetoothCccHandler {
   }
 
   void EnableBluetooth() {
+    OnBluetoothChipReady();
+    OnBluetoothEnabled();
     OnHalStateChanged(HalState::kRunning, HalState::kBtChipReady);
     OnPacketCallback(HalPacket({0x04, 0x0E, 0x04, 0x01, 0x03, 0x0C, 0x00}));
   }
 
   void DisableBluetooth() {
-    OnHalStateChanged(HalState::kBtChipReady, HalState::kRunning);
+    OnBluetoothDisabled();
+    OnBluetoothChipClosed();
   }
 };
 
@@ -106,19 +112,22 @@ class BluetoothCccHandlerTest : public Test {
   void SetUp() override {
     MockSystemCallWrapper::SetMockWrapper(&mock_system_call_wrapper_);
     ON_CALL(mock_system_call_wrapper_, Open(_, _)).WillByDefault(Return(1));
+
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterRouterClient(NotNull()))
+        .WillOnce(Return(true));
+
     MockHciRouter::SetMockRouter(&mock_hci_router_);
     ON_CALL(mock_hci_router_, Send(_)).WillByDefault(Return(true));
     ON_CALL(mock_hci_router_, SendCommand(_, _)).WillByDefault(Return(true));
-    ON_CALL(mock_hci_router_, RegisterCallback(_)).WillByDefault(Return(true));
-    ON_CALL(mock_hci_router_, UnregisterCallback(_))
-        .WillByDefault(Return(true));
-    EXPECT_CALL(mock_hci_router_, RegisterCallback(_)).Times(1);
 
     ccc_handler_ = new BluetoothCccHandlerTestInstance();
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_, UnregisterCallback(_)).Times(1);
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                UnregisterRouterClient(ccc_handler_))
+        .WillOnce(Return(true));
     delete (ccc_handler_);
   }
 
@@ -127,6 +136,10 @@ class BluetoothCccHandlerTest : public Test {
         .WillByDefault(Return(HalState::kRunning));
     ON_CALL(mock_system_call_wrapper_, Read(_, _, _)).WillByDefault(Return(0));
 
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(true));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+        .WillByDefault(Return(true));
     ccc_handler_->EnableBluetooth();
 
     ON_CALL(mock_system_call_wrapper_, Read(_, _, _))
@@ -141,6 +154,10 @@ class BluetoothCccHandlerTest : public Test {
   void DisableBluetooth() {
     ON_CALL(mock_hci_router_, GetHalState())
         .WillByDefault(Return(HalState::kBtChipReady));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(false));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+        .WillByDefault(Return(false));
     ccc_handler_->DisableBluetooth();
   }
 
@@ -179,6 +196,7 @@ class BluetoothCccHandlerTest : public Test {
   }
 
   MockHciRouter mock_hci_router_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
   MockSystemCallWrapper mock_system_call_wrapper_;
   char timestamp_data_[20] = {'1', '0', '0', '0', '0', '0', '0', '0', '0', '0'};
   BluetoothCccHandlerTestInstance* ccc_handler_;

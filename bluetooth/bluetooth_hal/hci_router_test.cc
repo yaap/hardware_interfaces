@@ -30,6 +30,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "bluetooth_hal/test/mock/mock_transport_interface.h"
 #include "bluetooth_hal/test/mock/mock_vnd_snoop_logger.h"
 #include "bluetooth_hal/test/mock/mock_wakelock.h"
@@ -76,6 +77,7 @@ class HciRouterTest : public Test {
   static void SetUpTestSuite() {}
 
   void SetUp() override {
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
     fake_hci_callback_ = std::make_shared<FakeHciRouterCallback>();
 
     ON_CALL(mock_transport_interface_, IsTransportActive())
@@ -117,8 +119,6 @@ class HciRouterTest : public Test {
 
     router_ = &HciRouter::GetRouter();
     InitializeHciRouter();
-
-    CompleteFirmwareDownloadAndStackInit();
   }
 
   void TearDown() override {
@@ -130,6 +130,7 @@ class HciRouterTest : public Test {
   void InitializeHciRouter() {
     EXPECT_CALL(mock_transport_interface_, Initialize(_)).Times(1);
     router_->Initialize(fake_hci_callback_);
+    CompleteFirmwareDownloadAndStackInit();
   }
 
   void CleanupHciRouter() {
@@ -241,6 +242,17 @@ class HciRouterTest : public Test {
     }
   }
 
+  void ExpectHalStateChange(HalState new_state, HalState old_state,
+                            int count = 1) {
+    EXPECT_CALL(*fake_hci_callback_, OnHalStateChanged(new_state, old_state))
+        .Times(count);
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                NotifyHalStateChange(new_state, old_state))
+        .Times(count);
+    EXPECT_CALL(mock_transport_interface_, NotifyHalStateChange(new_state))
+        .Times(count);
+  }
+
   FakeHciRouterCallback fake_router_callback_;
   std::shared_ptr<FakeHciRouterCallback> fake_hci_callback_;
   HciRouter* router_;
@@ -258,6 +270,7 @@ class HciRouterTest : public Test {
   MockHalConfigLoader mock_hal_config_loader_;
   MockWakelock mock_wakelock_;
   MockVndSnoopLogger mock_vnd_snoop_logger_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
   std::map<HalPacket, std::promise<void>> command_sent_promises_;
   std::map<HalPacket, std::future<void>> command_sent_futures_;
 };
@@ -560,69 +573,45 @@ TEST_F(HciRouterTest, HandleSendCommandNoAck) {
   EXPECT_FALSE(GetIsRouterBusy());
 }
 
-TEST_F(HciRouterTest, HandleRegisterCallback) {
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_));
-  EXPECT_FALSE(router_->RegisterCallback(&fake_router_callback_));
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_));
-  EXPECT_FALSE(router_->UnregisterCallback(&fake_router_callback_));
-}
-
-TEST_F(HciRouterTest, HandleRegisterCallbackMonitorNone) {
+TEST_F(HciRouterTest, HandleDispatchPacketToClientsMonitorNone) {
   HalPacket event({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
-  HalPacket callback_event;
-  ON_CALL(fake_router_callback_, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_event), Return(MonitorMode::kNone)));
+  ON_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(_))
+      .WillByDefault(Return(MonitorMode::kNone));
 
-  EXPECT_CALL(fake_router_callback_, OnPacketCallback(_)).Times(1);
-
-  // Register router callback.
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_));
   // Check if the received event is dispatched to both callback and stack.
+  EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(event))
+      .Times(1);
+  EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(event)).Times(1);
+
   on_transport_packet_ready_(event);
-  EXPECT_EQ(callback_event, event);
   EXPECT_EQ(hal_packet_, event);
-  // Unregister router callback.
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_));
 }
 
-TEST_F(HciRouterTest, HandleRegisterCallbackMonitorMonitor) {
+TEST_F(HciRouterTest, HandleDispatchPacketToClientsMonitorMonitor) {
   HalPacket event({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
-  HalPacket callback_event;
-  ON_CALL(fake_router_callback_, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_event), Return(MonitorMode::kMonitor)));
+  ON_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(_))
+      .WillByDefault(Return(MonitorMode::kMonitor));
 
-  EXPECT_CALL(fake_router_callback_, OnPacketCallback(_)).Times(1);
-  EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(_)).Times(1);
-
-  // Register router callback.
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_));
   // Check if the received event is dispatched to both callback and stack.
+  EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(event))
+      .Times(1);
+  EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(event)).Times(1);
+
   on_transport_packet_ready_(event);
-  EXPECT_EQ(callback_event, event);
   EXPECT_EQ(hal_packet_, event);
-  // Unregister router callback.
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_));
 }
 
-TEST_F(HciRouterTest, HandleRegisterCallbackMonitorIntercept) {
+TEST_F(HciRouterTest, HandleDispatchPacketToClientsMonitorIntercept) {
   HalPacket event({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
-  HalPacket callback_event;
-  ON_CALL(fake_router_callback_, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_event), Return(MonitorMode::kIntercept)));
+  ON_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(_))
+      .WillByDefault(Return(MonitorMode::kIntercept));
 
-  EXPECT_CALL(fake_router_callback_, OnPacketCallback(_)).Times(1);
+  // Check if the received event is only dispatched to the agent.
+  EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(event))
+      .Times(1);
   EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(_)).Times(0);
 
-  // Register router callback.
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_));
-  // Check if the received event is dispatched to the callback only.
   on_transport_packet_ready_(event);
-  EXPECT_EQ(callback_event, event);
-  // Unregister router callback.
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_));
 }
 
 TEST_F(HciRouterTest, HandleOnAclDataCallback) {
@@ -646,27 +635,20 @@ TEST_F(HciRouterTest, HandleOnIsoDataCallback) {
   EXPECT_EQ(hal_packet_, packet);
 }
 
-TEST_F(HciRouterTest, HandleRegisterCallbackInterceptThreadData) {
+TEST_F(HciRouterTest, HandleDispatchPacketToClientsInterceptThreadData) {
   FakeHciRouterCallback fake_router_callback;
   HalPacket thread_data({0x70, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
-  HalPacket callback_packet;
 
-  // Callback returns kIntercept for Thread Data.
-  ON_CALL(fake_router_callback, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_packet), Return(MonitorMode::kIntercept)));
+  ON_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(_))
+      .WillByDefault(Return(MonitorMode::kIntercept));
 
   // Expect router callback is called, but stack callback is not.
-  EXPECT_CALL(fake_router_callback, OnPacketCallback(_)).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_,
+              DispatchPacketToClients(thread_data))
+      .Times(1);
   EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(_)).Times(0);
 
-  // Register router callback.
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback));
-  // Check if the received Thread Data is dispatched correctly.
   on_transport_packet_ready_(thread_data);
-  EXPECT_EQ(callback_packet, thread_data);
-  // Unregister router callback.
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback));
 }
 
 TEST_F(HciRouterTest, HandleSendPacketToStack) {
@@ -676,69 +658,25 @@ TEST_F(HciRouterTest, HandleSendPacketToStack) {
   EXPECT_EQ(hal_packet_, packet);
 }
 
-TEST_F(HciRouterTest, HandleMultipleRegisterCallbackAndInterceptPackets) {
-  FakeHciRouterCallback fake_router_callback_1;
-  FakeHciRouterCallback fake_router_callback_2;
-  HalPacket event({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
-  HalPacket callback_event_1;
-  HalPacket callback_event_2;
-
-  // Callback 1 returns kMonitor, Callback 2 returns kIntercept.
-  ON_CALL(fake_router_callback_1, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_event_1), Return(MonitorMode::kMonitor)));
-  ON_CALL(fake_router_callback_2, OnPacketCallback(_))
-      .WillByDefault(DoAll(SaveArg<0>(&callback_event_2),
-                           Return(MonitorMode::kIntercept)));
-
-  // Expect both router callbacks are called, but stack callback is not.
-  EXPECT_CALL(fake_router_callback_1, OnPacketCallback(_)).Times(1);
-  EXPECT_CALL(fake_router_callback_2, OnPacketCallback(_)).Times(1);
-  EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(_)).Times(0);
-
-  // Register router callbacks.
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_1));
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_2));
-
-  // Check if the received event is dispatched correctly.
-  // Since callback 2 returns kIntercept, the packet should not reach the stack.
-  on_transport_packet_ready_(event);
-  EXPECT_EQ(callback_event_1, event);
-  EXPECT_EQ(callback_event_2, event);
-
-  // Unregister router callbacks.
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_1));
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_2));
-}
-
-TEST_F(HciRouterTest, HandleMultipleRegisterCallbackAndMonitorPackets) {
-  FakeHciRouterCallback fake_router_callback_1;
-  FakeHciRouterCallback fake_router_callback_2;
-  HalPacket event({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
-  HalPacket callback_event_1;
-  HalPacket callback_event_2;
-
-  // Both callbacks return kMonitor.
-  ON_CALL(fake_router_callback_1, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_event_1), Return(MonitorMode::kMonitor)));
-  ON_CALL(fake_router_callback_2, OnPacketCallback(_))
-      .WillByDefault(
-          DoAll(SaveArg<0>(&callback_event_2), Return(MonitorMode::kMonitor)));
-
-  // Expect both router callbacks and the stack callback are called.
-  EXPECT_CALL(fake_router_callback_1, OnPacketCallback(_)).Times(1);
-  EXPECT_CALL(fake_router_callback_2, OnPacketCallback(_)).Times(1);
-  EXPECT_CALL(*fake_hci_callback_, OnPacketCallback(_)).Times(1);
-
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_1));
-  EXPECT_TRUE(router_->RegisterCallback(&fake_router_callback_2));
-  on_transport_packet_ready_(event);
-  EXPECT_EQ(callback_event_1, event);
-  EXPECT_EQ(callback_event_2, event);
-  EXPECT_EQ(hal_packet_, event);  // Check stack callback received it too.
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_1));
-  EXPECT_TRUE(router_->UnregisterCallback(&fake_router_callback_2));
+TEST_F(HciRouterTest, HandleUpdateHalState) {
+  // A second shutdown is called in the test Cleanup.
+  ExpectHalStateChange(HalState::kShutdown, HalState::kRunning, 2);
+  ExpectHalStateChange(HalState::kInit, HalState::kShutdown);
+  ExpectHalStateChange(HalState::kFirmwareDownloading, HalState::kInit);
+  ExpectHalStateChange(HalState::kFirmwareDownloadCompleted,
+                       HalState::kFirmwareDownloading);
+  ExpectHalStateChange(HalState::kFirmwareReady,
+                       HalState::kFirmwareDownloadCompleted);
+  ExpectHalStateChange(HalState::kBtChipReady, HalState::kFirmwareReady);
+  ExpectHalStateChange(HalState::kRunning, HalState::kBtChipReady);
+  router_->UpdateHalState(HalState::kShutdown);
+  router_->UpdateHalState(HalState::kInit);
+  router_->UpdateHalState(HalState::kFirmwareDownloading);
+  router_->UpdateHalState(HalState::kFirmwareDownloadCompleted);
+  router_->UpdateHalState(HalState::kFirmwareReady);
+  // Without accelerated BT enabled, once HAL changes to `kBtChipReady`, it
+  // will automatically update to the `kRunning`.
+  router_->UpdateHalState(HalState::kBtChipReady);
 }
 
 }  // namespace

@@ -37,6 +37,7 @@
 #include "bluetooth_hal/test/mock/mock_android_base_wrapper.h"
 #include "bluetooth_hal/test/mock/mock_cs_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -68,6 +69,7 @@ using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 using ::bluetooth_hal::config::MockCsConfigLoader;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;
 
 using ::ndk::ScopedAStatus;
@@ -101,6 +103,7 @@ class BluetoothChannelSoundingHandlerTest : public Test {
  protected:
   void SetUp() override {
     MockHciRouter::SetMockRouter(&mock_hci_router_);
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
     MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
     MockCsConfigLoader::SetMockLoader(&mock_cs_config_loader_);
 
@@ -201,6 +204,7 @@ class BluetoothChannelSoundingHandlerTest : public Test {
   std::unique_ptr<TestBluetoothChannelSoundingHandler>
       bluetooth_channel_sounding_handler_;
   MockHciRouter mock_hci_router_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
   MockAndroidBaseWrapper mock_android_base_wrapper_;
   MockCsConfigLoader mock_cs_config_loader_;
   std::shared_ptr<MockBluetoothChannelSoundingSessionCallback>

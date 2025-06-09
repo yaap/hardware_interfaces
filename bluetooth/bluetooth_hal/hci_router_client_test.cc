@@ -23,6 +23,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -51,23 +52,27 @@ class HciRouterClientTestInstance : public HciRouterClient {
   }
 
   // Wrappers to access protected methods
-  bool IsBluetoothChipReadyWrapper() { return IsBluetoothChipReady(); }
-
-  bool RegisterMonitorWrapper(const HciMonitor& monitor, MonitorMode mode) {
-    return RegisterMonitor(monitor, mode);
+  bool IsBluetoothChipReady() {
+    return HciRouterClient::IsBluetoothChipReady();
   }
 
-  bool UnregisterMonitorWrapper(const HciMonitor& monitor) {
-    return UnregisterMonitor(monitor);
+  bool RegisterMonitor(const HciMonitor& monitor, MonitorMode mode) {
+    return HciRouterClient::RegisterMonitor(monitor, mode);
   }
 
-  bool SendCommandWrapper(const HalPacket& packet) {
-    return SendCommand(packet);
+  bool UnregisterMonitor(const HciMonitor& monitor) {
+    return HciRouterClient::UnregisterMonitor(monitor);
   }
 
-  bool SendDataWrapper(const HalPacket& packet) { return SendData(packet); }
+  bool SendCommand(const HalPacket& packet) {
+    return HciRouterClient::SendCommand(packet);
+  }
 
-  bool IsBluetoothEnabledWrapper() { return IsBluetoothEnabled(); }
+  bool SendData(const HalPacket& packet) {
+    return HciRouterClient::SendData(packet);
+  }
+
+  bool IsBluetoothEnabled() { return HciRouterClient::IsBluetoothEnabled(); }
 
   std::list<std::pair<MonitorMode, HalPacket>> on_monitor_callbacks_;
 };
@@ -78,19 +83,23 @@ class HciRouterClientTest : public Test {
 
   void SetUp() override {
     MockHciRouter::SetMockRouter(&mock_hci_router_);
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
 
     ON_CALL(mock_hci_router_, Send(_)).WillByDefault(Return(true));
     ON_CALL(mock_hci_router_, SendCommand(_, _)).WillByDefault(Return(true));
-    ON_CALL(mock_hci_router_, RegisterCallback(_)).WillByDefault(Return(true));
-    ON_CALL(mock_hci_router_, UnregisterCallback(_))
+    ON_CALL(mock_hci_router_client_agent_, RegisterRouterClient(_))
         .WillByDefault(Return(true));
-    EXPECT_CALL(mock_hci_router_, RegisterCallback(_)).Times(1);
+    ON_CALL(mock_hci_router_client_agent_, UnregisterRouterClient(_))
+        .WillByDefault(Return(true));
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterRouterClient(_))
+        .Times(1);
 
     router_client_ = new HciRouterClientTestInstance();
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_, UnregisterCallback(_)).Times(1);
+    EXPECT_CALL(mock_hci_router_client_agent_, UnregisterRouterClient(_))
+        .Times(1);
     delete (router_client_);
   }
 
@@ -120,13 +129,13 @@ class HciRouterClientTest : public Test {
                                  HalPacket packet, int expect_call_count) {
     HalPacket packet_random = GenerateRandomPacket();
 
-    ASSERT_TRUE(router_client_->RegisterMonitorWrapper(monitor, mode));
+    ASSERT_TRUE(router_client_->RegisterMonitor(monitor, mode));
     ASSERT_EQ(router_client_->OnPacketCallback(packet), mode);
     ASSERT_EQ(router_client_->on_monitor_callbacks_.size(), expect_call_count);
     ASSERT_EQ(router_client_->OnPacketCallback(packet_random),
               MonitorMode::kNone);
     ASSERT_EQ(router_client_->on_monitor_callbacks_.size(), expect_call_count);
-    ASSERT_TRUE(router_client_->UnregisterMonitorWrapper(monitor));
+    ASSERT_TRUE(router_client_->UnregisterMonitor(monitor));
     ASSERT_EQ(router_client_->OnPacketCallback(packet), MonitorMode::kNone);
     ASSERT_EQ(router_client_->on_monitor_callbacks_.size(), expect_call_count);
     ASSERT_EQ(router_client_->OnPacketCallback(packet_random),
@@ -136,195 +145,49 @@ class HciRouterClientTest : public Test {
 
   HciRouterClientTestInstance* router_client_;
   MockHciRouter mock_hci_router_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
   static constexpr uint16_t kHciResetCommandOpcode = 0x0C03;
   static constexpr uint16_t kHciBleAdvSubCode = 0x0D;
 };
 
-TEST_F(HciRouterClientTest, HandleInit) {
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
+TEST_F(HciRouterClientTest, HandleIsBluetoothEnabledAndIsBluetoothChipReady) {
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+      .WillByDefault(Return(false));
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+      .WillByDefault(Return(false));
+  ASSERT_FALSE(router_client_->IsBluetoothChipReady());
+  ASSERT_FALSE(router_client_->IsBluetoothEnabled());
 
-TEST_F(HciRouterClientTest, HandleOnHalStateChangedShutdownToInit) {
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  router_client_->OnHalStateChanged(HalState::kInit, HalState::kShutdown);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest, HandleOnHalStateChangedInitToFirmwareDownloading) {
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  router_client_->OnHalStateChanged(HalState::kFirmwareDownloading,
-                                    HalState::kInit);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest,
-       HandleOnHalStateChangedFirmwaredownloadingToFirmwaredownloadCompleted) {
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  router_client_->OnHalStateChanged(HalState::kFirmwareDownloadCompleted,
-                                    HalState::kFirmwareDownloading);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest,
-       HandleOnHalStateChangedFirmwaredownloadCompletedToFirmwareReady) {
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  router_client_->OnHalStateChanged(HalState::kFirmwareReady,
-                                    HalState::kFirmwareDownloadCompleted);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest, HandleOnHalStateChangedFirmwareReadyToBtChipReady) {
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  router_client_->OnHalStateChanged(HalState::kBtChipReady,
-                                    HalState::kFirmwareReady);
-  ASSERT_TRUE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest, HandleOnHalStateChangedBtChipReadyToRunning) {
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  router_client_->OnHalStateChanged(HalState::kRunning, HalState::kBtChipReady);
-
-  // No reset complete event in this test case. The state is kRunning but no
-  // OnBluetoothEnabled callback.
-  ASSERT_TRUE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest,
-       HandleOnHalStateChangedBtChipReadyToRunningWithReset) {
-  const HalPacket reset_packet = GenerateHciResetCompleteEvent();
-
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  ON_CALL(mock_hci_router_, GetHalState())
-      .WillByDefault(Return(HalState::kRunning));
-  router_client_->OnHalStateChanged(HalState::kRunning, HalState::kBtChipReady);
-
-  // Send reset complete event to trigger OnBluetoothEnabled.
-  ASSERT_EQ(router_client_->OnPacketCallback(reset_packet), MonitorMode::kNone);
-  ASSERT_TRUE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_TRUE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest, HandleRunningStateWithMultipleReset) {
-  const HalPacket reset_packet = GenerateHciResetCompleteEvent();
-
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(0);
-
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-  ON_CALL(mock_hci_router_, GetHalState())
-      .WillByDefault(Return(HalState::kRunning));
-  router_client_->OnHalStateChanged(HalState::kRunning, HalState::kBtChipReady);
-
-  // Send two reset complete events. OnBluetoothEnabled and OnBluetoothChipReady
-  // should only be invoked once for each.
-  ASSERT_EQ(router_client_->OnPacketCallback(reset_packet), MonitorMode::kNone);
-  ASSERT_EQ(router_client_->OnPacketCallback(reset_packet), MonitorMode::kNone);
-  ASSERT_TRUE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_TRUE(router_client_->IsBluetoothEnabledWrapper());
-}
-
-TEST_F(HciRouterClientTest,
-       HandleOnHalStateChangedRunningToBtChipReadyToShutdown) {
-  const HalPacket reset_packet = GenerateHciResetCompleteEvent();
-
-  EXPECT_CALL(*router_client_, OnBluetoothChipReady()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothChipClosed()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothEnabled()).Times(1);
-  EXPECT_CALL(*router_client_, OnBluetoothDisabled()).Times(1);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-
-  // Turn on Bluetooth and BT chip, check if both Bluetooth enabled and Chip
-  // enabled flags are true.
-  ON_CALL(mock_hci_router_, GetHalState())
-      .WillByDefault(Return(HalState::kRunning));
-  router_client_->OnHalStateChanged(HalState::kRunning, HalState::kBtChipReady);
-  ASSERT_EQ(router_client_->OnPacketCallback(reset_packet), MonitorMode::kNone);
-  ASSERT_TRUE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_TRUE(router_client_->IsBluetoothEnabledWrapper());
-
-  // Turn off Bluetooth and check if the Bluetooth enabled flag is false and the
-  // Chip enabled flag is still true.
-  router_client_->OnHalStateChanged(HalState::kBtChipReady, HalState::kRunning);
-  ASSERT_TRUE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
-
-  // Shutdown Bluetooth HAL, check if both Bluetooth enabled and Chip enabled
-  // flags are false.
-  router_client_->OnHalStateChanged(HalState::kShutdown,
-                                    HalState::kBtChipReady);
-  ASSERT_FALSE(router_client_->IsBluetoothChipReadyWrapper());
-  ASSERT_FALSE(router_client_->IsBluetoothEnabledWrapper());
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+      .WillByDefault(Return(true));
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+      .WillByDefault(Return(true));
+  ASSERT_TRUE(router_client_->IsBluetoothChipReady());
+  ASSERT_TRUE(router_client_->IsBluetoothEnabled());
 }
 
 TEST_F(HciRouterClientTest, HandleSendCommandWithValidInput) {
   const HalPacket packet = GenerateHciResetCommand();
   EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
-  ASSERT_TRUE(router_client_->SendCommandWrapper(packet));
+  ASSERT_TRUE(router_client_->SendCommand(packet));
 }
 
 TEST_F(HciRouterClientTest, HandleSendCommandWithInValidInput) {
   const HalPacket packet({0x70, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00});
   EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(0);
-  ASSERT_FALSE(router_client_->SendCommandWrapper(packet));
+  ASSERT_FALSE(router_client_->SendCommand(packet));
 }
 
 TEST_F(HciRouterClientTest, HandleSendDataWithValidInput) {
   const HalPacket packet({0x70, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00});
   EXPECT_CALL(mock_hci_router_, Send(packet)).Times(1);
-  ASSERT_TRUE(router_client_->SendDataWrapper(packet));
+  ASSERT_TRUE(router_client_->SendData(packet));
 }
 
 TEST_F(HciRouterClientTest, HandleSendDataWithInValidInput) {
   const HalPacket packet = GenerateHciResetCommand();
   EXPECT_CALL(mock_hci_router_, Send(packet)).Times(0);
-  ASSERT_FALSE(router_client_->SendDataWrapper(packet));
+  ASSERT_FALSE(router_client_->SendData(packet));
 }
 
 TEST_F(HciRouterClientTest, HandleRegisterMonitorCommandMonitor) {
@@ -380,10 +243,9 @@ TEST_F(HciRouterClientTest, HandleRegisterMonitorHasOverlapDifferentMode) {
   HciEventMonitor monitor1(static_cast<uint8_t>(EventCode::kCommandComplete));
   HciCommandCompleteEventMonitor monitor2(kHciResetCommandOpcode);
 
+  ASSERT_TRUE(router_client_->RegisterMonitor(monitor1, MonitorMode::kMonitor));
   ASSERT_TRUE(
-      router_client_->RegisterMonitorWrapper(monitor1, MonitorMode::kMonitor));
-  ASSERT_TRUE(router_client_->RegisterMonitorWrapper(monitor2,
-                                                     MonitorMode::kIntercept));
+      router_client_->RegisterMonitor(monitor2, MonitorMode::kIntercept));
   ASSERT_EQ(router_client_->OnPacketCallback(packet), MonitorMode::kIntercept);
   ASSERT_EQ(router_client_->on_monitor_callbacks_.size(), 1);
 
@@ -399,10 +261,8 @@ TEST_F(HciRouterClientTest, HandleRegisterMonitorHasOverlapSameMode) {
   HciEventMonitor monitor1(static_cast<uint8_t>(EventCode::kCommandComplete));
   HciCommandCompleteEventMonitor monitor2(kHciResetCommandOpcode);
 
-  ASSERT_TRUE(
-      router_client_->RegisterMonitorWrapper(monitor1, MonitorMode::kMonitor));
-  ASSERT_TRUE(
-      router_client_->RegisterMonitorWrapper(monitor2, MonitorMode::kMonitor));
+  ASSERT_TRUE(router_client_->RegisterMonitor(monitor1, MonitorMode::kMonitor));
+  ASSERT_TRUE(router_client_->RegisterMonitor(monitor2, MonitorMode::kMonitor));
   ASSERT_EQ(router_client_->OnPacketCallback(packet), MonitorMode::kMonitor);
   ASSERT_EQ(router_client_->on_monitor_callbacks_.size(), 1);
 
@@ -413,22 +273,20 @@ TEST_F(HciRouterClientTest, HandleRegisterMonitorHasOverlapSameMode) {
 
 TEST_F(HciRouterClientTest, HandleRegisterMonitorWithModeNone) {
   HciCommandCompleteEventMonitor monitor(kHciResetCommandOpcode);
-  ASSERT_FALSE(
-      router_client_->RegisterMonitorWrapper(monitor, MonitorMode::kNone));
+  ASSERT_FALSE(router_client_->RegisterMonitor(monitor, MonitorMode::kNone));
 }
 
 TEST_F(HciRouterClientTest, HandleRegisterMonitorDoubleRegister) {
   HciCommandCompleteEventMonitor monitor1(kHciResetCommandOpcode);
   HciCommandCompleteEventMonitor monitor2(kHciResetCommandOpcode);
-  ASSERT_TRUE(
-      router_client_->RegisterMonitorWrapper(monitor1, MonitorMode::kMonitor));
+  ASSERT_TRUE(router_client_->RegisterMonitor(monitor1, MonitorMode::kMonitor));
   ASSERT_FALSE(
-      router_client_->RegisterMonitorWrapper(monitor2, MonitorMode::kMonitor));
+      router_client_->RegisterMonitor(monitor2, MonitorMode::kMonitor));
 }
 
 TEST_F(HciRouterClientTest, HandleRegisterMonitorUnregisterWithoutRegister) {
   HciCommandCompleteEventMonitor monitor(kHciResetCommandOpcode);
-  ASSERT_FALSE(router_client_->UnregisterMonitorWrapper(monitor));
+  ASSERT_FALSE(router_client_->UnregisterMonitor(monitor));
 }
 
 }  // namespace

@@ -26,7 +26,9 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_callback.h"
+#include "bluetooth_hal/hci_router_client_callback.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -55,7 +57,9 @@ using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciConstants;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::hci::HciRouterCallback;
+using ::bluetooth_hal::hci::HciRouterClientCallback;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 
 constexpr uint16_t kTestHciChannelAvoidanceOpcode = 0x0c3f;
 constexpr uint8_t kTestHciChannelAvoidanceMapSize = 10;
@@ -78,7 +82,8 @@ class BluetoothChannelAvoidanceHandlerTest : public Test {
   void SetUp() override {
     MockHciRouter::SetMockRouter(&mock_hci_router_);
 
-    EXPECT_CALL(mock_hci_router_, RegisterCallback(NotNull()))
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterRouterClient(NotNull()))
         .WillOnce(
             DoAll(SaveArg<0>(&registered_callback_on_router_), Return(true)));
 
@@ -88,7 +93,8 @@ class BluetoothChannelAvoidanceHandlerTest : public Test {
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_, UnregisterCallback(handler_.get()))
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                UnregisterRouterClient(handler_.get()))
         .WillOnce(Return(true));
     handler_.reset();
     MockHciRouter::SetMockRouter(nullptr);
@@ -114,28 +120,32 @@ class BluetoothChannelAvoidanceHandlerTest : public Test {
   // HciRouterClient behavior.
   void SetBluetoothState(bool enabled) {
     if (enabled) {
-      // Simulate HciRouter calling this on HAL state change to BtChipReady (if
-      // not already) This ensures is_bluetooth_chip_ready_ is true. Then,
-      // simulate HCI_RESET complete to set is_bluetooth_enabled_ to true.
-      registered_callback_on_router_->OnHalStateChanged(HalState::kRunning,
-                                                        HalState::kShutdown);
+      EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+          .WillRepeatedly(Return(true));
+      EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+          .WillRepeatedly(Return(true));
       EXPECT_CALL(mock_hci_router_, GetHalState())
           .WillRepeatedly(Return(HalState::kRunning));
-      HalPacket reset_event = CreateCommandCompleteEvent(
-          static_cast<uint16_t>(CommandOpCode::kHciReset),
-          EventResultCode::kSuccess);
-      registered_callback_on_router_->OnPacketCallback(reset_event);
+
+      registered_callback_on_router_->OnBluetoothChipReady();
+      registered_callback_on_router_->OnBluetoothEnabled();
     } else {
-      registered_callback_on_router_->OnHalStateChanged(HalState::kShutdown,
-                                                        HalState::kRunning);
+      EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+          .WillRepeatedly(Return(false));
+      EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+          .WillRepeatedly(Return(false));
       EXPECT_CALL(mock_hci_router_, GetHalState())
           .WillRepeatedly(Return(HalState::kShutdown));
+
+      registered_callback_on_router_->OnBluetoothDisabled();
+      registered_callback_on_router_->OnBluetoothChipClosed();
     }
   }
 
   std::unique_ptr<TestableBluetoothChannelAvoidanceHandler> handler_;
   StrictMock<MockHciRouter> mock_hci_router_;
-  HciRouterCallback* registered_callback_on_router_ = nullptr;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
+  HciRouterClientCallback* registered_callback_on_router_ = nullptr;
 
   std::array<uint8_t, kTestHciChannelAvoidanceMapSize> test_channel_map_ = {
       {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}};

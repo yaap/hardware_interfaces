@@ -27,6 +27,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -52,6 +53,7 @@ using ::bluetooth_hal::hci::HciConstants;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::hci::HciRouterCallback;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 using ::bluetooth_hal::hci::MonitorMode;
 
 // Helper Action to signal when SendCommand is called.
@@ -66,8 +68,8 @@ class BluetoothExtHandlerTest : public Test {
  protected:
   void SetUp() override {
     MockHciRouter::SetMockRouter(&mock_hci_router_);
-
-    EXPECT_CALL(mock_hci_router_, RegisterCallback(NotNull()))
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterRouterClient(NotNull()))
         .WillOnce(DoAll(SaveArg<0>(&router_callback_), Return(true)));
 
     handler_ = std::make_unique<BluetoothExtHandler>();
@@ -76,7 +78,8 @@ class BluetoothExtHandlerTest : public Test {
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_, UnregisterCallback(handler_.get()))
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                UnregisterRouterClient(handler_.get()))
         .WillOnce(Return(true));
     handler_.reset();
     MockHciRouter::SetMockRouter(nullptr);
@@ -119,6 +122,7 @@ class BluetoothExtHandlerTest : public Test {
   std::unique_ptr<BluetoothExtHandler> handler_;
   HciRouterCallback* router_callback_ = nullptr;
   StrictMock<MockHciRouter> mock_hci_router_;
+  StrictMock<MockHciRouterClientAgent> mock_hci_router_client_agent_;
 };
 
 TEST_F(BluetoothExtHandlerTest, SetBluetoothCmdPacketReturnSuccess) {

@@ -24,8 +24,10 @@
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
+#include "bluetooth_hal/hci_router_client_callback.h"
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -34,7 +36,10 @@ namespace extensions {
 namespace sar {
 
 using ::testing::_;
+using ::testing::DoAll;
+using ::testing::NotNull;
 using ::testing::Return;
+using ::testing::SaveArg;
 using ::testing::Test;
 using ::testing::Values;
 using ::testing::WithParamInterface;
@@ -42,7 +47,9 @@ using ::testing::WithParamInterface;
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::MockHalConfigLoader;
 using ::bluetooth_hal::hci::HalPacket;
+using ::bluetooth_hal::hci::HciRouterClientCallback;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 
 class TestSarHandler : public BluetoothSarHandler {
  public:
@@ -73,36 +80,46 @@ class TestSarHandler : public BluetoothSarHandler {
 class BluetoothSarTest : public Test {
  protected:
   void SetUp() override {
-    MockHciRouter::SetMockRouter(&mock_hci_router_);
     MockHalConfigLoader::SetMockLoader(&mock_hal_config_loader_);
 
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterRouterClient(NotNull()))
+        .WillOnce(DoAll(SaveArg<0>(&router_client_callback_), Return(true)));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(false));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+        .WillByDefault(Return(false));
+
+    MockHciRouter::SetMockRouter(&mock_hci_router_);
     ON_CALL(mock_hci_router_, SendCommand(_, _)).WillByDefault(Return(true));
-    ON_CALL(mock_hci_router_, RegisterCallback(_)).WillByDefault(Return(true));
-    ON_CALL(mock_hci_router_, UnregisterCallback(_))
-        .WillByDefault(Return(true));
-    EXPECT_CALL(mock_hci_router_, RegisterCallback(_)).Times(1);
 
     bluetooth_sar_handler_ = std::make_unique<TestSarHandler>();
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_, UnregisterCallback(_)).Times(1);
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                UnregisterRouterClient(bluetooth_sar_handler_.get()))
+        .WillOnce(Return(true));
     bluetooth_sar_handler_ = nullptr;
   }
 
   void EnableBluetooth() {
+    ASSERT_NE(router_client_callback_, nullptr) << "Callback was not captured";
     ON_CALL(mock_hci_router_, GetHalState())
         .WillByDefault(Return(HalState::kRunning));
-    HalPacket reset_complete_event =
-        HalPacket({0x04, 0x0E, 0x04, 0x01, 0x03, 0x0C, 0x00});
-    bluetooth_sar_handler_->OnHalStateChanged(HalState::kRunning,
-                                              HalState::kBtChipReady);
-    bluetooth_sar_handler_->OnPacketCallback(reset_complete_event);
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+        .WillByDefault(Return(true));
+    ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+        .WillByDefault(Return(true));
+    router_client_callback_->OnBluetoothChipReady();
+    router_client_callback_->OnBluetoothEnabled();
   }
 
   std::unique_ptr<TestSarHandler> bluetooth_sar_handler_;
   MockHciRouter mock_hci_router_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
   MockHalConfigLoader mock_hal_config_loader_;
+  HciRouterClientCallback* router_client_callback_ = nullptr;
 };
 
 class BleNonConnectionModeTest

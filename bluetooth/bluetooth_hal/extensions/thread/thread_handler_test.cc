@@ -18,6 +18,7 @@
 
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
+#include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -27,16 +28,21 @@ namespace {
 
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::hci::MockHciRouter;
+using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 
 using ::testing::Test;
 
 class ThreadHandlerTest : public Test {
  protected:
-  void SetUp() override { MockHciRouter::SetMockRouter(&mock_hci_router_); }
+  void SetUp() override {
+    MockHciRouter::SetMockRouter(&mock_hci_router_);
+    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+  }
 
   void TearDown() override { ThreadHandler::Cleanup(); }
 
   MockHciRouter mock_hci_router_;
+  MockHciRouterClientAgent mock_hci_router_client_agent_;
 };
 
 TEST_F(ThreadHandlerTest, GetHandlerWithoutInitialization) {
@@ -56,12 +62,10 @@ TEST_F(ThreadHandlerTest, HandleDaemonDisabledAfterBtChipClosed) {
   ThreadHandler::Initialize();
   EXPECT_FALSE(ThreadHandler::GetHandler().IsDaemonRunning());
 
-  ThreadHandler::GetHandler().OnHalStateChanged(HalState::kBtChipReady,
-                                                HalState::kFirmwareReady);
+  ThreadHandler::GetHandler().OnBluetoothChipReady();
   EXPECT_TRUE(ThreadHandler::GetHandler().IsDaemonRunning());
 
-  ThreadHandler::GetHandler().OnHalStateChanged(HalState::kFirmwareReady,
-                                                HalState::kBtChipReady);
+  ThreadHandler::GetHandler().OnBluetoothChipClosed();
   EXPECT_FALSE(ThreadHandler::GetHandler().IsDaemonRunning());
 }
 
