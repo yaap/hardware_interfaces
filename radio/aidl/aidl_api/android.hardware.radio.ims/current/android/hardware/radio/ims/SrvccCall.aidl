@@ -33,7 +33,7 @@
 
 package android.hardware.radio.ims;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable SrvccCall {
   int index;
   android.hardware.radio.ims.SrvccCall.CallType callType = android.hardware.radio.ims.SrvccCall.CallType.NORMAL;

@@ -65,18 +65,26 @@ void StreamContext::fillDescriptor(StreamDescriptor* desc) {
     if (mReplyMQ) {
         desc->reply = mReplyMQ->dupeDesc();
     }
+    desc->frameSizeBytes = getFrameSize();
+    desc->bufferSizeFrames = getBufferSizeInFrames();
     if (mDataMQ) {
-        desc->frameSizeBytes = getFrameSize();
-        desc->bufferSizeFrames = getBufferSizeInFrames();
         desc->audio.set<StreamDescriptor::AudioBuffer::Tag::fmq>(mDataMQ->dupeDesc());
+    } else {
+        MmapBufferDescriptor mmapDesc;  // Move-only due to `fd`.
+        mmapDesc.sharedMemory.fd = mMmapBufferDesc.sharedMemory.fd.dup();
+        mmapDesc.sharedMemory.size = mMmapBufferDesc.sharedMemory.size;
+        mmapDesc.burstSizeFrames = mMmapBufferDesc.burstSizeFrames;
+        mmapDesc.flags = mMmapBufferDesc.flags;
+        desc->audio.set<StreamDescriptor::AudioBuffer::Tag::mmap>(std::move(mmapDesc));
     }
 }
 
 size_t StreamContext::getBufferSizeInFrames() const {
     if (mDataMQ) {
         return mDataMQ->getQuantumCount() * mDataMQ->getQuantumSize() / getFrameSize();
+    } else {
+        return mMmapBufferDesc.sharedMemory.size / getFrameSize();
     }
-    return 0;
 }
 
 size_t StreamContext::getFrameSize() const {
@@ -96,9 +104,13 @@ bool StreamContext::isValid() const {
         LOG(ERROR) << "frame size is invalid";
         return false;
     }
-    if (!hasMmapFlag(mFlags) && mDataMQ && !mDataMQ->isValid()) {
+    if (!isMmap() && mDataMQ && !mDataMQ->isValid()) {
         LOG(ERROR) << "data FMQ is invalid";
         return false;
+    } else if (isMmap() &&
+               (mMmapBufferDesc.sharedMemory.fd.get() == -1 ||
+                mMmapBufferDesc.sharedMemory.size == 0 || mMmapBufferDesc.burstSizeFrames == 0)) {
+        LOG(ERROR) << "mmap info is invalid" << mMmapBufferDesc.toString();
     }
     return true;
 }
@@ -115,6 +127,7 @@ void StreamContext::reset() {
     mCommandMQ.reset();
     mReplyMQ.reset();
     mDataMQ.reset();
+    mMmapBufferDesc.sharedMemory.fd.set(-1);
 }
 
 pid_t StreamWorkerCommonLogic::getTid() const {
@@ -128,7 +141,7 @@ pid_t StreamWorkerCommonLogic::getTid() const {
 std::string StreamWorkerCommonLogic::init() {
     if (mContext->getCommandMQ() == nullptr) return "Command MQ is null";
     if (mContext->getReplyMQ() == nullptr) return "Reply MQ is null";
-    if (!hasMmapFlag(mContext->getFlags())) {
+    if (!mContext->isMmap()) {
         StreamContext::DataMQ* const dataMQ = mContext->getDataMQ();
         if (dataMQ == nullptr) return "Data MQ is null";
         if (sizeof(DataBufferElement) != dataMQ->getQuantumSize()) {
@@ -142,11 +155,15 @@ std::string StreamWorkerCommonLogic::init() {
                    ", size in bytes: " + std::to_string(mDataBufferSize);
         }
     }
-    if (::android::status_t status = mDriver->init(); status != STATUS_OK) {
+    if (::android::status_t status = mDriver->init(this /*DriverCallbackInterface*/);
+        status != STATUS_OK) {
         return "Failed to initialize the driver: " + std::to_string(status);
     }
     return "";
 }
+
+void StreamWorkerCommonLogic::onBufferStateChange(size_t /*bufferFramesLeft*/) {}
+void StreamWorkerCommonLogic::onClipStateChange(size_t /*clipFramesLeft*/, bool /*hasNextClip*/) {}
 
 void StreamWorkerCommonLogic::populateReply(StreamDescriptor::Reply* reply,
                                             bool isConnected) const {
@@ -163,7 +180,7 @@ void StreamWorkerCommonLogic::populateReply(StreamDescriptor::Reply* reply,
     } else {
         reply->observable = reply->hardware = kUnknownPosition;
     }
-    if (hasMmapFlag(mContext->getFlags())) {
+    if (mContext->isMmap()) {
         if (auto status = mDriver->getMmapPositionAndLatency(&reply->hardware, &reply->latencyMs);
             status != ::android::OK) {
             reply->hardware = kUnknownPosition;
@@ -248,9 +265,9 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
                     mState == StreamDescriptor::State::ACTIVE ||
                     mState == StreamDescriptor::State::PAUSED ||
                     mState == StreamDescriptor::State::DRAINING) {
-                    if (hasMmapFlag(mContext->getFlags())) {
-                        populateReply(&reply, mIsConnected);
-                    } else if (!read(fmqByteCount, &reply)) {
+                    if (bool success =
+                                mContext->isMmap() ? readMmap(&reply) : read(fmqByteCount, &reply);
+                        !success) {
                         mState = StreamDescriptor::State::ERROR;
                     }
                     if (mState == StreamDescriptor::State::IDLE ||
@@ -379,50 +396,86 @@ bool StreamInWorkerLogic::read(size_t clientSize, StreamDescriptor::Reply* reply
     return !fatal;
 }
 
+bool StreamInWorkerLogic::readMmap(StreamDescriptor::Reply* reply) {
+    void* buffer = nullptr;
+    size_t frameCount = 0;
+    size_t actualFrameCount = 0;
+    int32_t latency = mContext->getNominalLatencyMs();
+    // use default-initialized parameter values for mmap stream.
+    if (::android::status_t status =
+                mDriver->transfer(buffer, frameCount, &actualFrameCount, &latency);
+        status == ::android::OK) {
+        populateReply(reply, mIsConnected);
+        reply->latencyMs = latency;
+        return true;
+    } else {
+        LOG(ERROR) << __func__ << ": transfer failed: " << status;
+        return false;
+    }
+}
+
 const std::string StreamOutWorkerLogic::kThreadName = "writer";
 
-StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
-    if (mState == StreamDescriptor::State::DRAINING && mContext->getForceDrainToDraining() &&
-        mOnDrainReadyStatus == OnDrainReadyStatus::UNSENT) {
+void StreamOutWorkerLogic::onBufferStateChange(size_t bufferFramesLeft) {
+    const StreamDescriptor::State state = mState;
+    const DrainState drainState = mDrainState;
+    LOG(DEBUG) << __func__ << ": state: " << toString(state) << ", drainState: " << drainState
+               << ", bufferFramesLeft: " << bufferFramesLeft;
+    if (state == StreamDescriptor::State::TRANSFERRING || drainState == DrainState::EN_SENT) {
+        if (state == StreamDescriptor::State::TRANSFERRING) {
+            mState = StreamDescriptor::State::ACTIVE;
+        }
         std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
         if (asyncCallback != nullptr) {
+            LOG(VERBOSE) << __func__ << ": sending onTransferReady";
+            ndk::ScopedAStatus status = asyncCallback->onTransferReady();
+            if (!status.isOk()) {
+                LOG(ERROR) << __func__ << ": error from onTransferReady: " << status;
+            }
+        }
+    }
+}
+
+void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNextClip) {
+    const DrainState drainState = mDrainState;
+    std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
+    LOG(DEBUG) << __func__ << ": drainState: " << drainState << "; clipFramesLeft "
+               << clipFramesLeft << "; hasNextClip? " << hasNextClip << "; asyncCallback? "
+               << (asyncCallback != nullptr);
+    if (drainState != DrainState::NONE && clipFramesLeft == 0) {
+        mState =
+                hasNextClip ? StreamDescriptor::State::TRANSFERRING : StreamDescriptor::State::IDLE;
+        mDrainState = DrainState::NONE;
+        if ((drainState == DrainState::ALL || drainState == DrainState::EN_SENT) &&
+            asyncCallback != nullptr) {
+            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            // For EN_SENT, this is the second onDrainReady which notifies about clip transition.
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
                 LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
             }
-            // This sets the timeout for moving into IDLE on next iterations.
-            switchToTransientState(StreamDescriptor::State::DRAINING);
-            mOnDrainReadyStatus = OnDrainReadyStatus::SENT;
         }
-    } else if (mState == StreamDescriptor::State::DRAINING ||
-               mState == StreamDescriptor::State::TRANSFERRING) {
+    } else if (drainState == DrainState::EN && clipFramesLeft > 0) {
+        // The stream state does not change, it is still draining.
+        mDrainState = DrainState::EN_SENT;
+        if (asyncCallback != nullptr) {
+            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            ndk::ScopedAStatus status = asyncCallback->onDrainReady();
+            if (!status.isOk()) {
+                LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
+            }
+        }
+    }
+}
+
+StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
+    // Non-blocking mode is handled within 'onClipStateChange'
+    if (std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
+        mState == StreamDescriptor::State::DRAINING && asyncCallback == nullptr) {
         if (auto stateDurationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now() - mTransientStateStart);
             stateDurationMs >= mTransientStateDelayMs) {
-            std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
-            if (asyncCallback == nullptr) {
-                // In blocking mode, mState can only be DRAINING.
-                mState = StreamDescriptor::State::IDLE;
-            } else {
-                // In a real implementation, the driver should notify the HAL about
-                // drain or transfer completion. In the stub, we switch unconditionally.
-                if (mState == StreamDescriptor::State::DRAINING) {
-                    mState = StreamDescriptor::State::IDLE;
-                    if (mOnDrainReadyStatus != OnDrainReadyStatus::SENT) {
-                        ndk::ScopedAStatus status = asyncCallback->onDrainReady();
-                        if (!status.isOk()) {
-                            LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
-                        }
-                        mOnDrainReadyStatus = OnDrainReadyStatus::SENT;
-                    }
-                } else {
-                    mState = StreamDescriptor::State::ACTIVE;
-                    ndk::ScopedAStatus status = asyncCallback->onTransferReady();
-                    if (!status.isOk()) {
-                        LOG(ERROR) << __func__ << ": error from onTransferReady: " << status;
-                    }
-                }
-            }
+            mState = StreamDescriptor::State::IDLE;
             if (mTransientStateDelayMs.count() != 0) {
                 LOG(DEBUG) << __func__ << ": switched to state " << toString(mState)
                            << " after a timeout";
@@ -507,9 +560,9 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                 if (mState != StreamDescriptor::State::ERROR &&
                     mState != StreamDescriptor::State::TRANSFERRING &&
                     mState != StreamDescriptor::State::TRANSFER_PAUSED) {
-                    if (hasMmapFlag(mContext->getFlags())) {
-                        populateReply(&reply, mIsConnected);
-                    } else if (!write(fmqByteCount, &reply)) {
+                    if (bool success = mContext->isMmap() ? writeMmap(&reply)
+                                                          : write(fmqByteCount, &reply);
+                        !success) {
                         mState = StreamDescriptor::State::ERROR;
                     }
                     std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
@@ -523,13 +576,17 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                             mState = StreamDescriptor::State::TRANSFER_PAUSED;
                         }
                     } else if (mState == StreamDescriptor::State::IDLE ||
-                               mState == StreamDescriptor::State::DRAINING ||
-                               mState == StreamDescriptor::State::ACTIVE) {
+                               mState == StreamDescriptor::State::ACTIVE ||
+                               (mState == StreamDescriptor::State::DRAINING &&
+                                mDrainState != DrainState::EN_SENT)) {
                         if (asyncCallback == nullptr || reply.fmqByteCount == fmqByteCount) {
                             mState = StreamDescriptor::State::ACTIVE;
                         } else {
                             switchToTransientState(StreamDescriptor::State::TRANSFERRING);
                         }
+                    } else if (mState == StreamDescriptor::State::DRAINING &&
+                               mDrainState == DrainState::EN_SENT) {
+                        // keep mState
                     }
                 } else {
                     populateReplyWrongState(&reply, command);
@@ -552,10 +609,9 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                             mState = StreamDescriptor::State::IDLE;
                         } else {
                             switchToTransientState(StreamDescriptor::State::DRAINING);
-                            mOnDrainReadyStatus =
-                                    mode == StreamDescriptor::DrainMode::DRAIN_EARLY_NOTIFY
-                                            ? OnDrainReadyStatus::UNSENT
-                                            : OnDrainReadyStatus::IGNORE;
+                            mDrainState = mode == StreamDescriptor::DrainMode::DRAIN_EARLY_NOTIFY
+                                                  ? DrainState::EN
+                                                  : DrainState::ALL;
                         }
                     } else {
                         LOG(ERROR) << __func__ << ": drain failed: " << status;
@@ -685,6 +741,24 @@ bool StreamOutWorkerLogic::write(size_t clientSize, StreamDescriptor::Reply* rep
     return !fatal;
 }
 
+bool StreamOutWorkerLogic::writeMmap(StreamDescriptor::Reply* reply) {
+    void* buffer = nullptr;
+    size_t frameCount = 0;
+    size_t actualFrameCount = 0;
+    int32_t latency = mContext->getNominalLatencyMs();
+    // use default-initialized parameter values for mmap stream.
+    if (::android::status_t status =
+                mDriver->transfer(buffer, frameCount, &actualFrameCount, &latency);
+        status == ::android::OK) {
+        populateReply(reply, mIsConnected);
+        reply->latencyMs = latency;
+        return true;
+    } else {
+        LOG(ERROR) << __func__ << ": transfer failed: " << status;
+        return false;
+    }
+}
+
 StreamCommonImpl::~StreamCommonImpl() {
     // It is responsibility of the class that implements 'DriverInterface' to call 'cleanupWorker'
     // in the destructor. Note that 'cleanupWorker' can not be properly called from this destructor
@@ -704,44 +778,7 @@ ndk::ScopedAStatus StreamCommonImpl::initInstance(
         LOG(ERROR) << __func__ << ": Worker start error: " << mWorker->getError();
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
-    if (auto flags = getContext().getFlags();
-        (flags.getTag() == AudioIoFlags::Tag::input &&
-         isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::input>(),
-                              AudioInputFlags::FAST)) ||
-        (flags.getTag() == AudioIoFlags::Tag::output &&
-         (isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
-                               AudioOutputFlags::FAST) ||
-          isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
-                               AudioOutputFlags::SPATIALIZER)))) {
-        // FAST workers should be run with a SCHED_FIFO scheduler, however the host process
-        // might be lacking the capability to request it, thus a failure to set is not an error.
-        pid_t workerTid = mWorker->getTid();
-        if (workerTid > 0) {
-            constexpr int32_t kRTPriorityMin = 1;  // SchedulingPolicyService.PRIORITY_MIN (Java).
-            constexpr int32_t kRTPriorityMax = 3;  // SchedulingPolicyService.PRIORITY_MAX (Java).
-            int priorityBoost = kRTPriorityMax;
-            if (flags.getTag() == AudioIoFlags::Tag::output &&
-                isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
-                                     AudioOutputFlags::SPATIALIZER)) {
-                const int32_t sptPrio =
-                        property_get_int32("audio.spatializer.priority", kRTPriorityMin);
-                if (sptPrio >= kRTPriorityMin && sptPrio <= kRTPriorityMax) {
-                    priorityBoost = sptPrio;
-                } else {
-                    LOG(WARNING) << __func__ << ": invalid spatializer priority: " << sptPrio;
-                    return ndk::ScopedAStatus::ok();
-                }
-            }
-            struct sched_param param = {
-                    .sched_priority = priorityBoost,
-            };
-            if (sched_setscheduler(workerTid, SCHED_FIFO | SCHED_RESET_ON_FORK, &param) != 0) {
-                PLOG(WARNING) << __func__ << ": failed to set FIFO scheduler and priority";
-            }
-        } else {
-            LOG(WARNING) << __func__ << ": invalid worker tid: " << workerTid;
-        }
-    }
+    setWorkerThreadPriority(mWorker->getTid());
     getContext().getCommandMQ()->setErrorHandler(
             fmqErrorHandler<StreamContext::CommandMQ::Error>("CommandMQ"));
     getContext().getReplyMQ()->setErrorHandler(
@@ -827,6 +864,42 @@ void StreamCommonImpl::cleanupWorker() {
     if (!isClosed()) {
         LOG(ERROR) << __func__ << ": stream was not closed prior to destruction, resource leak";
         stopAndJoinWorker();
+    }
+}
+
+void StreamCommonImpl::setWorkerThreadPriority(pid_t workerTid) {
+    // FAST workers should be run with a SCHED_FIFO scheduler, however the host process
+    // might be lacking the capability to request it, thus a failure to set is not an error.
+    if (auto flags = getContext().getFlags();
+        (flags.getTag() == AudioIoFlags::Tag::input &&
+         isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::input>(),
+                              AudioInputFlags::FAST)) ||
+        (flags.getTag() == AudioIoFlags::Tag::output &&
+         (isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
+                               AudioOutputFlags::FAST) ||
+          isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
+                               AudioOutputFlags::SPATIALIZER)))) {
+        constexpr int32_t kRTPriorityMin = 1;  // SchedulingPolicyService.PRIORITY_MIN (Java).
+        constexpr int32_t kRTPriorityMax = 3;  // SchedulingPolicyService.PRIORITY_MAX (Java).
+        int priorityBoost = kRTPriorityMax;
+        if (flags.getTag() == AudioIoFlags::Tag::output &&
+            isBitPositionFlagSet(flags.template get<AudioIoFlags::Tag::output>(),
+                                 AudioOutputFlags::SPATIALIZER)) {
+            const int32_t sptPrio =
+                    property_get_int32("audio.spatializer.priority", kRTPriorityMin);
+            if (sptPrio >= kRTPriorityMin && sptPrio <= kRTPriorityMax) {
+                priorityBoost = sptPrio;
+            } else {
+                LOG(WARNING) << __func__ << ": invalid spatializer priority: " << sptPrio;
+                return;
+            }
+        }
+        struct sched_param param = {
+                .sched_priority = priorityBoost,
+        };
+        if (sched_setscheduler(workerTid, SCHED_FIFO | SCHED_RESET_ON_FORK, &param) != 0) {
+            PLOG(WARNING) << __func__ << ": failed to set FIFO scheduler and priority";
+        }
     }
 }
 

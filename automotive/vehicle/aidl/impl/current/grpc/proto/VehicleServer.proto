@@ -20,6 +20,8 @@ package android.hardware.automotive.vehicle.proto;
 
 import "android/hardware/automotive/vehicle/DumpOptions.proto";
 import "android/hardware/automotive/vehicle/DumpResult.proto";
+import "android/hardware/automotive/vehicle/GetMinMaxSupportedValuesTypes.proto";
+import "android/hardware/automotive/vehicle/GetSupportedValuesListsTypes.proto";
 import "android/hardware/automotive/vehicle/SubscribeRequest.proto";
 import "android/hardware/automotive/vehicle/StatusCode.proto";
 import "android/hardware/automotive/vehicle/UnsubscribeRequest.proto";
@@ -46,4 +48,10 @@ service VehicleServer {
     rpc Subscribe(SubscribeRequest) returns (VehicleHalCallStatus) {}
 
     rpc Unsubscribe(UnsubscribeRequest) returns (VehicleHalCallStatus) {}
+
+    rpc GetMinMaxSupportedValues(GetMinMaxSupportedValuesRequest)
+            returns (GetMinMaxSupportedValuesResult) {}
+
+    rpc GetSupportedValuesLists(GetSupportedValuesListsRequest)
+            returns (GetSupportedValuesListsResult) {}
 }

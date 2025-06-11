@@ -40,7 +40,7 @@ class FakeFingerprintEngineUdfps : public FakeFingerprintEngine {
 
     ndk::ScopedAStatus onUiReadyImpl() override;
 
-    SensorLocation defaultSensorLocation() override;
+    void getDefaultSensorLocation(std::vector<SensorLocation>& sensorLocation) override;
 
     void updateContext(WorkMode mode, ISessionCallback* cb, std::future<void>& cancel,
                        int64_t operationId, const keymaster::HardwareAuthToken& hat);

@@ -33,7 +33,7 @@
 
 package android.hardware.radio.messaging;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable GsmBroadcastSmsConfigInfo {
   int fromServiceId;
   int toServiceId;

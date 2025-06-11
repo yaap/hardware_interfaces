@@ -23,6 +23,7 @@ import android.hardware.radio.voice.SsInfoData;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable StkCcUnsolSsResult {
     const int REQUEST_TYPE_ACTIVATION = 0;
     const int REQUEST_TYPE_DEACTIVATION = 1;

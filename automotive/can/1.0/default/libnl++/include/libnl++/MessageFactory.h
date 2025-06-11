@@ -23,6 +23,7 @@
 #include <linux/netlink.h>
 
 #include <string>
+#include <type_traits>
 
 namespace android::nl {
 
@@ -109,25 +110,21 @@ class MessageFactory : private MessageFactoryBase {
      */
     template <class A>
     void add(nlattrtype_t type, const A& attr) {
-        addInternal(type, &attr, sizeof(attr));
+        static_assert(std::is_pod_v<A>, "POD type required");
+        add(type, &attr, sizeof(attr));
     }
 
-    // It will always send the last null character, otherwise use addBuffer
-    // variant instead
     template <>
     void add(nlattrtype_t type, const std::string& s) {
-        addInternal(type, s.c_str(), s.size() + 1);
+        add(type, s.c_str(), s.size());
     }
 
-    void addBuffer(nlattrtype_t type, const std::string_view& s) {
-        addInternal(type, s.data(), s.size());
-    }
+    void add(nlattrtype_t type, std::string_view s) { add(type, s.data(), s.size()); }
 
     /** Guard class to frame nested attributes. \see addNested(nlattrtype_t). */
     class [[nodiscard]] NestedGuard {
       public:
-        NestedGuard(MessageFactory& req, nlattrtype_t type)
-            : mReq(req), mAttr(req.addInternal(type)) {}
+        NestedGuard(MessageFactory& req, nlattrtype_t type) : mReq(req), mAttr(req.add(type)) {}
         ~NestedGuard() { closeNested(&mReq.mMessage.header, mAttr); }
 
       private:
@@ -148,7 +145,7 @@ class MessageFactory : private MessageFactoryBase {
      *    MessageFactory<ifinfomsg> req(RTM_NEWLINK, NLM_F_REQUEST);
      *    {
      *        auto linkinfo = req.addNested(IFLA_LINKINFO);
-     *        req.addBuffer(IFLA_INFO_KIND, "can");
+     *        req.add(IFLA_INFO_KIND, "can");
      *        {
      *            auto infodata = req.addNested(IFLA_INFO_DATA);
      *            req.add(IFLA_CAN_BITTIMING, bitTimingStruct);
@@ -164,7 +161,7 @@ class MessageFactory : private MessageFactoryBase {
     Message mMessage = {};
     bool mIsGood = true;
 
-    nlattr* addInternal(nlattrtype_t type, const void* data = nullptr, size_t len = 0) {
+    nlattr* add(nlattrtype_t type, const void* data = nullptr, size_t len = 0) {
         if (!mIsGood) return nullptr;
         auto attr = MessageFactoryBase::add(&mMessage.header, sizeof(mMessage), type, data, len);
         if (attr == nullptr) mIsGood = false;

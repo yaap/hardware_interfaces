@@ -25,6 +25,7 @@ import android.hardware.radio.data.QosFilter;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable QosSession {
     /**
      * Unique ID of the QoS session within the data call

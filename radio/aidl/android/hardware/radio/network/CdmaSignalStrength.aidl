@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaSignalStrength {
     /**
      * This value is the actual RSSI value multiplied by -1. Example: If the actual RSSI is -75,

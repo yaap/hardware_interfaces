@@ -317,6 +317,9 @@ TEST_P(PowerAidl, getCpuHeadroom) {
     }
     ASSERT_TRUE(ret.isOk());
     ASSERT_GE(mSupportInfo->headroom.cpuMinIntervalMillis, 0);
+    ASSERT_LE(mSupportInfo->headroom.cpuMinCalculationWindowMillis, 50);
+    ASSERT_GE(mSupportInfo->headroom.cpuMaxCalculationWindowMillis, 10000);
+    ASSERT_GE(mSupportInfo->headroom.cpuMaxTidCount, 5);
     ASSERT_EQ(headroom.getTag(), CpuHeadroomResult::globalHeadroom);
     ASSERT_GE(headroom.get<CpuHeadroomResult::globalHeadroom>(), 0.0f);
     ASSERT_LE(headroom.get<CpuHeadroomResult::globalHeadroom>(), 100.00f);
@@ -335,6 +338,8 @@ TEST_P(PowerAidl, getGpuHeadroom) {
     }
     ASSERT_TRUE(ret.isOk());
     ASSERT_GE(mSupportInfo->headroom.gpuMinIntervalMillis, 0);
+    ASSERT_LE(mSupportInfo->headroom.gpuMinCalculationWindowMillis, 50);
+    ASSERT_GE(mSupportInfo->headroom.gpuMaxCalculationWindowMillis, 10000);
     ASSERT_EQ(headroom.getTag(), GpuHeadroomResult::globalHeadroom);
     ASSERT_GE(headroom.get<GpuHeadroomResult::globalHeadroom>(), 0.0f);
     ASSERT_LE(headroom.get<GpuHeadroomResult::globalHeadroom>(), 100.00f);

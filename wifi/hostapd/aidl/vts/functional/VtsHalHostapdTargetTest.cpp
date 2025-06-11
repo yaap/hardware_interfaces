@@ -86,6 +86,8 @@ class HostapdAidl : public testing::TestWithParam<std::string> {
         isBridgedSupport = testing::checkSubstringInCommandOutput(
                 "/system/bin/cmd wifi get-softap-supported-features",
                 "wifi_softap_bridged_ap_supported");
+        isMloSupport = testing::checkSubstringInCommandOutput(
+                "/system/bin/cmd wifi get-softap-supported-features", "wifi_softap_mlo_supported");
     }
 
     virtual void TearDown() override {
@@ -100,6 +102,7 @@ class HostapdAidl : public testing::TestWithParam<std::string> {
     bool isAcsSupport;
     bool isWpa3SaeSupport;
     bool isBridgedSupport;
+    bool isMloSupport;
     int interface_version_;
 
     IfaceParams getIfaceParamsWithoutAcs(std::string iface_name) {
@@ -474,6 +477,34 @@ TEST_P(HostapdAidl, AddAccessPointWithDualBandConfig) {
     auto status =
             hostapd->addAccessPoint(getIfaceParamsWithBridgedModeACS(ifname), getOpenNwParams());
     EXPECT_TRUE(status.isOk());
+}
+
+/**
+ * AddAccessPointWithMloConfig and remove link should pass
+ */
+TEST_P(HostapdAidl, AddAccessPointWithMloConfigAndRemoveInstance) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "MLO SAP is available in IfaceParams as of Hostapd V3";
+    }
+    if (!isMloSupport) GTEST_SKIP() << "Missing MLO AP support";
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = HostapdAidlTestUtils::setupMloApIface();
+    EXPECT_TRUE(wifi_ap_iface.get() != nullptr);
+    std::string br_name;
+    std::vector<std::string> instances;
+    bool uses_mlo;
+    EXPECT_TRUE(wifi_ap_iface->getName(&br_name).isOk());
+    EXPECT_TRUE(wifi_ap_iface->getBridgedInstances(&instances).isOk());
+    EXPECT_TRUE(wifi_ap_iface->usesMlo(&uses_mlo).isOk());
+    EXPECT_TRUE(uses_mlo);
+
+    IfaceParams iface_params = getIfaceParamsWithBridgedModeACS(br_name);
+    iface_params.instanceIdentities = {instances[0], instances[1]};
+    iface_params.usesMlo = uses_mlo;
+    iface_params.hwModeParams.enable80211AX = true;
+    iface_params.hwModeParams.enable80211BE = true;
+
+    EXPECT_TRUE(hostapd->addAccessPoint(iface_params, getSaeNwParams()).isOk());
+    EXPECT_TRUE(hostapd->removeLinkFromMultipleLinkBridgedApIface(br_name, instances[0]).isOk());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HostapdAidl);

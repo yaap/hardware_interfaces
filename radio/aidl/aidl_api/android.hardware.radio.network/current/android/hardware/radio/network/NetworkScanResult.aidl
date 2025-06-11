@@ -33,7 +33,7 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
 parcelable NetworkScanResult {
   int status;
   android.hardware.radio.RadioError error = android.hardware.radio.RadioError.NONE;

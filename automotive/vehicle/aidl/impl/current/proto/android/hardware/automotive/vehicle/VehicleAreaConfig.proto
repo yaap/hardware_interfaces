@@ -19,6 +19,7 @@ syntax = "proto3";
 package android.hardware.automotive.vehicle.proto;
 
 import "android/hardware/automotive/vehicle/VehiclePropertyAccess.proto";
+import "android/hardware/automotive/vehicle/HasSupportedValueInfo.proto";
 
 /* Must be in sync with VehicleAreaConfig.aidl. */
 message VehicleAreaConfig {
@@ -47,4 +48,30 @@ message VehicleAreaConfig {
     repeated int64 supported_enum_values = 8;
     VehiclePropertyAccess access = 9;
     bool support_variable_update_rate = 10;
+    /**
+     * This specifies whether this property may have min/max supported value or supported values
+     * list for [propId, areaId] that supports new supported values APIs.
+     *
+     * If this is not {@code null}. The client may use {@code getMinMaxSupportedValue},
+     * {@code getSupportedValuesLists}, {@code subscribeSupportedValueChange},
+     * {@code unsubscribeSupportedValueChange}.
+     *
+     * If this is not {@code null}. The VHAL implementation must implement
+     * {@code getMinMaxSupportedValue}, {@code getSupportedValuesLists},
+     * {@code subscribeSupportedValueChange} for the [propId, areaId].
+     *
+     * This should be non-null if the VHAL implementation wants to expose
+     * min/max supported value or supported values list that may change dynamically. For example,
+     * if the max HVAC fan speed may change due to HVAC power settings.
+     *
+     * This should not be non-null if the VHAL implementation wants to expose supported
+     * values list for property ID that is not an enum type (hence do not support
+     * {@code VehicleAreaConfig#supportedEnumValues}).
+     *
+     * If this is {@code null}, the APIs mentioned before are not supported.
+     * Client must fallback to use static supported value information in {@code VehicleAreaConfig}.
+     *
+     * For VHAL implementation < V4, this is always {@code null}.
+     */
+    HasSupportedValueInfo has_supported_value_info = 11;
 };

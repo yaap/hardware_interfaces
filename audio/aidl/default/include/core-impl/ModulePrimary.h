@@ -28,6 +28,9 @@ class ModulePrimary final : public Module {
   protected:
     ndk::ScopedAStatus getTelephony(std::shared_ptr<ITelephony>* _aidl_return) override;
 
+    ndk::ScopedAStatus calculateBufferSizeFrames(
+            const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+            int32_t latencyMs, int32_t sampleRateHz, int32_t* bufferSizeFrames) override;
     ndk::ScopedAStatus createInputStream(
             StreamContext&& context,
             const ::aidl::android::hardware::audio::common::SinkMetadata& sinkMetadata,
@@ -39,6 +42,9 @@ class ModulePrimary final : public Module {
             const std::optional<::aidl::android::media::audio::common::AudioOffloadInfo>&
                     offloadInfo,
             std::shared_ptr<StreamOut>* result) override;
+    ndk::ScopedAStatus createMmapBuffer(
+            const ::aidl::android::media::audio::common::AudioPortConfig& portConfig,
+            int32_t bufferSizeFrames, int32_t frameSizeBytes, MmapBufferDescriptor* desc) override;
     int32_t getNominalLatencyMs(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig) override;
 

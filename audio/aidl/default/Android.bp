@@ -77,8 +77,11 @@ cc_library {
         "r_submix/ModuleRemoteSubmix.cpp",
         "r_submix/SubmixRoute.cpp",
         "r_submix/StreamRemoteSubmix.cpp",
+        "stub/ApeHeader.cpp",
         "stub/DriverStubImpl.cpp",
         "stub/ModuleStub.cpp",
+        "stub/StreamMmapStub.cpp",
+        "stub/StreamOffloadStub.cpp",
         "stub/StreamStub.cpp",
         "usb/ModuleUsb.cpp",
         "usb/StreamUsb.cpp",
@@ -119,6 +122,52 @@ cc_library {
         "-Wthread-safety",
         "-DBACKEND_NDK",
     ],
+}
+
+cc_library {
+    name: "libeffectconfig",
+    srcs: [
+        "EffectConfig.cpp",
+    ],
+    defaults: [
+        "latest_android_hardware_audio_effect_ndk_shared",
+        "latest_android_media_audio_common_types_ndk_shared",
+    ],
+    shared_libs: [
+        "libaudioutils",
+        "libaudio_aidl_conversion_common_ndk",
+        "libbase",
+        "libbinder_ndk",
+        "liblog",
+        "libmedia_helper",
+        "libtinyxml2",
+        "libutils",
+    ],
+    header_libs: [
+        "libaudio_system_headers",
+        "libaudioaidl_headers",
+    ],
+    export_shared_lib_headers: [
+        "libtinyxml2",
+    ],
+    export_include_dirs: [
+        "include",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DBACKEND_NDK",
+    ],
+    vendor: true,
+    host_supported: true,
+    target: {
+        android: {
+            shared_libs: [
+                "libapexsupport",
+            ],
+        },
+    },
 }
 
 cc_binary {
@@ -290,10 +339,9 @@ cc_binary {
     defaults: ["aidlaudioeffectservice_defaults"],
     shared_libs: [
         "libapexsupport",
-        "libtinyxml2",
+        "libeffectconfig",
     ],
     srcs: [
-        "EffectConfig.cpp",
         "EffectFactory.cpp",
         "EffectMain.cpp",
     ],

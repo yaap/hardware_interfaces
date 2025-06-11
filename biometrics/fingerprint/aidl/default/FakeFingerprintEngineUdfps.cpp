@@ -34,10 +34,14 @@ namespace aidl::android::hardware::biometrics::fingerprint {
 FakeFingerprintEngineUdfps::FakeFingerprintEngineUdfps()
     : FakeFingerprintEngine(), mPointerDownTime(0), mUiReadyTime(0) {}
 
-SensorLocation FakeFingerprintEngineUdfps::defaultSensorLocation() {
-    return SensorLocation{.sensorLocationX = defaultSensorLocationX,
-                          .sensorLocationY = defaultSensorLocationY,
-                          .sensorRadius = defaultSensorRadius};
+void FakeFingerprintEngineUdfps::getDefaultSensorLocation(
+        std::vector<SensorLocation>& sensorLocation) {
+    sensorLocation.clear();
+    sensorLocation.push_back(SensorLocation{
+            .sensorLocationX = defaultSensorLocationX,
+            .sensorLocationY = defaultSensorLocationY,
+            .sensorRadius = defaultSensorRadius,
+    });
 }
 
 ndk::ScopedAStatus FakeFingerprintEngineUdfps::onPointerDownImpl(int32_t /*pointerId*/,

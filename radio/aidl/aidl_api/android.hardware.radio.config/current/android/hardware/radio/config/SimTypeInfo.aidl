@@ -33,7 +33,7 @@
 
 package android.hardware.radio.config;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable SimTypeInfo {
   android.hardware.radio.config.SimType currentSimType = android.hardware.radio.config.SimType.UNKNOWN;
   int supportedSimTypes;

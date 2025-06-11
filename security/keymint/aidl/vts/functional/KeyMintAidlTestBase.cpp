@@ -29,12 +29,14 @@
 #include <android-base/strings.h>
 #include <android/binder_manager.h>
 #include <android/content/pm/IPackageManagerNative.h>
+#include <android_security_keystore2.h>
 #include <cppbor_parse.h>
 #include <cutils/properties.h>
 #include <gmock/gmock.h>
 #include <openssl/evp.h>
 #include <openssl/mem.h>
 #include <remote_prov/remote_prov_utils.h>
+#include <vendorsupport/api_level.h>
 
 #include <keymaster/cppcose/cppcose.h>
 #include <keymint_support/key_param_output.h>
@@ -327,7 +329,16 @@ std::optional<vector<uint8_t>> KeyMintAidlTestBase::getModuleHash() {
  * which is mandatory for KeyMint version 2 and first_api_level 33 or greater.
  */
 bool KeyMintAidlTestBase::isDeviceIdAttestationRequired() {
-    return AidlVersion() >= 2 && property_get_int32("ro.vendor.api_level", 0) >= __ANDROID_API_T__;
+    if (!is_gsi_image()) {
+        return AidlVersion() >= 2 &&
+            get_vendor_api_level() >= AVendorSupport_getVendorApiLevelOf(__ANDROID_API_T__);
+    } else {
+        // The device ID properties may not be set properly when testing earlier implementations
+        // under GSI, e.g. `ro.product.<id>` is overridden by the GSI image, but the
+        // `ro.product.vendor.<id>` value (which does survive GSI installation) was not set.
+        return AidlVersion() >= 2 &&
+            get_vendor_api_level() >= AVendorSupport_getVendorApiLevelOf(__ANDROID_API_U__);
+    }
 }
 
 /**
@@ -377,11 +388,11 @@ void KeyMintAidlTestBase::InitializeKeyMint(std::shared_ptr<IKeyMintDevice> keyM
     os_patch_level_ = getOsPatchlevel();
     vendor_patch_level_ = getVendorPatchlevel();
 
-    // TODO(b/369375199): temporary code, remove when apexd -> keystore2 -> KeyMint transmission
-    // of module info happens.
-    {
-        GTEST_LOG_(INFO) << "Setting MODULE_HASH to fake value as fallback";
-        // Ensure that a MODULE_HASH value is definitely present in KeyMint (if it's >= v4).
+    if (!::android::security::keystore2::attest_modules()) {
+        // Some tests (for v4+) require that the KeyMint instance has been
+        // provided with a module hash value.  If the keystore2 flag is off,
+        // this will not happen, so set a fake value here instead.
+        GTEST_LOG_(INFO) << "Setting MODULE_HASH to fake value as fallback when flag off";
         vector<uint8_t> fakeModuleHash = {
                 0xf3, 0xf1, 0x1f, 0xe5, 0x13, 0x05, 0xfe, 0xfa, 0xe9, 0xc3, 0x53,
                 0xef, 0x69, 0xdf, 0x9f, 0xd7, 0x0c, 0x1e, 0xcc, 0x2c, 0x2c, 0x62,
@@ -1434,12 +1445,11 @@ std::pair<ErrorCode, vector<uint8_t>> KeyMintAidlTestBase::UpgradeKey(
 }
 
 bool KeyMintAidlTestBase::IsRkpSupportRequired() const {
-    // This is technically not a match to the requirements for S chipsets,
-    // however when S shipped there was a bug in the test that skipped the
-    // tests if KeyMint 2 was not on the system. So we allowed many chipests
-    // to ship without RKP support. In T we hardened the requirements around
-    // support for RKP, so relax the test to match.
-    return get_vsr_api_level() >= __ANDROID_API_T__;
+    // This is technically weaker than the VSR-12 requirements, but when
+    // Android 12 shipped, there was a bug that skipped the tests if KeyMint
+    // 2 was not present. As a result, many chipsets were allowed to ship
+    // without RKP support. The RKP requirements were hardened in VSR-13.
+    return get_vendor_api_level() >= __ANDROID_API_T__;
 }
 
 vector<uint32_t> KeyMintAidlTestBase::ValidKeySizes(Algorithm algorithm) {
@@ -1690,11 +1700,11 @@ ErrorCode KeyMintAidlTestBase::GenerateAttestKey(const AuthorizationSet& key_des
                                                  vector<uint8_t>* key_blob,
                                                  vector<KeyCharacteristics>* key_characteristics,
                                                  vector<Certificate>* cert_chain) {
-    // The original specification for KeyMint v1 required ATTEST_KEY not be combined
-    // with any other key purpose, but the original VTS tests incorrectly did exactly that.
-    // This means that a device that launched prior to Android T (API level 33) may
-    // accept or even require KeyPurpose::SIGN too.
-    if (get_vsr_api_level() < __ANDROID_API_T__) {
+    // The original specification for KeyMint v1 (introduced in Android 12) required ATTEST_KEY not
+    // be combined with any other key purpose, but the original VTS-12 tests incorrectly did exactly
+    // that. The tests were fixed in VTS-13 (vendor API level 33). This means that devices with
+    // vendor API level < 33 may accept or even require KeyPurpose::SIGN too.
+    if (get_vendor_api_level() < __ANDROID_API_T__) {
         AuthorizationSet key_desc_plus_sign = key_desc;
         key_desc_plus_sign.push_back(TAG_PURPOSE, KeyPurpose::SIGN);
 
@@ -1819,13 +1829,19 @@ void verify_subject(const X509* cert,       //
     OPENSSL_free(cert_issuer);
 }
 
-int get_vsr_api_level() {
+int get_vendor_api_level() {
+    // Android 13+ builds have the `ro.vendor.api_level` system property. See
+    // https://source.android.com/docs/core/architecture/api-flags#determine_vendor_api_level_android_13.
     int vendor_api_level = ::android::base::GetIntProperty("ro.vendor.api_level", -1);
     if (vendor_api_level != -1) {
         return vendor_api_level;
     }
 
-    // Android S and older devices do not define ro.vendor.api_level
+    // Android 12 builds have the `ro.board.api_level` and `ro.board.first_api_level` system
+    // properties, which are only expected to be populated for GRF SoCs on Android 12 builds. Note
+    // that they are populated automatically by the build system starting in Android 15, but we use
+    // `ro.vendor.api_level` on such builds (see above). For details, see
+    // https://docs.partner.android.com/gms/building/integrating/extending-os-upgrade-support-windows#new-system-properties.
     vendor_api_level = ::android::base::GetIntProperty("ro.board.api_level", -1);
     if (vendor_api_level == -1) {
         vendor_api_level = ::android::base::GetIntProperty("ro.board.first_api_level", -1);
@@ -1837,11 +1853,12 @@ int get_vsr_api_level() {
         EXPECT_NE(product_api_level, -1) << "Could not find ro.build.version.sdk";
     }
 
-    // VSR API level is the minimum of vendor_api_level and product_api_level.
-    if (vendor_api_level == -1 || vendor_api_level > product_api_level) {
+    // If the `ro.board.api_level` and `ro.board.first_api_level` properties aren't populated, it
+    // means the build doesn't have a GRF SoC, so the product API level should be used.
+    if (vendor_api_level == -1) {
         return product_api_level;
     }
-    return vendor_api_level;
+    return std::min(product_api_level, vendor_api_level);
 }
 
 bool is_gsi_image() {
@@ -1908,13 +1925,13 @@ void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_
         }
     }
 
-    if (get_vsr_api_level() > __ANDROID_API_V__) {
+    if (get_vendor_api_level() > AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         // The Verified Boot key field should be exactly 32 bytes since it
         // contains the SHA-256 hash of the key on locked devices or 32 bytes
         // of zeroes on unlocked devices. This wasn't checked for earlier
-        // versions of the KeyMint HAL, so only only be strict for VSR-16+.
+        // versions of the KeyMint HAL, so we version-gate the strict check.
         EXPECT_EQ(verified_boot_key.size(), 32);
-    } else if (get_vsr_api_level() == __ANDROID_API_V__) {
+    } else if (get_vendor_api_level() == AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         // The Verified Boot key field should be:
         //   - Exactly 32 bytes on locked devices since it should contain
         //     the SHA-256 hash of the key, or
@@ -1923,7 +1940,7 @@ void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_
         //     specification).
         // Thus, we can't check for strict equality in case unlocked devices
         // report values with less than 32 bytes. This wasn't checked for
-        // earlier versions of the KeyMint HAL, so only check on VSR-15.
+        // earlier versions of the KeyMint HAL, so we version-gate the check.
         EXPECT_LE(verified_boot_key.size(), 32);
     }
 
@@ -2415,7 +2432,7 @@ void device_id_attestation_check_acceptable_error(Tag tag, const ErrorCode& resu
     } else if (result == ErrorCode::INVALID_TAG) {
         // Depending on the situation, other error codes may be acceptable.  First, allow older
         // implementations to use INVALID_TAG.
-        ASSERT_FALSE(get_vsr_api_level() > __ANDROID_API_T__)
+        ASSERT_FALSE(get_vendor_api_level() > __ANDROID_API_T__)
                 << "It is a specification violation for INVALID_TAG to be returned due to ID "
                 << "mismatch in a Device ID Attestation call. INVALID_TAG is only intended to "
                 << "be used for a case where updateAad() is called after update(). As of "

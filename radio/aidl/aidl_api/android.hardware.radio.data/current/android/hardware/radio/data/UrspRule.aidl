@@ -33,7 +33,7 @@
 
 package android.hardware.radio.data;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable UrspRule {
   int precedence;
   android.hardware.radio.data.TrafficDescriptor[] trafficDescriptors;

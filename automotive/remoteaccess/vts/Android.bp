@@ -26,6 +26,7 @@ package {
 
 cc_test {
     name: "VtsHalAutomotiveRemoteAccess_TargetTest",
+    team: "trendy_team_aaos_power_triage",
     srcs: [
         "src/*.cpp",
     ],

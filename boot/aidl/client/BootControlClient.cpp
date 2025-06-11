@@ -80,6 +80,7 @@ class BootControlClientAidl final : public BootControlClient {
     explicit BootControlClientAidl(std::shared_ptr<IBootControl> module)
         : module_(module),
           boot_control_death_recipient(AIBinder_DeathRecipient_new(onBootControlServiceDied)) {
+        AIBinder_DeathRecipient_setOnUnlinked(boot_control_death_recipient, onCallbackUnlinked);
         binder_status_t status =
                 AIBinder_linkToDeath(module->asBinder().get(), boot_control_death_recipient, this);
         if (status != STATUS_OK) {
@@ -236,6 +237,11 @@ class BootControlClientAidl final : public BootControlClient {
   private:
     std::shared_ptr<IBootControl> module_;
     AIBinder_DeathRecipient* boot_control_death_recipient;
+    static void onCallbackUnlinked(void* /*client*/) {
+        // this is an empty function needed to suppress the "AIBinder_linkToDeath is being called
+        // with a non-null cookie and no onUnlink callback set. This might not be intended.
+        // AIBinder_DeathRecipient_setOnUnlinked should be called first." warning
+    }
     static void onBootControlServiceDied(void* client) {
         BootControlClientAidl* self = static_cast<BootControlClientAidl*>(client);
         self->onBootControlServiceDied();

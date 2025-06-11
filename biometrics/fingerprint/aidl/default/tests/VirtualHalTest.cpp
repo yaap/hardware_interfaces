@@ -152,7 +152,7 @@ TEST_F(VirtualHalTest, type) {
     } typeMap[] = {{FingerprintSensorType::REAR, "rear"},
                    {FingerprintSensorType::POWER_BUTTON, "side"},
                    {FingerprintSensorType::UNDER_DISPLAY_OPTICAL, "udfps"},
-                   {FingerprintSensorType::UNDER_DISPLAY_ULTRASONIC, "udfps"},
+                   {FingerprintSensorType::UNDER_DISPLAY_ULTRASONIC, "udfps-us"},
                    {FingerprintSensorType::UNKNOWN, "unknown"}};
     for (auto const& x : typeMap) {
         mVhal->setType(x.type);
@@ -242,7 +242,7 @@ TEST_F(VirtualHalTest, setOthers) {
     mVhal->setLockoutEnable(false);
     mVhal->setSensorId(5);
     mVhal->setMaxEnrollmentPerUser(6);
-    mVhal->setNavigationGuesture(false);
+    mVhal->setNavigationGesture(false);
     mVhal->setDetectInteraction(false);
     mVhal->setDisplayTouch(false);
     mVhal->setControlIllumination(false);

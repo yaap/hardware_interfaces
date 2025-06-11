@@ -27,7 +27,7 @@ aidl_interface {
     vendor_available: true,
     srcs: ["android/hardware/nfc/*.aidl"],
     stability: "vintf",
-    frozen: false,
+    frozen: true,
     backend: {
         cpp: {
             enabled: false,
@@ -54,6 +54,11 @@ aidl_interface {
             version: "1",
             imports: [],
         },
+        {
+            version: "2",
+            imports: [],
+        },
+
     ],
 
 }

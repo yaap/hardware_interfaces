@@ -33,7 +33,7 @@
 
 package android.hardware.radio;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable RadioResponseInfoModem {
   android.hardware.radio.RadioResponseType type = android.hardware.radio.RadioResponseType.SOLICITED;
   int serial;

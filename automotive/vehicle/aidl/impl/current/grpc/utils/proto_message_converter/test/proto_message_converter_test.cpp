@@ -83,7 +83,7 @@ class PropValueConversionTest : public testing::TestWithParam<aidl_vehicle::Vehi
 
 }  // namespace
 
-TEST_P(PropConfigConversionTest, testConversion) {
+TEST_P(PropConfigConversionTest, testConvertPropConfig) {
     proto::VehiclePropConfig protoCfg;
     aidl_vehicle::VehiclePropConfig aidlCfg;
 
@@ -93,7 +93,7 @@ TEST_P(PropConfigConversionTest, testConversion) {
     EXPECT_EQ(aidlCfg, GetParam());
 }
 
-TEST_P(PropValueConversionTest, testConversion) {
+TEST_P(PropValueConversionTest, testConvertPropValue) {
     proto::VehiclePropValue protoVal;
     aidl_vehicle::VehiclePropValue aidlVal;
 
@@ -128,6 +128,132 @@ TEST_F(PropValueConversionTest, testConvertSubscribeOption) {
     protoToAidl(protoOptions, &outputOptions);
 
     EXPECT_EQ(aidlOptions, outputOptions);
+}
+
+TEST_F(PropValueConversionTest, testConvertPropIdAreaId) {
+    proto::PropIdAreaId protoValue;
+    PropIdAreaId aidlValue = {.propId = 12, .areaId = 34};
+    PropIdAreaId outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
+}
+
+TEST_F(PropValueConversionTest, testConvertRawPropValues) {
+    proto::RawPropValues protoValue;
+    aidl_vehicle::RawPropValues aidlValue = {
+            .int32Values = {1, 2, 3, 4},
+            .floatValues = {1.1, 2.2, 3.3, 4.4},
+            .int64Values = {4L, 3L, 2L, 1L},
+            .byteValues = {0xde, 0xad, 0xbe, 0xef},
+            .stringValue = "test",
+    };
+    aidl_vehicle::RawPropValues outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
+}
+
+TEST_F(PropValueConversionTest, testConvertMinMaxSupportedValueResult) {
+    proto::MinMaxSupportedValueResult protoValue;
+    aidl_vehicle::RawPropValues aidlValue1 = {
+            .int32Values = {1, 2, 3, 4},
+            .floatValues = {1.1, 2.2, 3.3, 4.4},
+            .int64Values = {4L, 3L, 2L, 1L},
+            .byteValues = {0xde, 0xad, 0xbe, 0xef},
+            .stringValue = "test",
+    };
+    aidl_vehicle::RawPropValues aidlValue2 = {
+            .int32Values = {4, 3, 2, 1},
+            .floatValues = {3.3},
+            .int64Values = {2L, 3L},
+            .byteValues = {0xde, 0xad, 0xbe, 0xef},
+            .stringValue = "test",
+    };
+    aidl_vehicle::MinMaxSupportedValueResult aidlValue = {
+            .status = aidl_vehicle::StatusCode::OK,
+            .minSupportedValue = aidlValue1,
+            .maxSupportedValue = aidlValue2,
+    };
+    aidl_vehicle::MinMaxSupportedValueResult outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
+}
+
+TEST_F(PropValueConversionTest, testConvertMinMaxSupportedValueResult_errorStatus) {
+    proto::MinMaxSupportedValueResult protoValue;
+    aidl_vehicle::MinMaxSupportedValueResult aidlValue = {
+            .status = aidl_vehicle::StatusCode::INTERNAL_ERROR,
+    };
+    aidl_vehicle::MinMaxSupportedValueResult outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
+}
+
+TEST_F(PropValueConversionTest, testConvertSupportedValuesListResult) {
+    proto::SupportedValuesListResult protoValue;
+    aidl_vehicle::RawPropValues aidlValue1 = {
+            .int32Values = {1, 2, 3, 4},
+            .floatValues = {1.1, 2.2, 3.3, 4.4},
+            .int64Values = {4L, 3L, 2L, 1L},
+            .byteValues = {0xde, 0xad, 0xbe, 0xef},
+            .stringValue = "test",
+    };
+    aidl_vehicle::RawPropValues aidlValue2 = {
+            .int32Values = {4, 3, 2, 1},
+            .floatValues = {3.3},
+            .int64Values = {2L, 3L},
+            .byteValues = {0xde, 0xad, 0xbe, 0xef},
+            .stringValue = "test",
+    };
+    aidl_vehicle::SupportedValuesListResult aidlValue = {
+            .status = aidl_vehicle::StatusCode::OK,
+            .supportedValuesList = std::vector<std::optional<aidl_vehicle::RawPropValues>>(
+                    {aidlValue1, aidlValue2}),
+    };
+    aidl_vehicle::SupportedValuesListResult outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
+}
+
+TEST_F(PropValueConversionTest, testConvertSupportedValuesListResult_emptySupportedValues) {
+    proto::SupportedValuesListResult protoValue;
+    aidl_vehicle::SupportedValuesListResult aidlValue = {
+            .status = aidl_vehicle::StatusCode::OK,
+            .supportedValuesList = std::vector<std::optional<aidl_vehicle::RawPropValues>>({}),
+    };
+    aidl_vehicle::SupportedValuesListResult outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
+}
+
+TEST_F(PropValueConversionTest, testConvertSupportedValuesListResult_errorStatus) {
+    proto::SupportedValuesListResult protoValue;
+    aidl_vehicle::SupportedValuesListResult aidlValue = {
+            .status = aidl_vehicle::StatusCode::INTERNAL_ERROR,
+    };
+    aidl_vehicle::SupportedValuesListResult outputValue;
+
+    aidlToProto(aidlValue, &protoValue);
+    protoToAidl(protoValue, &outputValue);
+
+    EXPECT_EQ(aidlValue, outputValue);
 }
 
 }  // namespace proto_msg_converter

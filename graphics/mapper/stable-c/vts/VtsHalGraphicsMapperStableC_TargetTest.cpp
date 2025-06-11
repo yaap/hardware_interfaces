@@ -460,8 +460,8 @@ class GraphicsTestsBase {
         ASSERT_NE(nullptr, outYCbCr->cr);
     }
 
-    YCbCr getAndroidYCbCr_P010(const native_handle_t* bufferHandle, uint8_t* data) {
-        YCbCr yCbCr_P010;
+    YCbCr getAndroidYCbCr_10bit(const native_handle_t* bufferHandle, uint8_t* data) {
+        YCbCr yCbCr_10bit;
         auto decodeResult = getStandardMetadata<StandardMetadataType::PLANE_LAYOUTS>(bufferHandle);
         if (!decodeResult.has_value()) {
             ADD_FAILURE() << "failed to get plane layout";
@@ -472,12 +472,12 @@ class GraphicsTestsBase {
         EXPECT_EQ(1, planeLayouts[0].components.size());
         EXPECT_EQ(2, planeLayouts[1].components.size());
 
-        yCbCr_P010.yCbCr.y = nullptr;
-        yCbCr_P010.yCbCr.cb = nullptr;
-        yCbCr_P010.yCbCr.cr = nullptr;
-        yCbCr_P010.yCbCr.ystride = 0;
-        yCbCr_P010.yCbCr.cstride = 0;
-        yCbCr_P010.yCbCr.chroma_step = 0;
+        yCbCr_10bit.yCbCr.y = nullptr;
+        yCbCr_10bit.yCbCr.cb = nullptr;
+        yCbCr_10bit.yCbCr.cr = nullptr;
+        yCbCr_10bit.yCbCr.ystride = 0;
+        yCbCr_10bit.yCbCr.cstride = 0;
+        yCbCr_10bit.yCbCr.chroma_step = 0;
         int64_t cb_offset = 0;
         int64_t cr_offset = 0;
 
@@ -493,15 +493,15 @@ class GraphicsTestsBase {
                 auto type = static_cast<PlaneLayoutComponentType>(planeLayoutComponent.type.value);
                 switch (type) {
                     case PlaneLayoutComponentType::Y:
-                        // For specs refer:
+                        // For specs refer to:
                         // https://docs.microsoft.com/en-us/windows/win32/medfound/10-bit-and-16-bit-yuv-video-formats
                         EXPECT_EQ(6, planeLayoutComponent.offsetInBits);
-                        EXPECT_EQ(nullptr, yCbCr_P010.yCbCr.y);
+                        EXPECT_EQ(nullptr, yCbCr_10bit.yCbCr.y);
                         EXPECT_EQ(10, planeLayoutComponent.sizeInBits);
                         EXPECT_EQ(16, planeLayout.sampleIncrementInBits);
 
-                        yCbCr_P010.yCbCr.y = tmpData;
-                        yCbCr_P010.yCbCr.ystride = planeLayout.strideInBytes;
+                        yCbCr_10bit.yCbCr.y = tmpData;
+                        yCbCr_10bit.yCbCr.ystride = planeLayout.strideInBytes;
                         break;
 
                     case PlaneLayoutComponentType::CB:
@@ -509,46 +509,46 @@ class GraphicsTestsBase {
                         sampleIncrementInBytes = bitsToBytes(planeLayout.sampleIncrementInBits);
                         EXPECT_EQ(4, sampleIncrementInBytes);
 
-                        if (yCbCr_P010.yCbCr.cstride == 0 && yCbCr_P010.yCbCr.chroma_step == 0) {
-                            yCbCr_P010.yCbCr.cstride = planeLayout.strideInBytes;
-                            yCbCr_P010.yCbCr.chroma_step = sampleIncrementInBytes;
+                        if (yCbCr_10bit.yCbCr.cstride == 0 && yCbCr_10bit.yCbCr.chroma_step == 0) {
+                            yCbCr_10bit.yCbCr.cstride = planeLayout.strideInBytes;
+                            yCbCr_10bit.yCbCr.chroma_step = sampleIncrementInBytes;
                         } else {
-                            EXPECT_EQ(yCbCr_P010.yCbCr.cstride, planeLayout.strideInBytes);
-                            EXPECT_EQ(yCbCr_P010.yCbCr.chroma_step, sampleIncrementInBytes);
+                            EXPECT_EQ(yCbCr_10bit.yCbCr.cstride, planeLayout.strideInBytes);
+                            EXPECT_EQ(yCbCr_10bit.yCbCr.chroma_step, sampleIncrementInBytes);
                         }
 
-                        if (yCbCr_P010.horizontalSubSampling == 0 &&
-                            yCbCr_P010.verticalSubSampling == 0) {
-                            yCbCr_P010.horizontalSubSampling = planeLayout.horizontalSubsampling;
-                            yCbCr_P010.verticalSubSampling = planeLayout.verticalSubsampling;
+                        if (yCbCr_10bit.horizontalSubSampling == 0 &&
+                            yCbCr_10bit.verticalSubSampling == 0) {
+                            yCbCr_10bit.horizontalSubSampling = planeLayout.horizontalSubsampling;
+                            yCbCr_10bit.verticalSubSampling = planeLayout.verticalSubsampling;
                         } else {
-                            EXPECT_EQ(yCbCr_P010.horizontalSubSampling,
+                            EXPECT_EQ(yCbCr_10bit.horizontalSubSampling,
                                       planeLayout.horizontalSubsampling);
-                            EXPECT_EQ(yCbCr_P010.verticalSubSampling,
+                            EXPECT_EQ(yCbCr_10bit.verticalSubSampling,
                                       planeLayout.verticalSubsampling);
                         }
 
                         if (type == PlaneLayoutComponentType::CB) {
-                            EXPECT_EQ(nullptr, yCbCr_P010.yCbCr.cb);
-                            yCbCr_P010.yCbCr.cb = tmpData;
+                            EXPECT_EQ(nullptr, yCbCr_10bit.yCbCr.cb);
+                            yCbCr_10bit.yCbCr.cb = tmpData;
                             cb_offset = planeLayoutComponent.offsetInBits;
                         } else {
-                            EXPECT_EQ(nullptr, yCbCr_P010.yCbCr.cr);
-                            yCbCr_P010.yCbCr.cr = tmpData;
+                            EXPECT_EQ(nullptr, yCbCr_10bit.yCbCr.cr);
+                            yCbCr_10bit.yCbCr.cr = tmpData;
                             cr_offset = planeLayoutComponent.offsetInBits;
                         }
                         break;
                     default:
                         break;
-                };
+                }
             }
         }
 
         EXPECT_EQ(cb_offset + bytesToBits(2), cr_offset);
-        EXPECT_NE(nullptr, yCbCr_P010.yCbCr.y);
-        EXPECT_NE(nullptr, yCbCr_P010.yCbCr.cb);
-        EXPECT_NE(nullptr, yCbCr_P010.yCbCr.cr);
-        return yCbCr_P010;
+        EXPECT_NE(nullptr, yCbCr_10bit.yCbCr.y);
+        EXPECT_NE(nullptr, yCbCr_10bit.yCbCr.cb);
+        EXPECT_NE(nullptr, yCbCr_10bit.yCbCr.cr);
+        return yCbCr_10bit;
     }
 };
 
@@ -1131,7 +1131,7 @@ TEST_P(GraphicsMapperStableCTests, Lock_YCBCR_P010) {
                                                      region, -1, (void**)&data));
 
     YCbCr yCbCr;
-    ASSERT_NO_FATAL_FAILURE(yCbCr = getAndroidYCbCr_P010(*handle, data));
+    ASSERT_NO_FATAL_FAILURE(yCbCr = getAndroidYCbCr_10bit(*handle, data));
 
     constexpr uint32_t kCbCrSubSampleFactor = 2;
     ASSERT_EQ(kCbCrSubSampleFactor, yCbCr.horizontalSubSampling);
@@ -1145,6 +1145,54 @@ TEST_P(GraphicsMapperStableCTests, Lock_YCBCR_P010) {
     // verify the YCbCr data
     verifyYCbCrData(yCbCr.yCbCr, info.width, info.height, yCbCr.horizontalSubSampling,
                     yCbCr.verticalSubSampling);
+
+    int releaseFence = -1;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
+    if (releaseFence != -1) {
+        close(releaseFence);
+    }
+}
+
+TEST_P(GraphicsMapperStableCTests, Lock_YCBCR_P210) {
+    BufferDescriptorInfo info{
+        .name = {"VTS_TEMP"},
+        .width = 64,
+        .height = 64,
+        .layerCount = 1,
+        .format = PixelFormat::YCBCR_P210,
+        .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
+        .reservedSize = 0,
+    };
+    auto buffer = allocate(info);
+    if (!buffer) {
+        ASSERT_FALSE(isSupported(info));
+        GTEST_SUCCEED() << "YCBCR_P210 format is unsupported";
+        return;
+    }
+
+    // lock buffer for writing
+    const ARect region{0, 0, info.width, info.height};
+    auto handle = buffer->import();
+    uint8_t *data = nullptr;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE,
+              mapper()->v5.lock(*handle, static_cast<int64_t>(info.usage), region,
+                                -1, (void **)&data));
+
+    YCbCr yCbCr;
+    ASSERT_NO_FATAL_FAILURE(yCbCr = getAndroidYCbCr_10bit(*handle, data));
+
+    constexpr uint32_t kCbCrSubSampleFactor = 2;
+    ASSERT_EQ(kCbCrSubSampleFactor, yCbCr.horizontalSubSampling);
+    ASSERT_EQ(1, yCbCr.verticalSubSampling);
+
+    ASSERT_EQ(0, info.height % 2);
+
+    // fill the data
+    fillYCbCrData(yCbCr.yCbCr, info.width, info.height,
+                  yCbCr.horizontalSubSampling, yCbCr.verticalSubSampling);
+    // verify the YCbCr data
+    verifyYCbCrData(yCbCr.yCbCr, info.width, info.height,
+                    yCbCr.horizontalSubSampling, yCbCr.verticalSubSampling);
 
     int releaseFence = -1;
     ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));

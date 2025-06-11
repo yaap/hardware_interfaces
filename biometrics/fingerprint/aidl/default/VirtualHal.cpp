@@ -266,9 +266,9 @@ using Tag = AcquiredInfoAndVendorCode::Tag;
     return ndk::ScopedAStatus::ok();
 }
 
-::ndk::ScopedAStatus VirtualHal::setNavigationGuesture(bool in_v) {
+::ndk::ScopedAStatus VirtualHal::setNavigationGesture(bool in_v) {
     Fingerprint::cfg().sourcedFromAidl();
-    Fingerprint::cfg().set<bool>("navigation_guesture", in_v);
+    Fingerprint::cfg().set<bool>("navigation_gesture", in_v);
     return ndk::ScopedAStatus::ok();
 }
 
@@ -337,5 +337,14 @@ OptIntVec VirtualHal::acquiredInfoVec2OptIntVec(
     LOG(INFO) << " calling getFingerprintHal in VirtualHal.cpp";
     *pFp = mFp;
     return ndk::ScopedAStatus::ok();
+}
+
+binder_status_t VirtualHal::dump(int fd, const char** args, uint32_t nargs) {
+    return mFp->dump(fd, args, nargs);
+}
+
+binder_status_t VirtualHal::handleShellCommand(int in, int out, int err, const char** args,
+                                               uint32_t numArgs) {
+    return mFp->handleShellCommand(in, out, err, args, numArgs);
 }
 }  // namespace aidl::android::hardware::biometrics::fingerprint

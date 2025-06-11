@@ -18,6 +18,7 @@ package android.hardware.tv.mediaquality;
 
 import android.hardware.tv.mediaquality.ParamCapability;
 import android.hardware.tv.mediaquality.PictureProfile;
+import android.hardware.tv.mediaquality.StreamStatus;
 import android.hardware.tv.mediaquality.VendorParamCapability;
 
 @VintfStability
@@ -59,5 +60,14 @@ oneway interface IPictureProfileAdjustmentListener {
      *
      * @param pictureProfileId The PictureProfile id that associate with the PictureProfile.
      */
-    void onRequestPictureParameters(long pictureProfileId);
+    void requestPictureParameters(long pictureProfileId);
+
+    /**
+     * Notifies Media Quality Manager when stream status changed.
+     *
+     * @param pictureProfileId the ID of the profile used by the media content. -1 if there
+     *                         is no associated profile.
+     * @param status the status of the current stream.
+     */
+    void onStreamStatusChanged(long pictureProfileId, StreamStatus status);
 }

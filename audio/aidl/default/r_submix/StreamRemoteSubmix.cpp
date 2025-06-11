@@ -51,7 +51,7 @@ StreamRemoteSubmix::~StreamRemoteSubmix() {
     cleanupWorker();
 }
 
-::android::status_t StreamRemoteSubmix::init() {
+::android::status_t StreamRemoteSubmix::init(DriverCallbackInterface*) {
     mCurrentRoute = SubmixRoute::findOrCreateRoute(mDeviceAddress, mStreamConfig);
     if (mCurrentRoute == nullptr) {
         return ::android::NO_INIT;
@@ -77,17 +77,15 @@ StreamRemoteSubmix::~StreamRemoteSubmix() {
 }
 
 ::android::status_t StreamRemoteSubmix::drain(StreamDescriptor::DrainMode) {
-    usleep(1000);
     return ::android::OK;
 }
 
 ::android::status_t StreamRemoteSubmix::flush() {
-    usleep(1000);
-    return ::android::OK;
+    // TODO(b/372951987): consider if this needs to be done from 'StreamInWorkerLogic::cycle'.
+    return mIsInput ? standby() : ::android::OK;
 }
 
 ::android::status_t StreamRemoteSubmix::pause() {
-    usleep(1000);
     return ::android::OK;
 }
 
@@ -282,6 +280,15 @@ size_t StreamRemoteSubmix::getStreamPipeSizeInFrames() {
             LOG(ERROR) << __func__
                        << ": no audio pipe yet we're trying to read! (not all errors will be "
                           "logged)";
+        }
+        return ::android::OK;
+    }
+    // get and hold the sink because 'MonoPipeReader' does not hold a strong pointer to it.
+    sp<MonoPipe> sink = mCurrentRoute->getSink();
+    if (sink == nullptr) {
+        if (++mReadErrorCount < kMaxErrorLogs) {
+            LOG(ERROR) << __func__
+                       << ": the sink has been released! (not all errors will be logged)";
         }
         return ::android::OK;
     }

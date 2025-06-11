@@ -161,6 +161,15 @@ bool add(std::string_view dev, std::string_view type);
 bool del(std::string_view dev);
 
 /**
+ * Rename interface.
+ *
+ * \param from the name of the interface to rename from
+ * \param to the name of the interface to rename to
+ * \return true in case of success, false otherwise
+ */
+bool rename(std::string_view from, std::string_view to);
+
+/**
  * Fetches interface's hardware address.
  *
  * \param ifname Interface name

@@ -116,6 +116,10 @@ class SubscriptionClient {
             CallbackType callback,
             std::vector<aidl::android::hardware::automotive::vehicle::VehiclePropError>&&
                     vehiclePropErrors);
+
+    // Invokes onSupportedValueChange callback.
+    static void sendSupportedValueChangeEvents(CallbackType callback,
+                                               const std::vector<PropIdAreaId>& propIdAreaIds);
 };
 
 }  // namespace vehicle

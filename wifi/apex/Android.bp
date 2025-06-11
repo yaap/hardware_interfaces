@@ -15,13 +15,6 @@ prebuilt_etc {
     installable: false,
 }
 
-prebuilt_etc {
-    name: "com.android.hardware.wifi.xml",
-    src: ":default-android.hardware.wifi-service.xml",
-    installable: false,
-    sub_dir: "vintf",
-}
-
 apex {
     name: "com.android.hardware.wifi",
     manifest: "apex_manifest.json",
@@ -36,7 +29,6 @@ apex {
     ],
     prebuilts: [
         "com.android.hardware.wifi.rc",
-        "com.android.hardware.wifi.xml",
     ],
     overrides: [
         "android.hardware.wifi-service",

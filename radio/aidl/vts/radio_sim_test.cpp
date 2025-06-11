@@ -52,6 +52,15 @@ void RadioSimTest::SetUp() {
     ASSERT_NE(nullptr, radio_config.get());
 }
 
+bool RadioSimTest::shouldTestCdma() {
+    int32_t aidl_version = 0;
+    ndk::ScopedAStatus aidl_status = radio_sim->getInterfaceVersion(&aidl_version);
+    EXPECT_TRUE(aidl_status.isOk());
+    if (aidl_version < 4) return true;  // < RADIO_HAL_VERSION_2_3
+
+    return !telephony_flags::cleanup_cdma();
+}
+
 void RadioSimTest::updateSimCardStatus() {
     serial = GetRandomSerialNumber();
     radio_sim->getIccCardStatus(serial);
@@ -65,11 +74,9 @@ void RadioSimTest::updateSimCardStatus() {
  * Test IRadioSim.setSimCardPower() for the response returned.
  */
 TEST_P(RadioSimTest, setSimCardPower) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping setSimCardPower "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping setSimCardPower "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     /* Test setSimCardPower power down */
@@ -80,7 +87,12 @@ TEST_P(RadioSimTest, setSimCardPower) {
     EXPECT_EQ(serial, radioRsp_sim->rspInfo.serial);
     ASSERT_TRUE(CheckAnyOfErrors(radioRsp_sim->rspInfo.error,
                                  {RadioError::NONE, RadioError::INVALID_ARGUMENTS,
-                                  RadioError::RADIO_NOT_AVAILABLE, RadioError::SIM_ERR}));
+                                  RadioError::RADIO_NOT_AVAILABLE, RadioError::SIM_ERR,
+                                  RadioError::REQUEST_NOT_SUPPORTED}));
+
+    if (radioRsp_sim->rspInfo.error == RadioError::REQUEST_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping setSimCardPower because it's not supported";
+    }
 
     // setSimCardPower does not return  until the request is handled, and should not trigger
     // CardStatus::STATE_ABSENT when turning off power
@@ -134,11 +146,9 @@ TEST_P(RadioSimTest, setSimCardPower) {
  * Test IRadioSim.setCarrierInfoForImsiEncryption() for the response returned.
  */
 TEST_P(RadioSimTest, setCarrierInfoForImsiEncryption) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping setCarrierInfoForImsiEncryption "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping setCarrierInfoForImsiEncryption "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -165,11 +175,9 @@ TEST_P(RadioSimTest, setCarrierInfoForImsiEncryption) {
  * Test IRadioSim.getSimPhonebookRecords() for the response returned.
  */
 TEST_P(RadioSimTest, getSimPhonebookRecords) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping getSimPhonebookRecords "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping getSimPhonebookRecords "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -195,11 +203,9 @@ TEST_P(RadioSimTest, getSimPhonebookRecords) {
  * Test IRadioSim.getSimPhonebookCapacity for the response returned.
  */
 TEST_P(RadioSimTest, getSimPhonebookCapacity) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping getSimPhonebookCapacity "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping getSimPhonebookCapacity "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -242,11 +248,9 @@ TEST_P(RadioSimTest, getSimPhonebookCapacity) {
  * Test IRadioSim.updateSimPhonebookRecords() for the response returned.
  */
 TEST_P(RadioSimTest, updateSimPhonebookRecords) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping updateSimPhonebookRecords "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping updateSimPhonebookRecords "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -313,11 +317,9 @@ TEST_P(RadioSimTest, updateSimPhonebookRecords) {
  * For SIM ABSENT case.
  */
 TEST_P(RadioSimTest, togglingUiccApplicationsSimAbsent) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping togglingUiccApplicationsSimAbsent "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping togglingUiccApplicationsSimAbsent "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     // This test case only test SIM ABSENT case.
@@ -347,11 +349,9 @@ TEST_P(RadioSimTest, togglingUiccApplicationsSimAbsent) {
  * For SIM PRESENT case.
  */
 TEST_P(RadioSimTest, togglingUiccApplicationsSimPresent) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping togglingUiccApplicationsSimPresent "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping togglingUiccApplicationsSimPresent "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     // This test case only test SIM ABSENT case.
@@ -401,11 +401,9 @@ TEST_P(RadioSimTest, togglingUiccApplicationsSimPresent) {
  * Test IRadioSim.areUiccApplicationsEnabled() for the response returned.
  */
 TEST_P(RadioSimTest, areUiccApplicationsEnabled) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping areUiccApplicationsEnabled "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping areUiccApplicationsEnabled "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     // Disable Uicc applications.
@@ -428,11 +426,9 @@ TEST_P(RadioSimTest, areUiccApplicationsEnabled) {
  * Test IRadioSim.getAllowedCarriers() for the response returned.
  */
 TEST_P(RadioSimTest, getAllowedCarriers) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping getAllowedCarriers "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping getAllowedCarriers "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -450,11 +446,9 @@ TEST_P(RadioSimTest, getAllowedCarriers) {
  * Test IRadioSim.setAllowedCarriers() for the response returned.
  */
 TEST_P(RadioSimTest, setAllowedCarriers) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping setAllowedCarriers "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping setAllowedCarriers "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -612,11 +606,9 @@ TEST_P(RadioSimTest, setAllowedCarriers) {
  * Test IRadioSim.getIccCardStatus() for the response returned.
  */
 TEST_P(RadioSimTest, getIccCardStatus) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping getIccCardStatus "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping getIccCardStatus "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     EXPECT_LE(cardStatus.applications.size(), RadioConst::CARD_MAX_APPS);
@@ -629,11 +621,9 @@ TEST_P(RadioSimTest, getIccCardStatus) {
  * Test IRadioSim.supplyIccPinForApp() for the response returned
  */
 TEST_P(RadioSimTest, supplyIccPinForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping supplyIccPinForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping supplyIccPinForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -661,11 +651,9 @@ TEST_P(RadioSimTest, supplyIccPinForApp) {
  * Test IRadioSim.supplyIccPukForApp() for the response returned.
  */
 TEST_P(RadioSimTest, supplyIccPukForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping supplyIccPukForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping supplyIccPukForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -684,7 +672,8 @@ TEST_P(RadioSimTest, supplyIccPukForApp) {
             EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_sim->rspInfo.type);
             ASSERT_TRUE(CheckAnyOfErrors(
                     radioRsp_sim->rspInfo.error,
-                    {RadioError::PASSWORD_INCORRECT, RadioError::INVALID_SIM_STATE}));
+                    {RadioError::PASSWORD_INCORRECT, RadioError::INVALID_SIM_STATE,
+                     RadioError::REQUEST_NOT_SUPPORTED}));
         }
     }
 }
@@ -693,11 +682,9 @@ TEST_P(RadioSimTest, supplyIccPukForApp) {
  * Test IRadioSim.supplyIccPin2ForApp() for the response returned.
  */
 TEST_P(RadioSimTest, supplyIccPin2ForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping supplyIccPin2ForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping supplyIccPin2ForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -726,11 +713,9 @@ TEST_P(RadioSimTest, supplyIccPin2ForApp) {
  * Test IRadioSim.supplyIccPuk2ForApp() for the response returned.
  */
 TEST_P(RadioSimTest, supplyIccPuk2ForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping supplyIccPuk2ForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping supplyIccPuk2ForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -749,7 +734,8 @@ TEST_P(RadioSimTest, supplyIccPuk2ForApp) {
             EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_sim->rspInfo.type);
             ASSERT_TRUE(CheckAnyOfErrors(
                     radioRsp_sim->rspInfo.error,
-                    {RadioError::PASSWORD_INCORRECT, RadioError::INVALID_SIM_STATE}));
+                    {RadioError::PASSWORD_INCORRECT, RadioError::INVALID_SIM_STATE,
+                     RadioError::REQUEST_NOT_SUPPORTED}));
         }
     }
 }
@@ -758,11 +744,9 @@ TEST_P(RadioSimTest, supplyIccPuk2ForApp) {
  * Test IRadioSim.changeIccPinForApp() for the response returned.
  */
 TEST_P(RadioSimTest, changeIccPinForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping changeIccPinForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping changeIccPinForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -790,11 +774,9 @@ TEST_P(RadioSimTest, changeIccPinForApp) {
  * Test IRadioSim.changeIccPin2ForApp() for the response returned.
  */
 TEST_P(RadioSimTest, changeIccPin2ForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping changeIccPin2ForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping changeIccPin2ForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -823,11 +805,9 @@ TEST_P(RadioSimTest, changeIccPin2ForApp) {
  * Test IRadioSim.getImsiForApp() for the response returned.
  */
 TEST_P(RadioSimTest, getImsiForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping getImsiForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping getImsiForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -859,11 +839,9 @@ TEST_P(RadioSimTest, getImsiForApp) {
  * Test IRadioSim.iccIoForApp() for the response returned.
  */
 TEST_P(RadioSimTest, iccIoForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping iccIoForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping iccIoForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -891,11 +869,9 @@ TEST_P(RadioSimTest, iccIoForApp) {
  * Test IRadioSim.iccTransmitApduBasicChannel() for the response returned.
  */
 TEST_P(RadioSimTest, iccTransmitApduBasicChannel) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping iccTransmitApduBasicChannel "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping iccTransmitApduBasicChannel "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -913,11 +889,9 @@ TEST_P(RadioSimTest, iccTransmitApduBasicChannel) {
  * Test IRadioSim.iccOpenLogicalChannel() for the response returned.
  */
 TEST_P(RadioSimTest, iccOpenLogicalChannel) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping iccOpenLogicalChannel "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping iccOpenLogicalChannel "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -935,11 +909,16 @@ TEST_P(RadioSimTest, iccOpenLogicalChannel) {
  * Test IRadioSim.iccCloseLogicalChannel() for the response returned.
  */
 TEST_P(RadioSimTest, iccCloseLogicalChannel) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping iccCloseLogicalChannel "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_sim->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version >= 2) {  // >= RADIO_HAL_VERSION_2_1
+        GTEST_SKIP() << "Skipping iccCloseLogicalChannel (deprecated)";
+    }
+
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping iccCloseLogicalChannel "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -956,11 +935,9 @@ TEST_P(RadioSimTest, iccCloseLogicalChannel) {
  * Test IRadioSim.iccCloseLogicalChannelWithSessionInfo() for the response returned.
  */
 TEST_P(RadioSimTest, iccCloseLogicalChannelWithSessionInfo) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping iccCloseLogicalChannelWithSessionInfo "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping iccCloseLogicalChannelWithSessionInfo "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     int32_t aidl_version;
@@ -990,11 +967,9 @@ TEST_P(RadioSimTest, iccCloseLogicalChannelWithSessionInfo) {
  * Test IRadioSim.iccTransmitApduLogicalChannel() for the response returned.
  */
 TEST_P(RadioSimTest, iccTransmitApduLogicalChannel) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping iccTransmitApduLogicalChannel "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping iccTransmitApduLogicalChannel "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1012,11 +987,9 @@ TEST_P(RadioSimTest, iccTransmitApduLogicalChannel) {
  * Test IRadioSim.requestIccSimAuthentication() for the response returned.
  */
 TEST_P(RadioSimTest, requestIccSimAuthentication) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping requestIccSimAuthentication "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping requestIccSimAuthentication "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1039,11 +1012,9 @@ TEST_P(RadioSimTest, requestIccSimAuthentication) {
  * Test IRadioSim.getFacilityLockForApp() for the response returned.
  */
 TEST_P(RadioSimTest, getFacilityLockForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping getFacilityLockForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping getFacilityLockForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1069,11 +1040,9 @@ TEST_P(RadioSimTest, getFacilityLockForApp) {
  * Test IRadioSim.setFacilityLockForApp() for the response returned.
  */
 TEST_P(RadioSimTest, setFacilityLockForApp) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping setFacilityLockForApp "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping setFacilityLockForApp "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1097,119 +1066,12 @@ TEST_P(RadioSimTest, setFacilityLockForApp) {
 }
 
 /*
- * Test IRadioSim.getCdmaSubscription() for the response returned.
- */
-TEST_P(RadioSimTest, getCdmaSubscription) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            GTEST_SKIP() << "Skipping getCdmaSubscription "
-                            "due to undefined FEATURE_TELEPHONY_CDMA";
-        }
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_sim->getCdmaSubscription(serial);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_sim->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_sim->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(
-                radioRsp_sim->rspInfo.error,
-                {RadioError::NONE, RadioError::REQUEST_NOT_SUPPORTED, RadioError::SIM_ABSENT}));
-    }
-}
-
-/*
- * Test IRadioSim.getCdmaSubscriptionSource() for the response returned.
- */
-TEST_P(RadioSimTest, getCdmaSubscriptionSource) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            GTEST_SKIP() << "Skipping getCdmaSubscriptionSource "
-                            "due to undefined FEATURE_TELEPHONY_CDMA";
-        }
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_sim->getCdmaSubscriptionSource(serial);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_sim->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_sim->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(
-                radioRsp_sim->rspInfo.error,
-                {RadioError::NONE, RadioError::REQUEST_NOT_SUPPORTED, RadioError::SIM_ABSENT}));
-    }
-}
-
-/*
- * Test IRadioSim.setCdmaSubscriptionSource() for the response returned.
- */
-TEST_P(RadioSimTest, setCdmaSubscriptionSource) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            GTEST_SKIP() << "Skipping setCdmaSubscriptionSource "
-                            "due to undefined FEATURE_TELEPHONY_CDMA";
-        }
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_sim->setCdmaSubscriptionSource(serial, CdmaSubscriptionSource::RUIM_SIM);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_sim->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_sim->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(
-                radioRsp_sim->rspInfo.error,
-                {RadioError::NONE, RadioError::SIM_ABSENT, RadioError::SUBSCRIPTION_NOT_AVAILABLE},
-                CHECK_GENERAL_ERROR));
-    }
-}
-
-/*
- * Test IRadioSim.setUiccSubscription() for the response returned.
- */
-TEST_P(RadioSimTest, setUiccSubscription) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping setUiccSubscription "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
-    }
-
-    serial = GetRandomSerialNumber();
-    SelectUiccSub item;
-    memset(&item, 0, sizeof(item));
-
-    radio_sim->setUiccSubscription(serial, item);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_sim->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_sim->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(
-                CheckAnyOfErrors(radioRsp_sim->rspInfo.error,
-                                 {RadioError::NONE, RadioError::INVALID_ARGUMENTS,
-                                  RadioError::MODEM_ERR, RadioError::SUBSCRIPTION_NOT_SUPPORTED},
-                                 CHECK_GENERAL_ERROR));
-    }
-}
-
-/*
  * Test IRadioSim.sendEnvelope() for the response returned.
  */
 TEST_P(RadioSimTest, sendEnvelope) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping sendEnvelope "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping sendEnvelope "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1235,11 +1097,9 @@ TEST_P(RadioSimTest, sendEnvelope) {
  * Test IRadioSim.sendTerminalResponseToSim() for the response returned.
  */
 TEST_P(RadioSimTest, sendTerminalResponseToSim) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping sendTerminalResponseToSim "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping sendTerminalResponseToSim "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1265,11 +1125,9 @@ TEST_P(RadioSimTest, sendTerminalResponseToSim) {
  * Test IRadioSim.reportStkServiceIsRunning() for the response returned.
  */
 TEST_P(RadioSimTest, reportStkServiceIsRunning) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping reportStkServiceIsRunning "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping reportStkServiceIsRunning "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();
@@ -1291,11 +1149,9 @@ TEST_P(RadioSimTest, reportStkServiceIsRunning) {
  * string.
  */
 TEST_P(RadioSimTest, sendEnvelopeWithStatus) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
-            GTEST_SKIP() << "Skipping sendEnvelopeWithStatus "
-                            "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_SUBSCRIPTION)) {
+        GTEST_SKIP() << "Skipping sendEnvelopeWithStatus "
+                        "due to undefined FEATURE_TELEPHONY_SUBSCRIPTION";
     }
 
     serial = GetRandomSerialNumber();

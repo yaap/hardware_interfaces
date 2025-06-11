@@ -16,8 +16,7 @@
 
 #pragma once
 
-#include <aidl/android/hardware/bluetooth/BnBluetoothHci.h>
-#include <aidl/android/hardware/bluetooth/IBluetoothHciCallbacks.h>
+#include <hal/ffi.h>
 
 #include <future>
 #include <string>
@@ -28,26 +27,25 @@
 
 namespace aidl::android::hardware::bluetooth::impl {
 
-class BluetoothDeathRecipient;
-
 // This Bluetooth HAL implementation connects with a serial port at dev_path_.
-class BluetoothHci : public BnBluetoothHci {
+class BluetoothHci : public hal::IBluetoothHci {
  public:
   BluetoothHci(const std::string& dev_path = "/dev/hvc5");
 
-  ndk::ScopedAStatus initialize(
-      const std::shared_ptr<IBluetoothHciCallbacks>& cb) override;
+  void initialize(
+      const std::shared_ptr<hal::IBluetoothHciCallbacks>& cb) override;
 
-  ndk::ScopedAStatus sendHciCommand(
-      const std::vector<uint8_t>& packet) override;
+  void sendHciCommand(const std::vector<uint8_t>& packet) override;
 
-  ndk::ScopedAStatus sendAclData(const std::vector<uint8_t>& packet) override;
+  void sendAclData(const std::vector<uint8_t>& packet) override;
 
-  ndk::ScopedAStatus sendScoData(const std::vector<uint8_t>& packet) override;
+  void sendScoData(const std::vector<uint8_t>& packet) override;
 
-  ndk::ScopedAStatus sendIsoData(const std::vector<uint8_t>& packet) override;
+  void sendIsoData(const std::vector<uint8_t>& packet) override;
 
-  ndk::ScopedAStatus close() override;
+  void close() override;
+
+  void clientDied() override;
 
   static void OnPacketReady();
 
@@ -55,20 +53,17 @@ class BluetoothHci : public BnBluetoothHci {
 
  private:
   int mFd{-1};
-  std::shared_ptr<IBluetoothHciCallbacks> mCb = nullptr;
+  std::shared_ptr<hal::IBluetoothHciCallbacks> mCb = nullptr;
 
   std::shared_ptr<::android::hardware::bluetooth::hci::H4Protocol> mH4;
-
-  std::shared_ptr<BluetoothDeathRecipient> mDeathRecipient;
 
   std::string mDevPath;
 
   ::android::hardware::bluetooth::async::AsyncFdWatcher mFdWatcher;
 
   int getFdFromDevPath();
-  [[nodiscard]] ndk::ScopedAStatus send(
-      ::android::hardware::bluetooth::hci::PacketType type,
-      const std::vector<uint8_t>& packet);
+  void send(::android::hardware::bluetooth::hci::PacketType type,
+            const std::vector<uint8_t>& packet);
   std::unique_ptr<NetBluetoothMgmt> management_{};
 
   // Send a reset command and discard all packets until a reset is received.

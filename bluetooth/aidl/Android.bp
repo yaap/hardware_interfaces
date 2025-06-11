@@ -23,13 +23,16 @@ aidl_interface {
             // translate code.
             enabled: true,
         },
+        rust: {
+            enabled: true,
+        },
         java: {
             sdk_version: "module_current",
         },
         ndk: {
             apex_available: [
                 "//apex_available:platform",
-                "com.android.btservices",
+                "com.android.bt",
             ],
             min_sdk_version: "33",
         },

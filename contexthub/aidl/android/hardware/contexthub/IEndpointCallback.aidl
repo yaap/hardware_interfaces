@@ -24,7 +24,7 @@ import android.hardware.contexthub.Reason;
 import android.hardware.contexthub.Service;
 
 @VintfStability
-interface IEndpointCallback {
+oneway interface IEndpointCallback {
     /**
      * Lifecycle event notification for endpoint starting from remote side. There is no need to
      * report already started endpoint prior to the registration of an EndpointLifecycleCallbacks

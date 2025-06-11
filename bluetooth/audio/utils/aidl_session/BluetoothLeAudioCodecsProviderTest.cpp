@@ -20,10 +20,16 @@
 #include <tuple>
 
 #include "BluetoothLeAudioCodecsProvider.h"
+#include "aidl/android/hardware/bluetooth/audio/CodecInfo.h"
+#include "aidl/android/hardware/bluetooth/audio/ConfigurationFlags.h"
+#include "aidl/android/hardware/bluetooth/audio/SessionType.h"
 
 using aidl::android::hardware::bluetooth::audio::BluetoothLeAudioCodecsProvider;
+using aidl::android::hardware::bluetooth::audio::CodecInfo;
+using aidl::android::hardware::bluetooth::audio::ConfigurationFlags;
 using aidl::android::hardware::bluetooth::audio::
     LeAudioCodecCapabilitiesSetting;
+using aidl::android::hardware::bluetooth::audio::SessionType;
 using aidl::android::hardware::bluetooth::audio::setting::AudioLocation;
 using aidl::android::hardware::bluetooth::audio::setting::CodecConfiguration;
 using aidl::android::hardware::bluetooth::audio::setting::
@@ -51,15 +57,30 @@ static const Scenario kValidScenario(std::make_optional("OneChanStereo_16_1"),
 static const Scenario kValidBroadcastScenario(
     std::nullopt, std::nullopt, std::make_optional("BcastStereo_16_2"));
 
+static const Scenario kValidAsymmetricScenario(
+    std::make_optional("OneChanStereo_32_1"),
+    std::make_optional("OneChanStereo_16_1"), std::nullopt);
+
 // Configuration
 static const Configuration kValidConfigOneChanStereo_16_1(
     std::make_optional("OneChanStereo_16_1"), std::make_optional("LC3_16k_1"),
     std::make_optional("STEREO_ONE_CIS_PER_DEVICE"));
+
+static const Configuration kValidConfigOneChanStereo_32_1(
+    std::make_optional("OneChanStereo_32_1"), std::make_optional("LC3_32k_1"),
+    std::make_optional("STEREO_ONE_CIS_PER_DEVICE"));
+
 // CodecConfiguration
 static const CodecConfiguration kValidCodecLC3_16k_1(
     std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
     std::nullopt, std::make_optional(16000), std::make_optional(7500),
     std::make_optional(30), std::nullopt);
+
+static const CodecConfiguration kValidCodecLC3_32k_1(
+    std::make_optional("LC3_32k_1"), std::make_optional(CodecType::LC3),
+    std::nullopt, std::make_optional(32000), std::make_optional(7500),
+    std::make_optional(30), std::nullopt);
+
 // StrategyConfiguration
 static const StrategyConfiguration kValidStrategyStereoOneCis(
     std::make_optional("STEREO_ONE_CIS_PER_DEVICE"),
@@ -181,6 +202,17 @@ static const std::vector<StrategyConfigurationList>
             kValidStrategyStereoOneCisBoth, kValidStrategyStereoTwoCisBoth,
             kValidStrategyMonoOneCisBoth, kValidStrategyBroadcastStereoBoth})};
 
+// Define some valid asymmetric scenario list
+static const std::vector<ScenarioList> kValidAsymmetricScenarioList = {
+    ScenarioList(std::vector<Scenario>{kValidAsymmetricScenario})};
+static const std::vector<ConfigurationList> kValidAsymmetricConfigurationList =
+    {ConfigurationList(std::vector<Configuration>{
+        kValidConfigOneChanStereo_16_1, kValidConfigOneChanStereo_32_1})};
+static const std::vector<CodecConfigurationList>
+    kValidAsymmetricCodecConfigurationList = {
+        CodecConfigurationList(std::vector<CodecConfiguration>{
+            kValidCodecLC3_16k_1, kValidCodecLC3_32k_1})};
+
 class BluetoothLeAudioCodecsProviderTest
     : public ::testing::TestWithParam<OffloadSetting> {
  public:
@@ -223,6 +255,19 @@ class BluetoothLeAudioCodecsProviderTest
         strategy_configuration_lists);
     auto le_audio_codec_capabilities =
         BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities(
+            std::make_optional(le_audio_offload_setting));
+    return le_audio_codec_capabilities;
+  }
+
+  std::unordered_map<SessionType, std::vector<CodecInfo>>
+  RunCodecInfoTestCase() {
+    auto& [scenario_lists, configuration_lists, codec_configuration_lists,
+           strategy_configuration_lists] = GetParam();
+    LeAudioOffloadSetting le_audio_offload_setting(
+        scenario_lists, configuration_lists, codec_configuration_lists,
+        strategy_configuration_lists);
+    auto le_audio_codec_capabilities =
+        BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
             std::make_optional(le_audio_offload_setting));
     return le_audio_codec_capabilities;
   }
@@ -392,6 +437,39 @@ TEST_P(ComposeLeAudioCodecCapabilitiesTest, CodecCapabilitiesNotEmpty) {
   ASSERT_TRUE(!le_audio_codec_capabilities.empty());
 }
 
+class ComposeLeAudioAymmetricCodecInfoTest
+    : public BluetoothLeAudioCodecsProviderTest {
+ public:
+};
+
+TEST_P(ComposeLeAudioAymmetricCodecInfoTest, AsymmetricCodecInfoNotEmpty) {
+  Initialize();
+  auto le_audio_codec_info_map = RunCodecInfoTestCase();
+  ASSERT_TRUE(!le_audio_codec_info_map.empty());
+  // Check true asymmetric codec info
+  ASSERT_TRUE(!le_audio_codec_info_map
+                   [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH]
+                       .empty());
+  ASSERT_TRUE(!le_audio_codec_info_map
+                   [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH]
+                       .empty());
+  auto required_flag = ConfigurationFlags();
+  required_flag.bitmask |= ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
+
+  auto codec_info = le_audio_codec_info_map
+      [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH][0];
+  ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
+  auto& transport =
+      codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
+  ASSERT_EQ(transport.flags, std::make_optional(required_flag));
+
+  codec_info = le_audio_codec_info_map
+      [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH][0];
+  ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
+  transport = codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
+  ASSERT_EQ(transport.flags, std::make_optional(required_flag));
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GetScenariosTest);
 INSTANTIATE_TEST_SUITE_P(
     BluetoothLeAudioCodecsProviderTest, GetScenariosTest,
@@ -433,6 +511,15 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(BluetoothLeAudioCodecsProviderTest::CreateTestCases(
         kValidScenarioList, kValidConfigurationList,
         kValidCodecConfigurationList, kValidStrategyConfigurationList)));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    ComposeLeAudioAymmetricCodecInfoTest);
+INSTANTIATE_TEST_SUITE_P(
+    BluetoothLeAudioCodecsProviderTest, ComposeLeAudioAymmetricCodecInfoTest,
+    ::testing::ValuesIn(BluetoothLeAudioCodecsProviderTest::CreateTestCases(
+        kValidAsymmetricScenarioList, kValidAsymmetricConfigurationList,
+        kValidAsymmetricCodecConfigurationList,
+        kValidStrategyConfigurationList)));
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

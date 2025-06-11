@@ -23,6 +23,6 @@ hidl_interface {
     gen_java_constants: true,
     apex_available: [
         "//apex_available:platform",
-        "com.android.btservices",
+        "com.android.bt",
     ],
 }

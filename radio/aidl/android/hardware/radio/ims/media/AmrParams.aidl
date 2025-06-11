@@ -21,6 +21,7 @@ import android.hardware.radio.ims.media.AmrMode;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable AmrParams {
     /** mode-set: AMR codec mode to represent the bit rate */
     AmrMode amrMode = AmrMode.INVALID;

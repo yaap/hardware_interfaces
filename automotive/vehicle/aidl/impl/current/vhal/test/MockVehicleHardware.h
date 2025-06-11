@@ -62,11 +62,21 @@ class MockVehicleHardware final : public IVehicleHardware {
     void registerOnPropertyChangeEvent(
             std::unique_ptr<const PropertyChangeCallback> callback) override;
     void registerOnPropertySetErrorEvent(std::unique_ptr<const PropertySetErrorCallback>) override;
+    void registerSupportedValueChangeCallback(
+            std::unique_ptr<const SupportedValueChangeCallback>) override;
     aidl::android::hardware::automotive::vehicle::StatusCode subscribe(
             aidl::android::hardware::automotive::vehicle::SubscribeOptions options) override;
     aidl::android::hardware::automotive::vehicle::StatusCode unsubscribe(int32_t propId,
                                                                          int32_t areaId) override;
     std::chrono::nanoseconds getPropertyOnChangeEventBatchingWindow() override;
+    std::vector<aidl::android::hardware::automotive::vehicle::SupportedValuesListResult>
+    getSupportedValuesLists(const std::vector<PropIdAreaId>& propIdAreaIds) override;
+    std::vector<aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult>
+    getMinMaxSupportedValues(const std::vector<PropIdAreaId>& propIdAreaIds) override;
+    aidl::android::hardware::automotive::vehicle::StatusCode subscribeSupportedValueChange(
+            const std::vector<PropIdAreaId>& propIdAreaIds) override;
+    aidl::android::hardware::automotive::vehicle::StatusCode unsubscribeSupportedValueChange(
+            const std::vector<PropIdAreaId>& propIdAreaIds) override;
 
     // Test functions.
     void setPropertyConfigs(
@@ -78,6 +88,14 @@ class MockVehicleHardware final : public IVehicleHardware {
     void addSetValueResponses(
             const std::vector<aidl::android::hardware::automotive::vehicle::SetValueResult>&
                     responses);
+    void setSupportedValuesListResponse(
+            const std::vector<
+                    aidl::android::hardware::automotive::vehicle::SupportedValuesListResult>&
+                    response);
+    void setMinMaxSupportedValueResponse(
+            const std::vector<
+                    aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult>&
+                    response);
     void setGetValueResponder(
             std::function<aidl::android::hardware::automotive::vehicle::StatusCode(
                     std::shared_ptr<const GetValuesCallback>,
@@ -88,21 +106,27 @@ class MockVehicleHardware final : public IVehicleHardware {
     nextGetValueRequests();
     std::vector<aidl::android::hardware::automotive::vehicle::SetValueRequest>
     nextSetValueRequests();
+    std::vector<PropIdAreaId> getSupportedValuesListRequest();
+    std::vector<PropIdAreaId> getMinMaxSupportedValueRequest();
     void setStatus(const char* functionName,
                    aidl::android::hardware::automotive::vehicle::StatusCode status);
     void setSleepTime(int64_t timeInNano);
     void setDumpResult(DumpResult result);
     void sendOnPropertySetErrorEvent(const std::vector<SetValueErrorEvent>& errorEvents);
     void setPropertyOnChangeEventBatchingWindow(std::chrono::nanoseconds window);
+    void sendSupportedValueChangeEvent(const std::vector<PropIdAreaId>& propIdAreaIds);
 
     std::set<std::pair<int32_t, int32_t>> getSubscribedOnChangePropIdAreaIds();
     std::set<std::pair<int32_t, int32_t>> getSubscribedContinuousPropIdAreaIds();
     std::vector<aidl::android::hardware::automotive::vehicle::SubscribeOptions>
     getSubscribeOptions();
     void clearSubscribeOptions();
-    // Whether getAllPropertyConfigs() has been called, which blocks all all property configs
+    // Whether getAllPropertyConfigs() has been called, which blocks on all property configs
     // being ready.
     bool getAllPropertyConfigsCalled();
+
+    std::unordered_set<PropIdAreaId, PropIdAreaIdHash>
+    getSubscribedSupportedValueChangePropIdAreaIds();
 
   private:
     mutable std::mutex mLock;
@@ -118,11 +142,19 @@ class MockVehicleHardware final : public IVehicleHardware {
             mSetValueRequests GUARDED_BY(mLock);
     mutable std::list<std::vector<aidl::android::hardware::automotive::vehicle::SetValueResult>>
             mSetValueResponses GUARDED_BY(mLock);
+    mutable std::vector<PropIdAreaId> mSupportedValuesListRequest GUARDED_BY(mLock);
+    mutable std::vector<PropIdAreaId> mMinMaxSupportedValueRequest GUARDED_BY(mLock);
+    mutable std::vector<aidl::android::hardware::automotive::vehicle::SupportedValuesListResult>
+            mSupportedValuesListResponse GUARDED_BY(mLock);
+    mutable std::vector<aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult>
+            mMinMaxSupportedValueResponse GUARDED_BY(mLock);
     std::unordered_map<const char*, aidl::android::hardware::automotive::vehicle::StatusCode>
             mStatusByFunctions GUARDED_BY(mLock);
     int64_t mSleepTime GUARDED_BY(mLock) = 0;
     std::unique_ptr<const PropertyChangeCallback> mPropertyChangeCallback GUARDED_BY(mLock);
     std::unique_ptr<const PropertySetErrorCallback> mPropertySetErrorCallback GUARDED_BY(mLock);
+    std::unique_ptr<const SupportedValueChangeCallback> mSupportedValueChangeCallback
+            GUARDED_BY(mLock);
     std::function<aidl::android::hardware::automotive::vehicle::StatusCode(
             std::shared_ptr<const GetValuesCallback>,
             const std::vector<aidl::android::hardware::automotive::vehicle::GetValueRequest>&)>
@@ -154,6 +186,9 @@ class MockVehicleHardware final : public IVehicleHardware {
     std::shared_ptr<RecurrentTimer> mRecurrentTimer;
     std::unordered_map<int32_t, std::unordered_map<int32_t, std::shared_ptr<std::function<void()>>>>
             mRecurrentActions GUARDED_BY(mLock);
+
+    std::unordered_set<PropIdAreaId, PropIdAreaIdHash> mSubscribedSupportedValueChangePropIdAreaIds
+            GUARDED_BY(mLock);
 };
 
 }  // namespace vehicle

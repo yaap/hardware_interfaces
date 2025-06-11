@@ -62,8 +62,4 @@ enum RadioTechnology {
      * 5G NR. This is only used in 5G Standalone mode.
      */
     NR,
-    /**
-     * 3GPP NB-IOT (Narrowband Internet of Things) over Non-Terrestrial-Networks technology.
-     */
-    NB_IOT_NTN,
 }

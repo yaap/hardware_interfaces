@@ -19,6 +19,7 @@ package android.hardware.radio.data;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable KeepaliveRequest {
     /**
      * Keepalive specified by RFC 3948 Sec. 2.3 using IPv4
@@ -58,7 +59,7 @@ parcelable KeepaliveRequest {
     int maxKeepaliveIntervalMillis;
     /**
      * Context ID, returned in setupDataCallResponse that uniquely identifies the data call to which
-     * this keepalive must applied.
+     * this keepalive must be applied.
      */
     int cid;
 }

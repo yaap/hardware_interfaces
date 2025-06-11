@@ -44,11 +44,9 @@ int SetTerminalRaw(int fd) {
 
 using namespace ::android::hardware::bluetooth::hci;
 using namespace ::android::hardware::bluetooth::async;
-using aidl::android::hardware::bluetooth::Status;
+using aidl::android::hardware::bluetooth::hal::Status;
 
 namespace aidl::android::hardware::bluetooth::impl {
-
-void OnDeath(void* cookie);
 
 std::optional<std::string> GetSystemProperty(const std::string& property) {
   std::array<char, PROPERTY_VALUE_MAX> value_array{0};
@@ -63,59 +61,10 @@ bool starts_with(const std::string& str, const std::string& prefix) {
   return str.compare(0, prefix.length(), prefix) == 0;
 }
 
-class BluetoothDeathRecipient {
- public:
-  BluetoothDeathRecipient(BluetoothHci* hci) : mHci(hci) {}
-
-  void LinkToDeath(const std::shared_ptr<IBluetoothHciCallbacks>& cb) {
-    mCb = cb;
-    clientDeathRecipient_ = AIBinder_DeathRecipient_new(OnDeath);
-    auto linkToDeathReturnStatus = AIBinder_linkToDeath(
-        mCb->asBinder().get(), clientDeathRecipient_, this /* cookie */);
-    LOG_ALWAYS_FATAL_IF(linkToDeathReturnStatus != STATUS_OK,
-                        "Unable to link to death recipient");
-  }
-
-  void UnlinkToDeath(const std::shared_ptr<IBluetoothHciCallbacks>& cb) {
-    LOG_ALWAYS_FATAL_IF(cb != mCb, "Unable to unlink mismatched pointers");
-  }
-
-  void serviceDied() {
-    if (mCb != nullptr && !AIBinder_isAlive(mCb->asBinder().get())) {
-      ALOGE("Bluetooth remote service has died");
-    } else {
-      ALOGE("BluetoothDeathRecipient::serviceDied called but service not dead");
-      return;
-    }
-    {
-      std::lock_guard<std::mutex> guard(mHasDiedMutex);
-      has_died_ = true;
-    }
-    mHci->close();
-  }
-  BluetoothHci* mHci;
-  std::shared_ptr<IBluetoothHciCallbacks> mCb;
-  AIBinder_DeathRecipient* clientDeathRecipient_;
-  bool getHasDied() {
-    std::lock_guard<std::mutex> guard(mHasDiedMutex);
-    return has_died_;
-  }
-
- private:
-  std::mutex mHasDiedMutex;
-  bool has_died_{false};
-};
-
-void OnDeath(void* cookie) {
-  auto* death_recipient = static_cast<BluetoothDeathRecipient*>(cookie);
-  death_recipient->serviceDied();
-}
-
 BluetoothHci::BluetoothHci(const std::string& dev_path) {
   char property_bytes[PROPERTY_VALUE_MAX];
   property_get("vendor.ser.bt-uart", property_bytes, dev_path.c_str());
   mDevPath = std::string(property_bytes);
-  mDeathRecipient = std::make_shared<BluetoothDeathRecipient>(this);
 }
 
 int BluetoothHci::getFdFromDevPath() {
@@ -182,10 +131,7 @@ void BluetoothHci::reset() {
   mFdWatcher.WatchFdForNonBlockingReads(mFd,
                                         [this](int) { mH4->OnDataReady(); });
 
-  ndk::ScopedAStatus result = send(PacketType::COMMAND, reset);
-  if (!result.isOk()) {
-    ALOGE("Error sending reset command");
-  }
+  send(PacketType::COMMAND, reset);
   auto status = resetFuture.wait_for(std::chrono::seconds(1));
   mFdWatcher.StopWatchingFileDescriptors();
   if (status == std::future_status::ready) {
@@ -197,13 +143,13 @@ void BluetoothHci::reset() {
   resetPromise.reset();
 }
 
-ndk::ScopedAStatus BluetoothHci::initialize(
-    const std::shared_ptr<IBluetoothHciCallbacks>& cb) {
+void BluetoothHci::initialize(
+    const std::shared_ptr<hal::IBluetoothHciCallbacks>& cb) {
   ALOGI(__func__);
 
   if (cb == nullptr) {
     ALOGE("cb == nullptr! -> Unable to call initializationComplete(ERR)");
-    return ndk::ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    abort();
   }
 
   HalState old_state = HalState::READY;
@@ -220,7 +166,6 @@ ndk::ScopedAStatus BluetoothHci::initialize(
     ALOGE("initialize: Unexpected State %d", static_cast<int>(old_state));
     close();
     cb->initializationComplete(Status::ALREADY_INITIALIZED);
-    return ndk::ScopedAStatus::ok();
   }
 
   mCb = cb;
@@ -234,11 +179,8 @@ ndk::ScopedAStatus BluetoothHci::initialize(
     if (mFd < 0) {
       mState = HalState::READY;
       cb->initializationComplete(Status::UNABLE_TO_OPEN_INTERFACE);
-      return ndk::ScopedAStatus::ok();
     }
   }
-
-  mDeathRecipient->LinkToDeath(mCb);
 
   // TODO: HCI Reset on emulators since the bluetooth controller
   // cannot be powered on/off during the HAL setup; and the stack
@@ -283,20 +225,10 @@ ndk::ScopedAStatus BluetoothHci::initialize(
     mState = HalState::ONE_CLIENT;
   }
   ALOGI("initialization complete");
-  auto status = mCb->initializationComplete(Status::SUCCESS);
-  if (!status.isOk()) {
-    if (!mDeathRecipient->getHasDied()) {
-      ALOGE("Error sending init callback, but no death notification");
-    }
-    close();
-    return ndk::ScopedAStatus::fromServiceSpecificError(
-        STATUS_FAILED_TRANSACTION);
-  }
-
-  return ndk::ScopedAStatus::ok();
+  mCb->initializationComplete(Status::SUCCESS);
 }
 
-ndk::ScopedAStatus BluetoothHci::close() {
+void BluetoothHci::close() {
   ALOGI(__func__);
   {
     std::lock_guard<std::mutex> guard(mStateMutex);
@@ -304,7 +236,6 @@ ndk::ScopedAStatus BluetoothHci::close() {
       LOG_ALWAYS_FATAL_IF(mState == HalState::INITIALIZING,
                           "mState is INITIALIZING");
       ALOGI("Already closed");
-      return ndk::ScopedAStatus::ok();
     }
     mState = HalState::CLOSING;
   }
@@ -322,43 +253,42 @@ ndk::ScopedAStatus BluetoothHci::close() {
     mState = HalState::READY;
     mH4 = nullptr;
   }
-  return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus BluetoothHci::sendHciCommand(
-    const std::vector<uint8_t>& packet) {
+void BluetoothHci::clientDied() {
+  ALOGI(__func__);
+  close();
+}
+
+void BluetoothHci::sendHciCommand(const std::vector<uint8_t>& packet) {
   return send(PacketType::COMMAND, packet);
 }
 
-ndk::ScopedAStatus BluetoothHci::sendAclData(
-    const std::vector<uint8_t>& packet) {
+void BluetoothHci::sendAclData(const std::vector<uint8_t>& packet) {
   return send(PacketType::ACL_DATA, packet);
 }
 
-ndk::ScopedAStatus BluetoothHci::sendScoData(
-    const std::vector<uint8_t>& packet) {
+void BluetoothHci::sendScoData(const std::vector<uint8_t>& packet) {
   return send(PacketType::SCO_DATA, packet);
 }
 
-ndk::ScopedAStatus BluetoothHci::sendIsoData(
-    const std::vector<uint8_t>& packet) {
+void BluetoothHci::sendIsoData(const std::vector<uint8_t>& packet) {
   return send(PacketType::ISO_DATA, packet);
 }
 
-ndk::ScopedAStatus BluetoothHci::send(PacketType type,
-    const std::vector<uint8_t>& v) {
+void BluetoothHci::send(PacketType type, const std::vector<uint8_t>& v) {
   if (v.empty()) {
     ALOGE("Packet is empty, no data was found to be sent");
-    return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    abort();
   }
 
   std::lock_guard<std::mutex> guard(mStateMutex);
   if (mH4 == nullptr) {
-    return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    ALOGE("Illegal State");
+    abort();
   }
 
   mH4->Send(type, v);
-  return ndk::ScopedAStatus::ok();
 }
 
 }  // namespace aidl::android::hardware::bluetooth::impl

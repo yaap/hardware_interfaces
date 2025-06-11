@@ -23,6 +23,7 @@ package android.hardware.radio.data;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable LinkAddress {
     const int ADDRESS_PROPERTY_NONE = 0;
     /**

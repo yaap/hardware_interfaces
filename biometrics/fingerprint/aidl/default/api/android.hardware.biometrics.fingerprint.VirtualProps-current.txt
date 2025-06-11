@@ -75,9 +75,9 @@ props {
     prop_name: "persist.vendor.fingerprint.virtual.max_enrollments"
   }
   prop {
-    api_name: "navigation_guesture"
+    api_name: "navigation_gesture"
     access: ReadWrite
-    prop_name: "persist.vendor.fingerprint.virtual.navigation_guesture"
+    prop_name: "persist.vendor.fingerprint.virtual.navigation_gesture"
   }
   prop {
     api_name: "next_enrollment"
@@ -173,6 +173,6 @@ props {
     type: String
     access: ReadWrite
     prop_name: "persist.vendor.fingerprint.virtual.type"
-    enum_values: "default|rear|udfps|side"
+    enum_values: "default|rear|udfps|udfps-us|side"
   }
 }

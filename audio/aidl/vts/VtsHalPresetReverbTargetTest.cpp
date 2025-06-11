@@ -133,11 +133,11 @@ class PresetReverbProcessTest : public ::testing::TestWithParam<PresetReverbProc
     PresetReverbProcessTest() {
         std::tie(mFactory, mDescriptor) = GetParam();
         mInput.resize(kBufferSize);
-        generateSineWave(1000 /*Input Frequency*/, mInput);
     }
 
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(1000 /*Input Frequency*/, mInput));
         ASSERT_NO_FATAL_FAILURE(SetUpPresetReverb());
     }
     void TearDown() override {
@@ -187,13 +187,13 @@ TEST_P(PresetReverbProcessTest, DecreasingRoomSize) {
     std::vector<PresetReverb::Presets> roomPresets = {PresetReverb::Presets::LARGEROOM,
                                                       PresetReverb::Presets::MEDIUMROOM,
                                                       PresetReverb::Presets::SMALLROOM};
-    validateIncreasingEnergy(roomPresets);
+    ASSERT_NO_FATAL_FAILURE(validateIncreasingEnergy(roomPresets));
 }
 
 TEST_P(PresetReverbProcessTest, DecreasingHallSize) {
     std::vector<PresetReverb::Presets> hallPresets = {PresetReverb::Presets::LARGEHALL,
                                                       PresetReverb::Presets::MEDIUMHALL};
-    validateIncreasingEnergy(hallPresets);
+    ASSERT_NO_FATAL_FAILURE(validateIncreasingEnergy(hallPresets));
 }
 
 TEST_P(PresetReverbProcessTest, PresetPlate) {

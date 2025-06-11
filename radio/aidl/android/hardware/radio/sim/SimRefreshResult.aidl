@@ -19,6 +19,7 @@ package android.hardware.radio.sim;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 @SuppressWarnings(value={"redundant-name"})
 parcelable SimRefreshResult {
     /**
@@ -45,9 +46,9 @@ parcelable SimRefreshResult {
     /**
      * AID (application ID) of the card application. See ETSI 102.221 8.1 and 101.220 4.
      * For TYPE_SIM_FILE_UPDATE result, it must be set to AID of application in which updated EF
-     * resides or it must be empty string if EF is outside of an application. For TYPE_SIM_INIT
+     * resides or it must be an empty string if EF is outside of an application. For TYPE_SIM_INIT
      * result, this field is set to AID of application that caused REFRESH. For TYPE_SIM_RESET
-     * result, it is empty string.
+     * result, it is an empty string.
      */
     String aid;
 }

@@ -22,10 +22,13 @@
 namespace aidl::android::hardware::biometrics {
 
 CancellationSignal::CancellationSignal(std::promise<void>&& cancellationPromise)
-    : mCancellationPromise(std::move(cancellationPromise)) {}
+    : mCancellationPromise(std::move(cancellationPromise)), isSet(false) {}
 
 ndk::ScopedAStatus CancellationSignal::cancel() {
-    mCancellationPromise.set_value();
+    if (!isSet) {
+        mCancellationPromise.set_value();
+        isSet = true;
+    }
     return ndk::ScopedAStatus::ok();
 }
 

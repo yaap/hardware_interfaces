@@ -19,6 +19,7 @@ package android.hardware.radio.data;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable PcoDataInfo {
     /**
      * Context ID, uniquely identifies this call

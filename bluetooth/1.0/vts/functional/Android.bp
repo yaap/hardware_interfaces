@@ -30,7 +30,6 @@ cc_test {
     srcs: ["VtsHalBluetoothV1_0TargetTest.cpp"],
     static_libs: [
         "android.hardware.bluetooth@1.0",
-        "libbluetooth-types",
     ],
     test_config: "VtsHalBluetoothV1_0TargetTest.xml",
     test_suites: [

@@ -29,6 +29,11 @@ namespace aidl::android::hardware::security::keymint::remote_prov {
 using bytevec = std::vector<uint8_t>;
 using namespace cppcose;
 
+constexpr std::string_view kErrorChallengeMismatch = "challenges do not match";
+constexpr std::string_view kErrorUdsCertsAreRequired = "UdsCerts are required";
+constexpr std::string_view kErrorKeysToSignMismatch = "KeysToSign do not match";
+constexpr std::string_view kErrorDiceChainIsDegenerate = "DICE chain is degenerate";
+
 extern bytevec kTestMacKey;
 
 // The Google root key for the Endpoint Encryption Key chain, encoded as COSE_Sign1
@@ -208,6 +213,23 @@ ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyProductionCsr(const cppbor::Array
 /** Checks whether the CSR has a proper DICE chain. */
 ErrMsgOr<bool> isCsrWithProperDiceChain(const std::vector<uint8_t>& csr,
                                         const std::string& instanceName);
+
+/** Checks whether the CSRs contain DICE certificate chains that have root certificates
+ * with the same public key.
+ */
+ErrMsgOr<bool> compareRootPublicKeysInDiceChains(const std::vector<uint8_t>& csr1,
+                                                 std::string_view instanceName1,
+                                                 const std::vector<uint8_t>& csr2,
+                                                 std::string_view instanceName2);
+
+/** Checks whether the component name in the configuration descriptor in the leaf certificate
+ * of the primary KeyMint instance's DICE certificate chain contains "keymint"
+ */
+ErrMsgOr<bool> verifyComponentNameInKeyMintDiceChain(const std::vector<uint8_t>& csr);
+
+/** Checks whether the DICE chain in the CSR has a certificate with a non-normal mode. */
+ErrMsgOr<bool> hasNonNormalModeInDiceChain(const std::vector<uint8_t>& csr,
+                                           std::string_view instanceName);
 
 /** Verify the DICE chain. */
 ErrMsgOr<std::vector<BccEntryData>> validateBcc(const cppbor::Array* bcc,

@@ -32,7 +32,6 @@ cc_test {
     ],
     static_libs: [
         "android.hardware.bluetooth.finder-V1-ndk",
-        "libbluetooth-types",
     ],
     test_config: "VtsHalBluetoothFinderTargetTest.xml",
     test_suites: [

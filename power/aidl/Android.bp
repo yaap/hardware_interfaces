@@ -69,8 +69,16 @@ aidl_interface {
                 "android.hardware.common-V2",
             ],
         },
+        {
+            version: "6",
+            imports: [
+                "android.hardware.common.fmq-V1",
+                "android.hardware.common-V2",
+            ],
+        },
+
     ],
-    frozen: false,
+    frozen: true,
 }
 
 power_version = "android.hardware.power-V6"

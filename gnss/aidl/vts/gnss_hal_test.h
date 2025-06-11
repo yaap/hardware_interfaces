@@ -81,14 +81,17 @@ class GnssHalTest : public android::hardware::gnss::common::GnssHalTestTemplate<
     std::list<std::vector<android::hardware::gnss::IGnssCallback::GnssSvInfo>> convertToAidl(
             const std::list<hidl_vec<android::hardware::gnss::V2_1::IGnssCallback::GnssSvInfo>>&
                     sv_info_list);
-    android::hardware::gnss::BlocklistedSource FindStrongFrequentBlockableSource(
+    std::vector<android::hardware::gnss::BlocklistedSource> FindStrongFrequentSources(
             const std::list<hidl_vec<android::hardware::gnss::V2_1::IGnssCallback::GnssSvInfo>>
                     sv_info_list,
             const int min_observations);
-    android::hardware::gnss::BlocklistedSource FindStrongFrequentBlockableSource(
+    std::vector<android::hardware::gnss::BlocklistedSource> FindStrongFrequentSources(
             const std::list<std::vector<android::hardware::gnss::IGnssCallback::GnssSvInfo>>
                     sv_info_list,
             const int min_observations);
+    bool isBlockableConstellation(
+            const android::hardware::gnss::GnssConstellationType constellation,
+            const bool isCnBuild);
 
     void checkGnssMeasurementClockFields(const android::hardware::gnss::GnssData& measurement);
     void checkGnssMeasurementFlags(const android::hardware::gnss::GnssMeasurement& measurement);

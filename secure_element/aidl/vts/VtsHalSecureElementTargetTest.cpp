@@ -320,5 +320,10 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ABinderProcess_setThreadPoolMaxThreadCount(1);
     ABinderProcess_startThreadPool();
-    return RUN_ALL_TESTS();
+    std::system("/system/bin/svc nfc disable"); /* Turn off NFC */
+    sleep(5);
+    int status = RUN_ALL_TESTS();
+    std::system("/system/bin/svc nfc enable"); /* Turn on NFC */
+    sleep(5);
+    return status;
 }

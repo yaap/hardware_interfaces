@@ -43,6 +43,7 @@ cc_library {
 
 cc_test {
     name: "VtsAidlHalAudioControlTest",
+    team: "trendy_team_aaos_audio_triage",
     defaults: [
         "latest_android_hardware_audio_common_cpp_static",
         "latest_android_hardware_automotive_audiocontrol_cpp_static",

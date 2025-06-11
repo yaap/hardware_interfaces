@@ -24,6 +24,7 @@ import android.hardware.radio.data.QosBandwidth;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable NrQos {
     const byte FLOW_ID_RANGE_MIN = 1;
     const byte FLOW_ID_RANGE_MAX = 63;

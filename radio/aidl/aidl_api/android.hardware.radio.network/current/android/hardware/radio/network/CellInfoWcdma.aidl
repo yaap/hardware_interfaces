@@ -33,7 +33,7 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable CellInfoWcdma {
   android.hardware.radio.network.CellIdentityWcdma cellIdentityWcdma;
   android.hardware.radio.network.WcdmaSignalStrength signalStrengthWcdma;

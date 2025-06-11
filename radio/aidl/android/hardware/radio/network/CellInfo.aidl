@@ -22,6 +22,7 @@ import android.hardware.radio.network.CellInfoRatSpecificInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellInfo {
     /**
      * True if this cell is registered false if not registered.

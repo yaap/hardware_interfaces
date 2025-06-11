@@ -27,8 +27,8 @@ import android.hardware.gnss.gnss_assistance.SatelliteEphemerisTime;
  */
 @VintfStability
 parcelable GpsSatelliteEphemeris {
-    /** Satellite PRN */
-    int prn;
+    /** PRN or satellite ID number for the GPS satellite. */
+    int svid;
 
     /* Contains information about L2 params. */
     @VintfStability

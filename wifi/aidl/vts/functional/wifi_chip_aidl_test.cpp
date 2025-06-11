@@ -30,6 +30,9 @@
 
 #include "wifi_aidl_test_utils.h"
 
+using aidl::android::hardware::wifi::AfcChannelAllowance;
+using aidl::android::hardware::wifi::AvailableAfcChannelInfo;
+using aidl::android::hardware::wifi::AvailableAfcFrequencyInfo;
 using aidl::android::hardware::wifi::BnWifiChipEventCallback;
 using aidl::android::hardware::wifi::IfaceType;
 using aidl::android::hardware::wifi::IWifiApIface;
@@ -38,6 +41,7 @@ using aidl::android::hardware::wifi::IWifiNanIface;
 using aidl::android::hardware::wifi::IWifiP2pIface;
 using aidl::android::hardware::wifi::IWifiRttController;
 using aidl::android::hardware::wifi::WifiBand;
+using aidl::android::hardware::wifi::WifiChipCapabilities;
 using aidl::android::hardware::wifi::WifiDebugHostWakeReasonStats;
 using aidl::android::hardware::wifi::WifiDebugRingBufferStatus;
 using aidl::android::hardware::wifi::WifiDebugRingBufferVerboseLevel;
@@ -52,6 +56,7 @@ class WifiChipAidlTest : public testing::TestWithParam<std::string> {
         stopWifiService(getInstanceName());
         wifi_chip_ = getWifiChip(getInstanceName());
         ASSERT_NE(nullptr, wifi_chip_.get());
+        ASSERT_TRUE(wifi_chip_->getInterfaceVersion(&interface_version_).isOk());
     }
 
     void TearDown() override { stopWifiService(getInstanceName()); }
@@ -139,6 +144,7 @@ class WifiChipAidlTest : public testing::TestWithParam<std::string> {
     const char* getInstanceName() { return GetParam().c_str(); }
 
     std::shared_ptr<IWifiChip> wifi_chip_;
+    int interface_version_;
 };
 
 class WifiChipEventCallback : public BnWifiChipEventCallback {
@@ -265,6 +271,23 @@ TEST_P(WifiChipAidlTest, SetCountryCode) {
     configureChipForConcurrencyType(IfaceConcurrencyType::STA);
     std::array<uint8_t, 2> country_code = {0x55, 0x53};
     EXPECT_TRUE(wifi_chip_->setCountryCode(country_code).isOk());
+}
+
+/*
+ * Tests the setAfcChannelAllowance() API.
+ */
+TEST_P(WifiChipAidlTest, SetAfcChannelAllowance) {
+    configureChipForConcurrencyType(IfaceConcurrencyType::STA);
+    int32_t features = getChipFeatureSet(wifi_chip_);
+    AfcChannelAllowance allowance;
+    allowance.availableAfcChannelInfos = std::vector<AvailableAfcChannelInfo>();
+    allowance.availableAfcFrequencyInfos = std::vector<AvailableAfcFrequencyInfo>();
+    auto status = wifi_chip_->setAfcChannelAllowance(allowance);
+    if (features & static_cast<int32_t>(IWifiChip::FeatureSetMask::SET_AFC_CHANNEL_ALLOWANCE)) {
+        EXPECT_TRUE(status.isOk());
+    } else {
+        EXPECT_TRUE(checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED));
+    }
 }
 
 /*
@@ -502,6 +525,9 @@ TEST_P(WifiChipAidlTest, StartLoggingToDebugRingBuffer) {
 
     status = wifi_chip_->startLoggingToDebugRingBuffer(
             ring_name, WifiDebugRingBufferVerboseLevel::VERBOSE, 5, 1024);
+    EXPECT_TRUE(status.isOk() || checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED));
+
+    status = wifi_chip_->stopLoggingToDebugRingBuffer();
     EXPECT_TRUE(status.isOk() || checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED));
 }
 
@@ -900,6 +926,168 @@ TEST_P(WifiChipAidlTest, SetVoipMode_voice) {
     } else {
         GTEST_SKIP() << "setVoipMode() is not supported by vendor.";
     }
+}
+
+/**
+ * CreateApOrBridgedApIfaceWithParams for signal ap.
+ */
+TEST_P(WifiChipAidlTest, CreateApOrBridgedApIfaceWithParams_signal_ap) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "CreateApOrBridgedApIfaceWithParams is available as of WifiChip V3";
+    }
+    if (!isConcurrencyTypeSupported(IfaceConcurrencyType::AP)) {
+        GTEST_SKIP() << "AP is not supported";
+    }
+
+    std::shared_ptr<IWifiChip> wifi_chip = getWifiChip(getInstanceName());
+    ASSERT_NE(nullptr, wifi_chip.get());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApOrBridgedApIface(
+            wifi_chip, generateApIfaceParams(IfaceConcurrencyType::AP, false, 0));
+    ASSERT_NE(nullptr, wifi_ap_iface.get());
+}
+
+/**
+ * CreateApOrBridgedApIfaceWithParams for non mlo bridged ap.
+ */
+TEST_P(WifiChipAidlTest, CreateApOrBridgedApIfaceWithParams_non_mlo_bridged_ap) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "CreateApOrBridgedApIfaceWithParams is available as of WifiChip V3";
+    }
+    bool isBridgedSupport = testing::checkSubstringInCommandOutput(
+            "/system/bin/cmd wifi get-softap-supported-features",
+            "wifi_softap_bridged_ap_supported");
+    if (!isBridgedSupport) {
+        GTEST_SKIP() << "Missing Bridged AP support";
+    }
+
+    std::shared_ptr<IWifiChip> wifi_chip = getWifiChip(getInstanceName());
+    ASSERT_NE(nullptr, wifi_chip.get());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApOrBridgedApIface(
+            wifi_chip, generateApIfaceParams(IfaceConcurrencyType::AP_BRIDGED, false, 0));
+    ASSERT_NE(nullptr, wifi_ap_iface.get());
+
+    std::string br_name;
+    std::vector<std::string> instances;
+    bool uses_mlo;
+    EXPECT_TRUE(wifi_ap_iface->getName(&br_name).isOk());
+    EXPECT_TRUE(wifi_ap_iface->getBridgedInstances(&instances).isOk());
+    EXPECT_TRUE(wifi_ap_iface->usesMlo(&uses_mlo).isOk());
+    EXPECT_FALSE(uses_mlo);
+    EXPECT_EQ(instances.size(), 2);
+}
+
+/**
+ * CreateApOrBridgedApIfaceWithParams for mlo bridged ap.
+ */
+TEST_P(WifiChipAidlTest, CreateApOrBridgedApIfaceWithParams_mlo_bridged_ap) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "CreateApOrBridgedApIfaceWithParams is available as of WifiChip V3";
+    }
+    bool isBridgedSupport = testing::checkSubstringInCommandOutput(
+            "/system/bin/cmd wifi get-softap-supported-features",
+            "wifi_softap_bridged_ap_supported");
+    if (!isBridgedSupport) {
+        GTEST_SKIP() << "Missing Bridged AP support";
+    }
+
+    configureChipForConcurrencyType(IfaceConcurrencyType::STA);
+    int32_t features = getChipFeatureSet(wifi_chip_);
+    if (!(features & static_cast<int32_t>(IWifiChip::FeatureSetMask::MLO_SAP))) {
+        GTEST_SKIP() << "MLO_SAP is not supported by vendor.";
+    }
+    std::shared_ptr<IWifiChip> wifi_chip = getWifiChip(getInstanceName());
+    ASSERT_NE(nullptr, wifi_chip.get());
+    std::shared_ptr<IWifiApIface> wifi_ap_iface = getWifiApOrBridgedApIface(
+            wifi_chip, generateApIfaceParams(IfaceConcurrencyType::AP_BRIDGED, true, 0));
+    ASSERT_NE(nullptr, wifi_ap_iface.get());
+
+    std::string br_name;
+    std::vector<std::string> instances;
+    bool uses_mlo;
+    EXPECT_TRUE(wifi_ap_iface->getName(&br_name).isOk());
+    EXPECT_TRUE(wifi_ap_iface->getBridgedInstances(&instances).isOk());
+    EXPECT_TRUE(wifi_ap_iface->usesMlo(&uses_mlo).isOk());
+    EXPECT_TRUE(uses_mlo);
+    EXPECT_EQ(instances.size(), 2);
+}
+
+/*
+ * GetWifiChipCapabilities
+ */
+TEST_P(WifiChipAidlTest, GetWifiChipCapabilities) {
+    WifiChipCapabilities chipCapabilities;
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
+    auto status = wifi_chip_->getWifiChipCapabilities(&chipCapabilities);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "getWifiChipCapabilities() is not supported by vendor.";
+    }
+    EXPECT_TRUE(status.isOk());
+}
+
+/*
+ * SetMloMode
+ */
+TEST_P(WifiChipAidlTest, SetMloMode) {
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
+    auto status = wifi_chip_->setMloMode(IWifiChip::ChipMloMode::LOW_LATENCY);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "setMloMode() is not supported by vendor.";
+    }
+    EXPECT_TRUE(status.isOk());
+}
+
+/*
+ * EnableDebugErrorAlerts
+ */
+TEST_P(WifiChipAidlTest, EnableDebugErrorAlerts) {
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
+    auto status = wifi_chip_->enableDebugErrorAlerts(true);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "EnableDebugErrorAlerts is not supported by vendor";
+    }
+    EXPECT_TRUE(status.isOk());
+    EXPECT_TRUE(wifi_chip_->enableDebugErrorAlerts(false).isOk());
+}
+
+/*
+ * TriggerSubsystemRestart
+ */
+TEST_P(WifiChipAidlTest, TriggerSubsystemRestart) {
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
+    auto status = wifi_chip_->triggerSubsystemRestart();
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "TriggerSubsystemRestart is not supported by vendor";
+    }
+    EXPECT_TRUE(status.isOk());
+}
+
+/*
+ * EnableStaChannelForPeerNetwork
+ */
+TEST_P(WifiChipAidlTest, EnableStaChannelForPeerNetwork) {
+    // STA iface needs to be configured for this test
+    auto iface = configureChipForStaAndGetIface();
+    ASSERT_NE(iface, nullptr);
+
+    int categoryMask = (int)IWifiChip::ChannelCategoryMask::INDOOR_CHANNEL |
+                       (int)IWifiChip::ChannelCategoryMask::DFS_CHANNEL;
+    auto status = wifi_chip_->enableStaChannelForPeerNetwork(categoryMask);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "EnableStaChannelForPeerNetwork is not supported by vendor";
+    }
+    EXPECT_TRUE(status.isOk());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WifiChipAidlTest);

@@ -30,6 +30,7 @@ class CancellationSignal : public common::BnCancellationSignal {
 
   private:
     std::promise<void> mCancellationPromise;
+    bool isSet;
 };
 
 // Returns whether the given cancellation future is ready, i.e. whether the operation corresponding

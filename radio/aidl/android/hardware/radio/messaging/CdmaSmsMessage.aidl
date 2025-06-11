@@ -22,6 +22,7 @@ import android.hardware.radio.messaging.CdmaSmsSubaddress;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaSmsMessage {
     /** @deprecated Legacy CDMA is unsupported. */
     int teleserviceId;

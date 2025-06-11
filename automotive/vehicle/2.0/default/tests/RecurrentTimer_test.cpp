@@ -39,37 +39,37 @@ TEST(RecurrentTimerTest, oneInterval) {
         counterRef.get()++;
     });
 
-    timer.registerRecurrentEvent(milliseconds(1), 0xdead);
-    std::this_thread::sleep_for(milliseconds(100));
-    // This test is unstable, so set the tolerance to 50.
-    ASSERT_EQ_WITH_TOLERANCE(100, counter.load(), 50);
+    timer.registerRecurrentEvent(milliseconds(100), 0xdead);
+    std::this_thread::sleep_for(milliseconds(1000));
+    // This test is unstable, so set the tolerance to 5.
+    ASSERT_EQ_WITH_TOLERANCE(10, counter.load(), 5);
 }
 
 TEST(RecurrentTimerTest, multipleIntervals) {
-    std::atomic<int64_t> counter1ms { 0L };
-    std::atomic<int64_t> counter5ms { 0L };
-    auto counter1msRef = std::ref(counter1ms);
-    auto counter5msRef = std::ref(counter5ms);
+    std::atomic<int64_t> counter100ms { 0L };
+    std::atomic<int64_t> counter50ms { 0L };
+    auto counter100msRef = std::ref(counter100ms);
+    auto counter50msRef = std::ref(counter50ms);
     RecurrentTimer timer(
-            [&counter1msRef, &counter5msRef](const std::vector<int32_t>& cookies) {
+            [&counter100msRef, &counter50msRef](const std::vector<int32_t>& cookies) {
         for (int32_t cookie : cookies) {
             if (cookie == 0xdead) {
-                counter1msRef.get()++;
+                counter100msRef.get()++;
             } else if (cookie == 0xbeef) {
-                counter5msRef.get()++;
+                counter50msRef.get()++;
             } else {
                 FAIL();
             }
         }
     });
 
-    timer.registerRecurrentEvent(milliseconds(1), 0xdead);
-    timer.registerRecurrentEvent(milliseconds(5), 0xbeef);
+    timer.registerRecurrentEvent(milliseconds(100), 0xdead);
+    timer.registerRecurrentEvent(milliseconds(50), 0xbeef);
 
-    std::this_thread::sleep_for(milliseconds(100));
-    // This test is unstable, so set the tolerance to 50.
-    ASSERT_EQ_WITH_TOLERANCE(100, counter1ms.load(), 50);
-    ASSERT_EQ_WITH_TOLERANCE(20, counter5ms.load(), 10);
+    std::this_thread::sleep_for(milliseconds(1000));
+    // This test is unstable, so set the tolerance to 5.
+    ASSERT_EQ_WITH_TOLERANCE(10, counter100ms.load(), 5);
+    ASSERT_EQ_WITH_TOLERANCE(20, counter50ms.load(), 10);
 }
 
 }  // anonymous namespace

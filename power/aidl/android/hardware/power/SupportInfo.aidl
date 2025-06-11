@@ -139,5 +139,39 @@ parcelable SupportInfo {
          * than the interval.
          */
         int gpuMinIntervalMillis;
+
+        /**
+         * Minimum calculation window size for getCpuHeadroom in milliseconds.
+         *
+         * This should be no larger than 50ms.
+         */
+        int cpuMinCalculationWindowMillis = 50;
+
+        /**
+         * Maximum calculation window size for getCpuHeadroom in milliseconds.
+         *
+         * This should be no smaller than 10000ms.
+         */
+        int cpuMaxCalculationWindowMillis = 10000;
+
+        /**
+         * Minimum calculation window size for getGpuHeadroom in milliseconds.
+         *
+         * This should be no larger than 50ms.
+         */
+        int gpuMinCalculationWindowMillis = 50;
+
+        /**
+         * Maximum calculation window size for getGpuHeadroom in milliseconds.
+         *
+         * This should be no smaller than 10000ms.
+         */
+        int gpuMaxCalculationWindowMillis = 10000;
+
+        /**
+         * Maximum number of TIDs this device can support.
+         * This should be no smaller than 5.
+         */
+        int cpuMaxTidCount = 5;
     }
 }

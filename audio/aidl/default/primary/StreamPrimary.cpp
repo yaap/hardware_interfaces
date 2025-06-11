@@ -46,9 +46,9 @@ StreamPrimary::StreamPrimary(StreamContext* context, const Metadata& metadata)
     context->startStreamDataProcessor();
 }
 
-::android::status_t StreamPrimary::init() {
-    RETURN_STATUS_IF_ERROR(mStubDriver.init());
-    return StreamAlsa::init();
+::android::status_t StreamPrimary::init(DriverCallbackInterface* callback) {
+    RETURN_STATUS_IF_ERROR(mStubDriver.init(callback));
+    return StreamAlsa::init(callback);
 }
 
 ::android::status_t StreamPrimary::drain(StreamDescriptor::DrainMode mode) {

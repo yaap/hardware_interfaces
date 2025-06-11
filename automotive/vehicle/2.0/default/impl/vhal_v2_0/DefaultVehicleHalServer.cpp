@@ -16,10 +16,10 @@
 
 #define LOG_TAG "DefaultVehicleHalServer"
 
+#include <format>
 #include <fstream>
 #include <regex>
 
-#include <android-base/format.h>
 #include <android-base/logging.h>
 #include <android-base/parsedouble.h>
 #include <android-base/parseint.h>
@@ -237,7 +237,7 @@ IVehicleServer::DumpResult DefaultVehicleHalServer::onDump(
         auto values = mServerSidePropStore.readAllValues();
         size_t i = 0;
         for (const auto& value : values) {
-            result.buffer += fmt::format("[{}]: {}\n", i, toString(value));
+            result.buffer += std::format("[{}]: {}\n", i, toString(value));
             i++;
         }
         return result;

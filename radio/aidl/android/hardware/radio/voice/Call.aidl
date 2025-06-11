@@ -22,6 +22,7 @@ import android.hardware.radio.voice.UusInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable Call {
     const int PRESENTATION_ALLOWED = 0;
     const int PRESENTATION_RESTRICTED = 1;

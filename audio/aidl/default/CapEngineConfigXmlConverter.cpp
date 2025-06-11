@@ -52,6 +52,7 @@ static constexpr const char* gStreamsParameter = "streams";
 static constexpr const char* gOutputDevicesParameter = "selected_output_devices";
 static constexpr const char* gOutputDeviceAddressParameter = "device_address";
 static constexpr const char* gStrategyPrefix = "vx_";
+static constexpr const char* gLegacyStrategyPrefix = "STRATEGY_";
 static constexpr const char* gLegacyOutputDevicePrefix = "AUDIO_DEVICE_OUT_";
 static constexpr const char* gLegacyInputDevicePrefix = "AUDIO_DEVICE_IN_";
 static constexpr const char* gLegacyStreamPrefix = "AUDIO_STREAM_";
@@ -158,6 +159,17 @@ ConversionResult<int> getAudioProductStrategyId(const std::string& path) {
                 return unexpected(BAD_VALUE);
             }
             return strategyId;
+        }
+        pos = stringToken.find(gLegacyStrategyPrefix);
+        if (pos != std::string::npos) {
+            std::string legacyStrategyIdLiteral = stringToken.substr(pos);
+            const auto legacyStrategies = getLegacyProductStrategyMap();
+            if (const auto& it = legacyStrategies.find(legacyStrategyIdLiteral);
+                    it != legacyStrategies.end()) {
+                return it->second;
+            }
+            LOG(ERROR) << "Invalid legacy strategy " << stringToken << " from path " << path;
+            return unexpected(BAD_VALUE);
         }
     }
     return unexpected(BAD_VALUE);

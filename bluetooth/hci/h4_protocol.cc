@@ -45,29 +45,50 @@ size_t H4Protocol::Send(PacketType type, const std::vector<uint8_t>& vector) {
 }
 
 size_t H4Protocol::Send(PacketType type, const uint8_t* data, size_t length) {
-  /* For HCI communication over USB dongle, multiple write results in
-   * response timeout as driver expect type + data at once to process
-   * the command, so using "writev"(for atomicity) here.
-   */
-  struct iovec iov[2];
-  ssize_t ret = 0;
-  iov[0].iov_base = &type;
-  iov[0].iov_len = sizeof(type);
-  iov[1].iov_base = (void*)data;
-  iov[1].iov_len = length;
-  while (1) {
-    ret = TEMP_FAILURE_RETRY(writev(uart_fd_, iov, 2));
+  struct iovec iov_array[] = {{&type, sizeof(type)},
+                              {const_cast<uint8_t*>(data), length}};
+  size_t iovcnt = sizeof(iov_array) / sizeof(iov_array[0]);
+  struct iovec* iov = iov_array;
+  size_t total_bytes = sizeof(type) + length;
+  size_t remaining_bytes = total_bytes;
+  size_t bytes_written = 0;
+
+  while (remaining_bytes > 0) {
+    ssize_t ret = TEMP_FAILURE_RETRY(writev(uart_fd_, iov, iovcnt));
     if (ret == -1) {
-      LOG_ALWAYS_FATAL("%s error writing to UART (%s)", __func__,
-                       strerror(errno));
+      if (errno == EAGAIN) continue;
+      ALOGE("Error writing to UART (%s)", strerror(errno));
+      break;
     } else if (ret == 0) {
       // Nothing written :(
       ALOGE("%s zero bytes written - something went wrong...", __func__);
       break;
+    } else if (ret == remaining_bytes) {
+      // Everything written
+      bytes_written += ret;
+      break;
     }
-    break;
+
+    // Updating counters for partial writes
+    bytes_written += ret;
+    remaining_bytes -= ret;
+
+    ALOGW("%s: %zu/%zu bytes written - retrying remaining %zu bytes", __func__,
+          bytes_written, total_bytes, remaining_bytes);
+
+    // Remove fully written iovs from the list
+    while (ret >= iov->iov_len) {
+      ret -= iov->iov_len;
+      ++iov;
+      --iovcnt;
+    }
+    // Adjust the iov to point to the remaining data that needs to be written
+    if (ret > 0) {
+      iov->iov_base = static_cast<uint8_t*>(iov->iov_base) + ret;
+      iov->iov_len -= ret;
+    }
   }
-  return ret;
+  return total_bytes - remaining_bytes;
 }
 
 size_t H4Protocol::OnPacketReady(const std::vector<uint8_t>& packet) {

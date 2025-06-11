@@ -240,28 +240,35 @@ following links:
 
 ### Support for Android Virtualization Framework
 
-The Android Virtualization Framwork (AVF) relies on RKP to provision keys for VMs. A
-privileged vm, the RKP VM, is reponsible for generating and managing the keys for client
-VMs that run virtualized workloads. See the following for more background information on the
-RKP VM:
-*    [rkp-vm](https://android.googlesource.com/platform/packages/modules/Virtualization/+/main/service_vm/README.md#rkp-vm-remote-key-provisioning-virtual-machine)
-*    [rkp-service](https://source.android.com/docs/core/ota/modular-system/remote-key-provisioning#stack-architecture)
+The Android Virtualization Framework (AVF) relies on RKP to provision keys for
+VMs. There are a privileged set of VMs that RKP will recognise and provision
+keys to for specific applications, like Widevine, and for services, like
+[VM attestation][vm-attestation]. These privileged VMs are identified by their
+DICE chain through a combination of the [RKP VM marker][rkp-vm-marker]
+(key `-70006`) and the component name.
 
-It is important to distinquish the RKP VM from other components, such as KeyMint. An
-[RKP VM marker](https://pigweed.googlesource.com/open-dice/+/HEAD/docs/android.md#configuration-descriptor)
-(key `-70006`) is used for this purpose. The existence or absence of this marker is used to
-identify the type of component decribed by a given DICE chain.
+[vm-attestation]: http://android.googlesource.com/platform/packages/modules/Virtualization/+/main/docs/vm_remote_attestation.md
+[rkp-vm-marker]: https://pigweed.googlesource.com/open-dice/+/HEAD/docs/android.md#configuration-descriptor
 
-The following describes which certificate types may be request based on the RKP VM marker:
-1. "rkp-vm": If a DICE chain has zero or more certificates without the RKP VM
-   marker followed by one or more certificates with the marker, then that chain
-   describes an RKP VM. If there are further certificates without the RKP VM
-   marker, then the chain does not describe an RKP VM.
+If a DICE chain begins from the root with zero or more certificates without
+the RKP VM marker, followed by only certificates with the marker up to and
+including the leaf certificate, then that chain describes a VM that RKP might
+provision keys to. Implementations must include the first RKP VM marker as early
+as possible after the point of divergence between TEE and non-TEE components in
+the DICE chain, prior to loading the Android Bootloader (ABL).
 
-   Implementations must include the first RKP VM marker as early as possible
-   after the point of divergence between TEE and non-TEE components in the DICE
-   chain, prior to loading the Android Bootloader (ABL).
-2. "widevine" or "keymint": If there are no certificates with the RKP VM
-   marker then it describes a TEE component.
-3. None: Any component described by a DICE chain that does not match the above
-   two categories.
+The component name of the leaf certificate then identifies the kind of keys for
+RKP to provision:
+
+*   "rkp-vm": for VM attestation keys managed by the [service VM][service-vm]
+*   "keymint": for Android attestation keys
+*   "widevine": for Widevine keys
+
+[service-vm]: https://android.googlesource.com/platform/packages/modules/Virtualization/+/main/service_vm/README.md#rkp-vm-remote-key-provisioning-virtual-machine
+
+If there are no certificates with the RKP VM marker in the DICE chain then it
+describes a TEE component that can be provisioned with Widevine and Android
+attestation keys.
+
+Any remaining DICE chains describe a component to which RKP will not provision
+keys.

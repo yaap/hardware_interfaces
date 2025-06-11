@@ -43,13 +43,13 @@ static constexpr int kMinDelay = 0;
 static const std::vector<TagVectorPair> kParamsIncreasingVector = {
         {EnvironmentalReverb::roomLevelMb, {-3500, -2800, -2100, -1400, -700, 0}},
         {EnvironmentalReverb::roomHfLevelMb, {-4000, -3200, -2400, -1600, -800, 0}},
-        {EnvironmentalReverb::decayTimeMs, {800, 1600, 2400, 3200, 4000}},
-        {EnvironmentalReverb::decayHfRatioPm, {100, 600, 1100, 1600, 2000}},
+        {EnvironmentalReverb::decayTimeMs, {400, 800, 1200, 1600, 2000}},
+        {EnvironmentalReverb::decayHfRatioPm, {1000, 900, 800, 700}},
         {EnvironmentalReverb::levelMb, {-3500, -2800, -2100, -1400, -700, 0}},
 };
 
 static const TagVectorPair kDiffusionParam = {EnvironmentalReverb::diffusionPm,
-                                              {200, 400, 600, 800, 1000}};
+                                              {100, 300, 500, 700, 900}};
 static const TagVectorPair kDensityParam = {EnvironmentalReverb::densityPm,
                                             {0, 200, 400, 600, 800, 1000}};
 
@@ -139,6 +139,7 @@ static std::vector<TagValuePair> buildSetAndGetTestParams() {
 
     return valueTag;
 }
+
 /**
  * Tests do the following:
  * - Testing parameter range supported by the effect. Range is verified with IEffect.getDescriptor()
@@ -281,11 +282,11 @@ class EnvironmentalReverbHelper : public EffectHelper {
 
     static constexpr int kDurationMilliSec = 500;
     static constexpr int kBufferSize = kSamplingFrequency * kDurationMilliSec / 1000;
-    static constexpr int kInputFrequency = 1000;
+    static constexpr int kInputFrequency = 2000;
+    static constexpr int mChannelLayout = AudioChannelLayout::LAYOUT_STEREO;
 
-    int mStereoChannelCount =
-            getChannelCount(AudioChannelLayout::make<AudioChannelLayout::layoutMask>(
-                    AudioChannelLayout::LAYOUT_STEREO));
+    int mStereoChannelCount = getChannelCount(
+            AudioChannelLayout::make<AudioChannelLayout::layoutMask>(mChannelLayout));
     int mFrameCount = kBufferSize / mStereoChannelCount;
 
     std::shared_ptr<IFactory> mFactory;
@@ -304,7 +305,7 @@ class EnvironmentalReverbParamTest
         : EnvironmentalReverbHelper(std::get<DESCRIPTOR_INDEX>(GetParam())) {
         std::tie(mTag, mParamValue) = std::get<TAG_VALUE_PAIR>(GetParam());
     }
-    void SetUp() override { SetUpReverb(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpReverb()); }
     void TearDown() override { TearDownReverb(); }
 
     EnvironmentalReverb::Tag mTag;
@@ -344,11 +345,12 @@ class EnvironmentalReverbDataTest
         : EnvironmentalReverbHelper(std::get<DESCRIPTOR_INDEX>(GetParam())) {
         std::tie(mTag, mParamValues) = std::get<TAG_VALUE_PAIR>(GetParam());
         mInput.resize(kBufferSize);
-        generateSineWave(kInputFrequency, mInput);
     }
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(
+                generateSineWave(kInputFrequency, mInput, 1.0, kSamplingFrequency, mChannelLayout));
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
     }
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
@@ -385,11 +387,11 @@ class EnvironmentalReverbDataTest
 };
 
 TEST_P(EnvironmentalReverbDataTest, IncreasingParamValue) {
-    assertEnergyIncreasingWithParameter(false);
+    ASSERT_NO_FATAL_FAILURE(assertEnergyIncreasingWithParameter(false));
 }
 
 TEST_P(EnvironmentalReverbDataTest, WithBypassEnabled) {
-    assertZeroEnergyWithBypass(true);
+    ASSERT_NO_FATAL_FAILURE(assertZeroEnergyWithBypass(true));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -418,7 +420,7 @@ class EnvironmentalReverbMinimumParamTest
     }
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
         createEnvParam(EnvironmentalReverb::roomLevelMb, kMinRoomLevel);
         ASSERT_NO_FATAL_FAILURE(
                 setAndVerifyParam(EX_NONE, mEnvParam, EnvironmentalReverb::roomLevelMb));
@@ -434,7 +436,8 @@ class EnvironmentalReverbMinimumParamTest
 
 TEST_P(EnvironmentalReverbMinimumParamTest, MinimumValueTest) {
     std::vector<float> input(kBufferSize);
-    generateSineWave(kInputFrequency, input);
+    ASSERT_NO_FATAL_FAILURE(
+            generateSineWave(kInputFrequency, input, 1.0, kSamplingFrequency, mChannelLayout));
     std::vector<float> output(kBufferSize);
     setParameterAndProcess(input, output, mValue, mTag);
     float energy = computeOutputEnergy(input, output);
@@ -470,11 +473,12 @@ class EnvironmentalReverbDiffusionTest
         : EnvironmentalReverbHelper(std::get<DESCRIPTOR_INDEX>(GetParam())) {
         std::tie(mTag, mParamValues) = std::get<TAG_VALUE_PAIR>(GetParam());
         mInput.resize(kBufferSize);
-        generateSineWave(kInputFrequency, mInput);
     }
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpReverb();
+        ASSERT_NO_FATAL_FAILURE(
+                generateSineWave(kInputFrequency, mInput, 1.0, kSamplingFrequency, mChannelLayout));
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
     }
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
@@ -546,15 +550,16 @@ class EnvironmentalReverbDensityTest
         mParamValues = std::get<PARAM_DENSITY_VALUE>(GetParam());
         mIsInputMute = (std::get<IS_INPUT_MUTE>(GetParam()));
         mInput.resize(kBufferSize);
-        if (mIsInputMute) {
-            std::fill(mInput.begin(), mInput.end(), 0);
-        } else {
-            generateSineWave(kInputFrequency, mInput);
-        }
     }
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpReverb();
+        if (mIsInputMute) {
+            std::fill(mInput.begin(), mInput.end(), 0);
+        } else {
+            ASSERT_NO_FATAL_FAILURE(generateSineWave(kInputFrequency, mInput, 1.0,
+                                                     kSamplingFrequency, mChannelLayout));
+        }
+        ASSERT_NO_FATAL_FAILURE(SetUpReverb());
     }
     void TearDown() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);

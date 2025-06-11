@@ -68,7 +68,7 @@ parcelable UsdBaseConfig {
      * Max length: |UsdCapabilities.maxMatchFilterLength|.
      * NAN Spec: matching_filter_rx
      */
-    @nullable byte[] rxMatchfilter;
+    @nullable byte[] rxMatchFilter;
 
     /**
      * Time interval (in seconds) that a USD session will be alive.

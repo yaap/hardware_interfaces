@@ -52,6 +52,12 @@ cc_defaults {
         "libmedia_headers",
         "libmediautils_headers",
     ],
+
+    cflags: [
+        "-Wall",
+        "-Wthread-safety",
+        "-Werror",
+    ],
 }
 
 cc_library_shared {

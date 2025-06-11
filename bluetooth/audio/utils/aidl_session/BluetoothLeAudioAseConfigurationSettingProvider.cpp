@@ -47,6 +47,8 @@
 #include <aidl/android/hardware/bluetooth/audio/Phy.h>
 #include <android-base/logging.h>
 
+#include <optional>
+
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
 
@@ -63,7 +65,8 @@ std::map<std::string,
                     ConfigurationFlags>>
     configurations_;
 
-std::vector<LeAudioAseConfigurationSetting> ase_configuration_settings_;
+std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
+    ase_configuration_settings_;
 
 constexpr uint8_t kIsoDataPathHci = 0x00;
 constexpr uint8_t kIsoDataPathPlatformDefault = 0x01;
@@ -271,7 +274,7 @@ static const std::vector<
 
 /* Implementation */
 
-std::vector<LeAudioAseConfigurationSetting>
+std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
 AudioSetConfigurationProviderJson::GetLeAudioAseConfigurationSettings() {
   AudioSetConfigurationProviderJson::LoadAudioSetConfigurationProviderJson();
   return ase_configuration_settings_;
@@ -390,9 +393,10 @@ void AudioSetConfigurationProviderJson::populateConfigurationData(
 }
 
 void AudioSetConfigurationProviderJson::populateAseConfiguration(
-    const std::string& name, LeAudioAseConfiguration& ase,
+    LeAudioAseConfiguration& ase,
     const le_audio::AudioSetSubConfiguration* flat_subconfig,
-    const le_audio::QosConfiguration* qos_cfg) {
+    const le_audio::QosConfiguration* qos_cfg,
+    ConfigurationFlags& configurationFlags) {
   // Target latency
   switch (qos_cfg->target_latency()) {
     case le_audio::AudioSetConfigurationTargetLatency::
@@ -408,6 +412,7 @@ void AudioSetConfigurationProviderJson::populateAseConfiguration(
     case le_audio::AudioSetConfigurationTargetLatency::
         AudioSetConfigurationTargetLatency_LOW:
       ase.targetLatency = LeAudioAseConfiguration::TargetLatency::LOWER;
+      configurationFlags.bitmask |= ConfigurationFlags::LOW_LATENCY;
       break;
     default:
       ase.targetLatency = LeAudioAseConfiguration::TargetLatency::UNDEFINED;
@@ -427,12 +432,6 @@ void AudioSetConfigurationProviderJson::populateAseConfiguration(
   }
   // Codec configuration data
   populateConfigurationData(ase, flat_subconfig->codec_configuration());
-  // Populate the config name for easier debug
-  auto meta = std::vector<std::optional<MetadataLtv>>();
-  MetadataLtv::VendorSpecific cfg_name;
-  cfg_name.opaqueValue = std::vector<uint8_t>(name.begin(), name.end());
-  meta.push_back(cfg_name);
-  ase.metadata = meta;
 }
 
 void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
@@ -503,9 +502,9 @@ void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
 // Parse into AseDirectionConfiguration
 AseDirectionConfiguration
 AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
-    const std::string& name,
     const le_audio::AudioSetSubConfiguration* flat_subconfig,
-    const le_audio::QosConfiguration* qos_cfg, CodecLocation location) {
+    const le_audio::QosConfiguration* qos_cfg, CodecLocation location,
+    ConfigurationFlags& configurationFlags) {
   AseDirectionConfiguration direction_conf;
 
   LeAudioAseConfiguration ase;
@@ -513,7 +512,7 @@ AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
   LeAudioDataPathConfiguration path;
 
   // Translate into LeAudioAseConfiguration
-  populateAseConfiguration(name, ase, flat_subconfig, qos_cfg);
+  populateAseConfiguration(ase, flat_subconfig, qos_cfg, configurationFlags);
 
   // Translate into LeAudioAseQosConfiguration
   populateAseQosConfiguration(qos, qos_cfg, ase,
@@ -547,18 +546,28 @@ AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
 // Parse into AseDirectionConfiguration and the ConfigurationFlags
 // and put them in the given list.
 void AudioSetConfigurationProviderJson::processSubconfig(
-    const std::string& name,
     const le_audio::AudioSetSubConfiguration* subconfig,
     const le_audio::QosConfiguration* qos_cfg,
     std::vector<std::optional<AseDirectionConfiguration>>&
         directionAseConfiguration,
-    CodecLocation location) {
+    CodecLocation location, ConfigurationFlags& configurationFlags) {
   auto ase_cnt = subconfig->ase_cnt();
-  auto config =
-      SetConfigurationFromFlatSubconfig(name, subconfig, qos_cfg, location);
+  auto config = SetConfigurationFromFlatSubconfig(subconfig, qos_cfg, location,
+                                                  configurationFlags);
   directionAseConfiguration.push_back(config);
   // Put the same setting again.
   if (ase_cnt == 2) directionAseConfiguration.push_back(config);
+}
+
+// Comparing if 2 AseDirectionConfiguration is equal.
+// Configuration are copied in, so we can remove some fields for comparison
+// without affecting the result.
+bool isAseConfigurationEqual(AseDirectionConfiguration cfg_a,
+                             AseDirectionConfiguration cfg_b) {
+  // Remove unneeded fields when comparing.
+  cfg_a.aseConfiguration.metadata = std::nullopt;
+  cfg_b.aseConfiguration.metadata = std::nullopt;
+  return cfg_a == cfg_b;
 }
 
 void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
@@ -569,7 +578,7 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
     std::vector<std::optional<AseDirectionConfiguration>>&
         sourceAseConfiguration,
     std::vector<std::optional<AseDirectionConfiguration>>& sinkAseConfiguration,
-    ConfigurationFlags& /*configurationFlags*/) {
+    ConfigurationFlags& configurationFlags) {
   if (flat_cfg == nullptr) {
     LOG(ERROR) << "flat_cfg cannot be null";
     return;
@@ -629,11 +638,37 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
     /* Load subconfigurations */
     for (auto subconfig : *codec_cfg->subconfigurations()) {
       if (subconfig->direction() == kLeAudioDirectionSink) {
-        processSubconfig(flat_cfg->name()->str(), subconfig, qos_sink_cfg,
-                         sinkAseConfiguration, location);
+        processSubconfig(subconfig, qos_sink_cfg, sinkAseConfiguration,
+                         location, configurationFlags);
       } else {
-        processSubconfig(flat_cfg->name()->str(), subconfig, qos_source_cfg,
-                         sourceAseConfiguration, location);
+        processSubconfig(subconfig, qos_source_cfg, sourceAseConfiguration,
+                         location, configurationFlags);
+      }
+    }
+
+    // After putting all subconfig, check if it's an asymmetric configuration
+    // and populate information for ConfigurationFlags
+    if (!sinkAseConfiguration.empty() && !sourceAseConfiguration.empty()) {
+      if (sinkAseConfiguration.size() == sourceAseConfiguration.size()) {
+        for (int i = 0; i < sinkAseConfiguration.size(); ++i) {
+          if (sinkAseConfiguration[i].has_value() !=
+              sourceAseConfiguration[i].has_value()) {
+            // Different configuration: one is not empty and other is.
+            configurationFlags.bitmask |=
+                ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
+          } else if (sinkAseConfiguration[i].has_value()) {
+            // Both is not empty, comparing inner fields:
+            if (!isAseConfigurationEqual(sinkAseConfiguration[i].value(),
+                                         sourceAseConfiguration[i].value())) {
+              configurationFlags.bitmask |=
+                  ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
+            }
+          }
+        }
+      } else {
+        // Different number of ASE, is a different configuration.
+        configurationFlags.bitmask |=
+            ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
       }
     }
   } else {
@@ -645,8 +680,6 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
                  << "' has no valid subconfigurations.";
     }
   }
-
-  // TODO: Populate information for ConfigurationFlags
 }
 
 bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
@@ -819,7 +852,7 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(
       setting.flags = flags;
       // Add to list of setting
       LOG(DEBUG) << "Pushing configuration to list: " << config_name;
-      ase_configuration_settings_.push_back(setting);
+      ase_configuration_settings_.push_back({config_name, setting});
     }
   }
 

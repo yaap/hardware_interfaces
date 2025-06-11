@@ -17,7 +17,6 @@
 #ifndef android_hardware_automotive_vehicle_V2_0_impl_FakeUserHal_H_
 #define android_hardware_automotive_vehicle_V2_0_impl_FakeUserHal_H_
 
-#include <android-base/format.h>
 #include <android-base/result.h>
 
 #include <android/hardware/automotive/vehicle/2.0/types.h>

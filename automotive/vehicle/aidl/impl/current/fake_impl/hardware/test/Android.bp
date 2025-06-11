@@ -21,6 +21,7 @@ package {
 
 cc_test {
     name: "FakeVehicleHardwareTest",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     srcs: [
         "*.cpp",

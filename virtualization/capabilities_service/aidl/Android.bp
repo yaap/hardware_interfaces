@@ -31,5 +31,12 @@ aidl_interface {
             ],
         },
     },
-    frozen: false,
+    frozen: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
 }

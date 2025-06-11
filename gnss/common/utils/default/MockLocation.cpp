@@ -21,7 +21,7 @@ namespace android::hardware::gnss::common {
 float gMockLatitudeDegrees{37.4219999};
 float gMockLongitudeDegrees{-122.0840575};
 float gMockAltitudeMeters{1.60062531};
-float gMockBearingDegrees{0};
-float gMockSpeedMetersPerSec{0};
+float gMockBearingDegrees{0.0001};  // a real location rarely has exactly zero bearing
+float gMockSpeedMetersPerSec{0.0001};
 
 }  // namespace android::hardware::gnss::common

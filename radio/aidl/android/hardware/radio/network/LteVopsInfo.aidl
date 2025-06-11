@@ -23,21 +23,22 @@ package android.hardware.radio.network;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable LteVopsInfo {
     /**
-     * This indicates if camped network support VoLTE services. This information is received from
+     * This indicates if the camped network supports VoLTE services. This information is received from
      * LTE network during LTE NAS registration procedure through LTE ATTACH ACCEPT/TAU ACCEPT.
      * Refer 3GPP 24.301 EPS network feature support -> IMS VoPS
      */
     boolean isVopsSupported;
     /**
-     * This indicates if camped network support VoLTE emergency bearers. This information is
+     * This indicates if the camped network supports VoLTE emergency bearers. This information is
      * received from LTE network through two sources:
      * a. During LTE NAS registration procedure through LTE ATTACH ACCEPT/TAU ACCEPT. Refer
      *    3GPP 24.301 EPS network feature support -> EMC BS
-     * b. In case device is not registered on network. Refer 3GPP 25.331 LTE RRC
+     * b. In case the device is not registered on network. Refer 3GPP 25.331 LTE RRC
      *    SIB1 : ims-EmergencySupport-r9
-     * If device is registered on LTE, then this field indicates (a).
+     * If the device is registered on LTE, then this field indicates (a).
      * In case of limited service on LTE this field indicates (b).
      */
     boolean isEmcBearerSupported;

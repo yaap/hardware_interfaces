@@ -33,7 +33,7 @@ import android.hardware.radio.sim.SimLockMultiSimPolicy;
 oneway interface IRadioSimResponse {
     /**
      * Acknowledge the receipt of radio request sent to the vendor. This must be sent only for
-     * radio request which take long time to respond. For more details, refer
+     * radio requests which take a long time to respond. For more details, refer
      * https://source.android.com/devices/tech/connect/ril.html
      *
      * @param serial Serial no. of the request whose acknowledgement is sent.
@@ -544,6 +544,8 @@ oneway interface IRadioSimResponse {
      *   RadioError:INVALID_ARGUMENTS
      *   RadioError:NO_RESOURCES
      *   RadioError:CANCELLED
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setUiccSubscriptionResponse(in RadioResponseInfo info);
 
@@ -627,7 +629,7 @@ oneway interface IRadioSimResponse {
     /**
      * @param info Response info struct containing response type, serial no. and error
      * @param persoType SIM Personalization type
-     * @param remainingRetries postiive values indicates number of retries remaining, must be equal
+     * @param remainingRetries positive values indicates number of retries remaining, must be equal
      *        to -1 if number of retries is infinite.
      *
      * Valid errors returned:

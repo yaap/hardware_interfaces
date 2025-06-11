@@ -38,6 +38,7 @@ cc_library_static {
 
 cc_test {
     name: "android.hardware.automotive.vehicle@2.0-utils-unit-tests",
+    team: "trendy_team_aaos_carframework_triage",
     defaults: ["vhal_v2_0_defaults"],
     vendor: true,
     tidy_timeout_srcs: [

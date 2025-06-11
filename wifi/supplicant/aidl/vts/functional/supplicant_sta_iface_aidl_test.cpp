@@ -43,13 +43,19 @@ using aidl::android::hardware::wifi::supplicant::ISupplicant;
 using aidl::android::hardware::wifi::supplicant::ISupplicantStaIface;
 using aidl::android::hardware::wifi::supplicant::ISupplicantStaNetwork;
 using aidl::android::hardware::wifi::supplicant::KeyMgmtMask;
+using aidl::android::hardware::wifi::supplicant::MloLinksInfo;
 using aidl::android::hardware::wifi::supplicant::MscsParams;
 using aidl::android::hardware::wifi::supplicant::QosCharacteristics;
 using aidl::android::hardware::wifi::supplicant::QosPolicyScsData;
 using aidl::android::hardware::wifi::supplicant::QosPolicyScsRequestStatus;
+using aidl::android::hardware::wifi::supplicant::SignalPollResult;
+using aidl::android::hardware::wifi::supplicant::UsdBaseConfig;
+using aidl::android::hardware::wifi::supplicant::UsdCapabilities;
 using aidl::android::hardware::wifi::supplicant::UsdMessageInfo;
-using aidl::android::hardware::wifi::supplicant::UsdReasonCode;
+using aidl::android::hardware::wifi::supplicant::UsdPublishConfig;
 using aidl::android::hardware::wifi::supplicant::UsdServiceDiscoveryInfo;
+using aidl::android::hardware::wifi::supplicant::UsdSubscribeConfig;
+using aidl::android::hardware::wifi::supplicant::UsdTerminateReasonCode;
 using aidl::android::hardware::wifi::supplicant::WpaDriverCapabilitiesMask;
 using aidl::android::hardware::wifi::supplicant::WpsConfigMethods;
 using android::ProcessState;
@@ -254,18 +260,20 @@ class SupplicantStaIfaceCallback : public BnSupplicantStaIfaceCallback {
                                                int32_t /* subscribeId */) override {
         return ndk::ScopedAStatus::ok();
     }
-    ::ndk::ScopedAStatus onUsdPublishConfigFailed(int32_t /* cmdId */) override {
+    ::ndk::ScopedAStatus onUsdPublishConfigFailed(int32_t /* cmdId */,
+                                                  UsdConfigErrorCode /* errorCode */) override {
         return ndk::ScopedAStatus::ok();
     }
-    ::ndk::ScopedAStatus onUsdSubscribeConfigFailed(int32_t /* cmdId */) override {
+    ::ndk::ScopedAStatus onUsdSubscribeConfigFailed(int32_t /* cmdId */,
+                                                    UsdConfigErrorCode /* errorCode */) override {
         return ndk::ScopedAStatus::ok();
     }
     ::ndk::ScopedAStatus onUsdPublishTerminated(int32_t /* publishId */,
-                                                UsdReasonCode /* reasonCode */) override {
+                                                UsdTerminateReasonCode /* reasonCode */) override {
         return ndk::ScopedAStatus::ok();
     }
-    ::ndk::ScopedAStatus onUsdSubscribeTerminated(int32_t /* subscribeId */,
-                                                  UsdReasonCode /* reasonCode */) override {
+    ::ndk::ScopedAStatus onUsdSubscribeTerminated(
+            int32_t /* subscribeId */, UsdTerminateReasonCode /* reasonCode */) override {
         return ndk::ScopedAStatus::ok();
     }
     ::ndk::ScopedAStatus onUsdPublishReplied(const UsdServiceDiscoveryInfo& /* info */) override {
@@ -876,6 +884,172 @@ TEST_P(SupplicantStaIfaceAidlTest, AddAndRemoveQosWithTrafficChars) {
     EXPECT_EQ(1, responseList.size());
     EXPECT_TRUE(sta_iface_->removeQosPolicyForScs(policyIdList, &responseList).isOk());
     EXPECT_EQ(1, responseList.size());
+}
+
+/*
+ * Verify that all USD methods check the Service Specific Info (SSI) length
+ * and fail if the provided SSI is too long.
+ */
+TEST_P(SupplicantStaIfaceAidlTest, InvalidUsdServiceSpecificInfo) {
+    if (interface_version_ < 4) {
+        GTEST_SKIP() << "USD is available as of Supplicant V4";
+    }
+
+    UsdCapabilities caps;
+    EXPECT_TRUE(sta_iface_->getUsdCapabilities(&caps).isOk());
+    if (!caps.isUsdPublisherSupported && !caps.isUsdSubscriberSupported) {
+        GTEST_SKIP() << "USD publish and subscribe are not supported";
+    }
+
+    int commandId = 123;
+    std::vector<uint8_t> invalidSsi(caps.maxLocalSsiLengthBytes + 1);
+    UsdBaseConfig invalidBaseConfig;
+    invalidBaseConfig.serviceSpecificInfo = invalidSsi;
+
+    if (caps.isUsdPublisherSupported) {
+        UsdPublishConfig publishConfig;
+        publishConfig.usdBaseConfig = invalidBaseConfig;
+        EXPECT_FALSE(sta_iface_->startUsdPublish(commandId, publishConfig).isOk());
+        EXPECT_FALSE(sta_iface_->updateUsdPublish(commandId, invalidSsi).isOk());
+    }
+
+    if (caps.isUsdSubscriberSupported) {
+        UsdSubscribeConfig subscribeConfig;
+        subscribeConfig.usdBaseConfig = invalidBaseConfig;
+        EXPECT_FALSE(sta_iface_->startUsdSubscribe(commandId, subscribeConfig).isOk());
+    }
+
+    UsdMessageInfo messageInfo;
+    messageInfo.message = invalidSsi;
+    EXPECT_FALSE(sta_iface_->sendUsdMessage(messageInfo).isOk());
+}
+
+/*
+ * Cancel a USD Publish and Subscribe session.
+ */
+TEST_P(SupplicantStaIfaceAidlTest, CancelUsdSession) {
+    if (interface_version_ < 4) {
+        GTEST_SKIP() << "USD is available as of Supplicant V4";
+    }
+
+    UsdCapabilities caps;
+    EXPECT_TRUE(sta_iface_->getUsdCapabilities(&caps).isOk());
+    if (!caps.isUsdPublisherSupported && !caps.isUsdSubscriberSupported) {
+        GTEST_SKIP() << "USD publish and subscribe are not supported";
+    }
+
+    int sessionId = 123;
+    if (caps.isUsdPublisherSupported) {
+        // Method is expected to succeed, even if the session does not exist.
+        EXPECT_TRUE(sta_iface_->cancelUsdPublish(sessionId).isOk());
+    }
+    if (caps.isUsdSubscriberSupported) {
+        EXPECT_TRUE(sta_iface_->cancelUsdSubscribe(sessionId).isOk());
+    }
+}
+
+/*
+ * GenerateSelfDppConfiguration
+ */
+TEST_P(SupplicantStaIfaceAidlTest, GenerateSelfDppConfiguration) {
+    if (!keyMgmtSupported(sta_iface_, KeyMgmtMask::DPP)) {
+        GTEST_SKIP() << "Missing DPP support";
+    }
+    const std::string ssid = "my_test_ssid";
+    const std::vector<uint8_t> eckey_in = {0x2, 0x3, 0x4};
+
+    // Expect to fail as this test requires a DPP AKM supported AP and a valid private EC
+    // key generated by wpa_supplicant.
+    EXPECT_FALSE(sta_iface_->generateSelfDppConfiguration(ssid, eckey_in).isOk());
+}
+
+/*
+ * getSignalPollResults
+ */
+TEST_P(SupplicantStaIfaceAidlTest, GetSignalPollResults) {
+    if (interface_version_ < 2) {
+        GTEST_SKIP() << "getSignalPollResults is available as of Supplicant V2";
+    }
+
+    std::vector<SignalPollResult> results;
+    EXPECT_TRUE(sta_iface_->getSignalPollResults(&results).isOk());
+}
+
+/*
+ * Test that we can start and cancel all WPS methods.
+ */
+TEST_P(SupplicantStaIfaceAidlTest, StartAndCancelWps) {
+    std::vector<uint8_t> zeroMacAddr = {0, 0, 0, 0, 0, 0};
+    std::string pin = "12345678";
+
+    EXPECT_TRUE(sta_iface_->startWpsPbc(zeroMacAddr).isOk());
+    EXPECT_TRUE(sta_iface_->cancelWps().isOk());
+
+    std::string generatedPin;
+    EXPECT_TRUE(sta_iface_->startWpsPinDisplay(zeroMacAddr, &generatedPin).isOk());
+    EXPECT_TRUE(sta_iface_->cancelWps().isOk());
+
+    EXPECT_TRUE(sta_iface_->startWpsPinKeypad(pin).isOk());
+    EXPECT_TRUE(sta_iface_->cancelWps().isOk());
+
+    EXPECT_TRUE(sta_iface_->startWpsRegistrar(zeroMacAddr, pin).isOk());
+    EXPECT_TRUE(sta_iface_->cancelWps().isOk());
+}
+
+/*
+ * Test that we can add, list, get, and remove a network.
+ */
+TEST_P(SupplicantStaIfaceAidlTest, ManageNetwork) {
+    std::shared_ptr<ISupplicantStaNetwork> network;
+    EXPECT_TRUE(sta_iface_->addNetwork(&network).isOk());
+    EXPECT_NE(network, nullptr);
+
+    std::vector<int32_t> networkList;
+    EXPECT_TRUE(sta_iface_->listNetworks(&networkList).isOk());
+    EXPECT_EQ(networkList.size(), 1);
+
+    int networkId;
+    EXPECT_TRUE(network->getId(&networkId).isOk());
+    EXPECT_EQ(networkId, networkList[0]);
+
+    std::shared_ptr<ISupplicantStaNetwork> retrievedNetwork;
+    EXPECT_TRUE(sta_iface_->getNetwork(networkId, &retrievedNetwork).isOk());
+    EXPECT_NE(retrievedNetwork, nullptr);
+    EXPECT_TRUE(sta_iface_->removeNetwork(networkId).isOk());
+}
+
+/*
+ * EnableAutoReconnect
+ */
+TEST_P(SupplicantStaIfaceAidlTest, EnableAutoReconnect) {
+    EXPECT_TRUE(sta_iface_->enableAutoReconnect(true).isOk());
+    EXPECT_TRUE(sta_iface_->enableAutoReconnect(false).isOk());
+}
+
+/*
+ * SetQosPolicyFeatureEnabled
+ */
+TEST_P(SupplicantStaIfaceAidlTest, SetQosPolicyFeatureEnabled) {
+    EXPECT_TRUE(sta_iface_->setQosPolicyFeatureEnabled(true).isOk());
+    EXPECT_TRUE(sta_iface_->setQosPolicyFeatureEnabled(false).isOk());
+}
+
+/*
+ * GetConnectionMloLinksInfo
+ */
+TEST_P(SupplicantStaIfaceAidlTest, GetConnectionMloLinksInfo) {
+    MloLinksInfo mloInfo;
+    EXPECT_TRUE(sta_iface_->getConnectionMloLinksInfo(&mloInfo).isOk());
+}
+
+/*
+ * StopDppInitiator
+ */
+TEST_P(SupplicantStaIfaceAidlTest, StopDppInitiator) {
+    if (!keyMgmtSupported(sta_iface_, KeyMgmtMask::DPP)) {
+        GTEST_SKIP() << "Missing DPP support";
+    }
+    EXPECT_TRUE(sta_iface_->stopDppInitiator().isOk());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SupplicantStaIfaceAidlTest);

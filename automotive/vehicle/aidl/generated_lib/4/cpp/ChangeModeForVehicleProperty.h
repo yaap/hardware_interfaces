@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +29,7 @@
 
 #include <unordered_map>
 
-namespace aidl {
-namespace android {
-namespace hardware {
-namespace automotive {
-namespace vehicle {
-
+namespace aidl::android::hardware::automotive::vehicle {
 std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehicleProperty = {
         {VehicleProperty::INFO_VIN, VehiclePropertyChangeMode::STATIC},
         {VehicleProperty::INFO_MAKE, VehiclePropertyChangeMode::STATIC},
@@ -240,7 +235,7 @@ std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehi
         {VehicleProperty::INITIAL_USER_INFO, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::SWITCH_USER, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::CREATE_USER, VehiclePropertyChangeMode::ON_CHANGE},
-        {VehicleProperty::REMOVE_USER, VehiclePropertyChangeMode::STATIC},
+        {VehicleProperty::REMOVE_USER, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::USER_IDENTIFICATION_ASSOCIATION, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::EVS_SERVICE_REQUEST, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::POWER_POLICY_REQ, VehiclePropertyChangeMode::ON_CHANGE},
@@ -317,9 +312,4 @@ std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehi
         {VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_ENABLED, VehiclePropertyChangeMode::ON_CHANGE},
         {VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE, VehiclePropertyChangeMode::ON_CHANGE},
 };
-
-}  // namespace vehicle
-}  // namespace automotive
-}  // namespace hardware
-}  // namespace android
-}  // aidl
+}  // aidl::android::hardware::automotive::vehicle

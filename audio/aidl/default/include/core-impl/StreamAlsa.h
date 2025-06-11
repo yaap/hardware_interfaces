@@ -16,8 +16,13 @@
 
 #pragma once
 
+#include <atomic>
 #include <optional>
+#include <thread>
 #include <vector>
+
+#include <media/nbaio/MonoPipe.h>
+#include <media/nbaio/MonoPipeReader.h>
 
 #include "Stream.h"
 #include "alsa/Utils.h"
@@ -35,7 +40,7 @@ class StreamAlsa : public StreamCommonImpl {
     ~StreamAlsa();
 
     // Methods of 'DriverInterface'.
-    ::android::status_t init() override;
+    ::android::status_t init(DriverCallbackInterface* callback) override;
     ::android::status_t drain(StreamDescriptor::DrainMode) override;
     ::android::status_t flush() override;
     ::android::status_t pause() override;
@@ -57,11 +62,24 @@ class StreamAlsa : public StreamCommonImpl {
     const bool mIsInput;
     const std::optional<struct pcm_config> mConfig;
     const int mReadWriteRetries;
-    // All fields below are only used on the worker thread.
-    std::vector<alsa::DeviceProxy> mAlsaDeviceProxies;
 
   private:
+    ::android::NBAIO_Format getPipeFormat() const;
+    ::android::sp<::android::MonoPipe> makeSink(bool writeCanBlock);
+    ::android::sp<::android::MonoPipeReader> makeSource(::android::MonoPipe* pipe);
+    void inputIoThread(size_t idx);
+    void outputIoThread(size_t idx);
+    void teardownIo();
+
     std::atomic<float> mGain = 1.0;
+
+    // All fields below are only used on the worker thread.
+    std::vector<alsa::DeviceProxy> mAlsaDeviceProxies;
+    // Only 'libnbaio_mono' is vendor-accessible, thus no access to the multi-reader Pipe.
+    std::vector<::android::sp<::android::MonoPipe>> mSinks;
+    std::vector<::android::sp<::android::MonoPipeReader>> mSources;
+    std::vector<std::thread> mIoThreads;
+    std::atomic<bool> mIoThreadIsRunning = false;  // used by all threads
 };
 
 }  // namespace aidl::android::hardware::audio::core

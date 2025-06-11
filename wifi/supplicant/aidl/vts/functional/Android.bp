@@ -24,13 +24,12 @@ package {
     default_applicable_licenses: ["hardware_interfaces_license"],
 }
 
-cc_test {
-    name: "VtsHalWifiSupplicantStaIfaceTargetTest",
+cc_defaults {
+    name: "supplicant_vts_test_defaults",
     defaults: [
         "VtsHalTargetTestDefaults",
         "use_libaidlvintf_gtest_helper_static",
     ],
-    srcs: ["supplicant_sta_iface_aidl_test.cpp"],
     shared_libs: [
         "libbinder",
         "libbinder_ndk",
@@ -60,80 +59,34 @@ cc_test {
         "general-tests",
         "vts",
     ],
+}
+
+cc_test {
+    name: "VtsHalWifiSupplicantStaIfaceTargetTest",
+    defaults: ["supplicant_vts_test_defaults"],
+    srcs: ["supplicant_sta_iface_aidl_test.cpp"],
 }
 
 cc_test {
     name: "VtsHalWifiSupplicantStaNetworkTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-        "use_libaidlvintf_gtest_helper_static",
-    ],
+    defaults: ["supplicant_vts_test_defaults"],
     srcs: ["supplicant_sta_network_aidl_test.cpp"],
-    shared_libs: [
-        "libbinder",
-        "libbinder_ndk",
-        "libvndksupport",
-    ],
-    static_libs: [
-        "android.hardware.wifi@1.0",
-        "android.hardware.wifi@1.1",
-        "android.hardware.wifi@1.2",
-        "android.hardware.wifi@1.3",
-        "android.hardware.wifi@1.4",
-        "android.hardware.wifi@1.5",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi.supplicant@1.0",
-        "android.hardware.wifi.supplicant@1.1",
-        "android.hardware.wifi.supplicant-V4-ndk",
-        "libwifi-system",
-        "libwifi-system-iface",
-        "VtsHalWifiV1_0TargetTestUtil",
-        "VtsHalWifiV1_5TargetTestUtil",
-        "VtsHalWifiSupplicantV1_0TargetTestUtil",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi-V3-ndk",
-        "VtsHalWifiTargetTestUtil",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
 }
 
 cc_test {
     name: "VtsHalWifiSupplicantP2pIfaceTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-        "use_libaidlvintf_gtest_helper_static",
-    ],
+    defaults: ["supplicant_vts_test_defaults"],
     srcs: ["supplicant_p2p_iface_aidl_test.cpp"],
-    shared_libs: [
-        "libbinder",
-        "libbinder_ndk",
-        "libvndksupport",
-    ],
-    static_libs: [
-        "android.hardware.wifi@1.0",
-        "android.hardware.wifi@1.1",
-        "android.hardware.wifi@1.2",
-        "android.hardware.wifi@1.3",
-        "android.hardware.wifi@1.4",
-        "android.hardware.wifi@1.5",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi.supplicant@1.0",
-        "android.hardware.wifi.supplicant@1.1",
-        "android.hardware.wifi.supplicant-V4-ndk",
-        "libwifi-system",
-        "libwifi-system-iface",
-        "VtsHalWifiV1_0TargetTestUtil",
-        "VtsHalWifiV1_5TargetTestUtil",
-        "VtsHalWifiSupplicantV1_0TargetTestUtil",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi-V3-ndk",
-        "VtsHalWifiTargetTestUtil",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
+}
+
+cc_test {
+    name: "VtsHalWifiSupplicantP2pNetworkTargetTest",
+    defaults: ["supplicant_vts_test_defaults"],
+    srcs: ["supplicant_p2p_network_aidl_test.cpp"],
+}
+
+cc_test {
+    name: "VtsHalWifiSupplicantTargetTest",
+    defaults: ["supplicant_vts_test_defaults"],
+    srcs: ["supplicant_aidl_test.cpp"],
 }

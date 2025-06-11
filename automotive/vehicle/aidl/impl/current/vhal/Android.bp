@@ -47,6 +47,7 @@ cc_binary {
 cc_library {
     name: "DefaultVehicleHal",
     vendor: true,
+    host_supported: true,
     defaults: [
         "VehicleHalDefaults",
     ],

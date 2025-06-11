@@ -143,7 +143,7 @@ enum DataCallFailCause {
      */
     DATA_REGISTRATION_FAIL = -2,
     /**
-     * Network/modem disonnect
+     * Network/modem disconnect
      */
     SIGNAL_LOST = -3,
     /**
@@ -172,7 +172,7 @@ enum DataCallFailCause {
     ACTIVATION_REJECTED_BCM_VIOLATION = 0x30,
     /**
      * Network has already initiated the activation, modification, or deactivation of bearer
-     * resources that was requested by the UE.
+     * resources that were requested by the UE.
      */
     COLLISION_WITH_NETWORK_INITIATED_REQUEST = 0x38,
     /**
@@ -182,7 +182,7 @@ enum DataCallFailCause {
      */
     ONLY_IPV4V6_ALLOWED = 0x39,
     /**
-     * Network supports non-IP PDP type only. IPv4, IPv6 and IPv4v6 is not allowed. In LTE mode of
+     * Network supports non-IP PDP type only. IPv4, IPv6 and IPv4v6 are not allowed. In LTE mode of
      * operation, this is a PDN throttling cause code, meaning the UE can throttle further requests
      * to the same APN.
      */

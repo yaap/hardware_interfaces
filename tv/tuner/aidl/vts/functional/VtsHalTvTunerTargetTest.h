@@ -89,6 +89,28 @@ void clearIds() {
     sectionFilterIds.clear();
 }
 
+bool isPassthroughFilter(FilterConfig filterConfig) {
+    auto type = filterConfig.type;
+    if (type.mainType == DemuxFilterMainType::TS) {
+        auto subType = type.subType.get<DemuxFilterSubType::Tag::tsFilterType>();
+        if (subType == DemuxTsFilterType::AUDIO || subType == DemuxTsFilterType::VIDEO) {
+            auto tsFilterSettings = filterConfig.settings.get<DemuxFilterSettings::Tag::ts>();
+            auto avSettings = tsFilterSettings.filterSettings
+                    .get<DemuxTsFilterSettingsFilterSettings::Tag::av>();
+            return avSettings.isPassthrough;
+        }
+    } else if (filterConfig.type.mainType != DemuxFilterMainType::MMTP) {
+        auto subType = type.subType.get<DemuxFilterSubType::Tag::mmtpFilterType>();
+        if (subType == DemuxMmtpFilterType::AUDIO || subType == DemuxMmtpFilterType::VIDEO) {
+            auto mmtpFilterSettings = filterConfig.settings.get<DemuxFilterSettings::Tag::mmtp>();
+            auto avSettings = mmtpFilterSettings.filterSettings
+                    .get<DemuxMmtpFilterSettingsFilterSettings::Tag::av>();
+            return avSettings.isPassthrough;
+        }
+    }
+    return false;
+}
+
 enum class Dataflow_Context { LNBRECORD, RECORD, DESCRAMBLING, LNBDESCRAMBLING };
 
 class TunerLnbAidlTest : public testing::TestWithParam<std::string> {

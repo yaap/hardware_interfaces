@@ -21,6 +21,7 @@ import android.hardware.radio.network.RadioAccessSpecifier;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 @SuppressWarnings(value={"redundant-name"})
 parcelable NetworkScanRequest {
     const int RADIO_ACCESS_SPECIFIER_MAX_SIZE = 8;

@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable Cdma2000RegistrationInfo {
     /** @deprecated Legacy CDMA is unsupported. */
     const int PRL_INDICATOR_NOT_REGISTERED = -1;

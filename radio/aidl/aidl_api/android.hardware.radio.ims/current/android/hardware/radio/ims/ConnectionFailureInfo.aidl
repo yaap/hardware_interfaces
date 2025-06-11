@@ -33,7 +33,7 @@
 
 package android.hardware.radio.ims;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable ConnectionFailureInfo {
   android.hardware.radio.ims.ConnectionFailureInfo.ConnectionFailureReason failureReason = android.hardware.radio.ims.ConnectionFailureInfo.ConnectionFailureReason.INVALID;
   int causeCode;

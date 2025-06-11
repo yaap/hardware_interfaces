@@ -34,10 +34,6 @@ class ModuleConfig {
     using SrcSinkGroup =
             std::pair<aidl::android::hardware::audio::core::AudioRoute, std::vector<SrcSinkPair>>;
 
-    static std::optional<aidl::android::media::audio::common::AudioOffloadInfo>
-    generateOffloadInfoIfNeeded(
-            const aidl::android::media::audio::common::AudioPortConfig& portConfig);
-
     static std::vector<aidl::android::media::audio::common::AudioPort> getAudioPortsForDeviceTypes(
             const std::vector<aidl::android::media::audio::common::AudioPort>& ports,
             const std::vector<aidl::android::media::audio::common::AudioDeviceType>& deviceTypes,

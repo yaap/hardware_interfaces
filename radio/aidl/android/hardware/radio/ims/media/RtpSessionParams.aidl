@@ -22,6 +22,7 @@ import android.hardware.radio.ims.media.DtmfParams;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RtpSessionParams {
     /**
      * ptime: Recommended length of time in milliseconds represented by the media

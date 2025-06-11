@@ -23,6 +23,7 @@ import android.hardware.radio.messaging.GsmSmsMessage;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ImsSmsMessage {
     RadioTechnologyFamily tech = RadioTechnologyFamily.THREE_GPP;
     /**

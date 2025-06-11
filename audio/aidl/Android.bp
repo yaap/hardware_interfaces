@@ -44,7 +44,7 @@ aidl_interface {
         "android/hardware/audio/common/SinkMetadata.aidl",
         "android/hardware/audio/common/SourceMetadata.aidl",
     ],
-    frozen: false,
+    frozen: true,
     backend: {
         cpp: {
             enabled: true,
@@ -60,7 +60,7 @@ aidl_interface {
         ndk: {
             apex_available: [
                 "//apex_available:platform",
-                "com.android.btservices",
+                "com.android.bt",
             ],
             min_sdk_version: "31",
         },
@@ -80,6 +80,10 @@ aidl_interface {
         {
             version: "3",
             imports: ["android.media.audio.common.types-V3"],
+        },
+        {
+            version: "4",
+            imports: ["android.media.audio.common.types-V4"],
         },
 
         // IMPORTANT: Update latest_android_hardware_audio_common every time you
@@ -194,11 +198,22 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "3",
+            imports: [
+                "android.media.audio.common.types-V4",
+                "android.hardware.audio.effect-V3",
+                "android.hardware.audio.core.sounddose-V3",
+                "android.hardware.audio.common-V4",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_core every time you
         // add the latest frozen version to versions_with_info
     ],
-    frozen: false,
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version
@@ -263,11 +278,15 @@ aidl_interface {
             version: "2",
             imports: ["android.media.audio.common.types-V3"],
         },
+        {
+            version: "3",
+            imports: ["android.media.audio.common.types-V4"],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_core_sounddose every time you
         // add the latest frozen version to versions_with_info
     ],
-    frozen: false,
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version
@@ -375,9 +394,19 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "3",
+            imports: [
+                "android.media.audio.eraser.types-V1",
+                "android.media.audio.common.types-V4",
+                "android.hardware.audio.common-V4",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
 
 }
 

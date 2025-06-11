@@ -136,13 +136,46 @@ ndk::ScopedAStatus WifiRttController::registerEventCallbackInternal(
 
 ndk::ScopedAStatus WifiRttController::rangeRequestInternal(
         int32_t cmd_id, const std::vector<RttConfig>& rtt_configs) {
-    // Try 11mc & 11az ranging (v3)
+    // Try 11az secure, 11az non-secure & 11mc ranging (v4)
+    std::vector<legacy_hal::wifi_rtt_config_v4> legacy_configs_v4;
+    if (!aidl_struct_util::convertAidlVectorOfRttConfigToLegacyV4(rtt_configs,
+                                                                  &legacy_configs_v4)) {
+        return createWifiStatus(WifiStatusCode::ERROR_INVALID_ARGS);
+    }
+    std::weak_ptr<WifiRttController> weak_ptr_this = weak_ptr_this_;
+    const auto& on_results_callback_v4 =
+            [weak_ptr_this](legacy_hal::wifi_request_id id,
+                            const std::vector<const legacy_hal::wifi_rtt_result_v4*>& results) {
+                const auto shared_ptr_this = weak_ptr_this.lock();
+                if (!shared_ptr_this.get() || !shared_ptr_this->isValid()) {
+                    LOG(ERROR) << "v4 Callback invoked on an invalid object";
+                    return;
+                }
+                std::vector<RttResult> aidl_results;
+                if (!aidl_struct_util::convertLegacyVectorOfRttResultV4ToAidl(results,
+                                                                              &aidl_results)) {
+                    LOG(ERROR) << "Failed to convert rtt results v4 to AIDL structs";
+                    return;
+                }
+                for (const auto& callback : shared_ptr_this->getEventCallbacks()) {
+                    if (!callback->onResults(id, aidl_results).isOk()) {
+                        LOG(ERROR) << "Failed to invoke the v4 callback";
+                    }
+                }
+            };
+    legacy_hal::wifi_error legacy_status = legacy_hal_.lock()->startRttRangeRequestV4(
+            ifname_, cmd_id, legacy_configs_v4, on_results_callback_v4);
+
+    if (legacy_status != legacy_hal::WIFI_ERROR_NOT_SUPPORTED) {
+        return createWifiStatusFromLegacyError(legacy_status);
+    }
+
+    //  Fallback to 11az non-secure & 11mc ranging (v3)
     std::vector<legacy_hal::wifi_rtt_config_v3> legacy_configs_v3;
     if (!aidl_struct_util::convertAidlVectorOfRttConfigToLegacyV3(rtt_configs,
                                                                   &legacy_configs_v3)) {
         return createWifiStatus(WifiStatusCode::ERROR_INVALID_ARGS);
     }
-    std::weak_ptr<WifiRttController> weak_ptr_this = weak_ptr_this_;
     const auto& on_results_callback_v3 =
             [weak_ptr_this](legacy_hal::wifi_request_id id,
                             const std::vector<const legacy_hal::wifi_rtt_result_v3*>& results) {
@@ -163,8 +196,8 @@ ndk::ScopedAStatus WifiRttController::rangeRequestInternal(
                     }
                 }
             };
-    legacy_hal::wifi_error legacy_status = legacy_hal_.lock()->startRttRangeRequestV3(
-            ifname_, cmd_id, legacy_configs_v3, on_results_callback_v3);
+    legacy_status = legacy_hal_.lock()->startRttRangeRequestV3(ifname_, cmd_id, legacy_configs_v3,
+                                                               on_results_callback_v3);
 
     if (legacy_status != legacy_hal::WIFI_ERROR_NOT_SUPPORTED) {
         return createWifiStatusFromLegacyError(legacy_status);
@@ -236,31 +269,46 @@ ndk::ScopedAStatus WifiRttController::rangeCancelInternal(int32_t cmd_id,
 std::pair<RttCapabilities, ndk::ScopedAStatus> WifiRttController::getCapabilitiesInternal() {
     legacy_hal::wifi_error legacy_status;
     legacy_hal::wifi_rtt_capabilities_v3 legacy_caps_v3;
-    std::tie(legacy_status, legacy_caps_v3) = legacy_hal_.lock()->getRttCapabilitiesV3(ifname_);
-    // Try v3 API first, if it is not supported fallback.
-    if (legacy_status == legacy_hal::WIFI_ERROR_NOT_SUPPORTED) {
-        legacy_hal::wifi_rtt_capabilities legacy_caps;
-        std::tie(legacy_status, legacy_caps) = legacy_hal_.lock()->getRttCapabilities(ifname_);
-        if (legacy_status != legacy_hal::WIFI_SUCCESS) {
-            return {RttCapabilities{}, createWifiStatusFromLegacyError(legacy_status)};
-        }
+    legacy_hal::wifi_rtt_capabilities_v4 legacy_caps_v4;
 
+    // Try v4 first
+    std::tie(legacy_status, legacy_caps_v4) = legacy_hal_.lock()->getRttCapabilitiesV4(ifname_);
+    if (legacy_status == legacy_hal::WIFI_SUCCESS) {
         RttCapabilities aidl_caps;
-        if (!aidl_struct_util::convertLegacyRttCapabilitiesToAidl(legacy_caps, &aidl_caps)) {
+        if (!aidl_struct_util::convertLegacyRttCapabilitiesV4ToAidl(legacy_caps_v4, &aidl_caps)) {
             return {RttCapabilities{}, createWifiStatus(WifiStatusCode::ERROR_UNKNOWN)};
         }
         return {aidl_caps, ndk::ScopedAStatus::ok()};
     }
 
-    if (legacy_status != legacy_hal::WIFI_SUCCESS) {
-        return {RttCapabilities{}, createWifiStatusFromLegacyError(legacy_status)};
+    // If not supported, fallback to v3
+    if (legacy_status == legacy_hal::WIFI_ERROR_NOT_SUPPORTED) {
+        std::tie(legacy_status, legacy_caps_v3) = legacy_hal_.lock()->getRttCapabilitiesV3(ifname_);
+        if (legacy_status == legacy_hal::WIFI_SUCCESS) {
+            RttCapabilities aidl_caps;
+            if (!aidl_struct_util::convertLegacyRttCapabilitiesV3ToAidl(legacy_caps_v3,
+                                                                        &aidl_caps)) {
+                return {RttCapabilities{}, createWifiStatus(WifiStatusCode::ERROR_UNKNOWN)};
+            }
+            return {aidl_caps, ndk::ScopedAStatus::ok()};
+        }
     }
 
-    RttCapabilities aidl_caps;
-    if (!aidl_struct_util::convertLegacyRttCapabilitiesV3ToAidl(legacy_caps_v3, &aidl_caps)) {
-        return {RttCapabilities{}, createWifiStatus(WifiStatusCode::ERROR_UNKNOWN)};
+    // If not supported, fallback to default
+    if (legacy_status == legacy_hal::WIFI_ERROR_NOT_SUPPORTED) {
+        legacy_hal::wifi_rtt_capabilities legacy_caps;
+        std::tie(legacy_status, legacy_caps) = legacy_hal_.lock()->getRttCapabilities(ifname_);
+        if (legacy_status == legacy_hal::WIFI_SUCCESS) {
+            RttCapabilities aidl_caps;
+            if (!aidl_struct_util::convertLegacyRttCapabilitiesToAidl(legacy_caps, &aidl_caps)) {
+                return {RttCapabilities{}, createWifiStatus(WifiStatusCode::ERROR_UNKNOWN)};
+            }
+            return {aidl_caps, ndk::ScopedAStatus::ok()};
+        }
     }
-    return {aidl_caps, ndk::ScopedAStatus::ok()};
+
+    // Error, if all failed
+    return {RttCapabilities{}, createWifiStatusFromLegacyError(legacy_status)};
 }
 
 ndk::ScopedAStatus WifiRttController::setLciInternal(int32_t cmd_id, const RttLciInformation& lci) {

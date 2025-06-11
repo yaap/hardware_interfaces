@@ -103,7 +103,8 @@ interface IStorageSession {
     /**
      * Renames an existing file.
      *
-     * The file must not already be opened. (If it is, use `IFile::rename`.)
+     * Will return `ILLEGAL_STATE` if the file is already opened. In that case, use `IFile::rename`
+     * instead.
      *
      * @currentPath:
      *     path to the file, relative to filesystem root

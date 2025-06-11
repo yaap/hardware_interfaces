@@ -22,6 +22,7 @@ import android.hardware.radio.network.RegState;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable EmergencyRegResult {
     /**
      * Indicates the cellular access network of the current emergency capable system.

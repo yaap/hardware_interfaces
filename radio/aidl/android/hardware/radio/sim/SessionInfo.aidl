@@ -19,6 +19,7 @@ package android.hardware.radio.sim;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SessionInfo {
     /**
      * Session id of the logical channel from TS 27.007 (+CCHC).

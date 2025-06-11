@@ -2843,11 +2843,11 @@ class BluetoothAudioProviderLeAudioOutputHardwareAidl
 
     if (asymmetric) {
       source_ase_requriement.aseConfiguration.codecConfiguration = {
-          CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000,
           CodecSpecificConfigurationLtv::FrameDuration::US10000, allocation};
     } else {
       source_ase_requriement.aseConfiguration.codecConfiguration = {
-          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000,
           CodecSpecificConfigurationLtv::FrameDuration::US10000, allocation};
     }
 

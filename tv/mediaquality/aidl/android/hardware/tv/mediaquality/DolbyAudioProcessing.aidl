@@ -18,11 +18,15 @@ package android.hardware.tv.mediaquality;
 
 @VintfStability
 parcelable DolbyAudioProcessing {
+    /* The default value for sound mode is standard. */
     enum SoundMode {
         GAME,
         MOVIE,
         MUSIC,
         NEWS,
+        STADIUM,
+        STANDARD,
+        USER,
     }
 
     /**
@@ -60,5 +64,5 @@ parcelable DolbyAudioProcessing {
      * mixed in Dolby Atmos and a compatible sound system with upward-firing speakers
      * or a Dolby Atmos soundbar.
      */
-    boolean doblyAtmos;
+    boolean dolbyAtmos;
 }

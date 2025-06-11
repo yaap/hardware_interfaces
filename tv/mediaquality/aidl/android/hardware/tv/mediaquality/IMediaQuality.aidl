@@ -39,7 +39,7 @@ interface IMediaQuality {
      *
      * @param callback Callback object to pass events.
      */
-    void setCallback(in IMediaQualityCallback callback);
+    void setAmbientBacklightCallback(in IMediaQualityCallback callback);
 
     /**
      * Sets the ambient backlight detector settings.
@@ -55,6 +55,9 @@ interface IMediaQuality {
      * device as configured before.
      *
      * @param enabled True to enable the ambient backlight detection, false to disable.
+     *
+     * @return Status::ok on success
+     *         UNSUPPORTED_OPERATION if this functionality is unsupported.
      */
     void setAmbientBacklightDetectionEnabled(in boolean enabled);
 
@@ -88,6 +91,9 @@ interface IMediaQuality {
      * parameters depends on the current content playing.
      *
      * @param enable True to enable, false to disable.
+     *
+     * @return Status::ok on success
+     *         UNSUPPORTED_OPERATION if this functionality is unsupported.
      */
     void setAutoPqEnabled(boolean enable);
 
@@ -112,6 +118,9 @@ interface IMediaQuality {
      * lower resolution image and invent the missing pixel to make the image looks sharper.
      *
      * @param enable True to enable, false to disable.
+     *
+     * @return Status::ok on success
+     *         UNSUPPORTED_OPERATION if this functionality is unsupported.
      */
     void setAutoSrEnabled(boolean enable);
 
@@ -136,6 +145,9 @@ interface IMediaQuality {
      * adjust the sound parameters depends on the current content playing.
      *
      * @param enable True to enable, false to disable.
+     *
+     * @return Status::ok on success
+     *         UNSUPPORTED_OPERATION if this functionality is unsupported.
      */
     void setAutoAqEnabled(boolean enable);
 
@@ -207,20 +219,4 @@ interface IMediaQuality {
      * Gets vendor capability information of the given parameters.
      */
     void getVendorParamCaps(in VendorParameterIdentifier[] names, out VendorParamCapability[] caps);
-
-    /**
-     * When HAL request picture parameters by picture profile id, the framework will use this to
-     * send the picture parameters associate with the profile id.
-     *
-     * @param pictureParameters pictureParameters that associate with the profile id HAL provided.
-     */
-    void sendPictureParameters(in PictureParameters pictureParameters);
-
-    /**
-     * When HAL request sound parameters by sound profile id, the framework will use this to
-     * send the sound parameters associate with the profile id.
-     *
-     * @param soundParameters soundParameters that associate with the profile id HAL provided.
-     */
-    void sendSoundParameters(in SoundParameters soundParameters);
 }

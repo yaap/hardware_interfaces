@@ -20,10 +20,10 @@
 #include "CanBusSlcan.h"
 #include "CanBusVirtual.h"
 
-#include <android-base/format.h>
 #include <android-base/logging.h>
 
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <regex>
 
@@ -235,7 +235,7 @@ ndk::ScopedAStatus CanController::getInterfaceName(const std::string& busName,
                                                    std::string* ifaceName) {
     *ifaceName = {};
     if (mBusesByName.find(busName) == mBusesByName.end()) {
-        return resultToStatus(Result::BAD_BUS_NAME, fmt::format("{} doesn't exist", busName));
+        return resultToStatus(Result::BAD_BUS_NAME, std::format("{} doesn't exist", busName));
     }
     *ifaceName = std::string(mBusesByName[busName]->getIfaceName());
     return ok();
@@ -245,11 +245,11 @@ ndk::ScopedAStatus CanController::upBus(const BusConfig& config, std::string* if
     if (!isValidName(config.name)) {
         LOG(ERROR) << "Bus name " << config.name << " is invalid";
         return resultToStatus(Result::BAD_BUS_NAME,
-                              fmt::format("{} is not a valid bus name", config.name));
+                              std::format("{} is not a valid bus name", config.name));
     } else if (mBusesByName.find(config.name) != mBusesByName.end()) {
         LOG(ERROR) << "A bus named " << config.name << " already exists!";
         return resultToStatus(Result::INVALID_STATE,
-                              fmt::format("A bus named {} already exists", config.name));
+                              std::format("A bus named {} already exists", config.name));
     }
 
     if (config.interfaceId.getTag() == BusConfig::InterfaceId::Tag::virtualif) {
@@ -310,7 +310,7 @@ ndk::ScopedAStatus CanController::upBus(const BusConfig& config, std::string* if
     if (result != Result::OK) {
         // the bus failed to come up, don't leave a broken entry in the map.
         mBusesByName.erase(config.name);
-        return resultToStatus(result, fmt::format("CanBus::up failed for {}", config.name));
+        return resultToStatus(result, std::format("CanBus::up failed for {}", config.name));
     }
 
     *ifaceName = mBusesByName[config.name]->getIfaceName();
@@ -321,11 +321,11 @@ ndk::ScopedAStatus CanController::downBus(const std::string& busName) {
     if (mBusesByName.find(busName) == mBusesByName.end()) {
         return resultToStatus(
                 Result::UNKNOWN_ERROR,
-                fmt::format("Couldn't bring down {}, because it doesn't exist", busName));
+                std::format("Couldn't bring down {}, because it doesn't exist", busName));
     }
     Result result = mBusesByName[busName]->down();
     if (result != Result::OK) {
-        return resultToStatus(result, fmt::format("Couldn't bring down {}!", busName));
+        return resultToStatus(result, std::format("Couldn't bring down {}!", busName));
     }
     mBusesByName.erase(busName);
     return ok();

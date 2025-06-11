@@ -124,6 +124,8 @@ class SubscriptionManagerTest : public testing::Test {
 
     std::shared_ptr<MockVehicleHardware> getHardware() { return mHardware; }
 
+    bool isEmpty() { return mManager->isEmpty(); }
+
   private:
     std::unique_ptr<SubscriptionManager> mManager;
     std::shared_ptr<PropertyCallback> mCallback;
@@ -350,6 +352,10 @@ TEST_F(SubscriptionManagerTest, testUnsubscribeUnsubscribedPropId) {
     result = getManager()->unsubscribe(getCallbackClient()->asBinder().get(),
                                        std::vector<int32_t>({0, 1, 2}));
     ASSERT_TRUE(result.ok()) << "unsubscribe an unsubscribed property must do nothing";
+
+    result = getManager()->unsubscribe(getCallbackClient()->asBinder().get(),
+                                       std::vector<int32_t>({0, 1, 2}));
+    ASSERT_TRUE(result.ok()) << "retry an unsubscribe operation must not throw error";
 
     std::vector<VehiclePropValue> updatedValues = {
             {
@@ -881,6 +887,80 @@ TEST_F(SubscriptionManagerTest, testSubscribe_enableVur_timestampUpdated_filterO
 
     ASSERT_TRUE(clients.find(client1) == clients.end())
             << "Must filter out outdated property events if VUR is enabled";
+}
+
+TEST_F(SubscriptionManagerTest, testSubscribeSupportedValueChange) {
+    SpAIBinder binder1 = ndk::SharedRefBase::make<PropertyCallback>()->asBinder();
+    std::shared_ptr<IVehicleCallback> client1 = IVehicleCallback::fromBinder(binder1);
+    SpAIBinder binder2 = ndk::SharedRefBase::make<PropertyCallback>()->asBinder();
+    std::shared_ptr<IVehicleCallback> client2 = IVehicleCallback::fromBinder(binder2);
+
+    PropIdAreaId propIdAreaId1 = {.propId = 0, .areaId = 0};
+    PropIdAreaId propIdAreaId2 = {.propId = 1, .areaId = 1};
+
+    auto result = getManager()->subscribeSupportedValueChange(client1, {propIdAreaId1});
+
+    ASSERT_TRUE(result.ok()) << "failed to call subscribeSupportedValueChange"
+                             << result.error().message();
+
+    result = getManager()->subscribeSupportedValueChange(client2, {propIdAreaId1, propIdAreaId2});
+
+    ASSERT_TRUE(result.ok()) << "failed to call subscribeSupportedValueChange"
+                             << result.error().message();
+
+    auto clients = getManager()->getSubscribedClientsForSupportedValueChange(
+            {propIdAreaId1, propIdAreaId2});
+
+    ASSERT_THAT(clients[client1], UnorderedElementsAre(propIdAreaId1))
+            << "Incorrect supported value change events for client1";
+    ASSERT_THAT(clients[client2], UnorderedElementsAre(propIdAreaId1, propIdAreaId2))
+            << "Incorrect supported value change events for client2";
+}
+
+TEST_F(SubscriptionManagerTest, testUnsubscribeSupportedValueChange) {
+    SpAIBinder binder1 = ndk::SharedRefBase::make<PropertyCallback>()->asBinder();
+    std::shared_ptr<IVehicleCallback> client1 = IVehicleCallback::fromBinder(binder1);
+    SpAIBinder binder2 = ndk::SharedRefBase::make<PropertyCallback>()->asBinder();
+    std::shared_ptr<IVehicleCallback> client2 = IVehicleCallback::fromBinder(binder2);
+
+    PropIdAreaId propIdAreaId1 = {.propId = 0, .areaId = 0};
+    PropIdAreaId propIdAreaId2 = {.propId = 1, .areaId = 1};
+
+    auto result = getManager()->subscribeSupportedValueChange(client1, {propIdAreaId1});
+
+    ASSERT_TRUE(result.ok()) << "failed to call subscribeSupportedValueChange"
+                             << result.error().message();
+
+    result = getManager()->subscribeSupportedValueChange(client2, {propIdAreaId1, propIdAreaId2});
+
+    ASSERT_TRUE(result.ok()) << "failed to call subscribeSupportedValueChange"
+                             << result.error().message();
+
+    result = getManager()->unsubscribeSupportedValueChange(binder2.get(), {propIdAreaId1});
+
+    ASSERT_TRUE(result.ok()) << "failed to call unsubscribeSupportedValueChange"
+                             << result.error().message();
+
+    auto clients = getManager()->getSubscribedClientsForSupportedValueChange(
+            {propIdAreaId1, propIdAreaId2});
+
+    ASSERT_THAT(clients[client1], UnorderedElementsAre(propIdAreaId1))
+            << "Incorrect supported value change events for client1";
+    ASSERT_THAT(clients[client2], UnorderedElementsAre(propIdAreaId2))
+            << "Incorrect supported value change events for client2";
+
+    result = getManager()->unsubscribeSupportedValueChange(binder2.get(), {propIdAreaId2});
+
+    ASSERT_TRUE(result.ok()) << "failed to call unsubscribeSupportedValueChange"
+                             << result.error().message();
+
+    result = getManager()->unsubscribeSupportedValueChange(binder1.get(), {propIdAreaId1});
+
+    ASSERT_TRUE(result.ok()) << "failed to call unsubscribeSupportedValueChange"
+                             << result.error().message();
+
+    EXPECT_EQ(getManager()->countSupportedValueChangeClients(), 0u) << "All clients cleared";
+    EXPECT_TRUE(isEmpty()) << "All clients cleared";
 }
 
 }  // namespace vehicle

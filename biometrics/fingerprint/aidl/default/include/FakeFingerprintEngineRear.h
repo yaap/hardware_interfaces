@@ -23,6 +23,8 @@ namespace aidl::android::hardware::biometrics::fingerprint {
 
 // A fake engine that is backed by system properties instead of hardware.
 class FakeFingerprintEngineRear : public FakeFingerprintEngine {
+    static SensorLocation defaultSensorLocation[];
+
   public:
     FakeFingerprintEngineRear() : FakeFingerprintEngine() {}
     ~FakeFingerprintEngineRear() {}

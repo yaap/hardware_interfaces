@@ -42,6 +42,8 @@
 #include <keymint_support/key_param_output.h>
 #include <keymint_support/openssl_utils.h>
 
+#include <vendorsupport/api_level.h>
+
 #include "KeyMintAidlTestBase.h"
 
 using aidl::android::hardware::security::keymint::AuthorizationSet;
@@ -2267,10 +2269,19 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
     get_unique_id(app_id, min_date - 1, &unique_id8);
     EXPECT_NE(unique_id, unique_id8);
 
-    // Marking RESET_SINCE_ID_ROTATION should give a different unique ID.
-    vector<uint8_t> unique_id9;
-    get_unique_id(app_id, cert_date, &unique_id9, /* reset_id = */ true);
-    EXPECT_NE(unique_id, unique_id9);
+    // Some StrongBox implementations did not correctly handle RESET_SINCE_ID_ROTATION when
+    // combined with use of an ATTEST_KEY, but this was not previously tested. Tests under GSI
+    // were updated to implicitly use ATTEST_KEYS (because rkp-only status cannot be determined),
+    // uncovering the problem. Skip this test for older implementations in that situation
+    // (cf. b/385800086).
+    int vendor_api_level = get_vendor_api_level();
+    if (!(is_gsi_image() && SecLevel() == SecurityLevel::STRONGBOX &&
+          vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__))) {
+        // Marking RESET_SINCE_ID_ROTATION should give a different unique ID.
+        vector<uint8_t> unique_id9;
+        get_unique_id(app_id, cert_date, &unique_id9, /* reset_id = */ true);
+        EXPECT_NE(unique_id, unique_id9);
+    }
 }
 
 /*
@@ -2279,6 +2290,16 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
  * Verifies that creation of an attested ECDSA key does not include APPLICATION_ID.
  */
 TEST_P(NewKeyGenerationTest, EcdsaAttestationTagNoApplicationId) {
+    int vendor_api_level = get_vendor_api_level();
+    if (is_gsi_image() && SecLevel() == SecurityLevel::STRONGBOX &&
+        vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
+        // Some StrongBox implementations did not correctly handle missing APPLICATION_ID when
+        // combined with use of an ATTEST_KEY, but this was not previously tested. Tests under
+        // GSI were updated to implicitly use ATTEST_KEYS (because rkp-only status cannot be
+        // determined), uncovering the problem. Skip this test for older implementations in that
+        // situation (cf. b/385800086).
+        GTEST_SKIP() << "Skip test on StrongBox device with vendor-api-level < __ANDROID_API_V__";
+    }
     auto challenge = "hello";
     auto attest_app_id = "foo";
     auto subject = "cert subj 2";
@@ -4156,13 +4177,15 @@ TEST_P(ImportKeyTest, EcdsaSuccess) {
  * when the EC_CURVE is not explicitly specified.
  */
 TEST_P(ImportKeyTest, EcdsaSuccessCurveNotSpecified) {
-    if (get_vsr_api_level() < __ANDROID_API_V__) {
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         /*
          * The KeyMint spec was previously not clear as to whether EC_CURVE was optional on import
-         * of EC keys. However, this was not checked at the time so we can only be strict about
-         * checking this for implementations at VSR-V or later.
+         * of EC keys. However, this was not checked at the time, so we version-gate the strict
+         * check.
          */
-        GTEST_SKIP() << "Skipping EC_CURVE on import only strict >= VSR-V";
+        GTEST_SKIP() << "Applies only to vendor API level >= 202404, but this device is: "
+                     << vendor_api_level;
     }
 
     ASSERT_EQ(ErrorCode::OK, ImportKey(AuthorizationSetBuilder()
@@ -5314,15 +5337,15 @@ auto wrapping_key_for_asym_keys = hex2str(
         "8564");
 
 TEST_P(ImportWrappedKeyTest, RsaKey) {
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level < __ANDROID_API_V__) {
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         /*
          * The Keymaster v4 spec introduced `importWrappedKey()` and did not restrict it to
          * just symmetric keys.  However, the import of asymmetric wrapped keys was not tested
-         * at the time, so we can only be strict about checking this for implementations claiming
-         * support for VSR API level 35 and above.
+         * at the time, so we version-gate the strict check.
          */
-        GTEST_SKIP() << "Applies only to VSR API level 35, this device is: " << vsr_api_level;
+        GTEST_SKIP() << "Applies only to vendor API level >= 202404, but this device is: "
+                     << vendor_api_level;
     }
 
     auto wrapping_key_desc = AuthorizationSetBuilder()
@@ -5345,15 +5368,15 @@ TEST_P(ImportWrappedKeyTest, RsaKey) {
 }
 
 TEST_P(ImportWrappedKeyTest, EcKey) {
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level < __ANDROID_API_V__) {
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         /*
          * The Keymaster v4 spec introduced `importWrappedKey()` and did not restrict it to
          * just symmetric keys.  However, the import of asymmetric wrapped keys was not tested
-         * at the time, so we can only be strict about checking this for implementations claiming
-         * support for VSR API level 35 and above.
+         * at the time, so we version-gate the strict check.
          */
-        GTEST_SKIP() << "Applies only to VSR API level 35, this device is: " << vsr_api_level;
+        GTEST_SKIP() << "Applies only to vendor API level >= 202404, but this device is: "
+                     << vendor_api_level;
     }
 
     auto wrapping_key_desc = AuthorizationSetBuilder()
@@ -8305,21 +8328,15 @@ TEST_P(KeyDeletionTest, DeleteAllKeys) {
         GTEST_SKIP() << "Option --arm_deleteAllKeys not set";
         return;
     }
+    // This test was introduced in API level 36, but is not version guarded because it requires a
+    // manual opt-in anyway. This makes it easier to run on older devices.
     auto error = GenerateKey(AuthorizationSetBuilder()
                                      .RsaSigningKey(2048, 65537)
                                      .Digest(Digest::NONE)
                                      .Padding(PaddingMode::NONE)
                                      .Authorization(TAG_NO_AUTH_REQUIRED)
-                                     .Authorization(TAG_ROLLBACK_RESISTANCE)
                                      .SetDefaultValidity());
-    if (error == ErrorCode::ROLLBACK_RESISTANCE_UNAVAILABLE) {
-        GTEST_SKIP() << "Rollback resistance not supported";
-    }
-
-    // Delete must work if rollback protection is implemented
     ASSERT_EQ(ErrorCode::OK, error);
-    AuthorizationSet hardwareEnforced(SecLevelAuthorizations());
-    ASSERT_TRUE(hardwareEnforced.Contains(TAG_ROLLBACK_RESISTANCE));
 
     ASSERT_EQ(ErrorCode::OK, DeleteAllKeys());
 
@@ -8949,27 +8966,30 @@ using VsrRequirementTest = KeyMintAidlTestBase;
 
 // @VsrTest = VSR-3.10-008
 TEST_P(VsrRequirementTest, Vsr13Test) {
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level < __ANDROID_API_T__) {
-        GTEST_SKIP() << "Applies only to VSR API level 33, this device is: " << vsr_api_level;
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < __ANDROID_API_T__) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 33, but this device is: "
+                     << vendor_api_level;
     }
     EXPECT_GE(AidlVersion(), 2) << "VSR 13+ requires KeyMint version 2";
 }
 
 // @VsrTest = VSR-3.10-013.001
 TEST_P(VsrRequirementTest, Vsr14Test) {
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level < __ANDROID_API_U__) {
-        GTEST_SKIP() << "Applies only to VSR API level 34, this device is: " << vsr_api_level;
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < __ANDROID_API_U__) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 34, but this device is: "
+                     << vendor_api_level;
     }
     EXPECT_GE(AidlVersion(), 3) << "VSR 14+ requires KeyMint version 3";
 }
 
 // @VsrTest = GMS-VSR-3.10-019
 TEST_P(VsrRequirementTest, Vsr16Test) {
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level <= __ANDROID_API_V__) {
-        GTEST_SKIP() << "Applies only to VSR API level > 35, this device is: " << vsr_api_level;
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level <= AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
+        GTEST_SKIP() << "Applies only to vendor API level > 202404, but this device is: "
+                     << vendor_api_level;
     }
     if (SecLevel() == SecurityLevel::STRONGBOX) {
         GTEST_SKIP() << "Applies only to TEE KeyMint, not StrongBox KeyMint";
@@ -9114,5 +9134,12 @@ int main(int argc, char** argv) {
             }
         }
     }
+    // Some tests rely on information about the state of the system having been received by KeyMint,
+    // so ensure that has happened before running tests.
+    using namespace std::chrono_literals;
+    if (!android::base::WaitForProperty("keystore.module_hash.sent", "true", 30s)) {
+        std::cerr << "Warning: running test before keystore.module_hash.sent is true\n";
+    }
+
     return RUN_ALL_TESTS();
 }

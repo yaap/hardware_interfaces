@@ -65,6 +65,7 @@ cc_binary_host {
 
 cc_test_host {
     name: "TestWakeupClientServerHostUnitTest",
+    team: "trendy_team_aaos_power_triage",
     srcs: [
         "test/*.cpp",
         "src/TestWakeupClientServiceImpl.cpp",

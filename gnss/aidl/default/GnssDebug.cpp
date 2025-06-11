@@ -126,9 +126,46 @@ ndk::ScopedAStatus GnssDebug::getDebugData(DebugData* debugData) {
             .ephemerisAgeSeconds = 12,
             .serverPredictionIsAvailable = true,
             .serverPredictionAgeSeconds = 30};
+    SatelliteData satelliteData10 = {
+            .svid = 2,
+            .constellation = GnssConstellationType::GALILEO,
+            .ephemerisType = SatelliteEphemerisType::EPHEMERIS,
+            .ephemerisSource = SatellitePvt::SatelliteEphemerisSource::SERVER_LONG_TERM,
+            .ephemerisHealth = SatelliteEphemerisHealth::GOOD,
+            .ephemerisAgeSeconds = 12,
+            .serverPredictionIsAvailable = true,
+            .serverPredictionAgeSeconds = 30};
+    SatelliteData satelliteData11 = {
+            .svid = 4,
+            .constellation = GnssConstellationType::GALILEO,
+            .ephemerisType = SatelliteEphemerisType::EPHEMERIS,
+            .ephemerisSource = SatellitePvt::SatelliteEphemerisSource::SERVER_LONG_TERM,
+            .ephemerisHealth = SatelliteEphemerisHealth::GOOD,
+            .ephemerisAgeSeconds = 12,
+            .serverPredictionIsAvailable = true,
+            .serverPredictionAgeSeconds = 30};
+    SatelliteData satelliteData12 = {
+            .svid = 10,
+            .constellation = GnssConstellationType::GALILEO,
+            .ephemerisType = SatelliteEphemerisType::EPHEMERIS,
+            .ephemerisSource = SatellitePvt::SatelliteEphemerisSource::SERVER_LONG_TERM,
+            .ephemerisHealth = SatelliteEphemerisHealth::GOOD,
+            .ephemerisAgeSeconds = 12,
+            .serverPredictionIsAvailable = true,
+            .serverPredictionAgeSeconds = 30};
+    SatelliteData satelliteData13 = {
+            .svid = 29,
+            .constellation = GnssConstellationType::GALILEO,
+            .ephemerisType = SatelliteEphemerisType::EPHEMERIS,
+            .ephemerisSource = SatellitePvt::SatelliteEphemerisSource::SERVER_LONG_TERM,
+            .ephemerisHealth = SatelliteEphemerisHealth::GOOD,
+            .ephemerisAgeSeconds = 12,
+            .serverPredictionIsAvailable = true,
+            .serverPredictionAgeSeconds = 30};
     std::vector<SatelliteData> satelliteDataArrayDebug = {
-            satelliteData1, satelliteData2, satelliteData3, satelliteData4, satelliteData5,
-            satelliteData6, satelliteData7, satelliteData8, satelliteData9};
+            satelliteData1,  satelliteData2,  satelliteData3, satelliteData4, satelliteData5,
+            satelliteData6,  satelliteData7,  satelliteData8, satelliteData9, satelliteData10,
+            satelliteData11, satelliteData12, satelliteData13};
     debugData->position = positionDebug;
     debugData->time = timeDebug;
     debugData->satelliteDataArray = satelliteDataArrayDebug;

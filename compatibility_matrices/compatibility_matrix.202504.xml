@@ -233,7 +233,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.gnss</name>
-        <version>2-5</version>
+        <version>2-6</version>
         <interface>
             <name>IGnss</name>
             <instance>default</instance>
@@ -520,6 +520,22 @@
         <version>1</version>
         <interface>
             <name>IHwCryptoKey</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" exclusive-to="virtual-machine">
+        <name>android.hardware.security.see.storage</name>
+        <version>1</version>
+        <interface>
+            <name>ISecureStorage</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" exclusive-to="virtual-machine">
+        <name>android.hardware.security.see.authmgr</name>
+        <version>1</version>
+        <interface>
+            <name>IAuthMgrAuthorization</name>
             <instance>default</instance>
         </interface>
     </hal>

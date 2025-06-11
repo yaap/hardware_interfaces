@@ -31,16 +31,26 @@ aidl_interface {
     ],
     stability: "vintf",
     backend: {
+        rust: {
+            enabled: true,
+        },
         java: {
             enabled: false,
         },
         ndk: {
             apex_available: [
                 "//apex_available:platform",
-                "com.android.btservices",
+                "com.android.bt",
             ],
             min_sdk_version: "33",
         },
     },
-    frozen: false,
+    frozen: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: ["android.hardware.contexthub-V4"],
+        },
+    ],
+
 }

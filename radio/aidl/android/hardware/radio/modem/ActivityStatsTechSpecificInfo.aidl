@@ -21,6 +21,7 @@ import android.hardware.radio.AccessNetwork;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ActivityStatsTechSpecificInfo {
     /** Indicates the frequency range is unknown. */
     const int FREQUENCY_RANGE_UNKNOWN = 0;

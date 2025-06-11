@@ -18,10 +18,10 @@
 #include <string>
 #include <vector>
 
+#define LOG_TAG "VtsHalEqualizerTest"
 #include <aidl/Gtest.h>
 #include <aidl/android/hardware/audio/effect/IEffect.h>
 #include <aidl/android/hardware/audio/effect/IFactory.h>
-#define LOG_TAG "VtsHalEqualizerTest"
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android/binder_interface_utils.h>
@@ -48,8 +48,8 @@ using android::hardware::audio::common::testing::detail::TestExecutionTracer;
  */
 
 enum ParamName { PARAM_INSTANCE_NAME, PARAM_PRESET, PARAM_BAND_LEVEL };
-using EqualizerParamTestParam = std::tuple<std::pair<std::shared_ptr<IFactory>, Descriptor>, int,
-                                           std::vector<Equalizer::BandLevel>>;
+using EqualizerTestParam = std::tuple<std::pair<std::shared_ptr<IFactory>, Descriptor>, int,
+                                      std::vector<Equalizer::BandLevel>>;
 
 /*
 Testing parameter range, assuming the parameter supported by effect is in this range.
@@ -58,37 +58,33 @@ from IEffect.setParameter(), otherwise expect EX_ILLEGAL_ARGUMENT.
 */
 const std::vector<int> kBandLevels = {0, -10, 10};  // needs update with implementation
 
-class EqualizerTest : public ::testing::TestWithParam<EqualizerParamTestParam>,
-                      public EffectHelper {
+class EqualizerTestHelper : public EffectHelper {
   public:
-    EqualizerTest()
-        : mPresetIndex(std::get<PARAM_PRESET>(GetParam())),
-          mBandLevel(std::get<PARAM_BAND_LEVEL>(GetParam())) {
-        std::tie(mFactory, mDescriptor) = std::get<PARAM_INSTANCE_NAME>(GetParam());
+    EqualizerTestHelper(std::pair<std::shared_ptr<IFactory>, Descriptor> descPair,
+                        int presetIndex = 0,
+                        std::vector<Equalizer::BandLevel> bandLevel =
+                                std::vector<Equalizer::BandLevel>{
+                                        Equalizer::BandLevel({.index = 0, .levelMb = 0})})
+        : mFactory(descPair.first), mPresetIndex(presetIndex), mBandLevel(bandLevel) {
+        mDescriptor = descPair.second;
     }
 
-    void SetUp() override {
+    void SetUpEqualizer() {
         ASSERT_NE(nullptr, mFactory);
         ASSERT_NO_FATAL_FAILURE(create(mFactory, mEffect, mDescriptor));
 
         Parameter::Common common = createParamCommon(
                 0 /* session */, 1 /* ioHandle */, 44100 /* iSampleRate */, 44100 /* oSampleRate */,
                 kInputFrameCount /* iFrameCount */, kOutputFrameCount /* oFrameCount */);
-        IEffect::OpenEffectReturn ret;
-        ASSERT_NO_FATAL_FAILURE(open(mEffect, common, std::nullopt, &ret, EX_NONE));
+        ASSERT_NO_FATAL_FAILURE(open(mEffect, common, std::nullopt, &mOpenEffectReturn, EX_NONE));
         ASSERT_NE(nullptr, mEffect);
     }
-    void TearDown() override {
+
+    void TearDownEqualizer() {
         ASSERT_NO_FATAL_FAILURE(close(mEffect));
         ASSERT_NO_FATAL_FAILURE(destroy(mFactory, mEffect));
+        mOpenEffectReturn = IEffect::OpenEffectReturn{};
     }
-
-    static const long kInputFrameCount = 0x100, kOutputFrameCount = 0x100;
-    std::shared_ptr<IFactory> mFactory;
-    std::shared_ptr<IEffect> mEffect;
-    Descriptor mDescriptor;
-    int mPresetIndex;
-    std::vector<Equalizer::BandLevel> mBandLevel;
 
     void SetAndGetEqualizerParameters() {
         ASSERT_NE(nullptr, mEffect);
@@ -167,26 +163,45 @@ class EqualizerTest : public ::testing::TestWithParam<EqualizerParamTestParam>,
         mTags.push_back({Equalizer::preset, Equalizer::make<Equalizer::preset>(preset)});
     }
 
-    void addBandLevelsParam(std::vector<Equalizer::BandLevel>& bandLevels) {
+    void addBandLevelsParam(const std::vector<Equalizer::BandLevel>& bandLevels) {
         mTags.push_back(
                 {Equalizer::bandLevels, Equalizer::make<Equalizer::bandLevels>(bandLevels)});
     }
 
+    static const long kInputFrameCount = 0x100, kOutputFrameCount = 0x100;
+    const std::shared_ptr<IFactory> mFactory;
+    const int mPresetIndex;
+    const std::vector<Equalizer::BandLevel> mBandLevel;
+    std::shared_ptr<IEffect> mEffect;
+    IEffect::OpenEffectReturn mOpenEffectReturn;
+
   private:
     std::vector<std::pair<Equalizer::Tag, Equalizer>> mTags;
-
     void CleanUp() { mTags.clear(); }
 };
 
-TEST_P(EqualizerTest, SetAndGetParams) {
+class EqualizerParamTest : public ::testing::TestWithParam<EqualizerTestParam>,
+                           public EqualizerTestHelper {
+  public:
+    EqualizerParamTest()
+        : EqualizerTestHelper(std::get<PARAM_INSTANCE_NAME>(GetParam()),
+                              std::get<PARAM_PRESET>(GetParam()),
+                              std::get<PARAM_BAND_LEVEL>(GetParam())) {}
+
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpEqualizer()); }
+
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(TearDownEqualizer()); }
+};
+
+TEST_P(EqualizerParamTest, SetAndGetParams) {
     addBandLevelsParam(mBandLevel);
     addPresetParam(mPresetIndex);
-    EXPECT_NO_FATAL_FAILURE(SetAndGetEqualizerParameters());
+    ASSERT_NO_FATAL_FAILURE(SetAndGetEqualizerParameters());
 }
 
 std::vector<std::pair<std::shared_ptr<IFactory>, Descriptor>> kDescPair;
 INSTANTIATE_TEST_SUITE_P(
-        EqualizerTest, EqualizerTest,
+        EqualizerParamTest, EqualizerParamTest,
         ::testing::Combine(
                 testing::ValuesIn(kDescPair = EffectFactoryHelper::getAllEffectDescriptors(
                                           IFactory::descriptor, getEffectTypeUuidEqualizer())),
@@ -200,7 +215,7 @@ INSTANTIATE_TEST_SUITE_P(
                                 [](std::set<std::vector<Equalizer::BandLevel>>& bandLevels) {
                                     return bandLevels;
                                 }))),
-        [](const testing::TestParamInfo<EqualizerTest::ParamType>& info) {
+        [](const testing::TestParamInfo<EqualizerParamTest::ParamType>& info) {
             auto descriptor = std::get<PARAM_INSTANCE_NAME>(info.param).second;
             std::string bandLevel =
                     ::android::internal::ToString(std::get<PARAM_BAND_LEVEL>(info.param));
@@ -211,7 +226,7 @@ INSTANTIATE_TEST_SUITE_P(
                     name.begin(), name.end(), [](const char c) { return !std::isalnum(c); }, '_');
             return name;
         });
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EqualizerTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EqualizerParamTest);
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

@@ -219,7 +219,7 @@ class DefaultVehicleHal final : public aidlvhal::BnVehicle {
     // mBinderEvents.
     void onBinderDiedUnlinkedHandler();
 
-    size_t countSubscribeClients();
+    size_t countClients();
 
     // Handles the property change events in batch.
     void handleBatchedPropertyEvents(std::vector<aidlvhal::VehiclePropValue>&& batchedEvents);
@@ -233,6 +233,10 @@ class DefaultVehicleHal final : public aidlvhal::BnVehicle {
             std::function<void(const std::unordered_map<int32_t, aidlvhal::VehiclePropConfig>&)>
                     callback) const EXCLUDES(mConfigLock);
 
+    android::base::Result<aidlvhal::VehicleAreaConfig> getAreaConfigForPropIdAreaId(
+            int32_t propId, int32_t areaId) const;
+    android::base::Result<aidlvhal::HasSupportedValueInfo> getHasSupportedValueInfo(
+            int32_t propId, int32_t areaId) const;
     // Puts the property change events into a queue so that they can handled in batch.
     static void batchPropertyChangeEvent(
             const std::weak_ptr<ConcurrentQueue<aidlvhal::VehiclePropValue>>& batchedEventQueue,
@@ -250,6 +254,10 @@ class DefaultVehicleHal final : public aidlvhal::BnVehicle {
     static void onPropertySetErrorEvent(
             const std::weak_ptr<SubscriptionManager>& subscriptionManager,
             const std::vector<SetValueErrorEvent>& errorEvents);
+
+    static void onSupportedValueChange(
+            const std::weak_ptr<SubscriptionManager>& subscriptionManager,
+            const std::vector<PropIdAreaId>& updatedPropIdAreaIds);
 
     static void checkHealth(IVehicleHardware* hardware,
                             std::weak_ptr<SubscriptionManager> subscriptionManager);

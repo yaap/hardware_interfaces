@@ -42,25 +42,50 @@ CHANGE_MODE_CPP_FILE_PATH = GENERATED_LIB + '/cpp/ChangeModeForVehicleProperty.h
 ACCESS_CPP_FILE_PATH = GENERATED_LIB + '/cpp/AccessForVehicleProperty.h'
 CHANGE_MODE_JAVA_FILE_PATH = GENERATED_LIB + '/java/ChangeModeForVehicleProperty.java'
 ACCESS_JAVA_FILE_PATH = GENERATED_LIB + '/java/AccessForVehicleProperty.java'
+ENUM_CPP_FILE_PATH = GENERATED_LIB + '/cpp/EnumForVehicleProperty.h'
 ENUM_JAVA_FILE_PATH = GENERATED_LIB + '/java/EnumForVehicleProperty.java'
 UNITS_JAVA_FILE_PATH = GENERATED_LIB + '/java/UnitsForVehicleProperty.java'
 VERSION_CPP_FILE_PATH = GENERATED_LIB + '/cpp/VersionForVehicleProperty.h'
+ANNOTATIONS_CPP_FILE_PATH = GENERATED_LIB + '/cpp/AnnotationsForVehicleProperty.h'
+ANNOTATIONS_JAVA_FILE_PATH = GENERATED_LIB + '/java/AnnotationsForVehicleProperty.java'
 SCRIPT_PATH = 'hardware/interfaces/automotive/vehicle/tools/generate_annotation_enums.py'
 
 TAB = '    '
-RE_ENUM_START = re.compile('\s*enum VehicleProperty \{')
-RE_ENUM_END = re.compile('\s*\}\;')
-RE_COMMENT_BEGIN = re.compile('\s*\/\*\*?')
-RE_COMMENT_END = re.compile('\s*\*\/')
-RE_CHANGE_MODE = re.compile('\s*\* @change_mode (\S+)\s*')
-RE_VERSION = re.compile('\s*\* @version (\S+)\s*')
-RE_ACCESS = re.compile('\s*\* @access (\S+)\s*')
-RE_DATA_ENUM = re.compile('\s*\* @data_enum (\S+)\s*')
-RE_UNIT = re.compile('\s*\* @unit (\S+)\s+')
-RE_VALUE = re.compile('\s*(\w+)\s*=(.*)')
+RE_ENUM_START = re.compile(r'\s*enum VehicleProperty \{')
+RE_ENUM_END = re.compile(r'\s*\}\;')
+RE_COMMENT_BEGIN = re.compile(r'\s*\/\*\*?')
+RE_COMMENT_END = re.compile(r'\s*\*\/')
+RE_CHANGE_MODE = re.compile(r'\s*\* @change_mode (\S+)\s*')
+RE_VERSION = re.compile(r'\s*\* @version (\S+)\s*')
+RE_ACCESS = re.compile(r'\s*\* @access (\S+)\s*')
+RE_DATA_ENUM = re.compile(r'\s*\* @data_enum (\S+)\s*')
+RE_UNIT = re.compile(r'\s*\* @unit (\S+)\s+')
+RE_VALUE = re.compile(r'\s*(\w+)\s*=(.*)')
+RE_ANNOTATION = re.compile(r'\s*\* @(\S+)\s*')
+
+SUPPORTED_ANNOTATIONS = ['change_mode', 'access', 'unit', 'data_enum', 'data_enum_bit_flags',
+    'version', 'require_min_max_supported_value', 'require_supported_values_list',
+    'legacy_supported_values_in_config']
+
+# Non static data_enum properties that do not require supported values list.
+# These properties are either deprecated or for internal use only.
+ENUM_PROPERTIES_WITHOUT_SUPPORTED_VALUES = [
+    # deprecated
+    'TURN_SIGNAL_STATE',
+    # The supported values are exposed through HVAC_FAN_DIRECTION_AVAILABLE
+    'HVAC_FAN_DIRECTION',
+    # Internal use only
+    'HW_ROTARY_INPUT',
+    # Internal use only
+    'HW_CUSTOM_INPUT',
+    # Internal use only
+    'SHUTDOWN_REQUEST',
+    # Internal use only
+    'CAMERA_SERVICE_CURRENT_STATE'
+]
 
 LICENSE = """/*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,104 +110,169 @@ LICENSE = """/*
 
 """
 
-CHANGE_MODE_CPP_HEADER = """#pragma once
+CHANGE_MODE_CPP_FORMATTER = """#pragma once
 
 #include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 #include <aidl/android/hardware/automotive/vehicle/VehiclePropertyChangeMode.h>
 
 #include <unordered_map>
 
-namespace aidl {
-namespace android {
-namespace hardware {
-namespace automotive {
-namespace vehicle {
-
-std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehicleProperty = {
+namespace aidl::android::hardware::automotive::vehicle {{
+std::unordered_map<VehicleProperty, VehiclePropertyChangeMode> ChangeModeForVehicleProperty = {{
+{0}
+}};
+}}  // aidl::android::hardware::automotive::vehicle
 """
 
-CPP_FOOTER = """
-};
-
-}  // namespace vehicle
-}  // namespace automotive
-}  // namespace hardware
-}  // namespace android
-}  // aidl
-"""
-
-ACCESS_CPP_HEADER = """#pragma once
+ACCESS_CPP_FORMATTER = """#pragma once
 
 #include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 #include <aidl/android/hardware/automotive/vehicle/VehiclePropertyAccess.h>
 
 #include <unordered_map>
 
-namespace aidl {
-namespace android {
-namespace hardware {
-namespace automotive {
-namespace vehicle {
+namespace aidl::android::hardware::automotive::vehicle {{
+// This map represents the default access mode for each property.
+std::unordered_map<VehicleProperty, VehiclePropertyAccess> DefaultAccessForVehicleProperty = {{
+{0}
+}};
 
-std::unordered_map<VehicleProperty, VehiclePropertyAccess> AccessForVehicleProperty = {
+// This map represents the allowed access modes for each property.
+std::unordered_map<VehicleProperty, std::vector<VehiclePropertyAccess>>
+        AllowedAccessForVehicleProperty = {{
+{1}
+}};
+}}  // aidl::android::hardware::automotive::vehicle
 """
 
-VERSION_CPP_HEADER = """#pragma once
+VERSION_CPP_FORMATTER = """#pragma once
 
 #include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 
 #include <unordered_map>
 
-namespace aidl {
-namespace android {
-namespace hardware {
-namespace automotive {
-namespace vehicle {
-
-std::unordered_map<VehicleProperty, int32_t> VersionForVehicleProperty = {
+namespace aidl::android::hardware::automotive::vehicle {{
+std::unordered_map<VehicleProperty, int32_t> VersionForVehicleProperty = {{
+{0}
+}};
+}}  // aidl::android::hardware::automotive::vehicle
 """
 
-CHANGE_MODE_JAVA_HEADER = """package android.hardware.automotive.vehicle;
+ANNOTATIONS_CPP_FORMATTER = """#pragma once
+
+#include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
+
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace aidl::android::hardware::automotive::vehicle {{
+std::unordered_map<VehicleProperty, std::unordered_set<std::string>>
+        AnnotationsForVehicleProperty = {{
+{0}
+}};
+}}  // aidl::android::hardware::automotive::vehicle
+"""
+
+ENUM_CPP_FORMATTER = """#pragma once
+
+#define addSupportedValues(EnumType) \\
+{{ \\
+constexpr auto values = ndk::internal::enum_values<EnumType>; \\
+for (size_t i = 0; i < values.size(); i++) {{ \\
+    supportedValues.insert(static_cast<int64_t>(values[i])); \\
+}} \\
+}}
+
+#include <VehicleHalTypes.h>
+#include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
+
+#include <unordered_set>
+
+namespace aidl::android::hardware::automotive::vehicle {{
+std::unordered_set<int64_t> getSupportedEnumValuesForProperty(VehicleProperty propertyId) {{
+    std::unordered_set<int64_t> supportedValues;
+    switch (propertyId) {{
+{0}
+        default:
+            // Do nothing.
+            break;
+    }}
+    return supportedValues;
+}}
+}}  // aidl::android::hardware::automotive::vehicle
+"""
+
+ENUM_CPP_SWITCH_CASE_FORMATTER = """        case {0}:
+{1}
+            break;
+"""
+
+CHANGE_MODE_JAVA_FORMATTER = """package android.hardware.automotive.vehicle;
 
 import java.util.Map;
 
-public final class ChangeModeForVehicleProperty {
+public final class ChangeModeForVehicleProperty {{
 
     public static final Map<Integer, Integer> values = Map.ofEntries(
-"""
-
-JAVA_FOOTER = """
+{0}
     );
 
-}
+}}
 """
 
-ACCESS_JAVA_HEADER = """package android.hardware.automotive.vehicle;
+ACCESS_JAVA_FORMATTER = """package android.hardware.automotive.vehicle;
 
 import java.util.Map;
 
-public final class AccessForVehicleProperty {
+public final class AccessForVehicleProperty {{
 
     public static final Map<Integer, Integer> values = Map.ofEntries(
+{0}
+    );
+
+}}
 """
 
-ENUM_JAVA_HEADER = """package android.hardware.automotive.vehicle;
+ENUM_JAVA_FORMATTER = """package android.hardware.automotive.vehicle;
 
 import java.util.List;
 import java.util.Map;
 
-public final class EnumForVehicleProperty {
+public final class EnumForVehicleProperty {{
 
     public static final Map<Integer, List<Class<?>>> values = Map.ofEntries(
+{0}
+    );
+
+}}
 """
 
-UNITS_JAVA_HEADER = """package android.hardware.automotive.vehicle;
+UNITS_JAVA_FORMATTER = """package android.hardware.automotive.vehicle;
 
 import java.util.Map;
 
-public final class UnitsForVehicleProperty {
+public final class UnitsForVehicleProperty {{
 
     public static final Map<Integer, Integer> values = Map.ofEntries(
+{0}
+    );
+
+}}
+"""
+
+ANNOTATIONS_JAVA_FORMATTER = """package android.hardware.automotive.vehicle;
+
+import java.util.Set;
+import java.util.Map;
+
+public final class AnnotationsForVehicleProperty {{
+
+    public static final Map<Integer, Set<String>> values = Map.ofEntries(
+{0}
+    );
+
+}}
 """
 
 
@@ -198,6 +288,8 @@ class PropertyConfig:
         self.enum_types = []
         self.unit_type = None
         self.version = None
+        # Use a set to avoid duplicate annotation.
+        self.annotations = set()
 
     def __repr__(self):
         return self.__str__()
@@ -232,60 +324,15 @@ class FileParser:
                 if RE_COMMENT_BEGIN.match(line):
                     in_comment = True
                     config = PropertyConfig()
-                    description = ''
+                    # Use an array so that we could modify the string in parseComment.
+                    description = ['']
                     continue
 
                 if RE_COMMENT_END.match(line):
                     in_comment = False
                 if in_comment:
-                    match = RE_CHANGE_MODE.match(line)
-                    if match:
-                        config.change_mode = match.group(1).replace('VehiclePropertyChangeMode.', '')
-                        continue
-                    match = RE_ACCESS.match(line)
-                    if match:
-                        config.access_modes.append(match.group(1).replace('VehiclePropertyAccess.', ''))
-                        continue
-                    match = RE_UNIT.match(line)
-                    if match:
-                        config.unit_type = match.group(1)
-                        continue
-                    match = RE_DATA_ENUM.match(line)
-                    if match:
-                        config.enum_types.append(match.group(1))
-                        continue
-                    match = RE_VERSION.match(line)
-                    if match:
-                        if config.version != None:
-                            raise Exception('Duplicate version annotation for property: ' + prop_name)
-                        config.version = match.group(1)
-                        continue
-
-                    sline = line.strip()
-                    if sline.startswith('*'):
-                        # Remove the '*'.
-                        sline = sline[1:].strip()
-
-                    if not config.description:
-                        # We reach an empty line of comment, the description part is ending.
-                        if sline == '':
-                            config.description = description
-                        else:
-                            if description != '':
-                                description += ' '
-                            description += sline
-                    else:
-                        if not config.comment:
-                            if sline != '':
-                                # This is the first line for comment.
-                                config.comment = sline
-                        else:
-                            if sline != '':
-                                # Concat this line with the previous line's comment with a space.
-                                config.comment += ' ' + sline
-                            else:
-                                # Treat empty line comment as a new line.
-                                config.comment += '\n'
+                    # We will update the string in description in this function.
+                    self.parseComment(line, config, description)
                 else:
                     match = RE_VALUE.match(line)
                     if match:
@@ -300,58 +347,153 @@ class FileParser:
                                     'No access_mode annotation for property: ' + prop_name)
                         if not config.version:
                             raise Exception(
-                                    'no version annotation for property: ' + prop_name)
+                                    'No version annotation for property: ' + prop_name)
+                        if ('data_enum' in config.annotations and
+                            'require_supported_values_list' not in config.annotations and
+                            config.change_mode != 'STATIC' and
+                            prop_name not in ENUM_PROPERTIES_WITHOUT_SUPPORTED_VALUES):
+                            raise Exception(
+                                    'The property: ' + prop_name + ' has @data_enum '
+                                    'annotation but does not have @require_supported_values_list'
+                                    ', either add the annotation or add the property name to '
+                                    'ENUM_PROPERTIES_WITHOUT_SUPPORTED_VALUES in '
+                                    'generate_annotation_enums.py')
+
                         config.name = prop_name
                         configs.append(config)
 
         self.configs = configs
 
-    def convert(self, output, header, footer, cpp, field):
+    def parseComment(self, line, config, description):
+        match_annotation = RE_ANNOTATION.match(line)
+        if match_annotation:
+            annotation = match_annotation.group(1)
+            if annotation not in SUPPORTED_ANNOTATIONS:
+                raise Exception('Annotation: @' + annotation + " is not supported, typo?")
+            config.annotations.add(annotation)
+            match = RE_CHANGE_MODE.match(line)
+            if match:
+                config.change_mode = match.group(1).replace('VehiclePropertyChangeMode.', '')
+                return
+            match = RE_ACCESS.match(line)
+            if match:
+                config.access_modes.append(match.group(1).replace('VehiclePropertyAccess.', ''))
+                return
+            match = RE_UNIT.match(line)
+            if match:
+                config.unit_type = match.group(1)
+                return
+            match = RE_DATA_ENUM.match(line)
+            if match:
+                config.enum_types.append(match.group(1))
+                return
+            match = RE_VERSION.match(line)
+            if match:
+                if config.version != None:
+                    raise Exception('Duplicate version annotation for property: ' + prop_name)
+                config.version = match.group(1)
+                return
+
+        sline = line.strip()
+        if sline.startswith('*'):
+            # Remove the '*'.
+            sline = sline[1:].strip()
+
+        if not config.description:
+            # We reach an empty line of comment, the description part is ending.
+            if sline == '':
+                config.description = description[0]
+            else:
+                if description[0] != '':
+                    description[0] += ' '
+                description[0] += sline
+        else:
+            if not config.comment:
+                if sline != '':
+                    # This is the first line for comment.
+                    config.comment = sline
+            else:
+                if sline != '':
+                    # Concat this line with the previous line's comment with a space.
+                    config.comment += ' ' + sline
+                else:
+                    # Treat empty line comment as a new line.
+                    config.comment += '\n'
+
+    def convert(self, output, formatter, cpp, field):
         """Converts the property config file to C++/Java output file."""
         counter = 0
-        content = LICENSE + header
+        content = ''
         for config in self.configs:
             if field == 'change_mode':
                 if cpp:
-                    annotation = "VehiclePropertyChangeMode::" + config.change_mode
+                    value = "VehiclePropertyChangeMode::" + config.change_mode
                 else:
-                    annotation = "VehiclePropertyChangeMode." + config.change_mode
+                    value = "VehiclePropertyChangeMode." + config.change_mode
             elif field == 'access_mode':
                 if cpp:
-                    annotation = "VehiclePropertyAccess::" + config.access_modes[0]
+                    value = "VehiclePropertyAccess::" + config.access_modes[0]
                 else:
-                    annotation = "VehiclePropertyAccess." + config.access_modes[0]
+                    value = "VehiclePropertyAccess." + config.access_modes[0]
             elif field == 'enum_types':
                 if len(config.enum_types) < 1:
-                    continue;
-                if not cpp:
-                    annotation = "List.of(" + ', '.join([class_name + ".class" for class_name in config.enum_types]) + ")"
+                    continue
+                if cpp:
+                    switch_case = ''
+                    for index, enum_type in enumerate(config.enum_types):
+                        if index != 0:
+                            switch_case += '\n'
+                        switch_case += TAB + TAB + TAB + 'addSupportedValues({0})'.format(enum_type)
+                    content += ENUM_CPP_SWITCH_CASE_FORMATTER.format(
+                        'VehicleProperty::' + config.name, switch_case)
+                    continue
+                else:
+                    value = "List.of(" + ', '.join([class_name + ".class" for class_name in config.enum_types]) + ")"
             elif field == 'unit_type':
                 if not config.unit_type:
                     continue
                 if not cpp:
-                    annotation = config.unit_type
-
+                    value = config.unit_type
             elif field == 'version':
                 if cpp:
-                    annotation = config.version
+                    value = config.version
+            elif field == 'annotations':
+                if len(config.annotations) < 1:
+                    continue
+                joined_annotation_strings = ', '.join(['"' + annotation + '"' for annotation in sorted(config.annotations)])
+                if cpp:
+                    value = "{" + joined_annotation_strings + "}"
+                else:
+                    value = "Set.of(" + joined_annotation_strings + ")"
             else:
                 raise Exception('Unknown field: ' + field)
             if counter != 0:
                 content += '\n'
             if cpp:
                 content += (TAB + TAB + '{VehicleProperty::' + config.name + ', ' +
-                            annotation + '},')
+                            value + '},')
             else:
                 content += (TAB + TAB + 'Map.entry(VehicleProperty.' + config.name + ', ' +
-                            annotation + '),')
+                            value + '),')
             counter += 1
 
         # Remove the additional ',' at the end for the Java file.
         if not cpp:
             content = content[:-1]
 
-        content += footer
+        if field != 'access_mode' or not cpp:
+            content = LICENSE + formatter.format(content)
+        else:
+            content2 = ''
+            counter = 0
+            for config in self.configs:
+                if counter != 0:
+                    content2 += '\n'
+                value = ', '. join(['VehiclePropertyAccess::' + access_mode for access_mode in config.access_modes])
+                content2 += TAB + TAB + '{{VehicleProperty::{0}, {{{1}}}}},'.format(config.name, value)
+                counter += 1
+            content = LICENSE + formatter.format(content, content2)
+
 
         with open(output, 'w') as f:
             f.write(content)
@@ -397,10 +539,8 @@ class GeneratedFile:
         self.type = type
         self.cpp_file_path = None
         self.java_file_path = None
-        self.cpp_header = None
-        self.java_header = None
-        self.cpp_footer = None
-        self.java_footer = None
+        self.cpp_formatter = None
+        self.java_formatter = None
         self.cpp_output_file = None
         self.java_output_file = None
 
@@ -410,27 +550,21 @@ class GeneratedFile:
     def setJavaFilePath(self, java_file_path):
         self.java_file_path = java_file_path
 
-    def setCppHeader(self, cpp_header):
-        self.cpp_header = cpp_header
+    def setCppFormatter(self, cpp_formatter):
+        self.cpp_formatter = cpp_formatter
 
-    def setCppFooter(self, cpp_footer):
-        self.cpp_footer = cpp_footer
-
-    def setJavaHeader(self, java_header):
-        self.java_header = java_header
-
-    def setJavaFooter(self, java_footer):
-        self.java_footer = java_footer
+    def setJavaFormatter(self, java_formatter):
+        self.java_formatter = java_formatter
 
     def convert(self, file_parser, check_only, temp_files):
         if self.cpp_file_path:
             output_file = GeneratedFile._getOutputFile(self.cpp_file_path, check_only, temp_files)
-            file_parser.convert(output_file, self.cpp_header, self.cpp_footer, True, self.type)
+            file_parser.convert(output_file, self.cpp_formatter, True, self.type)
             self.cpp_output_file = output_file
 
         if self.java_file_path:
             output_file = GeneratedFile._getOutputFile(self.java_file_path, check_only, temp_files)
-            file_parser.convert(output_file, self.java_header, self.java_footer, False, self.type)
+            file_parser.convert(output_file, self.java_formatter, False, self.type)
             self.java_output_file = output_file
 
     def cmp(self):
@@ -494,38 +628,40 @@ def main():
     change_mode = GeneratedFile('change_mode')
     change_mode.setCppFilePath(os.path.join(android_top, CHANGE_MODE_CPP_FILE_PATH))
     change_mode.setJavaFilePath(os.path.join(android_top, CHANGE_MODE_JAVA_FILE_PATH))
-    change_mode.setCppHeader(CHANGE_MODE_CPP_HEADER)
-    change_mode.setCppFooter(CPP_FOOTER)
-    change_mode.setJavaHeader(CHANGE_MODE_JAVA_HEADER)
-    change_mode.setJavaFooter(JAVA_FOOTER)
+    change_mode.setCppFormatter(CHANGE_MODE_CPP_FORMATTER)
+    change_mode.setJavaFormatter(CHANGE_MODE_JAVA_FORMATTER)
     generated_files.append(change_mode)
 
     access_mode = GeneratedFile('access_mode')
     access_mode.setCppFilePath(os.path.join(android_top, ACCESS_CPP_FILE_PATH))
     access_mode.setJavaFilePath(os.path.join(android_top, ACCESS_JAVA_FILE_PATH))
-    access_mode.setCppHeader(ACCESS_CPP_HEADER)
-    access_mode.setCppFooter(CPP_FOOTER)
-    access_mode.setJavaHeader(ACCESS_JAVA_HEADER)
-    access_mode.setJavaFooter(JAVA_FOOTER)
+    access_mode.setCppFormatter(ACCESS_CPP_FORMATTER)
+    access_mode.setJavaFormatter(ACCESS_JAVA_FORMATTER)
     generated_files.append(access_mode)
 
     enum_types = GeneratedFile('enum_types')
+    enum_types.setCppFilePath(os.path.join(android_top, ENUM_CPP_FILE_PATH))
     enum_types.setJavaFilePath(os.path.join(android_top, ENUM_JAVA_FILE_PATH))
-    enum_types.setJavaHeader(ENUM_JAVA_HEADER)
-    enum_types.setJavaFooter(JAVA_FOOTER)
+    enum_types.setJavaFormatter(ENUM_JAVA_FORMATTER)
+    enum_types.setCppFormatter(ENUM_CPP_FORMATTER)
     generated_files.append(enum_types)
 
     unit_type = GeneratedFile('unit_type')
     unit_type.setJavaFilePath(os.path.join(android_top, UNITS_JAVA_FILE_PATH))
-    unit_type.setJavaHeader(UNITS_JAVA_HEADER)
-    unit_type.setJavaFooter(JAVA_FOOTER)
+    unit_type.setJavaFormatter(UNITS_JAVA_FORMATTER)
     generated_files.append(unit_type)
 
     version = GeneratedFile('version')
     version.setCppFilePath(os.path.join(android_top, VERSION_CPP_FILE_PATH))
-    version.setCppHeader(VERSION_CPP_HEADER)
-    version.setCppFooter(CPP_FOOTER)
+    version.setCppFormatter(VERSION_CPP_FORMATTER)
     generated_files.append(version)
+
+    annotations = GeneratedFile('annotations')
+    annotations.setCppFilePath(os.path.join(android_top, ANNOTATIONS_CPP_FILE_PATH))
+    annotations.setJavaFilePath(os.path.join(android_top, ANNOTATIONS_JAVA_FILE_PATH))
+    annotations.setCppFormatter(ANNOTATIONS_CPP_FORMATTER)
+    annotations.setJavaFormatter(ANNOTATIONS_JAVA_FORMATTER)
+    generated_files.append(annotations)
 
     temp_files = []
 

@@ -21,6 +21,7 @@ package {
 
 cc_test {
     name: "VehicleHalDefaultConfigTest",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     defaults: ["VehicleHalDefaults"],
     srcs: ["*.cpp"],
@@ -42,6 +43,7 @@ cc_test {
 
 cc_test {
     name: "VehicleHalDefaultConfigTestEnableTestProperties",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     defaults: ["VehicleHalDefaults"],
     srcs: ["*.cpp"],

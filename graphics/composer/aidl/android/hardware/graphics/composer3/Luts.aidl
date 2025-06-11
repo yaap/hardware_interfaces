@@ -58,6 +58,8 @@ parcelable Luts {
      *
      * Multiple Luts can be packed into one same `pfd`, and `offsets` is used to pinpoint
      * the starting point of each Lut.
+     *
+     * `offsets` should be valid unless an invalid `pfd` is provided.
      */
     @nullable int[] offsets;
 

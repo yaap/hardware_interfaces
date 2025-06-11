@@ -21,10 +21,9 @@ import android.hardware.tv.mediaquality.PictureProfile;
 @VintfStability
 oneway interface IPictureProfileChangedListener {
     /**
-     * Notifies the composer HAL that the picture profile has changed. For picture profile details,
-     * check PictureProfile.
+     * Notifies the service that the picture profile has changed.
      *
-     * @param pictureProfile Picture profile passed to the composer HAL.
+     * @param pictureProfile Picture profile that should be cached by the service.
      */
     void onPictureProfileChanged(in PictureProfile pictureProfile);
 }

@@ -107,10 +107,12 @@ interface IHwCryptoKey {
          * If used we will derive a clear key and pass it back as an array of bytes on
          * <code>HwCryptoKeyMaterial::explicitKey</code>.
          */
-        ClearKeyPolicy clearKey;
+        ClearKeyPolicy clearKeyPolicy;
 
         /*
          * Policy for the newly derived opaque key. Defines how the key can be used and its type.
+         * Its definition can be found in <code>KeyPolicy.cddl</code>, which is basically a CBOR
+         * serialization of the file <code>KeyPolicy.aidl</code>.
          */
         byte[] opaqueKey;
     }
@@ -154,11 +156,14 @@ interface IHwCryptoKey {
      *     Key to be used to derive the new key using HKDF.
      *
      * @return:
-     *     A DiceCurrentBoundKeyResult containint the versioned key tied the current client version
+     *     A DiceCurrentBoundKeyResult containing the versioned key tied the current client version
      *     on success.
      *
      * @throws:
-     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs.
+     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs,
+     *      in particular:
+     *          - BAD_PARAMETER if an invalid DeviceKeyId is requested.
+     *          - INVALID_KEY if an opaque key is provided that is not suitable for key derivation.
      */
     DiceCurrentBoundKeyResult deriveCurrentDicePolicyBoundKey(
             in DiceBoundDerivationKey derivationKey);
@@ -184,7 +189,11 @@ interface IHwCryptoKey {
      *      success.
      *
      * @throws:
-     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs.
+     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs,
+     *      in particular:
+     *          - BAD_PARAMETER if an invalid DeviceKeyId is requested or if dicePolicyForKeyVersion
+     *            is not a valid encrypted DICE policy.
+     *          - INVALID_KEY if an opaque key is provided that is not suitable for key derivation.
      */
     DiceBoundKeyResult deriveDicePolicyBoundKey(
             in DiceBoundDerivationKey derivationKey, in byte[] dicePolicyForKeyVersion);
@@ -197,10 +206,15 @@ interface IHwCryptoKey {
      *      file for more information.
      *
      * @return:
-     *      A HwCryptoKeyMaterial containing the derived key on success.
+     *      A <code>DerivedKey</code> containing the derived key on success.
      *
      * @throws:
-     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs.
+     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs,
+     *      in particular:
+     *          - BAD_PARAMETER if an invalid key policy is provided or if the key policy conflicts
+     *            with the requested key.
+     *          - SERIALIZATION_ERROR if the provided key policy is not a valid CBOR key policy.
+     *          - INVALID_KEY if an opaque key is provided that is not suitable for key derivation.
      */
     DerivedKey deriveKey(in DerivedKeyParameters parameters);
 
@@ -233,7 +247,11 @@ interface IHwCryptoKey {
      *      IOpaqueKey on success.
      *
      * @throws:
-     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs.
+     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs,
+     *      in particular:
+     *          - BAD_PARAMETER if an invalid Key policy is provided or if the key policy conflicts
+     *            with provided key material.
+     *          - ALLOCATION_ERROR if the system runs out of memory while carring out the operation.
      */
     IOpaqueKey importClearKey(in ExplicitKeyMaterial keyMaterial, in KeyPolicy newKeyPolicy);
 
@@ -248,7 +266,9 @@ interface IHwCryptoKey {
      * passing the receiver DICE policy to insure that only that receiver can import the key.
      *
      * @return:
-     *      byte[] on success, which is the caller encrypted DICE policy.
+     *      byte[] on success, which is the caller encrypted DICE policy. The DICE policy follows
+     *      the structure defined on DicePolicy.cddl, located under
+     *      hardware/interfaces/security/authgraph/aidl/android/hardware/security/authgraph/
      */
     byte[] getCurrentDicePolicy();
 
@@ -266,10 +286,14 @@ interface IHwCryptoKey {
      *      DICE policy used to seal the exported key.
      *
      * @return:
-     *      An IOpaqueKey that can be directly be used on the local HWCrypto service on success.
+     *      An IOpaqueKey that can be directly used on the local HWCrypto service on success.
      *
      * @throws:
-     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs.
+     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs,
+     *      in particular:
+     *          - BAD_PARAMETER if an invalid encrypted sealing DICE policy is provided.
+     *          - ALLOCATION_ERROR if the system runs out of memory while carring out the operation.
+     *          - UNAUTHORIZED if the sealingDicePolicy do not match the caller.
      */
     IOpaqueKey keyTokenImport(in OpaqueKeyToken requestedKey, in byte[] sealingDicePolicy);
 
@@ -287,8 +311,9 @@ interface IHwCryptoKey {
      *      An IOpaqueKey corresponding to the requested key slot on success.
      *
      * @throws:
-     *      ServiceSpecificException <code>UNAUTHORIZED</code> if the caller cannot access the
-     *      requested key, another specific error based on <code>HalErrorCode</code> otherwise.
+     *      ServiceSpecificException based on <code>HalErrorCode</code> if any error occurs,
+     *      in particular:
+     *          - UNAUTHORIZED if the caller cannot access the requested key.
      */
     IOpaqueKey getKeyslotData(KeySlot slotId);
 }

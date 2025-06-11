@@ -39,6 +39,8 @@ using aidl::android::hardware::audio::effect::IFactory;
 using aidl::android::hardware::audio::effect::Parameter;
 using android::hardware::audio::common::testing::detail::TestExecutionTracer;
 
+constexpr int32_t kMinDataTestHalVersion = 3;
+
 /**
  * Here we focus on specific parameter checking, general IEffect interfaces testing performed in
  * VtsAudioEffectTargetTest.
@@ -46,8 +48,8 @@ using android::hardware::audio::common::testing::detail::TestExecutionTracer;
 class DynamicsProcessingTestHelper : public EffectHelper {
   public:
     DynamicsProcessingTestHelper(std::pair<std::shared_ptr<IFactory>, Descriptor> pair,
-                                 int32_t channelLayOut = AudioChannelLayout::LAYOUT_STEREO)
-        : mChannelLayout(channelLayOut),
+                                 int32_t channelLayout = kDefaultChannelLayout)
+        : mChannelLayout(channelLayout),
           mChannelCount(::aidl::android::hardware::audio::common::getChannelCount(
                   AudioChannelLayout::make<AudioChannelLayout::layoutMask>(mChannelLayout))) {
         std::tie(mFactory, mDescriptor) = pair;
@@ -116,6 +118,19 @@ class DynamicsProcessingTestHelper : public EffectHelper {
 
     bool isAllParamsValid();
 
+    void setParamsAndProcess(std::vector<float>& input, std::vector<float>& output);
+
+    float calculateDb(const std::vector<float>& input, size_t startSamplePos);
+
+    void getMagnitudeValue(const std::vector<float>& output, std::vector<float>& bufferMag);
+
+    void checkInputAndOutputEquality(const std::vector<float>& outputMag);
+
+    void setUpDataTest(const std::vector<int>& testFrequencies, float fullScaleSineDb);
+    void tearDownDataTest();
+
+    void createChannelConfig();
+
     // enqueue test parameters
     void addEngineConfig(const DynamicsProcessing::EngineArchitecture& cfg);
     void addPreEqChannelConfig(const std::vector<DynamicsProcessing::ChannelConfig>& cfg);
@@ -131,6 +146,26 @@ class DynamicsProcessingTestHelper : public EffectHelper {
     static constexpr int kBandCount = 5;
     static constexpr int kSamplingFrequency = 44100;
     static constexpr int kFrameCount = 2048;
+    static constexpr int kInputFrequency = 1000;
+    static constexpr size_t kStartIndex = 15 * kSamplingFrequency / 1000;  // skip 15ms
+    static constexpr float kToleranceDb = 0.5;
+    static constexpr int kNPointFFT = 1024;
+    static constexpr float kBinWidth = (float)kSamplingFrequency / kNPointFFT;
+    // Full scale sine wave with 1000 Hz frequency is -3 dB
+    static constexpr float kSineFullScaleDb = -3;
+    // Full scale sine wave with 100 Hz and 1000 Hz frequency is -6 dB
+    static constexpr float kSineMultitoneFullScaleDb = -6;
+    const std::vector<int> kCutoffFreqHz = {200 /*0th band cutoff*/, 2000 /*1st band cutoff*/};
+    std::vector<int> mMultitoneTestFrequencies = {100, 1000};
+    // Calculating normalizing factor by dividing the number of FFT points by half and the number of
+    // test frequencies. The normalization accounts for the FFT splitting the signal into positive
+    // and negative frequencies. Additionally, during multi-tone input generation, sample values are
+    // normalized to the range [-1, 1] by dividing them by the number of test frequencies.
+    float mNormalizingFactor = (kNPointFFT / (2 * mMultitoneTestFrequencies.size()));
+    std::vector<int> mBinOffsets;
+    std::vector<DynamicsProcessing::ChannelConfig> mChannelConfig;
+    std::vector<float> mInput;
+    float mInputDb;
     std::shared_ptr<IFactory> mFactory;
     std::shared_ptr<IEffect> mEffect;
     Descriptor mDescriptor;
@@ -155,11 +190,12 @@ class DynamicsProcessingTestHelper : public EffectHelper {
     static const std::set<std::vector<DynamicsProcessing::InputGain>> kInputGainTestSet;
 
   private:
-    const int32_t mChannelLayout;
     std::vector<std::pair<DynamicsProcessing::Tag, DynamicsProcessing>> mTags;
 
   protected:
+    const int32_t mChannelLayout;
     const int mChannelCount;
+
     void CleanUp() {
         mTags.clear();
         mPreEqChannelEnable.clear();
@@ -390,6 +426,63 @@ bool DynamicsProcessingTestHelper::isAllParamsValid() {
     return true;
 }
 
+// This function calculates power for both and mono and stereo data as the total power for
+// interleaved multichannel data can be calculated by treating it as a continuous mono input.
+float DynamicsProcessingTestHelper::calculateDb(const std::vector<float>& input,
+                                                size_t startSamplePos = 0) {
+    return audio_utils_compute_power_mono(input.data() + startSamplePos, AUDIO_FORMAT_PCM_FLOAT,
+                                          input.size() - startSamplePos);
+}
+
+void DynamicsProcessingTestHelper::setParamsAndProcess(std::vector<float>& input,
+                                                       std::vector<float>& output) {
+    ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
+    if (isAllParamsValid()) {
+        ASSERT_NO_FATAL_FAILURE(
+                processAndWriteToOutput(input, output, mEffect, &mOpenEffectReturn));
+        ASSERT_GT(output.size(), kStartIndex);
+    }
+}
+
+void DynamicsProcessingTestHelper::getMagnitudeValue(const std::vector<float>& output,
+                                                     std::vector<float>& bufferMag) {
+    std::vector<float> subOutput(output.begin() + kStartIndex, output.end());
+    EXPECT_NO_FATAL_FAILURE(calculateMagnitudeMono(bufferMag, subOutput, mBinOffsets, kNPointFFT));
+}
+
+void DynamicsProcessingTestHelper::checkInputAndOutputEquality(
+        const std::vector<float>& outputMag) {
+    std::vector<float> inputMag(mBinOffsets.size());
+    EXPECT_NO_FATAL_FAILURE(getMagnitudeValue(mInput, inputMag));
+    for (size_t i = 0; i < inputMag.size(); i++) {
+        EXPECT_NEAR(calculateDb({inputMag[i] / mNormalizingFactor}),
+                    calculateDb({outputMag[i] / mNormalizingFactor}), kToleranceDb);
+    }
+}
+
+void DynamicsProcessingTestHelper::setUpDataTest(const std::vector<int>& testFrequencies,
+                                                 float fullScaleSineDb) {
+    ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect());
+    SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
+    SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
+
+    mInput.resize(kFrameCount * mChannelCount);
+    ASSERT_NO_FATAL_FAILURE(
+            generateSineWave(testFrequencies, mInput, 1.0, kSamplingFrequency, mChannelLayout));
+    mInputDb = calculateDb(mInput);
+    ASSERT_NEAR(mInputDb, fullScaleSineDb, kToleranceDb);
+}
+
+void DynamicsProcessingTestHelper::tearDownDataTest() {
+    ASSERT_NO_FATAL_FAILURE(TearDownDynamicsProcessingEffect());
+}
+
+void DynamicsProcessingTestHelper::createChannelConfig() {
+    for (int i = 0; i < mChannelCount; i++) {
+        mChannelConfig.push_back(DynamicsProcessing::ChannelConfig(i, true));
+    }
+}
+
 void DynamicsProcessingTestHelper::addEngineConfig(
         const DynamicsProcessing::EngineArchitecture& cfg) {
     DynamicsProcessing dp;
@@ -480,6 +573,36 @@ void fillLimiterConfig(std::vector<DynamicsProcessing::LimiterConfig>& limiterCo
     limiterConfigList.push_back(cfg);
 }
 
+DynamicsProcessing::MbcBandConfig createMbcBandConfig(int channel, int band, float cutoffFreqHz,
+                                                      float attackTimeMs, float releaseTimeMs,
+                                                      float ratio, float thresholdDb,
+                                                      float kneeWidthDb, float noiseGate,
+                                                      float expanderRatio, float preGainDb,
+                                                      float postGainDb) {
+    return DynamicsProcessing::MbcBandConfig{.channel = channel,
+                                             .band = band,
+                                             .enable = true,
+                                             .cutoffFrequencyHz = cutoffFreqHz,
+                                             .attackTimeMs = attackTimeMs,
+                                             .releaseTimeMs = releaseTimeMs,
+                                             .ratio = ratio,
+                                             .thresholdDb = thresholdDb,
+                                             .kneeWidthDb = kneeWidthDb,
+                                             .noiseGateThresholdDb = noiseGate,
+                                             .expanderRatio = expanderRatio,
+                                             .preGainDb = preGainDb,
+                                             .postGainDb = postGainDb};
+}
+
+DynamicsProcessing::EqBandConfig creatEqBandConfig(int channel, int band, float cutOffFreqHz,
+                                                   float gainDb, bool enable) {
+    return DynamicsProcessing::EqBandConfig{.channel = channel,
+                                            .band = band,
+                                            .enable = enable,
+                                            .cutoffFrequencyHz = cutOffFreqHz,
+                                            .gainDb = gainDb};
+}
+
 /**
  * Test DynamicsProcessing Engine Configuration
  */
@@ -511,7 +634,7 @@ class DynamicsProcessingTestEngineArchitecture
         fillEngineArchConfig(mCfg, GetParam());
     };
 
-    void SetUp() override { SetUpDynamicsProcessingEffect(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect()); }
 
     void TearDown() override { TearDownDynamicsProcessingEffect(); }
 
@@ -519,7 +642,7 @@ class DynamicsProcessingTestEngineArchitecture
 };
 
 TEST_P(DynamicsProcessingTestEngineArchitecture, SetAndGetEngineArch) {
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mCfg));
+    addEngineConfig(mCfg);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
@@ -563,7 +686,7 @@ class DynamicsProcessingTestInputGain
         : DynamicsProcessingTestHelper(std::get<INPUT_GAIN_INSTANCE_NAME>(GetParam())),
           mInputGain(std::get<INPUT_GAIN_PARAM>(GetParam())) {};
 
-    void SetUp() override { SetUpDynamicsProcessingEffect(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect()); }
 
     void TearDown() override { TearDownDynamicsProcessingEffect(); }
 
@@ -571,7 +694,7 @@ class DynamicsProcessingTestInputGain
 };
 
 TEST_P(DynamicsProcessingTestInputGain, SetAndGetInputGain) {
-    EXPECT_NO_FATAL_FAILURE(addInputGain(mInputGain));
+    addInputGain(mInputGain);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
@@ -592,6 +715,59 @@ INSTANTIATE_TEST_SUITE_P(
             return name;
         });
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingTestInputGain);
+
+class DynamicsProcessingInputGainDataTest
+    : public ::testing::TestWithParam<std::pair<std::shared_ptr<IFactory>, Descriptor>>,
+      public DynamicsProcessingTestHelper {
+  public:
+    DynamicsProcessingInputGainDataTest()
+        : DynamicsProcessingTestHelper((GetParam()), AudioChannelLayout::LAYOUT_MONO) {}
+
+    void SetUp() override {
+        ASSERT_NO_FATAL_FAILURE(setUpDataTest({kInputFrequency}, kSineFullScaleDb));
+    }
+
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(tearDownDataTest()); }
+
+    void cleanUpInputGainConfig() {
+        CleanUp();
+        mInputGain.clear();
+    }
+
+    std::vector<DynamicsProcessing::InputGain> mInputGain;
+};
+
+TEST_P(DynamicsProcessingInputGainDataTest, SetAndGetInputGain) {
+    std::vector<float> gainDbValues = {-85, -40, 0, 40, 85};
+    for (float gainDb : gainDbValues) {
+        cleanUpInputGainConfig();
+        for (int i = 0; i < mChannelCount; i++) {
+            mInputGain.push_back(DynamicsProcessing::InputGain(i, gainDb));
+        }
+        std::vector<float> output(mInput.size());
+        addInputGain(mInputGain);
+        EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(mInput, output));
+        if (!isAllParamsValid()) {
+            continue;
+        }
+        float outputDb = calculateDb(output, kStartIndex);
+        EXPECT_NEAR(outputDb, mInputDb + gainDb, kToleranceDb)
+                << "InputGain: " << gainDb << ", OutputDb: " << outputDb;
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingInputGainDataTest,
+                         testing::ValuesIn(EffectFactoryHelper::getAllEffectDescriptors(
+                                 IFactory::descriptor, getEffectTypeUuidDynamicsProcessing())),
+                         [](const auto& info) {
+                             auto descriptor = info.param;
+                             std::string name = getPrefix(descriptor.second);
+                             std::replace_if(
+                                     name.begin(), name.end(),
+                                     [](const char c) { return !std::isalnum(c); }, '_');
+                             return name;
+                         });
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingInputGainDataTest);
 
 /**
  * Test DynamicsProcessing Limiter Config
@@ -627,7 +803,7 @@ class DynamicsProcessingTestLimiterConfig
         fillLimiterConfig(mLimiterConfigList, GetParam());
     }
 
-    void SetUp() override { SetUpDynamicsProcessingEffect(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect()); }
 
     void TearDown() override { TearDownDynamicsProcessingEffect(); }
 
@@ -636,8 +812,8 @@ class DynamicsProcessingTestLimiterConfig
 };
 
 TEST_P(DynamicsProcessingTestLimiterConfig, SetAndGetLimiterConfig) {
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
-    EXPECT_NO_FATAL_FAILURE(addLimiterConfig(mLimiterConfigList));
+    addEngineConfig(mEngineConfigPreset);
+    addLimiterConfig(mLimiterConfigList);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
@@ -671,25 +847,15 @@ class DynamicsProcessingLimiterConfigDataTest
     : public ::testing::TestWithParam<LimiterConfigDataTestParams>,
       public DynamicsProcessingTestHelper {
   public:
-    DynamicsProcessingLimiterConfigDataTest()
-        : DynamicsProcessingTestHelper(GetParam(), AudioChannelLayout::LAYOUT_MONO) {
-        mBufferSize = kFrameCount * mChannelCount;
-        mInput.resize(mBufferSize);
-        generateSineWave(1000 /*Input Frequency*/, mInput);
-        mInputDb = calculateDb(mInput);
-    }
+    DynamicsProcessingLimiterConfigDataTest(LimiterConfigDataTestParams param = GetParam(),
+                                            int32_t layout = AudioChannelLayout::LAYOUT_MONO)
+        : DynamicsProcessingTestHelper(param, layout) {}
 
     void SetUp() override {
-        SetUpDynamicsProcessingEffect();
-        SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
+        ASSERT_NO_FATAL_FAILURE(setUpDataTest({kInputFrequency}, kSineFullScaleDb));
     }
 
-    void TearDown() override { TearDownDynamicsProcessingEffect(); }
-
-    float calculateDb(std::vector<float> input, size_t start = 0) {
-        return audio_utils_compute_power_mono(input.data() + start, AUDIO_FORMAT_PCM_FLOAT,
-                                              input.size() - start);
-    }
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(tearDownDataTest()); }
 
     void computeThreshold(float ratio, float outputDb, float& threshold) {
         EXPECT_NE(ratio, 0);
@@ -703,16 +869,33 @@ class DynamicsProcessingLimiterConfigDataTest
         ratio = inputOverThreshold / outputOverThreshold;
     }
 
-    void setParamsAndProcess(std::vector<float>& output) {
-        EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
-        EXPECT_NO_FATAL_FAILURE(addLimiterConfig(mLimiterConfigList));
-        ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
-        if (isAllParamsValid()) {
-            ASSERT_NO_FATAL_FAILURE(
-                    processAndWriteToOutput(mInput, output, mEffect, &mOpenEffectReturn));
-            EXPECT_GT(output.size(), kStartIndex);
-        }
+    void setLimiterParamsAndProcess(std::vector<float>& input, std::vector<float>& output,
+                                    bool isEngineLimiterEnabled = true) {
+        mEngineConfigPreset.limiterInUse = isEngineLimiterEnabled;
+        addEngineConfig(mEngineConfigPreset);
+        addLimiterConfig(mLimiterConfigList);
+        EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(input, output));
+    }
+
+    void testEnableDisableConfiguration(bool isLimiterEnabled, bool isEngineLimiterEnabled) {
         cleanUpLimiterConfig();
+        std::vector<float> output(mInput.size());
+        for (int i = 0; i < mChannelCount; i++) {
+            // Set non-default values
+            fillLimiterConfig(mLimiterConfigList, i, isLimiterEnabled, kDefaultLinkerGroup,
+                              5 /*attack time*/, 5 /*release time*/, 10 /*ratio*/,
+                              -20 /*threshold*/, 5 /*postgain*/);
+        }
+        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output, isEngineLimiterEnabled));
+        float outputdB = calculateDb(output, kStartIndex);
+        if (isAllParamsValid()) {
+            if (isLimiterEnabled && isEngineLimiterEnabled) {
+                EXPECT_GT(std::abs(mInputDb - outputdB), kMinDifferenceDb)
+                        << "Input level: " << mInputDb << " Output level: " << outputdB;
+            } else {
+                EXPECT_NEAR(mInputDb, outputdB, kLimiterTestToleranceDb);
+            }
+        }
     }
 
     void cleanUpLimiterConfig() {
@@ -723,13 +906,12 @@ class DynamicsProcessingLimiterConfigDataTest
     static constexpr float kDefaultAttackTime = 0;
     static constexpr float kDefaultReleaseTime = 0;
     static constexpr float kDefaultRatio = 4;
-    static constexpr float kDefaultThreshold = 0;
+    static constexpr float kDefaultThreshold = -10;
     static constexpr float kDefaultPostGain = 0;
-    static constexpr int kInputFrequency = 1000;
-    static constexpr size_t kStartIndex = 15 * kSamplingFrequency / 1000;  // skip 15ms
+    static constexpr float kLimiterTestToleranceDb = 0.05;
+    static constexpr float kMinDifferenceDb = 5;
+    const std::vector<bool> kEnableValues = {true, false, true};
     std::vector<DynamicsProcessing::LimiterConfig> mLimiterConfigList;
-    std::vector<float> mInput;
-    float mInputDb;
     int mBufferSize;
 };
 
@@ -738,20 +920,21 @@ TEST_P(DynamicsProcessingLimiterConfigDataTest, IncreasingThresholdDb) {
     std::vector<float> output(mInput.size());
     float previousThreshold = -FLT_MAX;
     for (float threshold : thresholdValues) {
+        cleanUpLimiterConfig();
         for (int i = 0; i < mChannelCount; i++) {
             fillLimiterConfig(mLimiterConfigList, i, true, kDefaultLinkerGroup, kDefaultAttackTime,
                               kDefaultReleaseTime, kDefaultRatio, threshold, kDefaultPostGain);
         }
-        EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(output));
+        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output));
         if (!isAllParamsValid()) {
             continue;
         }
         float outputDb = calculateDb(output, kStartIndex);
         if (threshold >= mInputDb || kDefaultRatio == 1) {
-            EXPECT_EQ(std::round(mInputDb), std::round(outputDb));
+            EXPECT_NEAR(mInputDb, outputDb, kLimiterTestToleranceDb);
         } else {
             float calculatedThreshold = 0;
-            EXPECT_NO_FATAL_FAILURE(computeThreshold(kDefaultRatio, outputDb, calculatedThreshold));
+            ASSERT_NO_FATAL_FAILURE(computeThreshold(kDefaultRatio, outputDb, calculatedThreshold));
             ASSERT_GT(calculatedThreshold, previousThreshold);
             previousThreshold = calculatedThreshold;
         }
@@ -761,49 +944,64 @@ TEST_P(DynamicsProcessingLimiterConfigDataTest, IncreasingThresholdDb) {
 TEST_P(DynamicsProcessingLimiterConfigDataTest, IncreasingRatio) {
     std::vector<float> ratioValues = {1, 10, 20, 30, 40, 50};
     std::vector<float> output(mInput.size());
-    float threshold = -10;
     float previousRatio = 0;
     for (float ratio : ratioValues) {
+        cleanUpLimiterConfig();
         for (int i = 0; i < mChannelCount; i++) {
             fillLimiterConfig(mLimiterConfigList, i, true, kDefaultLinkerGroup, kDefaultAttackTime,
-                              kDefaultReleaseTime, ratio, threshold, kDefaultPostGain);
+                              kDefaultReleaseTime, ratio, kDefaultThreshold, kDefaultPostGain);
         }
-        EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(output));
+        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output));
         if (!isAllParamsValid()) {
             continue;
         }
         float outputDb = calculateDb(output, kStartIndex);
 
-        if (threshold >= mInputDb) {
-            EXPECT_EQ(std::round(mInputDb), std::round(outputDb));
+        if (kDefaultThreshold >= mInputDb) {
+            EXPECT_NEAR(mInputDb, outputDb, kLimiterTestToleranceDb);
         } else {
             float calculatedRatio = 0;
-            EXPECT_NO_FATAL_FAILURE(computeRatio(threshold, outputDb, calculatedRatio));
+            ASSERT_NO_FATAL_FAILURE(computeRatio(kDefaultThreshold, outputDb, calculatedRatio));
             ASSERT_GT(calculatedRatio, previousRatio);
             previousRatio = calculatedRatio;
         }
     }
 }
 
-TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterEnableDisable) {
-    std::vector<bool> limiterEnableValues = {false, true};
+TEST_P(DynamicsProcessingLimiterConfigDataTest, IncreasingPostGain) {
+    std::vector<float> postGainDbValues = {-85, -40, 0, 40, 85};
     std::vector<float> output(mInput.size());
-    for (bool isEnabled : limiterEnableValues) {
+    for (float postGainDb : postGainDbValues) {
+        cleanUpLimiterConfig();
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(kInputFrequency, mInput, dBToAmplitude(postGainDb),
+                                                 kSamplingFrequency, mChannelLayout));
+        mInputDb = calculateDb(mInput);
+        EXPECT_NEAR(mInputDb, kSineFullScaleDb - postGainDb, kLimiterTestToleranceDb);
         for (int i = 0; i < mChannelCount; i++) {
-            // Set non-default values
-            fillLimiterConfig(mLimiterConfigList, i, isEnabled, kDefaultLinkerGroup,
-                              5 /*attack time*/, 5 /*release time*/, 10 /*ratio*/,
-                              -10 /*threshold*/, 5 /*postgain*/);
+            fillLimiterConfig(mLimiterConfigList, i, true, kDefaultLinkerGroup, kDefaultAttackTime,
+                              kDefaultReleaseTime, 1, kDefaultThreshold, postGainDb);
         }
-        EXPECT_NO_FATAL_FAILURE(setParamsAndProcess(output));
+        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output));
         if (!isAllParamsValid()) {
             continue;
         }
-        if (isEnabled) {
-            EXPECT_NE(mInputDb, calculateDb(output, kStartIndex));
-        } else {
-            EXPECT_NEAR(mInputDb, calculateDb(output, kStartIndex), 0.05);
-        }
+        float outputDb = calculateDb(output, kStartIndex);
+        EXPECT_NEAR(outputDb, mInputDb + postGainDb, kLimiterTestToleranceDb)
+                << "PostGain: " << postGainDb << ", OutputDb: " << outputDb;
+    }
+}
+
+TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterEnableDisable) {
+    for (bool isLimiterEnabled : kEnableValues) {
+        ASSERT_NO_FATAL_FAILURE(
+                testEnableDisableConfiguration(isLimiterEnabled, true /*Engine Enabled*/));
+    }
+}
+
+TEST_P(DynamicsProcessingLimiterConfigDataTest, LimiterEnableDisableViaEngine) {
+    for (bool isEngineLimiterEnabled : kEnableValues) {
+        ASSERT_NO_FATAL_FAILURE(
+                testEnableDisableConfiguration(true /*Limiter Enabled*/, isEngineLimiterEnabled));
     }
 }
 
@@ -819,6 +1017,103 @@ INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingLimiterConfig
                              return name;
                          });
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingLimiterConfigDataTest);
+
+class DynamicsProcessingLimiterLinkerDataTest : public DynamicsProcessingLimiterConfigDataTest {
+  public:
+    DynamicsProcessingLimiterLinkerDataTest()
+        : DynamicsProcessingLimiterConfigDataTest(GetParam(), AudioChannelLayout::LAYOUT_STEREO) {}
+
+    void calculateExpectedOutputDb(std::vector<float>& expectedOutputDb) {
+        std::vector<float> inputDbValues = calculateStereoDb(mInput, kStartIndex);
+        ASSERT_EQ(inputDbValues.size(), kRatioThresholdPairValues.size());
+        EXPECT_NEAR(inputDbValues[0], inputDbValues[1], kToleranceDb);
+        for (size_t i = 0; i < kRatioThresholdPairValues.size(); i++) {
+            const auto& [ratio, threshold] = kRatioThresholdPairValues[i];
+            expectedOutputDb.push_back((inputDbValues[i] - threshold) / ratio + threshold);
+        }
+    }
+
+    std::vector<float> calculateStereoDb(const std::vector<float>& input,
+                                         size_t startSamplePos = 0) {
+        std::vector<float> leftChannel;
+        std::vector<float> rightChannel;
+        for (size_t i = 0; i < input.size(); i += 2) {
+            leftChannel.push_back(input[i]);
+            if (i + 1 < input.size()) {
+                rightChannel.push_back(input[i + 1]);
+            }
+        }
+        return {calculateDb(leftChannel, startSamplePos),
+                calculateDb(rightChannel, startSamplePos)};
+    }
+
+    void setLinkGroupAndProcess(std::vector<float>& output, bool hasSameLinkGroup) {
+        for (int i = 0; i < mChannelCount; i++) {
+            const auto& [ratio, threshold] = kRatioThresholdPairValues[i];
+            ASSERT_NE(ratio, 0);
+            int linkGroup = hasSameLinkGroup ? kDefaultLinkerGroup : i;
+            fillLimiterConfig(mLimiterConfigList, i, true, linkGroup, kDefaultAttackTime,
+                              kDefaultReleaseTime, ratio, threshold, kDefaultPostGain);
+        }
+
+        ASSERT_NO_FATAL_FAILURE(setLimiterParamsAndProcess(mInput, output));
+
+        if (!isAllParamsValid()) {
+            GTEST_SKIP() << "Invalid parameters. Skipping the test\n";
+        }
+    }
+
+    const std::vector<std::pair<float, float>> kRatioThresholdPairValues = {{2, -10}, {5, -20}};
+};
+
+TEST_P(DynamicsProcessingLimiterLinkerDataTest, SameLinkGroupDifferentConfigs) {
+    std::vector<float> output(mInput.size());
+
+    ASSERT_NO_FATAL_FAILURE(setLinkGroupAndProcess(output, true));
+
+    std::vector<float> outputDbValues = calculateStereoDb(output, kStartIndex);
+
+    std::vector<float> expectedOutputDbValues;
+    ASSERT_NO_FATAL_FAILURE(calculateExpectedOutputDb(expectedOutputDbValues));
+
+    // Verify that the actual output dB is same as the calculated maximum attenuation.
+    float expectedOutputDb = std::min(expectedOutputDbValues[0], expectedOutputDbValues[1]);
+    EXPECT_NEAR(outputDbValues[0], expectedOutputDb, kToleranceDb);
+    EXPECT_NEAR(outputDbValues[1], expectedOutputDb, kToleranceDb);
+}
+
+TEST_P(DynamicsProcessingLimiterLinkerDataTest, DifferentLinkGroupDifferentConfigs) {
+    std::vector<float> output(mInput.size());
+
+    ASSERT_NO_FATAL_FAILURE(setLinkGroupAndProcess(output, false));
+
+    std::vector<float> outputDbValues = calculateStereoDb(output, kStartIndex);
+
+    std::vector<float> expectedOutputDbValues;
+    ASSERT_NO_FATAL_FAILURE(calculateExpectedOutputDb(expectedOutputDbValues));
+
+    // Verify that both channels have different compression levels
+    EXPECT_GT(abs(expectedOutputDbValues[0] - expectedOutputDbValues[1]), kMinDifferenceDb)
+            << "Left channel level: " << expectedOutputDbValues[0]
+            << " Right channel level: " << expectedOutputDbValues[1];
+
+    // Verify that the actual output and the calculated dB values are same
+    EXPECT_NEAR(outputDbValues[0], expectedOutputDbValues[0], kToleranceDb);
+    EXPECT_NEAR(outputDbValues[1], expectedOutputDbValues[1], kToleranceDb);
+}
+
+INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingLimiterLinkerDataTest,
+                         testing::ValuesIn(EffectFactoryHelper::getAllEffectDescriptors(
+                                 IFactory::descriptor, getEffectTypeUuidDynamicsProcessing())),
+                         [](const auto& info) {
+                             auto descriptor = info.param;
+                             std::string name = getPrefix(descriptor.second);
+                             std::replace_if(
+                                     name.begin(), name.end(),
+                                     [](const char c) { return !std::isalnum(c); }, '_');
+                             return name;
+                         });
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingLimiterLinkerDataTest);
 
 /**
  * Test DynamicsProcessing ChannelConfig
@@ -838,7 +1133,7 @@ class DynamicsProcessingTestChannelConfig
         : DynamicsProcessingTestHelper(std::get<BAND_CHANNEL_TEST_INSTANCE_NAME>(GetParam())),
           mCfg(std::get<BAND_CHANNEL_TEST_CHANNEL_CONFIG>(GetParam())) {}
 
-    void SetUp() override { SetUpDynamicsProcessingEffect(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect()); }
 
     void TearDown() override { TearDownDynamicsProcessingEffect(); }
 
@@ -846,20 +1141,20 @@ class DynamicsProcessingTestChannelConfig
 };
 
 TEST_P(DynamicsProcessingTestChannelConfig, SetAndGetPreEqChannelConfig) {
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
-    EXPECT_NO_FATAL_FAILURE(addPreEqChannelConfig(mCfg));
+    addEngineConfig(mEngineConfigPreset);
+    addPreEqChannelConfig(mCfg);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
 TEST_P(DynamicsProcessingTestChannelConfig, SetAndGetPostEqChannelConfig) {
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
-    EXPECT_NO_FATAL_FAILURE(addPostEqChannelConfig(mCfg));
+    addEngineConfig(mEngineConfigPreset);
+    addPostEqChannelConfig(mCfg);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
 TEST_P(DynamicsProcessingTestChannelConfig, SetAndGetMbcChannelConfig) {
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
-    EXPECT_NO_FATAL_FAILURE(addMbcChannelConfig(mCfg));
+    addEngineConfig(mEngineConfigPreset);
+    addMbcChannelConfig(mCfg);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
@@ -900,13 +1195,10 @@ void fillEqBandConfig(std::vector<DynamicsProcessing::EqBandConfig>& cfgs,
                       const EqBandConfigTestParams& params) {
     const std::vector<std::pair<int, float>> cutOffFreqs = std::get<EQ_BAND_CUT_OFF_FREQ>(params);
     int bandCount = cutOffFreqs.size();
-    cfgs.resize(bandCount);
     for (int i = 0; i < bandCount; i++) {
-        cfgs[i].channel = std::get<EQ_BAND_CHANNEL>(params);
-        cfgs[i].band = cutOffFreqs[i].first;
-        cfgs[i].enable = true /*Eqband Enable*/;
-        cfgs[i].cutoffFrequencyHz = cutOffFreqs[i].second;
-        cfgs[i].gainDb = std::get<EQ_BAND_GAIN>(params);
+        cfgs.push_back(creatEqBandConfig(std::get<EQ_BAND_CHANNEL>(params), cutOffFreqs[i].first,
+                                         cutOffFreqs[i].second, std::get<EQ_BAND_GAIN>(params),
+                                         true));
     }
 }
 
@@ -918,7 +1210,7 @@ class DynamicsProcessingTestEqBandConfig : public ::testing::TestWithParam<EqBan
         fillEqBandConfig(mCfgs, GetParam());
     }
 
-    void SetUp() override { SetUpDynamicsProcessingEffect(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect()); }
 
     void TearDown() override { TearDownDynamicsProcessingEffect(); }
 
@@ -927,27 +1219,29 @@ class DynamicsProcessingTestEqBandConfig : public ::testing::TestWithParam<EqBan
 
 TEST_P(DynamicsProcessingTestEqBandConfig, SetAndGetPreEqBandConfig) {
     mEngineConfigPreset.preEqStage.bandCount = mCfgs.size();
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
+    addEngineConfig(mEngineConfigPreset);
     std::vector<DynamicsProcessing::ChannelConfig> cfgs(mChannelCount);
     for (int i = 0; i < mChannelCount; i++) {
         cfgs[i].channel = i;
         cfgs[i].enable = true;
     }
-    EXPECT_NO_FATAL_FAILURE(addPreEqChannelConfig(cfgs));
-    EXPECT_NO_FATAL_FAILURE(addPreEqBandConfigs(mCfgs));
+    addPreEqChannelConfig(cfgs);
+    addPreEqBandConfigs(mCfgs);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
 TEST_P(DynamicsProcessingTestEqBandConfig, SetAndGetPostEqBandConfig) {
+    SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
+
     mEngineConfigPreset.postEqStage.bandCount = mCfgs.size();
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
+    addEngineConfig(mEngineConfigPreset);
     std::vector<DynamicsProcessing::ChannelConfig> cfgs(mChannelCount);
     for (int i = 0; i < mChannelCount; i++) {
         cfgs[i].channel = i;
         cfgs[i].enable = true;
     }
-    EXPECT_NO_FATAL_FAILURE(addPostEqChannelConfig(cfgs));
-    EXPECT_NO_FATAL_FAILURE(addPostEqBandConfigs(mCfgs));
+    addPostEqChannelConfig(cfgs);
+    addPostEqBandConfigs(mCfgs);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
@@ -958,7 +1252,12 @@ std::vector<std::vector<std::pair<int, float>>> kBands{
                 {2, 6000},
                 {3, 10000},
                 {4, 16000},
-        },  // 5 bands
+                {5, 20000},
+                {6, 26000},
+                {7, 30000},
+                {8, 36000},
+                {9, 40000},
+        },  // 10 bands
         {
                 {0, 800},
                 {3, 15000},
@@ -1017,6 +1316,129 @@ INSTANTIATE_TEST_SUITE_P(
         });
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingTestEqBandConfig);
 
+class DynamicsProcessingEqBandConfigDataTest
+    : public ::testing::TestWithParam<std::pair<std::shared_ptr<IFactory>, Descriptor>>,
+      public DynamicsProcessingTestHelper {
+  public:
+    DynamicsProcessingEqBandConfigDataTest()
+        : DynamicsProcessingTestHelper(GetParam(), AudioChannelLayout::LAYOUT_MONO) {
+        mBinOffsets.resize(mMultitoneTestFrequencies.size());
+    }
+
+    void SetUp() override {
+        ASSERT_NO_FATAL_FAILURE(
+                setUpDataTest(mMultitoneTestFrequencies, kSineMultitoneFullScaleDb));
+    }
+
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(tearDownDataTest()); }
+
+    void addEqParam(bool isPreEq) {
+        createChannelConfig();
+        auto stage = isPreEq ? mEngineConfigPreset.preEqStage : mEngineConfigPreset.postEqStage;
+        stage.bandCount = mCfgs.size();
+        addEngineConfig(mEngineConfigPreset);
+        isPreEq ? addPreEqChannelConfig(mChannelConfig) : addPostEqChannelConfig(mChannelConfig);
+        isPreEq ? addPreEqBandConfigs(mCfgs) : addPostEqBandConfigs(mCfgs);
+    }
+
+    void setEqParamAndProcess(std::vector<float>& output, bool isPreEq) {
+        addEqParam(isPreEq);
+        ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(mInput, output));
+    }
+
+    void fillEqBandConfig(std::vector<DynamicsProcessing::EqBandConfig>& cfgs, int channelIndex,
+                          int bandIndex, int cutOffFreqHz, float gainDb, bool enable) {
+        cfgs.push_back(creatEqBandConfig(channelIndex, bandIndex, static_cast<float>(cutOffFreqHz),
+                                         gainDb, enable));
+    }
+
+    void validateOutput(const std::vector<float>& output, float gainDb, size_t bandIndex,
+                        bool enable) {
+        std::vector<float> outputMag(mBinOffsets.size());
+        EXPECT_NO_FATAL_FAILURE(getMagnitudeValue(output, outputMag));
+        if (gainDb == 0 || !enable) {
+            EXPECT_NO_FATAL_FAILURE(checkInputAndOutputEquality(outputMag));
+        } else if (gainDb > 0) {
+            // For positive gain, current band's magnitude is greater than the other band's
+            // magnitude
+            EXPECT_GT(outputMag[bandIndex], outputMag[bandIndex ^ 1]);
+        } else {
+            // For negative gain, current band's magnitude is less than the other band's magnitude
+            EXPECT_LT(outputMag[bandIndex], outputMag[bandIndex ^ 1]);
+        }
+    }
+
+    void analyseMultiBandOutput(float gainDb, bool isPreEq, bool enable = true) {
+        std::vector<float> output(mInput.size());
+        roundToFreqCenteredToFftBin(mMultitoneTestFrequencies, mBinOffsets, kBinWidth);
+        // Set Equalizer values for two bands
+        for (size_t i = 0; i < kCutoffFreqHz.size(); i++) {
+            for (int channelIndex = 0; channelIndex < mChannelCount; channelIndex++) {
+                fillEqBandConfig(mCfgs, channelIndex, i, kCutoffFreqHz[i], gainDb, enable);
+                fillEqBandConfig(mCfgs, channelIndex, i ^ 1, kCutoffFreqHz[i ^ 1], 0, enable);
+            }
+            ASSERT_NO_FATAL_FAILURE(setEqParamAndProcess(output, isPreEq));
+
+            if (isAllParamsValid()) {
+                ASSERT_NO_FATAL_FAILURE(validateOutput(output, gainDb, i, enable));
+            }
+            cleanUpEqConfig();
+        }
+    }
+
+    void cleanUpEqConfig() {
+        CleanUp();
+        mCfgs.clear();
+        mChannelConfig.clear();
+    }
+
+    const std::vector<float> kTestGainDbValues = {-200, -100, 0, 100, 200};
+    std::vector<DynamicsProcessing::EqBandConfig> mCfgs;
+};
+
+TEST_P(DynamicsProcessingEqBandConfigDataTest, IncreasingPreEqGain) {
+    for (float gainDb : kTestGainDbValues) {
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(mMultitoneTestFrequencies, mInput,
+                                                 dBToAmplitude(gainDb), kSamplingFrequency,
+                                                 mChannelLayout));
+        cleanUpEqConfig();
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(gainDb, true /*pre-equalizer*/));
+    }
+}
+
+TEST_P(DynamicsProcessingEqBandConfigDataTest, IncreasingPostEqGain) {
+    for (float gainDb : kTestGainDbValues) {
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(mMultitoneTestFrequencies, mInput,
+                                                 dBToAmplitude(gainDb), kSamplingFrequency,
+                                                 mChannelLayout));
+        cleanUpEqConfig();
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(gainDb, false /*post-equalizer*/));
+    }
+}
+
+TEST_P(DynamicsProcessingEqBandConfigDataTest, PreEqEnableDisable) {
+    ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(10 /*gain dB*/, true /*pre-equalizer*/,
+                                                   false /*disable equalizer*/));
+}
+
+TEST_P(DynamicsProcessingEqBandConfigDataTest, PostEqEnableDisable) {
+    ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(10 /*gain dB*/, false /*post-equalizer*/,
+                                                   false /*disable equalizer*/));
+}
+
+INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingEqBandConfigDataTest,
+                         testing::ValuesIn(EffectFactoryHelper::getAllEffectDescriptors(
+                                 IFactory::descriptor, getEffectTypeUuidDynamicsProcessing())),
+                         [](const auto& info) {
+                             auto descriptor = info.param;
+                             std::string name = getPrefix(descriptor.second);
+                             std::replace_if(
+                                     name.begin(), name.end(),
+                                     [](const char c) { return !std::isalnum(c); }, '_');
+                             return name;
+                         });
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingEqBandConfigDataTest);
+
 /**
  * Test DynamicsProcessing MbcBandConfig
  */
@@ -1054,25 +1476,21 @@ using TestParamsMbcBandConfig =
 
 void fillMbcBandConfig(std::vector<DynamicsProcessing::MbcBandConfig>& cfgs,
                        const TestParamsMbcBandConfig& params) {
-    const std::vector<std::pair<int, float>> cutOffFreqs = std::get<MBC_BAND_CUTOFF_FREQ>(params);
-    const std::array<float, MBC_ADD_MAX_NUM> additional = std::get<MBC_BAND_ADDITIONAL>(params);
-    int bandCount = cutOffFreqs.size();
-    cfgs.resize(bandCount);
-    for (int i = 0; i < bandCount; i++) {
-        cfgs[i] = DynamicsProcessing::MbcBandConfig{
-                .channel = std::get<MBC_BAND_CHANNEL>(params),
-                .band = cutOffFreqs[i].first,
-                .enable = true /*Mbc Band Enable*/,
-                .cutoffFrequencyHz = cutOffFreqs[i].second,
-                .attackTimeMs = additional[MBC_ADD_ATTACK_TIME],
-                .releaseTimeMs = additional[MBC_ADD_RELEASE_TIME],
-                .ratio = additional[MBC_ADD_RATIO],
-                .thresholdDb = additional[MBC_ADD_THRESHOLD],
-                .kneeWidthDb = additional[MBC_ADD_KNEE_WIDTH],
-                .noiseGateThresholdDb = additional[MBC_ADD_NOISE_GATE_THRESHOLD],
-                .expanderRatio = additional[MBC_ADD_EXPENDER_RATIO],
-                .preGainDb = additional[MBC_ADD_PRE_GAIN],
-                .postGainDb = additional[MBC_ADD_POST_GAIN]};
+    const auto& cutOffFreqs = std::get<MBC_BAND_CUTOFF_FREQ>(params);
+    const auto& additional = std::get<MBC_BAND_ADDITIONAL>(params);
+
+    cfgs.resize(cutOffFreqs.size());
+
+    for (size_t i = 0; i < cutOffFreqs.size(); ++i) {
+        cfgs[i] = createMbcBandConfig(std::get<MBC_BAND_CHANNEL>(params),
+                                      cutOffFreqs[i].first,   // band channel
+                                      cutOffFreqs[i].second,  // band cutoff frequency
+                                      additional[MBC_ADD_ATTACK_TIME],
+                                      additional[MBC_ADD_RELEASE_TIME], additional[MBC_ADD_RATIO],
+                                      additional[MBC_ADD_THRESHOLD], additional[MBC_ADD_KNEE_WIDTH],
+                                      additional[MBC_ADD_NOISE_GATE_THRESHOLD],
+                                      additional[MBC_ADD_EXPENDER_RATIO],
+                                      additional[MBC_ADD_PRE_GAIN], additional[MBC_ADD_POST_GAIN]);
     }
 }
 
@@ -1085,7 +1503,7 @@ class DynamicsProcessingTestMbcBandConfig
         fillMbcBandConfig(mCfgs, GetParam());
     }
 
-    void SetUp() override { SetUpDynamicsProcessingEffect(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDynamicsProcessingEffect()); }
 
     void TearDown() override { TearDownDynamicsProcessingEffect(); }
 
@@ -1094,14 +1512,14 @@ class DynamicsProcessingTestMbcBandConfig
 
 TEST_P(DynamicsProcessingTestMbcBandConfig, SetAndGetMbcBandConfig) {
     mEngineConfigPreset.mbcStage.bandCount = mCfgs.size();
-    EXPECT_NO_FATAL_FAILURE(addEngineConfig(mEngineConfigPreset));
+    addEngineConfig(mEngineConfigPreset);
     std::vector<DynamicsProcessing::ChannelConfig> cfgs(mChannelCount);
     for (int i = 0; i < mChannelCount; i++) {
         cfgs[i].channel = i;
         cfgs[i].enable = true;
     }
-    EXPECT_NO_FATAL_FAILURE(addMbcChannelConfig(cfgs));
-    EXPECT_NO_FATAL_FAILURE(addMbcBandConfigs(mCfgs));
+    addMbcChannelConfig(cfgs);
+    addMbcBandConfigs(mCfgs);
     ASSERT_NO_FATAL_FAILURE(SetAndGetDynamicsProcessingParameters());
 }
 
@@ -1125,6 +1543,196 @@ INSTANTIATE_TEST_SUITE_P(
             return name;
         });
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingTestMbcBandConfig);
+
+class DynamicsProcessingMbcBandConfigDataTest
+    : public ::testing::TestWithParam<std::pair<std::shared_ptr<IFactory>, Descriptor>>,
+      public DynamicsProcessingTestHelper {
+  public:
+    DynamicsProcessingMbcBandConfigDataTest()
+        : DynamicsProcessingTestHelper(GetParam(), AudioChannelLayout::LAYOUT_MONO) {
+        mBinOffsets.resize(mMultitoneTestFrequencies.size());
+    }
+
+    void SetUp() override {
+        ASSERT_NO_FATAL_FAILURE(
+                setUpDataTest(mMultitoneTestFrequencies, kSineMultitoneFullScaleDb));
+    }
+
+    void TearDown() override { ASSERT_NO_FATAL_FAILURE(tearDownDataTest()); }
+
+    void setMbcParamsAndProcess(std::vector<float>& output) {
+        createChannelConfig();
+        mEngineConfigPreset.mbcStage.bandCount = mCfgs.size();
+        addEngineConfig(mEngineConfigPreset);
+        addMbcChannelConfig(mChannelConfig);
+        addMbcBandConfigs(mCfgs);
+        ASSERT_NO_FATAL_FAILURE(setParamsAndProcess(mInput, output));
+    }
+
+    void fillMbcBandConfig(std::vector<DynamicsProcessing::MbcBandConfig>& cfgs, int channelIndex,
+                           float threshold, float ratio, float noiseGate, float expanderRatio,
+                           int bandIndex, int cutoffFreqHz, float preGain, float postGain) {
+        cfgs.push_back(createMbcBandConfig(channelIndex, bandIndex,
+                                           static_cast<float>(cutoffFreqHz), kDefaultAttackTime,
+                                           kDefaultReleaseTime, ratio, threshold, kDefaultKneeWidth,
+                                           noiseGate, expanderRatio, preGain, postGain));
+    }
+
+    void validateOutput(const std::vector<float>& output, float threshold, float ratio,
+                        size_t bandIndex) {
+        std::vector<float> outputMag(mBinOffsets.size());
+        EXPECT_NO_FATAL_FAILURE(getMagnitudeValue(output, outputMag));
+        if (threshold >= mInputDb || ratio == 1) {
+            EXPECT_NO_FATAL_FAILURE(checkInputAndOutputEquality(outputMag));
+        } else {
+            // Current band's magnitude is less than the other band's magnitude
+            EXPECT_LT(outputMag[bandIndex], outputMag[bandIndex ^ 1]);
+        }
+    }
+
+    void analyseMultiBandOutput(float threshold, float ratio) {
+        std::vector<float> output(mInput.size());
+        roundToFreqCenteredToFftBin(mMultitoneTestFrequencies, mBinOffsets, kBinWidth);
+        // Set MBC values for two bands
+        for (size_t i = 0; i < kCutoffFreqHz.size(); i++) {
+            for (int channelIndex = 0; channelIndex < mChannelCount; channelIndex++) {
+                fillMbcBandConfig(mCfgs, channelIndex, threshold, ratio, kDefaultNoiseGateDb,
+                                  kDefaultExpanderRatio, i, kCutoffFreqHz[i], kDefaultPreGainDb,
+                                  kDefaultPostGainDb);
+                fillMbcBandConfig(mCfgs, channelIndex, kDefaultThresholdDb, kDefaultRatio,
+                                  kDefaultNoiseGateDb, kDefaultExpanderRatio, i ^ 1,
+                                  kCutoffFreqHz[i ^ 1], kDefaultPreGainDb, kDefaultPostGainDb);
+            }
+            ASSERT_NO_FATAL_FAILURE(setMbcParamsAndProcess(output));
+
+            if (isAllParamsValid()) {
+                ASSERT_NO_FATAL_FAILURE(validateOutput(output, threshold, ratio, i));
+            }
+            cleanUpMbcConfig();
+        }
+    }
+
+    void cleanUpMbcConfig() {
+        CleanUp();
+        mCfgs.clear();
+        mChannelConfig.clear();
+    }
+
+    static constexpr float kDefaultPostGainDb = 0;
+    static constexpr float kDefaultPreGainDb = 0;
+    static constexpr float kDefaultAttackTime = 0;
+    static constexpr float kDefaultReleaseTime = 0;
+    static constexpr float kDefaultKneeWidth = 0;
+    static constexpr float kDefaultThresholdDb = 0;
+    static constexpr float kDefaultNoiseGateDb = -10;
+    static constexpr float kDefaultExpanderRatio = 1;
+    static constexpr float kDefaultRatio = 1;
+    std::vector<DynamicsProcessing::MbcBandConfig> mCfgs;
+};
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingThreshold) {
+    float ratio = 20;
+    std::vector<float> thresholdValues = {-200, -100, 0, 100, 200};
+
+    for (float threshold : thresholdValues) {
+        cleanUpMbcConfig();
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(threshold, ratio));
+    }
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingRatio) {
+    float threshold = -20;
+    std::vector<float> ratioValues = {1, 10, 20, 30, 40, 50};
+
+    for (float ratio : ratioValues) {
+        cleanUpMbcConfig();
+        ASSERT_NO_FATAL_FAILURE(analyseMultiBandOutput(threshold, ratio));
+    }
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingPostGain) {
+    std::vector<float> postGainDbValues = {-55, -30, 0, 30, 55};
+    std::vector<float> output(mInput.size());
+    for (float postGainDb : postGainDbValues) {
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(mMultitoneTestFrequencies, mInput,
+                                                 dBToAmplitude(postGainDb), kSamplingFrequency,
+                                                 mChannelLayout));
+        mInputDb = calculateDb(mInput);
+        EXPECT_NEAR(mInputDb, kSineMultitoneFullScaleDb - postGainDb, kToleranceDb);
+        cleanUpMbcConfig();
+        for (int i = 0; i < mChannelCount; i++) {
+            fillMbcBandConfig(mCfgs, i, kDefaultThresholdDb, kDefaultRatio, kDefaultNoiseGateDb,
+                              kDefaultExpanderRatio, 0 /*band index*/, 2000 /*cutoffFrequency*/,
+                              kDefaultPreGainDb, postGainDb);
+        }
+        EXPECT_NO_FATAL_FAILURE(setMbcParamsAndProcess(output));
+        if (!isAllParamsValid()) {
+            continue;
+        }
+        float outputDb = calculateDb(output, kStartIndex);
+        EXPECT_NEAR(outputDb, mInputDb + postGainDb, kToleranceDb)
+                << "PostGain: " << postGainDb << ", OutputDb: " << outputDb;
+    }
+}
+
+TEST_P(DynamicsProcessingMbcBandConfigDataTest, IncreasingPreGain) {
+    /*
+    Depending on the pregain values, samples undergo either compression or expansion process.
+    At -6 dB input,
+    - Expansion is expected at -60 dB,
+    - Compression at 10, 34 and 60 dB
+    - No compression or expansion at -34, -10, -1 dB.
+     */
+    std::vector<float> preGainDbValues = {-60, -34, -10, -1, 10, 34, 60};
+    std::vector<float> output(mInput.size());
+    float thresholdDb = -7;
+    float noiseGateDb = -40;
+    std::vector<float> ratioValues = {1, 1.5, 2, 2.5, 3};
+    for (float ratio : ratioValues) {
+        for (float preGainDb : preGainDbValues) {
+            float expectedOutputDb;
+            float inputWithPreGain = mInputDb + preGainDb;
+            if (inputWithPreGain > thresholdDb) {
+                SCOPED_TRACE("Compressor ratio: " + std::to_string(ratio));
+                expectedOutputDb =
+                        (inputWithPreGain - thresholdDb) / ratio + thresholdDb - preGainDb;
+            } else if (inputWithPreGain < noiseGateDb) {
+                SCOPED_TRACE("Expander ratio: " + std::to_string(ratio));
+                expectedOutputDb =
+                        (inputWithPreGain - noiseGateDb) * ratio + noiseGateDb - preGainDb;
+            } else {
+                expectedOutputDb = mInputDb;
+            }
+            cleanUpMbcConfig();
+            for (int i = 0; i < mChannelCount; i++) {
+                fillMbcBandConfig(mCfgs, i, thresholdDb, ratio /*compressor ratio*/, noiseGateDb,
+                                  ratio /*expander ratio*/, 0 /*band index*/,
+                                  2000 /*cutoffFrequency*/, preGainDb, kDefaultPostGainDb);
+            }
+            EXPECT_NO_FATAL_FAILURE(setMbcParamsAndProcess(output));
+            if (!isAllParamsValid()) {
+                continue;
+            }
+            float outputDb = calculateDb(output, kStartIndex);
+            EXPECT_NEAR(outputDb, expectedOutputDb, kToleranceDb)
+                    << "PreGain: " << preGainDb << ", OutputDb: " << outputDb;
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(DynamicsProcessingTest, DynamicsProcessingMbcBandConfigDataTest,
+                         testing::ValuesIn(EffectFactoryHelper::getAllEffectDescriptors(
+                                 IFactory::descriptor, getEffectTypeUuidDynamicsProcessing())),
+                         [](const auto& info) {
+                             auto descriptor = info.param;
+                             std::string name = getPrefix(descriptor.second);
+                             std::replace_if(
+                                     name.begin(), name.end(),
+                                     [](const char c) { return !std::isalnum(c); }, '_');
+                             return name;
+                         });
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DynamicsProcessingMbcBandConfigDataTest);
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

@@ -73,6 +73,9 @@ class MockVehicleCallback final
     bool waitForSetValueResults(size_t size, size_t timeoutInNano);
     bool waitForGetValueResults(size_t size, size_t timeoutInNano);
     bool waitForOnPropertyEventResults(size_t size, size_t timeoutInNano);
+    bool waitForOnSupportedValueChange(size_t size, size_t timeoutInNano);
+    std::vector<aidl::android::hardware::automotive::vehicle::PropIdAreaId>
+    getOnSupportedValueChangePropIdAreaIds();
 
   private:
     std::mutex mLock;
@@ -86,6 +89,8 @@ class MockVehicleCallback final
     int32_t mSharedMemoryFileCount GUARDED_BY(mLock);
     std::list<aidl::android::hardware::automotive::vehicle::VehiclePropErrors>
             mOnPropertySetErrorResults GUARDED_BY(mLock);
+    std::vector<aidl::android::hardware::automotive::vehicle::PropIdAreaId>
+            mOnSupportedValueChangePropIdAreaIds GUARDED_BY(mLock);
 };
 
 }  // namespace vehicle

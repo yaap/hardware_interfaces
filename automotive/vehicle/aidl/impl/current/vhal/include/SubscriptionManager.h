@@ -95,15 +95,14 @@ class SubscriptionManager final {
             bool isContinuousProperty);
 
     // Unsubscribes from the properties for the client.
-    // Returns error if the client was not subscribed before, or one of the given property was not
-    // subscribed, or one of the property failed to unsubscribe. Caller is safe to retry since
+    // Returns error if one of the property failed to unsubscribe. Caller is safe to retry since
     // unsubscribing to an already unsubscribed property is okay (it would be ignored).
     // Returns ok if all the requested properties for the client are unsubscribed.
     VhalResult<void> unsubscribe(ClientIdType client, const std::vector<int32_t>& propIds);
 
     // Unsubscribes from all the properties for the client.
-    // Returns error if the client was not subscribed before or one of the subscribed properties
-    // for the client failed to unsubscribe. Caller is safe to retry.
+    // Returns error one of the subscribed properties for the client failed to unsubscribe.
+    // Caller is safe to retry.
     // Returns ok if all the properties for the client are unsubscribed.
     VhalResult<void> unsubscribe(ClientIdType client);
 
@@ -119,8 +118,24 @@ class SubscriptionManager final {
                        std::vector<aidl::android::hardware::automotive::vehicle::VehiclePropError>>
     getSubscribedClientsForErrorEvents(const std::vector<SetValueErrorEvent>& errorEvents);
 
-    // Returns the number of subscribed clients.
-    size_t countClients();
+    // For a list of [propId, areaId]s that has updated supported value, returns a map that maps
+    // subscribing clients to updated [propId, areaId]s.
+    std::unordered_map<CallbackType, std::vector<PropIdAreaId>>
+    getSubscribedClientsForSupportedValueChange(const std::vector<PropIdAreaId>& propIdAreaIds);
+
+    // Subscribes to supported values change.
+    VhalResult<void> subscribeSupportedValueChange(const CallbackType& callback,
+                                                   const std::vector<PropIdAreaId>& propIdAreaIds);
+
+    // Unsubscribes to supported values change.
+    VhalResult<void> unsubscribeSupportedValueChange(
+            ClientIdType client, const std::vector<PropIdAreaId>& propIdAreaIds);
+
+    // Returns the number of subscribed property change clients.
+    size_t countPropertyChangeClients();
+
+    // Returns the number of subscribed supported value change clients.
+    size_t countSupportedValueChangeClients();
 
     // Checks whether the sample rate is valid.
     static bool checkSampleRateHz(float sampleRateHz);
@@ -131,6 +146,7 @@ class SubscriptionManager final {
   private:
     // Friend class for testing.
     friend class DefaultVehicleHalTest;
+    friend class SubscriptionManagerTest;
 
     IVehicleHardware* mVehicleHardware;
 
@@ -161,6 +177,11 @@ class SubscriptionManager final {
                        std::unordered_set<VehiclePropValue, VehiclePropValueHashPropIdAreaId,
                                           VehiclePropValueEqualPropIdAreaId>>
             mContSubValuesByCallback GUARDED_BY(mLock);
+    std::unordered_map<PropIdAreaId, std::unordered_map<ClientIdType, CallbackType>,
+                       PropIdAreaIdHash>
+            mSupportedValueChangeClientsByPropIdAreaId GUARDED_BY(mLock);
+    std::unordered_map<ClientIdType, std::unordered_set<PropIdAreaId, PropIdAreaIdHash>>
+            mSupportedValueChangePropIdAreaIdsByClient GUARDED_BY(mLock);
 
     VhalResult<void> addContinuousSubscriberLocked(const ClientIdType& clientId,
                                                    const PropIdAreaId& propIdAreaId,
@@ -181,6 +202,9 @@ class SubscriptionManager final {
     VhalResult<void> unsubscribePropIdAreaIdLocked(SubscriptionManager::ClientIdType clientId,
                                                    const PropIdAreaId& propIdAreaId)
             REQUIRES(mLock);
+    VhalResult<void> unsubscribeSupportedValueChangeLocked(
+            SubscriptionManager::ClientIdType clientId,
+            const std::vector<PropIdAreaId>& propIdAreaIds) REQUIRES(mLock);
 
     // Checks whether the manager is empty. For testing purpose.
     bool isEmpty();

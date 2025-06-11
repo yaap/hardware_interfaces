@@ -68,4 +68,11 @@ parcelable UsdPublishConfig {
      * Type of the publish transmission (ex. unicast, multicast).
      */
     UsdPublishTransmissionType transmissionType;
+
+    /**
+     * Whether to enable publish replied events. If disabled, then
+     * |ISupplicantStaIfaceCallback.onUsdPublishReplied| will not be
+     * called for this session.
+     */
+    boolean eventsEnabled;
 }

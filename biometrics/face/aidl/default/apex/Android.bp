@@ -19,7 +19,7 @@ package {
 apex {
     name: "com.android.hardware.biometrics.face.virtual",
     manifest: "manifest.json",
-    file_contexts: "file_contexts",
+    file_contexts: ":com.android.biometrics.virtual.face-file_contexts",
     key: "com.android.hardware.key",
     certificate: ":com.android.hardware.certificate",
     updatable: false,

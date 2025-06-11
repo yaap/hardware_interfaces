@@ -21,6 +21,7 @@ package {
 
 cc_test {
     name: "VehicleHalAidlHidlCompatibilityTest",
+    team: "trendy_team_aaos_carframework_triage",
     srcs: ["AidlHidlCompatibilityTest.cpp"],
     shared_libs: [
         "libbinder_ndk",
@@ -39,14 +40,21 @@ cc_test {
 
 cc_test {
     name: "VehiclePropertyAnnotationCppTest",
+    team: "trendy_team_aaos_carframework_triage",
     srcs: ["VehiclePropertyAnnotationCppTest.cpp"],
     header_libs: ["IVehicleGeneratedHeaders-V4"],
+    static_libs: [
+        "VehicleHalUtils",
+        "libgtest",
+        "libgmock",
+    ],
     defaults: ["VehicleHalInterfaceDefaults"],
     test_suites: ["general-tests"],
 }
 
 android_test {
     name: "VehiclePropertyAnnotationJavaTest",
+    team: "trendy_team_aaos_carframework_triage",
     srcs: [
         "VehiclePropertyAnnotationJavaTest.java",
         ":IVehicleGeneratedJavaFiles-V4",

@@ -115,11 +115,11 @@ class RadioNetwork : public RadioCompatBase,
     ::ndk::ScopedAStatus isSecurityAlgorithmsUpdatedEnabled(int32_t serial) override;
 
     ::ndk::ScopedAStatus setSatellitePlmn(
-            int32_t serial, int32_t simSlot, const std::vector<std::string>& carrierPlmnArray,
+            int32_t serial, const std::vector<std::string>& carrierPlmnArray,
             const std::vector<std::string>& allSatellitePlmnArray) override;
-    ::ndk::ScopedAStatus setSatelliteEnabledForCarrier(int32_t serial, int32_t simSlot,
+    ::ndk::ScopedAStatus setSatelliteEnabledForCarrier(int32_t serial,
                                                        bool satelliteEnabled) override;
-    ::ndk::ScopedAStatus isSatelliteEnabledForCarrier(int32_t serial, int32_t simSlot) override;
+    ::ndk::ScopedAStatus isSatelliteEnabledForCarrier(int32_t serial) override;
 
   protected:
     std::shared_ptr<::aidl::android::hardware::radio::network::IRadioNetworkResponse> respond();

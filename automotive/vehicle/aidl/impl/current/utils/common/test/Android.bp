@@ -21,6 +21,7 @@ package {
 
 cc_test {
     name: "VehicleHalVehicleUtilsTest",
+    team: "trendy_team_aaos_carframework_triage",
     srcs: ["*.cpp"],
     vendor: true,
     static_libs: [

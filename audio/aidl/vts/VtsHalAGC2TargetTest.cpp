@@ -145,18 +145,18 @@ class AGC2ParamTest : public ::testing::TestWithParam<AGC2ParamTestParam>, publi
 };
 
 TEST_P(AGC2ParamTest, SetAndGetDigitalGainParam) {
-    EXPECT_NO_FATAL_FAILURE(addDigitalGainParam(mGain));
-    SetAndGetParameters();
+    addDigitalGainParam(mGain);
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(AGC2ParamTest, SetAndGetSaturationMargin) {
-    EXPECT_NO_FATAL_FAILURE(addSaturationMarginParam(mMargin));
-    SetAndGetParameters();
+    addSaturationMarginParam(mMargin);
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(AGC2ParamTest, SetAndGetLevelEstimator) {
-    EXPECT_NO_FATAL_FAILURE(addLevelEstimatorParam(mLevelEstimator));
-    SetAndGetParameters();
+    addLevelEstimatorParam(mLevelEstimator);
+    ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 std::vector<std::pair<std::shared_ptr<IFactory>, Descriptor>> kDescPair;

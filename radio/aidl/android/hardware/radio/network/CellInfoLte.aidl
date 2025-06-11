@@ -22,6 +22,7 @@ import android.hardware.radio.network.LteSignalStrength;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellInfoLte {
     CellIdentityLte cellIdentityLte;
     LteSignalStrength signalStrengthLte;

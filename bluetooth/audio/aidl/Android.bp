@@ -38,6 +38,9 @@ aidl_interface {
         cpp: {
             enabled: false,
         },
+        rust: {
+            enabled: true,
+        },
         java: {
             sdk_version: "module_current",
             enabled: false,
@@ -45,7 +48,7 @@ aidl_interface {
         ndk: {
             apex_available: [
                 "//apex_available:platform",
-                "com.android.btservices",
+                "com.android.bt",
             ],
             min_sdk_version: "31",
         },
@@ -83,10 +86,17 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "5",
+            imports: [
+                "android.hardware.audio.common-V4",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
     ],
-    frozen: false,
-
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version

@@ -227,12 +227,12 @@ interface IThermal {
     void unregisterCoolingDeviceChangedCallback(in ICoolingDeviceChangedCallback callback);
 
     /**
-     * Retrieves the forecasted skin temperature in Celsius.
+     * Retrieves the forecasted {@link TemperatureType#SKIN} type temperature in Celsius.
      *
      * @param forecastSeconds the number of seconds to forecast the skin temperature, it should
-     *                        at least support superset of [0, 60] seconds range.
+     *                        support any value from a superset of range [0, 60] seconds.
      *
-     * @return forecasted skin temperature in Celsius.
+     * @return forecasted skin temperature in Celsius unit at the forecasted seconds in future.
      *
      * @throws EX_ILLEGAL_STATE If the Thermal HAL is not initialized successfully
      * @throws EX_ILLEGAL_ARGUMENT If the provided forecastSeconds is negative

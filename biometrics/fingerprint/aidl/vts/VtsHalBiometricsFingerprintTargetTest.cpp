@@ -138,6 +138,11 @@ class SessionCallback : public BnSessionCallback {
 };
 
 class Fingerprint : public testing::TestWithParam<std::string> {
+    static void HalServiceDied(void* cookie) {
+        auto halDeathPromise = static_cast<std::promise<void>*>(cookie);
+        halDeathPromise->set_value();
+    }
+
   protected:
     void SetUp() override {
         // Prepare the callback.
@@ -157,8 +162,24 @@ class Fingerprint : public testing::TestWithParam<std::string> {
             ASSERT_NE(binder, nullptr);
             mHal = IFingerprint::fromBinder(ndk::SpAIBinder(binder));
 
+            // Create HAL service death notifier
+            auto halDeathPromise = std::make_shared<std::promise<void>>();
+            mHalDeathRecipient = ndk::ScopedAIBinder_DeathRecipient(
+                    AIBinder_DeathRecipient_new(&HalServiceDied));
+            ASSERT_EQ(STATUS_OK, AIBinder_linkToDeath(binder, mHalDeathRecipient.get(),
+                                                      static_cast<void*>(halDeathPromise.get())));
+
             // Create a session.
             isOk = mHal->createSession(kSensorId, kUserId, mCb, &mSession).isOk();
+
+            if (!isOk) {
+                // Failed to create session on first attempt, it is likely that the HAL service
+                //   is dying or dead. Wait for its death notification signal before next try
+                auto future = halDeathPromise->get_future();
+                auto status = future.wait_for(std::chrono::milliseconds(500));
+                EXPECT_EQ(status, std::future_status::ready);
+            }
+
             ++retries;
         } while (!isOk && retries < 2);
 
@@ -167,6 +188,7 @@ class Fingerprint : public testing::TestWithParam<std::string> {
 
     void TearDown() override {
         // Close the mSession.
+        ASSERT_NE(mSession, nullptr);
         ASSERT_TRUE(mSession->close().isOk());
 
         // Make sure the mSession is closed.
@@ -177,6 +199,7 @@ class Fingerprint : public testing::TestWithParam<std::string> {
     std::shared_ptr<IFingerprint> mHal;
     std::shared_ptr<SessionCallback> mCb;
     std::shared_ptr<ISession> mSession;
+    ::ndk::ScopedAIBinder_DeathRecipient mHalDeathRecipient;
 };
 
 TEST_P(Fingerprint, GetSensorPropsWorksTest) {

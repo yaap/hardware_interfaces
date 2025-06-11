@@ -36,6 +36,7 @@ SYSTEM_MATRIX_DEPS = [
     "framework_compatibility_matrix.7.xml",
     "framework_compatibility_matrix.8.xml",
     "framework_compatibility_matrix.202404.xml",
+    "framework_compatibility_matrix.202504.xml",
     "framework_compatibility_matrix.device.xml",
 ]
 
@@ -45,7 +46,7 @@ phony {
     product_variables: {
         release_aidl_use_unfrozen: {
             required: [
-                "framework_compatibility_matrix.202504.xml",
+                "framework_compatibility_matrix.202604.xml",
             ],
         },
     },
@@ -68,7 +69,7 @@ phony {
     product_variables: {
         release_aidl_use_unfrozen: {
             required: [
-                "framework_compatibility_matrix.202504.xml",
+                "framework_compatibility_matrix.202604.xml",
             ],
         },
     },
@@ -149,6 +150,13 @@ vintf_compatibility_matrix {
     stem: "compatibility_matrix.202504.xml",
     srcs: ["compatibility_matrix.202504.xml"],
     kernel_configs: [
-        "kernel_config_w_6.12",
+        "kernel_config_b_6.12",
     ],
+}
+
+vintf_compatibility_matrix {
+    name: "framework_compatibility_matrix.202604.xml",
+    stem: "compatibility_matrix.202604.xml",
+    srcs: ["compatibility_matrix.202604.xml"],
+    kernel_configs: ["kernel_config_c_6.12"],
 }

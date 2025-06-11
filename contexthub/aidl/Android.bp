@@ -35,7 +35,7 @@ aidl_interface {
         ndk: {
             apex_available: [
                 "//apex_available:platform",
-                "com.android.btservices",
+                "com.android.bt",
             ],
             min_sdk_version: "33",
             apps_enabled: true,
@@ -57,6 +57,11 @@ aidl_interface {
             version: "3",
             imports: [],
         },
+        {
+            version: "4",
+            imports: [],
+        },
+
     ],
-    frozen: false,
+    frozen: true,
 }

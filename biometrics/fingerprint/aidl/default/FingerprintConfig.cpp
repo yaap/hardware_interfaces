@@ -56,7 +56,7 @@ CREATE_GETTER_SETTER_WRAPPER(operation_detect_interaction_latency, OptIntVec)
 CREATE_GETTER_SETTER_WRAPPER(operation_detect_interaction_duration, OptInt32)
 CREATE_GETTER_SETTER_WRAPPER(operation_detect_interaction_acquired, OptString)
 CREATE_GETTER_SETTER_WRAPPER(max_enrollments, OptBool)
-CREATE_GETTER_SETTER_WRAPPER(navigation_guesture, OptBool)
+CREATE_GETTER_SETTER_WRAPPER(navigation_gesture, OptBool)
 CREATE_GETTER_SETTER_WRAPPER(detect_interaction, OptBool)
 CREATE_GETTER_SETTER_WRAPPER(display_touch, OptBool)
 CREATE_GETTER_SETTER_WRAPPER(control_illumination, OptBool)
@@ -90,7 +90,7 @@ static Config::Data configData[] = {
         {NGS(operation_detect_interaction_duration), &Config::parseInt32, "10"},
         {NGS(operation_detect_interaction_acquired), &Config::parseString, "1"},
         {NGS(max_enrollments), &Config::parseInt32, "5"},
-        {NGS(navigation_guesture), &Config::parseBool, "false"},
+        {NGS(navigation_gesture), &Config::parseBool, "false"},
         {NGS(detect_interaction), &Config::parseBool, "false"},
         {NGS(display_touch), &Config::parseBool, "true"},
         {NGS(control_illumination), &Config::parseBool, "false"},

@@ -223,7 +223,8 @@ class FakeVehicleHardwareTest : public ::testing::Test {
             return status;
         }
 
-        const SetValueResult& result = getSetValueResults().back();
+        std::vector<SetValueResult> resultVector = getSetValueResults();
+        const SetValueResult& result = resultVector.back();
 
         if (result.requestId != 0) {
             ALOGE("request ID mismatch, got %" PRId64 ", expect 0", result.requestId);
@@ -245,7 +246,8 @@ class FakeVehicleHardwareTest : public ::testing::Test {
             return unexpected(status);
         }
 
-        const GetValueResult& result = getGetValueResults().back();
+        std::vector<GetValueResult> resultVector = getGetValueResults();
+        const GetValueResult& result = resultVector.back();
         if (result.requestId != 0) {
             ALOGE("request ID mismatch, got %" PRId64 ", expect 0", result.requestId);
             return unexpected(StatusCode::INTERNAL_ERROR);
@@ -277,7 +279,7 @@ class FakeVehicleHardwareTest : public ::testing::Test {
         mCv.notify_all();
     }
 
-    const std::vector<SetValueResult>& getSetValueResults() {
+    std::vector<SetValueResult> getSetValueResults() {
         std::scoped_lock<std::mutex> lockGuard(mLock);
         return mSetValueResults;
     }
@@ -291,7 +293,7 @@ class FakeVehicleHardwareTest : public ::testing::Test {
         mCv.notify_all();
     }
 
-    const std::vector<GetValueResult>& getGetValueResults() {
+    std::vector<GetValueResult> getGetValueResults() {
         std::scoped_lock<std::mutex> lockGuard(mLock);
         return mGetValueResults;
     }
@@ -309,7 +311,7 @@ class FakeVehicleHardwareTest : public ::testing::Test {
         mCv.notify_all();
     }
 
-    const std::vector<VehiclePropValue>& getChangedProperties() {
+    std::vector<VehiclePropValue> getChangedProperties() {
         std::scoped_lock<std::mutex> lockGuard(mLock);
         return mChangedProperties;
     }

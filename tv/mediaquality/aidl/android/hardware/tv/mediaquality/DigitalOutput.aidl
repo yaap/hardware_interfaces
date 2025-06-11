@@ -22,6 +22,8 @@ enum DigitalOutput {
      * Automatically selects the best audio format to send to the connected audio device
      * based on the incoming audio stream. This mode prioritizes high-quality formats
      * like Dolby Digital or DTS if supported by the device, otherwise falls back to PCM.
+     *
+     * This is the default value for digital output.
      */
     AUTO,
 
@@ -38,4 +40,23 @@ enum DigitalOutput {
      * range of devices but sacrifices surround sound capabilities.
      */
     PCM,
+
+    /**
+     * Dolby Digital Plus (E-AC-3) output. An enhanced version of Dolby Digital
+     * supporting more channels (up to 7.1 surround sound) and higher bitrates.
+     * Commonly used for streaming and online content.
+     */
+    DolbyDigitalPlus,
+
+    /**
+     * Dolby Digital (AC-3) output. Provides up to 5.1 channels
+     * of surround sound, a standard for DVDs, Blu-rays, and TV broadcasts.
+     */
+    DolbyDigital,
+
+    /**
+     * Dolby Multistream Audio (MAT) output. Carries multiple audio streams
+     * (e.g., different languages, audio descriptions) within a Dolby Digital Plus bitstream.
+     */
+    DolbyMat,
 }

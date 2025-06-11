@@ -33,7 +33,7 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable EmergencyRegResult {
   android.hardware.radio.AccessNetwork accessNetwork = android.hardware.radio.AccessNetwork.UNKNOWN;
   android.hardware.radio.network.RegState regState = android.hardware.radio.network.RegState.NOT_REG_MT_NOT_SEARCHING_OP;

@@ -110,10 +110,12 @@ class Gnss : public BnGnss {
     std::atomic<long> mMinIntervalMs;
     std::atomic<long> mGnssMeasurementIntervalMs;
     std::atomic<bool> mIsActive;
+    std::atomic<bool> mIsInitialized;
     std::atomic<bool> mIsSvStatusActive;
     std::atomic<bool> mIsNmeaActive;
     std::atomic<bool> mFirstFixReceived;
     std::atomic<bool> mGnssMeasurementEnabled;
+    std::atomic<int> mReportedLocationCount;
     std::shared_ptr<GnssLocation> mLastLocation;
     std::thread mThread;
     ::android::hardware::gnss::common::ThreadBlocker mThreadBlocker;

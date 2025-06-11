@@ -16,6 +16,17 @@
 
 package android.hardware.contexthub;
 
+/**
+ * Services that are provided by an endpoint.
+ *
+ * To support testing, the following service is defined here:
+ *  1. Test echo service:
+ *     - This service responds to a received message back to the sender with a
+ *       message with identical content as the received message.
+ *     - Format:                Service::RpcFormat::CUSTOM
+ *     - Service descriptor:    android.hardware.contexthub.test.EchoService
+ *     - Major version:         1
+ */
 @VintfStability
 parcelable Service {
     /**

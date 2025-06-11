@@ -37,8 +37,9 @@ parcelable LeCocCapabilities {
     /**
      * The value used by the Host stack for the local Maximum Packet Size shall be the value
      * LE_ACL_Data_Packet_Length returned by the controller in response to the command HCI LE Read
-     * Buffer Size. Then, the MPS size must be in range 1 to 255. We do not make the MPS
-     * configurable in HAL because using the maximum value does not require a large amount of
-     * memory.
+     * Buffer Size if Total_Num_LE_ACL_Data_Packets is not zero. The MPS shall be the value
+     * ACL_Data_Packet_Length returned in response to the command HCI Read Buffer Size if
+     * Total_Num_LE_ACL_Data_Packets is zero. We do not make the MPS configurable in HAL because
+     * using the maximum value does not require a large amount of memory.
      */
 }

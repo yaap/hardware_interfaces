@@ -214,7 +214,8 @@ interface IStreamOut {
      *
      * The range of supported values for speed and pitch factors is provided by
      * the 'IModule.getSupportedPlaybackRateFactors' method. Out of range speed
-     * and pitch values must not be rejected if the fallback mode is 'MUTE'.
+     * and pitch values may result in silent playback instead of returning an
+     * error in the case when the fallback mode is 'MUTE'.
      *
      * @param playbackRate Playback parameters to set.
      * @throws EX_ILLEGAL_ARGUMENT If provided parameters are out of acceptable range.

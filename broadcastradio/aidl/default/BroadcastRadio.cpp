@@ -790,14 +790,12 @@ ScopedAStatus BroadcastRadio::setConfigFlag(ConfigFlag flag, bool value) {
 ScopedAStatus BroadcastRadio::setParameters(
         [[maybe_unused]] const vector<VendorKeyValue>& parameters,
         vector<VendorKeyValue>* returnParameters) {
-    // TODO(b/243682330) Support vendor parameter functionality
     *returnParameters = {};
     return ScopedAStatus::ok();
 }
 
 ScopedAStatus BroadcastRadio::getParameters([[maybe_unused]] const vector<string>& keys,
                                             vector<VendorKeyValue>* returnParameters) {
-    // TODO(b/243682330) Support vendor parameter functionality
     *returnParameters = {};
     return ScopedAStatus::ok();
 }

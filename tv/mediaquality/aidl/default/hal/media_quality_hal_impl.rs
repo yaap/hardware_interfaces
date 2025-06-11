@@ -32,12 +32,14 @@ use android_hardware_tv_mediaquality::aidl::android::hardware::tv::mediaquality:
     VendorParameterIdentifier::VendorParameterIdentifier,
 };
 use binder::{Interface, Strong};
+use binder::ExceptionCode;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 /// Defined so we can implement the IMediaQuality AIDL interface.
 pub struct MediaQualityService {
     callback: Arc<Mutex<Option<Strong<dyn IMediaQualityCallback>>>>,
+    ambient_backlight_supported: Arc<Mutex<bool>>,
     ambient_backlight_enabled: Arc<Mutex<bool>>,
     ambient_backlight_detector_settings: Arc<Mutex<AmbientBacklightSettings>>,
     auto_pq_supported: Arc<Mutex<bool>>,
@@ -60,14 +62,15 @@ impl MediaQualityService {
     pub fn new() -> Self {
         Self {
             callback: Arc::new(Mutex::new(None)),
-            ambient_backlight_enabled: Arc::new(Mutex::new(true)),
+            ambient_backlight_supported: Arc::new(Mutex::new(true)),
+            ambient_backlight_enabled: Arc::new(Mutex::new(false)),
             ambient_backlight_detector_settings:
                     Arc::new(Mutex::new(AmbientBacklightSettings::default())),
-            auto_pq_supported: Arc::new(Mutex::new(false)),
+            auto_pq_supported: Arc::new(Mutex::new(true)),
             auto_pq_enabled: Arc::new(Mutex::new(false)),
-            auto_sr_supported: Arc::new(Mutex::new(false)),
+            auto_sr_supported: Arc::new(Mutex::new(true)),
             auto_sr_enabled: Arc::new(Mutex::new(false)),
-            auto_aq_supported: Arc::new(Mutex::new(false)),
+            auto_aq_supported: Arc::new(Mutex::new(true)),
             auto_aq_enabled: Arc::new(Mutex::new(false)),
             picture_profile_adjustment_listener: Arc::new(Mutex::new(None)),
             sound_profile_adjustment_listener: Arc::new(Mutex::new(None)),
@@ -81,7 +84,7 @@ impl Interface for MediaQualityService {}
 
 impl IMediaQuality for MediaQualityService {
 
-    fn setCallback(
+    fn setAmbientBacklightCallback(
         &self,
         callback: &Strong<dyn IMediaQualityCallback>
     ) -> binder::Result<()> {
@@ -97,45 +100,51 @@ impl IMediaQuality for MediaQualityService {
     ) -> binder::Result<()> {
         println!("Received settings: {:?}", settings);
         let mut ambient_backlight_detector_settings = self.ambient_backlight_detector_settings.lock().unwrap();
-        ambient_backlight_detector_settings.packageName = settings.packageName.clone();
+        ambient_backlight_detector_settings.uid = settings.uid.clone();
         ambient_backlight_detector_settings.source = settings.source;
         ambient_backlight_detector_settings.maxFramerate = settings.maxFramerate;
         ambient_backlight_detector_settings.colorFormat = settings.colorFormat;
         ambient_backlight_detector_settings.hZonesNumber = settings.hZonesNumber;
         ambient_backlight_detector_settings.vZonesNumber = settings.vZonesNumber;
         ambient_backlight_detector_settings.hasLetterbox = settings.hasLetterbox;
-        ambient_backlight_detector_settings.threshold = settings.threshold;
+        ambient_backlight_detector_settings.colorThreshold = settings.colorThreshold;
         Ok(())
     }
 
     fn setAmbientBacklightDetectionEnabled(&self, enabled: bool) -> binder::Result<()> {
         println!("Received enabled: {}", enabled);
         let mut ambient_backlight_enabled = self.ambient_backlight_enabled.lock().unwrap();
+        let ambient_backlight_supported = self.ambient_backlight_supported.lock().unwrap();
         *ambient_backlight_enabled = enabled;
-        if enabled {
-            println!("Enable Ambient Backlight detection");
-            thread::scope(|s| {
-                s.spawn(|| {
-                    let cb = self.callback.lock().unwrap();
-                    if let Some(cb) = &*cb {
-                        let enabled_event = AmbientBacklightEvent::Enabled(true);
-                        cb.notifyAmbientBacklightEvent(&enabled_event).unwrap();
-                    }
+
+        if *ambient_backlight_supported {
+            if enabled {
+                println!("Enable Ambient Backlight detection");
+                thread::scope(|s| {
+                    s.spawn(|| {
+                        let cb = self.callback.lock().unwrap();
+                        if let Some(cb) = &*cb {
+                            let enabled_event = AmbientBacklightEvent::Enabled(true);
+                            cb.notifyAmbientBacklightEvent(&enabled_event).unwrap();
+                        }
+                    });
                 });
-            });
+            } else {
+                println!("Disable Ambient Backlight detection");
+                thread::scope(|s| {
+                    s.spawn(|| {
+                        let cb = self.callback.lock().unwrap();
+                        if let Some(cb) = &*cb {
+                            let disabled_event = AmbientBacklightEvent::Enabled(false);
+                            cb.notifyAmbientBacklightEvent(&disabled_event).unwrap();
+                        }
+                    });
+                });
+            }
+            return Ok(());
         } else {
-            println!("Disable Ambient Backlight detection");
-            thread::scope(|s| {
-                s.spawn(|| {
-                    let cb = self.callback.lock().unwrap();
-                    if let Some(cb) = &*cb {
-                        let disabled_event = AmbientBacklightEvent::Enabled(false);
-                        cb.notifyAmbientBacklightEvent(&disabled_event).unwrap();
-                    }
-                });
-            });
+            return Err(ExceptionCode::UNSUPPORTED_OPERATION.into());
         }
-        Ok(())
     }
 
     fn getAmbientBacklightDetectionEnabled(&self) -> binder::Result<bool> {
@@ -155,13 +164,19 @@ impl IMediaQuality for MediaQualityService {
 
     fn setAutoPqEnabled(&self, enabled: bool) -> binder::Result<()> {
         let mut auto_pq_enabled = self.auto_pq_enabled.lock().unwrap();
+        let auto_pq_supported = self.auto_pq_supported.lock().unwrap();
         *auto_pq_enabled = enabled;
-        if enabled {
-            println!("Enable auto picture quality");
+
+        if *auto_pq_supported {
+            if enabled {
+                println!("Enable auto picture quality");
+            } else {
+                println!("Disable auto picture quality");
+            }
+            return Ok(());
         } else {
-            println!("Disable auto picture quality");
+            return Err(ExceptionCode::UNSUPPORTED_OPERATION.into());
         }
-        Ok(())
     }
 
     fn isAutoSrSupported(&self) -> binder::Result<bool> {
@@ -176,13 +191,19 @@ impl IMediaQuality for MediaQualityService {
 
     fn setAutoSrEnabled(&self, enabled: bool) -> binder::Result<()> {
         let mut auto_sr_enabled = self.auto_sr_enabled.lock().unwrap();
+        let auto_sr_supported = self.auto_sr_supported.lock().unwrap();
         *auto_sr_enabled = enabled;
-        if enabled {
-            println!("Enable auto super resolution");
+
+        if *auto_sr_supported {
+            if enabled {
+                println!("Enable auto super resolution");
+            } else {
+                println!("Disable auto super resolution");
+            }
+            return Ok(());
         } else {
-            println!("Disable auto super resolution");
+            return Err(ExceptionCode::UNSUPPORTED_OPERATION.into());
         }
-        Ok(())
     }
 
     fn isAutoAqSupported(&self) -> binder::Result<bool> {
@@ -197,19 +218,25 @@ impl IMediaQuality for MediaQualityService {
 
     fn setAutoAqEnabled(&self, enabled: bool) -> binder::Result<()> {
         let mut auto_aq_enabled = self.auto_aq_enabled.lock().unwrap();
+        let auto_aq_supported = self.auto_aq_supported.lock().unwrap();
         *auto_aq_enabled = enabled;
-        if enabled {
-            println!("Enable auto audio quality");
+
+        if *auto_aq_supported {
+            if enabled {
+                println!("Enable auto audio quality");
+            } else {
+                println!("Disable auto audio quality");
+            }
+            return Ok(());
         } else {
-            println!("Disable auto audio quality");
+            return Err(ExceptionCode::UNSUPPORTED_OPERATION.into());
         }
-        Ok(())
     }
 
     fn getPictureProfileListener(&self) -> binder::Result<binder::Strong<dyn IPictureProfileChangedListener>> {
         println!("getPictureProfileListener");
         let listener = self.picture_profile_changed_listener.lock().unwrap();
-        listener.clone().ok_or(binder::StatusCode::UNKNOWN_ERROR.into())
+        Ok(listener.clone().expect("NONE"))
     }
 
     fn setPictureProfileAdjustmentListener(
@@ -263,16 +290,6 @@ impl IMediaQuality for MediaQualityService {
             _caps: &mut Vec<VendorParamCapability>
     ) -> binder::Result<()> {
         println!("getVendorParamCaps. len= {}", param_names.len());
-        Ok(())
-    }
-
-    fn sendPictureParameters(&self, _picture_parameters: &PictureParameters) -> binder::Result<()>{
-        println!("Received picture parameters");
-        Ok(())
-    }
-
-    fn sendSoundParameters(&self, _sound_parameters: &SoundParameters) -> binder::Result<()>{
-        println!("Received sound parameters");
         Ok(())
     }
 }

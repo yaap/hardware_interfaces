@@ -210,3 +210,14 @@ INSTANTIATE_TEST_SUITE_P(
         PerInstance, SecureElementHidlTest,
         testing::ValuesIn(android::hardware::getAllHalInstanceNames(ISecureElement::descriptor)),
         android::hardware::PrintInstanceNameToString);
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    std::system("svc nfc disable"); /* Turn off NFC */
+    sleep(5);
+    int status = RUN_ALL_TESTS();
+    LOG(INFO) << "Test result = " << status;
+    std::system("svc nfc enable"); /* Turn on NFC */
+    sleep(5);
+    return status;
+}

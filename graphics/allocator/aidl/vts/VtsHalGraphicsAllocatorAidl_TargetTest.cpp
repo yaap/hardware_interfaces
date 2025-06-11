@@ -162,11 +162,19 @@ class GraphicsTestsBase {
     }
 
   private:
-    BufferDescriptor createDescriptor(const BufferDescriptorInfo& descriptorInfo) {
-        BufferDescriptor descriptor;
+    std::optional<BufferDescriptor> createDescriptor(const BufferDescriptorInfo& descriptorInfo,
+                                                     bool raise_failure) {
+        std::optional<BufferDescriptor> descriptor;
         mMapper4->createDescriptor(
                 convert(descriptorInfo), [&](const auto& tmpError, const auto& tmpDescriptor) {
-                    ASSERT_EQ(Error::NONE, tmpError) << "failed to create descriptor";
+                    if (raise_failure) {
+                        ASSERT_EQ(Error::NONE, tmpError) << "failed to create descriptor";
+                    }
+
+                    if (tmpError != Error::NONE) {
+                        return;
+                    }
+
                     descriptor = tmpDescriptor;
                 });
 
@@ -174,19 +182,24 @@ class GraphicsTestsBase {
     }
 
   public:
-    std::unique_ptr<BufferHandle> allocate(const BufferDescriptorInfo& descriptorInfo) {
+    std::unique_ptr<BufferHandle> allocate(const BufferDescriptorInfo& descriptorInfo,
+                                           bool raise_failure = true) {
         AllocationResult result;
         ::ndk::ScopedAStatus status;
         if (mIAllocatorVersion >= 2) {
             status = mAllocator->allocate2(descriptorInfo, 1, &result);
         } else {
-            auto descriptor = createDescriptor(descriptorInfo);
+            auto descriptor = createDescriptor(descriptorInfo, raise_failure);
+            if (!descriptor.has_value()) {
+                return nullptr;
+            }
+
             if (::testing::Test::HasFatalFailure()) {
                 return nullptr;
             }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            status = mAllocator->allocate(descriptor, 1, &result);
+            status = mAllocator->allocate(descriptor.value(), 1, &result);
 #pragma clang diagnostic pop  // deprecation
         }
         if (!status.isOk()) {
@@ -380,7 +393,7 @@ TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToCpu) {
             .reservedSize = 0,
     };
     const bool supported = isSupported(info);
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, /*raise_failure=*/supported);
     if (!supported) {
         ASSERT_EQ(nullptr, buffer.get())
                 << "Allocation succeeded, but IMapper::isSupported was false";
@@ -422,7 +435,7 @@ TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToGpu) {
             .reservedSize = 0,
     };
     const bool supported = isSupported(info);
-    auto buffer = allocate(info);
+    auto buffer = allocate(info, /*raise_failure=*/supported);
     if (!supported) {
         ASSERT_EQ(nullptr, buffer.get())
                 << "Allocation succeeded, but IMapper::isSupported was false";

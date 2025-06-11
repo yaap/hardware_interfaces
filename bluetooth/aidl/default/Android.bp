@@ -20,13 +20,13 @@ cc_defaults {
     static_libs: [
         "android.hardware.bluetooth.async",
         "android.hardware.bluetooth.hci",
+        "libbluetooth_offload_hal",
     ],
 }
 
 cc_library_static {
     name: "libbluetoothhcihalimpl",
     vendor_available: true,
-    host_supported: true,
     defaults: ["android.hardware.bluetooth-service-build-defaults"],
     srcs: [
         "BluetoothHci.cpp",
@@ -55,28 +55,6 @@ cc_binary {
     static_libs: [
         "libbluetoothhcihalimpl",
     ],
-}
-
-cc_fuzz {
-    name: "android.hardware.bluetooth-service.default_fuzzer",
-    host_supported: true,
-    defaults: ["service_fuzzer_defaults"],
-    srcs: [
-        "test/fuzzer.cpp",
-    ],
-    static_libs: [
-        "android.hardware.bluetooth.async",
-        "android.hardware.bluetooth.hci",
-        "android.hardware.bluetooth-V1-ndk",
-        "libbluetoothhcihalimpl",
-        "liblog",
-    ],
-    fuzz_config: {
-        componentid: 27441,
-        cc: [
-            "mylesgw@google.com",
-        ],
-    },
 }
 
 filegroup {

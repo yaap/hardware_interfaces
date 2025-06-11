@@ -93,22 +93,9 @@ ndk::ScopedAStatus RadioVoiceTest::clearPotentialEstablishedCalls() {
  * Test IRadioVoice.emergencyDial() for the response returned.
  */
 TEST_P(RadioVoiceTest, emergencyDial) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping emergencyDial "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
-    } else {
-        if (!deviceSupportsFeature(FEATURE_VOICE_CALL)) {
-            ALOGI("Skipping emergencyDial because voice call is not supported in device");
-            return;
-        } else if (!deviceSupportsFeature(FEATURE_TELEPHONY_GSM) &&
-                   !deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            ALOGI("Skipping emergencyDial because gsm/cdma radio is not supported in device");
-            return;
-        } else {
-            ALOGI("Running emergencyDial because voice call is supported in device");
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping emergencyDial "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -154,22 +141,9 @@ TEST_P(RadioVoiceTest, emergencyDial) {
  * Test IRadioVoice.emergencyDial() with specified service and its response returned.
  */
 TEST_P(RadioVoiceTest, emergencyDial_withServices) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping emergencyDial_withServices "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
-    } else {
-        if (!deviceSupportsFeature(FEATURE_VOICE_CALL)) {
-            ALOGI("Skipping emergencyDial because voice call is not supported in device");
-            return;
-        } else if (!deviceSupportsFeature(FEATURE_TELEPHONY_GSM) &&
-                   !deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            ALOGI("Skipping emergencyDial because gsm/cdma radio is not supported in device");
-            return;
-        } else {
-            ALOGI("Running emergencyDial because voice call is supported in device");
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping emergencyDial_withServices "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -215,22 +189,9 @@ TEST_P(RadioVoiceTest, emergencyDial_withServices) {
  * Test IRadioVoice.emergencyDial() with known emergency call routing and its response returned.
  */
 TEST_P(RadioVoiceTest, emergencyDial_withEmergencyRouting) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping emergencyDial_withEmergencyRouting "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
-    } else {
-        if (!deviceSupportsFeature(FEATURE_VOICE_CALL)) {
-            ALOGI("Skipping emergencyDial because voice call is not supported in device");
-            return;
-        } else if (!deviceSupportsFeature(FEATURE_TELEPHONY_GSM) &&
-                   !deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            ALOGI("Skipping emergencyDial because gsm/cdma radio is not supported in device");
-            return;
-        } else {
-            ALOGI("Running emergencyDial because voice call is supported in device");
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping emergencyDial_withEmergencyRouting "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -277,11 +238,9 @@ TEST_P(RadioVoiceTest, emergencyDial_withEmergencyRouting) {
  * Test IRadioVoice.getCurrentCalls() for the response returned.
  */
 TEST_P(RadioVoiceTest, getCurrentCalls) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getCurrentCalls "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getCurrentCalls "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -296,11 +255,9 @@ TEST_P(RadioVoiceTest, getCurrentCalls) {
  * Test IRadioVoice.getClir() for the response returned.
  */
 TEST_P(RadioVoiceTest, getClir) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getClir "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getClir "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -321,11 +278,9 @@ TEST_P(RadioVoiceTest, getClir) {
  * Test IRadioVoice.setClir() for the response returned.
  */
 TEST_P(RadioVoiceTest, setClir) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping setClir "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping setClir "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -346,11 +301,9 @@ TEST_P(RadioVoiceTest, setClir) {
  * Test IRadioVoice.getClip() for the response returned.
  */
 TEST_P(RadioVoiceTest, getClip) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getClip "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getClip "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -371,11 +324,9 @@ TEST_P(RadioVoiceTest, getClip) {
  * Test IRadioVoice.getTtyMode() for the response returned.
  */
 TEST_P(RadioVoiceTest, getTtyMode) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getTtyMode "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getTtyMode "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -394,11 +345,9 @@ TEST_P(RadioVoiceTest, getTtyMode) {
  * Test IRadioVoice.setTtyMode() for the response returned.
  */
 TEST_P(RadioVoiceTest, setTtyMode) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping setTtyMode "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping setTtyMode "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -417,11 +366,9 @@ TEST_P(RadioVoiceTest, setTtyMode) {
  * Test IRadioVoice.setPreferredVoicePrivacy() for the response returned.
  */
 TEST_P(RadioVoiceTest, setPreferredVoicePrivacy) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping setPreferredVoicePrivacy "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping setPreferredVoicePrivacy "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -441,11 +388,9 @@ TEST_P(RadioVoiceTest, setPreferredVoicePrivacy) {
  * Test IRadioVoice.getPreferredVoicePrivacy() for the response returned.
  */
 TEST_P(RadioVoiceTest, getPreferredVoicePrivacy) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getPreferredVoicePrivacy "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getPreferredVoicePrivacy "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -465,11 +410,9 @@ TEST_P(RadioVoiceTest, getPreferredVoicePrivacy) {
  * Test IRadioVoice.exitEmergencyCallbackMode() for the response returned.
  */
 TEST_P(RadioVoiceTest, exitEmergencyCallbackMode) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping exitEmergencyCallbackMode "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping exitEmergencyCallbackMode "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -490,11 +433,9 @@ TEST_P(RadioVoiceTest, exitEmergencyCallbackMode) {
  * Test IRadioVoice.handleStkCallSetupRequestFromSim() for the response returned.
  */
 TEST_P(RadioVoiceTest, handleStkCallSetupRequestFromSim) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping handleStkCallSetupRequestFromSim "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping handleStkCallSetupRequestFromSim "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -518,11 +459,9 @@ TEST_P(RadioVoiceTest, handleStkCallSetupRequestFromSim) {
  * Test IRadioVoice.dial() for the response returned.
  */
 TEST_P(RadioVoiceTest, dial) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping dial "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping dial "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -552,11 +491,9 @@ TEST_P(RadioVoiceTest, dial) {
  * Test IRadioVoice.hangup() for the response returned.
  */
 TEST_P(RadioVoiceTest, hangup) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping hangup "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping hangup "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -578,11 +515,9 @@ TEST_P(RadioVoiceTest, hangup) {
  * Test IRadioVoice.hangupWaitingOrBackground() for the response returned.
  */
 TEST_P(RadioVoiceTest, hangupWaitingOrBackground) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping hangupWaitingOrBackground "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping hangupWaitingOrBackground "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -603,11 +538,9 @@ TEST_P(RadioVoiceTest, hangupWaitingOrBackground) {
  * Test IRadioVoice.hangupForegroundResumeBackground() for the response returned.
  */
 TEST_P(RadioVoiceTest, hangupForegroundResumeBackground) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping hangupForegroundResumeBackground "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping hangupForegroundResumeBackground "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -628,11 +561,9 @@ TEST_P(RadioVoiceTest, hangupForegroundResumeBackground) {
  * Test IRadioVoice.switchWaitingOrHoldingAndActive() for the response returned.
  */
 TEST_P(RadioVoiceTest, switchWaitingOrHoldingAndActive) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping switchWaitingOrHoldingAndActive "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping switchWaitingOrHoldingAndActive "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -653,11 +584,9 @@ TEST_P(RadioVoiceTest, switchWaitingOrHoldingAndActive) {
  * Test IRadioVoice.conference() for the response returned.
  */
 TEST_P(RadioVoiceTest, conference) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping conference "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping conference "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -678,11 +607,9 @@ TEST_P(RadioVoiceTest, conference) {
  * Test IRadioVoice.rejectCall() for the response returned.
  */
 TEST_P(RadioVoiceTest, rejectCall) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping rejectCall "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping rejectCall "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -703,11 +630,9 @@ TEST_P(RadioVoiceTest, rejectCall) {
  * Test IRadioVoice.getLastCallFailCause() for the response returned.
  */
 TEST_P(RadioVoiceTest, getLastCallFailCause) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getLastCallFailCause "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getLastCallFailCause "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -727,11 +652,9 @@ TEST_P(RadioVoiceTest, getLastCallFailCause) {
  * Test IRadioVoice.getCallForwardStatus() for the response returned.
  */
 TEST_P(RadioVoiceTest, getCallForwardStatus) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getCallForwardStatus "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getCallForwardStatus "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -756,11 +679,9 @@ TEST_P(RadioVoiceTest, getCallForwardStatus) {
  * Test IRadioVoice.setCallForward() for the response returned.
  */
 TEST_P(RadioVoiceTest, setCallForward) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping setCallForward "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping setCallForward "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -785,11 +706,9 @@ TEST_P(RadioVoiceTest, setCallForward) {
  * Test IRadioVoice.getCallWaiting() for the response returned.
  */
 TEST_P(RadioVoiceTest, getCallWaiting) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getCallWaiting "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getCallWaiting "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -811,11 +730,9 @@ TEST_P(RadioVoiceTest, getCallWaiting) {
  * Test IRadioVoice.setCallWaiting() for the response returned.
  */
 TEST_P(RadioVoiceTest, setCallWaiting) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping setCallWaiting "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping setCallWaiting "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -837,11 +754,9 @@ TEST_P(RadioVoiceTest, setCallWaiting) {
  * Test IRadioVoice.acceptCall() for the response returned.
  */
 TEST_P(RadioVoiceTest, acceptCall) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping acceptCall "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping acceptCall "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -862,11 +777,9 @@ TEST_P(RadioVoiceTest, acceptCall) {
  * Test IRadioVoice.separateConnection() for the response returned.
  */
 TEST_P(RadioVoiceTest, separateConnection) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping separateConnection "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping separateConnection "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -888,11 +801,9 @@ TEST_P(RadioVoiceTest, separateConnection) {
  * Test IRadioVoice.explicitCallTransfer() for the response returned.
  */
 TEST_P(RadioVoiceTest, explicitCallTransfer) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping explicitCallTransfer "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping explicitCallTransfer "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -910,41 +821,12 @@ TEST_P(RadioVoiceTest, explicitCallTransfer) {
 }
 
 /*
- * Test IRadioVoice.sendCdmaFeatureCode() for the response returned.
- */
-TEST_P(RadioVoiceTest, sendCdmaFeatureCode) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CDMA)) {
-            GTEST_SKIP() << "Skipping sendCdmaFeatureCode "
-                            "due to undefined FEATURE_TELEPHONY_CDMA";
-        }
-    }
-
-    serial = GetRandomSerialNumber();
-
-    radio_voice->sendCdmaFeatureCode(serial, std::string());
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
-    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_voice->rspInfo.type);
-    EXPECT_EQ(serial, radioRsp_voice->rspInfo.serial);
-
-    if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_voice->rspInfo.error,
-                                     {RadioError::NONE, RadioError::INVALID_ARGUMENTS,
-                                      RadioError::INVALID_CALL_ID, RadioError::INVALID_MODEM_STATE,
-                                      RadioError::MODEM_ERR, RadioError::OPERATION_NOT_ALLOWED},
-                                     CHECK_GENERAL_ERROR));
-    }
-}
-
-/*
  * Test IRadioVoice.sendDtmf() for the response returned.
  */
 TEST_P(RadioVoiceTest, sendDtmf) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping sendDtmf "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping sendDtmf "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -967,11 +849,9 @@ TEST_P(RadioVoiceTest, sendDtmf) {
  * Test IRadioVoice.startDtmf() for the response returned.
  */
 TEST_P(RadioVoiceTest, startDtmf) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping startDtmf "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping startDtmf "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -994,11 +874,9 @@ TEST_P(RadioVoiceTest, startDtmf) {
  * Test IRadioVoice.stopDtmf() for the response returned.
  */
 TEST_P(RadioVoiceTest, stopDtmf) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping stopDtmf "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping stopDtmf "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -1020,11 +898,9 @@ TEST_P(RadioVoiceTest, stopDtmf) {
  * Test IRadioVoice.setMute() for the response returned.
  */
 TEST_P(RadioVoiceTest, setMute) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping setMute "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping setMute "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -1045,11 +921,9 @@ TEST_P(RadioVoiceTest, setMute) {
  * Test IRadioVoice.getMute() for the response returned.
  */
 TEST_P(RadioVoiceTest, getMute) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping getMute "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping getMute "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -1068,11 +942,9 @@ TEST_P(RadioVoiceTest, getMute) {
  * Test IRadioVoice.sendBurstDtmf() for the response returned.
  */
 TEST_P(RadioVoiceTest, sendBurstDtmf) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping sendBurstDtmf "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping sendBurstDtmf "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -1094,11 +966,9 @@ TEST_P(RadioVoiceTest, sendBurstDtmf) {
  * Test IRadioVoice.sendUssd() for the response returned.
  */
 TEST_P(RadioVoiceTest, sendUssd) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping sendUssd "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping sendUssd "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -1119,11 +989,9 @@ TEST_P(RadioVoiceTest, sendUssd) {
  * Test IRadioVoice.cancelPendingUssd() for the response returned.
  */
 TEST_P(RadioVoiceTest, cancelPendingUssd) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
-            GTEST_SKIP() << "Skipping cancelPendingUssd "
-                            "due to undefined FEATURE_TELEPHONY_CALLING";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_CALLING)) {
+        GTEST_SKIP() << "Skipping cancelPendingUssd "
+                        "due to undefined FEATURE_TELEPHONY_CALLING";
     }
 
     serial = GetRandomSerialNumber();
@@ -1145,11 +1013,9 @@ TEST_P(RadioVoiceTest, cancelPendingUssd) {
  * Test IRadioVoice.isVoNrEnabled() for the response returned.
  */
 TEST_P(RadioVoiceTest, isVoNrEnabled) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_IMS)) {
-            GTEST_SKIP() << "Skipping isVoNrEnabled "
-                            "due to undefined FEATURE_TELEPHONY_IMS";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_IMS)) {
+        GTEST_SKIP() << "Skipping isVoNrEnabled "
+                        "due to undefined FEATURE_TELEPHONY_IMS";
     }
 
     serial = GetRandomSerialNumber();
@@ -1167,11 +1033,9 @@ TEST_P(RadioVoiceTest, isVoNrEnabled) {
  * Test IRadioVoice.setVoNrEnabled() for the response returned.
  */
 TEST_P(RadioVoiceTest, setVoNrEnabled) {
-    if (telephony_flags::enforce_telephony_feature_mapping()) {
-        if (!deviceSupportsFeature(FEATURE_TELEPHONY_IMS)) {
-            GTEST_SKIP() << "Skipping setVoNrEnabled "
-                            "due to undefined FEATURE_TELEPHONY_IMS";
-        }
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_IMS)) {
+        GTEST_SKIP() << "Skipping setVoNrEnabled "
+                        "due to undefined FEATURE_TELEPHONY_IMS";
     }
 
     serial = GetRandomSerialNumber();

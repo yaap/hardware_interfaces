@@ -311,7 +311,7 @@ interface IVirtualHal {
     void setSensorStrength(in SensorStrength strength);
     void setMaxEnrollmentPerUser(in int max);
     void setSensorLocation(in SensorLocation loc);
-    void setNavigationGuesture(in boolean v);
+    void setNavigationGesture(in boolean v);
     void setDetectInteraction(in boolean v);
     void setDisplayTouch(in boolean v);
     void setControlIllumination(in boolean v);

@@ -19,13 +19,14 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable LinkCapacityEstimate {
     /**
      * Estimated downlink capacity in kbps. In case of a dual connected network, this includes
      * capacity of both primary and secondary. This bandwidth estimate shall be the estimated
      * maximum sustainable link bandwidth (as would be measured at the Upper PDCP or SNDCP SAP).
      * If the DL Aggregate Maximum Bit Rate is known, this value shall not exceed the DL-AMBR for
-     * the Internet PDN connection. This must be filled with 0 if network is not connected.
+     * the Internet PDN connection. This must be filled with 0 if the network is not connected.
      */
     int downlinkCapacityKbps;
     /**
@@ -33,14 +34,14 @@ parcelable LinkCapacityEstimate {
      * capacity of both primary and secondary. This bandwidth estimate shall be the estimated
      * maximum sustainable link bandwidth (as would be measured at the Upper PDCP or SNDCP SAP).
      * If the UL Aggregate Maximum Bit Rate is known, this value shall not exceed the UL-AMBR for
-     * the Internet PDN connection. This must be filled with 0 if network is not connected.
+     * the Internet PDN connection. This must be filled with 0 if the network is not connected.
      */
     int uplinkCapacityKbps;
     /**
      * Estimated downlink capacity of secondary carrier in a dual connected NR mode in kbps. This
      * bandwidth estimate shall be the estimated maximum sustainable link bandwidth (as would be
      * measured at the Upper PDCP or SNDCP SAP). This is valid only in if device is connected to
-     * both primary and secodary in dual connected mode. This must be filled with 0 if secondary is
+     * both primary and secondary in dual connected mode. This must be filled with 0 if secondary is
      * not connected or if modem does not support this feature.
      */
     int secondaryDownlinkCapacityKbps;
@@ -48,7 +49,7 @@ parcelable LinkCapacityEstimate {
      * Estimated uplink capacity secondary carrier in a dual connected NR mode in kbps. This
      * bandwidth estimate shall be the estimated maximum sustainable link bandwidth (as would be
      * measured at the Upper PDCP or SNDCP SAP). This is valid only in if device is connected to
-     * both primary and secodary in dual connected mode.This must be filled with 0 if secondary is
+     * both primary and secondary in dual connected mode.This must be filled with 0 if secondary is
      * not connected or if modem does not support this feature.
      */
     int secondaryUplinkCapacityKbps;

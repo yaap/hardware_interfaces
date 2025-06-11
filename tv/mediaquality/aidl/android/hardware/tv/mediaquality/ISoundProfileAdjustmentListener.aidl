@@ -59,5 +59,5 @@ oneway interface ISoundProfileAdjustmentListener {
      *
      * @param SoundProfileId The SoundProfile id that associate with the SoundProfile.
      */
-    void onRequestSoundParameters(long SoundProfileId);
+    void requestSoundParameters(long SoundProfileId);
 }

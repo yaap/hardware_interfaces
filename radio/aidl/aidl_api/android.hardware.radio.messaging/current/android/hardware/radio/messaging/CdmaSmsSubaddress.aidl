@@ -33,7 +33,7 @@
 
 package android.hardware.radio.messaging;
 /* @hide */
-@JavaDerive(toString=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
 parcelable CdmaSmsSubaddress {
   /**
    * @deprecated Legacy CDMA is unsupported.

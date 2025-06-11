@@ -137,7 +137,7 @@ oneway interface IRadioNetworkIndication {
      *        the framework
      * @param ageMs time in milliseconds indicating how long NITZ was cached in RIL and modem.
      *        This must track true age and therefore must be calculated using clocks that
-     *        include the time spend in sleep / low power states. If it can not be guaranteed,
+     *        include the time spent in sleep / low power states. If it can not be guaranteed,
      *        there must not be any caching done at the modem and should fill in 0 for ageMs
      */
     void nitzTimeReceived(

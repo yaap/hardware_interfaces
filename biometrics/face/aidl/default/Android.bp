@@ -78,7 +78,7 @@ cc_binary {
     vendor: true,
     relative_install_path: "hw",
     init_rc: ["face-default.rc"],
-    vintf_fragments: ["face-default.xml"],
+    vintf_fragment_modules: ["android.hardware.biometrics.face-service.default.vintf"],
     shared_libs: [
         "libbinder_ndk",
         "liblog",
@@ -87,6 +87,12 @@ cc_binary {
     whole_static_libs: [
         "android.hardware.biometrics.face-service.lib",
     ],
+}
+
+vintf_fragment {
+    name: "android.hardware.biometrics.face-service.default.vintf",
+    src: "face-default.xml",
+    vendor: true,
 }
 
 sysprop_library {

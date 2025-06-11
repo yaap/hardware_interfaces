@@ -421,12 +421,19 @@ bool DeviceCb::processCaptureResultLocked(
     }
 
     for (const auto& buffer : results.outputBuffers) {
+        std::unique_lock<std::mutex> l(mLock);
         CameraAidlTest::InFlightRequest::StreamBufferAndTimestamp streamBufferAndTimestamp;
-        auto outstandingBuffers = mUseHalBufManager ? mOutstandingBufferIds :
+        auto& outstandingBuffers = mUseHalBufManager ? mOutstandingBufferIds :
             request->mOutstandingBufferIds;
         auto bufferId = mUseHalBufManager ? buffer.bufferId : results.frameNumber;
-        auto outputBuffer = outstandingBuffers.empty() ? ::android::makeFromAidl(buffer.buffer) :
-            outstandingBuffers[buffer.streamId][bufferId];
+        const native_handle_t *outputBuffer = nullptr;
+        if (outstandingBuffers.empty()) {
+           outputBuffer = ::android::makeFromAidl(buffer.buffer);
+        } else if (outstandingBuffers[buffer.streamId].contains(bufferId)) {
+            outputBuffer = outstandingBuffers[buffer.streamId][bufferId];
+        } else {
+            ALOGV("%s: Invalid bufferId: %" PRId64, __FUNCTION__, bufferId);
+        }
         streamBufferAndTimestamp.buffer = {buffer.streamId,
                                            bufferId,
                                            outputBuffer,

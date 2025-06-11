@@ -18,7 +18,6 @@
 #include <openssl/cipher.h>
 #include <openssl/mem.h>
 
-#include <android-base/format.h>
 #include <android-base/logging.h>
 
 namespace aidl::android::hardware::macsec {

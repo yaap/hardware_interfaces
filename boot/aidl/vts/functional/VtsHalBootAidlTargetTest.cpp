@@ -84,20 +84,20 @@ TEST_P(BootAidlTest, SetActiveBootSlot) {
 
     for (int s = 0; s < 2; s++) {
         const auto result = boot->setActiveBootSlot(s);
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
     }
     {
         // Restore original flags to avoid problems on reboot
         auto result = boot->setActiveBootSlot(curSlot);
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
 
         if (!otherBootable) {
             const auto result = boot->setSlotAsUnbootable(otherSlot);
-            ASSERT_TRUE(result.isOk());
+            ASSERT_TRUE(result.isOk()) << result;
         }
 
         result = boot->markBootSuccessful();
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
     }
     {
         int slots = 0;
@@ -116,19 +116,19 @@ TEST_P(BootAidlTest, SetSlotAsUnbootable) {
     boot->isSlotBootable(otherSlot, &otherBootable);
     {
         auto result = boot->setSlotAsUnbootable(otherSlot);
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
         boot->isSlotBootable(otherSlot, &otherBootable);
         ASSERT_FALSE(otherBootable);
 
         // Restore original flags to avoid problems on reboot
         if (otherBootable) {
             result = boot->setActiveBootSlot(otherSlot);
-            ASSERT_TRUE(result.isOk());
+            ASSERT_TRUE(result.isOk()) << result;
         }
         result = boot->setActiveBootSlot(curSlot);
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
         result = boot->markBootSuccessful();
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
     }
     {
         int32_t slots = 0;
@@ -143,7 +143,7 @@ TEST_P(BootAidlTest, IsSlotBootable) {
     for (int s = 0; s < 2; s++) {
         bool bootable = false;
         const auto res = boot->isSlotBootable(s, &bootable);
-        ASSERT_TRUE(res.isOk()) << res.getMessage();
+        ASSERT_TRUE(res.isOk()) << res;
     }
     int32_t slots = 0;
     boot->getNumberSlots(&slots);
@@ -184,7 +184,7 @@ TEST_P(BootAidlTest, GetSuffix) {
     {
         const string emptySuffix = "";
         const auto result = boot->getSuffix(numSlots, &suffixStr);
-        ASSERT_TRUE(result.isOk());
+        ASSERT_TRUE(result.isOk()) << result;
         ASSERT_EQ(suffixStr, emptySuffix);
     }
 }

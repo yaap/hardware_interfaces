@@ -48,8 +48,8 @@ class DeviceProxy {
   public:
     DeviceProxy();  // Constructs a "null" proxy.
     explicit DeviceProxy(const DeviceProfile& deviceProfile);
-    alsa_device_profile* getProfile() { return mProfile.get(); }
-    alsa_device_proxy* get() { return mProxy.get(); }
+    alsa_device_profile* getProfile() const { return mProfile.get(); }
+    alsa_device_proxy* get() const { return mProxy.get(); }
 
   private:
     static void alsaProxyDeleter(alsa_device_proxy* proxy);

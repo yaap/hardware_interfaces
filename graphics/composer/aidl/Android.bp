@@ -29,7 +29,7 @@ aidl_interface {
     host_supported: true,
     vendor_available: true,
     double_loadable: true,
-    frozen: false,
+    frozen: true,
     srcs: [
         "android/hardware/graphics/composer3/*.aidl",
     ],
@@ -77,6 +77,15 @@ aidl_interface {
                 "android.hardware.common-V2",
             ],
         },
+        {
+            version: "4",
+            imports: [
+                "android.hardware.graphics.common-V6",
+                "android.hardware.common-V2",
+                "android.hardware.drm.common-V1",
+            ],
+        },
+
     ],
 
 }

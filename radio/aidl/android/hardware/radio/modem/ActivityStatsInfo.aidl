@@ -21,6 +21,7 @@ import android.hardware.radio.modem.ActivityStatsTechSpecificInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ActivityStatsInfo {
     /**
      * Total time (in ms) when modem is in a low power or sleep state

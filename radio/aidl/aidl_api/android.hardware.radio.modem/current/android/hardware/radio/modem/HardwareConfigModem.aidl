@@ -33,7 +33,7 @@
 
 package android.hardware.radio.modem;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable HardwareConfigModem {
   int rilModel;
   android.hardware.radio.RadioTechnology rat = android.hardware.radio.RadioTechnology.UNKNOWN;

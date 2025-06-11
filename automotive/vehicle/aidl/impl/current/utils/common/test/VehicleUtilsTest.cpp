@@ -787,6 +787,29 @@ TEST(VehicleUtilsTest, testStringToPropId_InvalidName) {
     ASSERT_FALSE(result.ok());
 }
 
+TEST(VehicleUtilsTest, testPropIdAreaIdToString) {
+    PropIdAreaId propIdAreaId = {
+            .propId = toInt(VehicleProperty::PERF_VEHICLE_SPEED),
+            .areaId = 0,
+    };
+
+    ASSERT_EQ(propIdAreaId.toString(), "{propId: PERF_VEHICLE_SPEED, areaId: 0}");
+}
+
+TEST(VehicleUtilsTest, testPropIdAreaIdFormatter) {
+    PropIdAreaId propIdAreaId1 = {
+            .propId = toInt(VehicleProperty::PERF_VEHICLE_SPEED),
+            .areaId = 0,
+    };
+    PropIdAreaId propIdAreaId2 = {
+            .propId = toInt(VehicleProperty::HVAC_FAN_SPEED),
+            .areaId = 1,
+    };
+
+    ASSERT_EQ(fmt::format("{}", std::vector<PropIdAreaId>{propIdAreaId1, propIdAreaId2}),
+              "[{propId: PERF_VEHICLE_SPEED, areaId: 0}, {propId: HVAC_FAN_SPEED, areaId: 1}]");
+}
+
 class InvalidPropValueTest : public testing::TestWithParam<InvalidPropValueTestCase> {};
 
 INSTANTIATE_TEST_SUITE_P(InvalidPropValueTests, InvalidPropValueTest,

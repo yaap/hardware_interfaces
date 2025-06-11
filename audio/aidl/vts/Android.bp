@@ -41,7 +41,6 @@ cc_defaults {
         "-Wthread-safety",
         "-Wno-error=unused-parameter",
     ],
-    test_config_template: "VtsHalAudioTargetTestTemplate.xml",
     test_suites: [
         "general-tests",
         "vts",
@@ -60,6 +59,7 @@ cc_defaults {
     srcs: [
         ":effectCommonFile",
     ],
+    test_config_template: "VtsHalAudioEffectTargetTestTemplate.xml",
 }
 
 cc_test {
@@ -77,6 +77,11 @@ cc_test {
         "VtsHalAudioCoreConfigTargetTest.cpp",
         "VtsHalAudioCoreModuleTargetTest.cpp",
     ],
+    data: [
+        "data/sine882hz_44100_3s.ape",
+        "data/sine960hz_48000_3s.ape",
+    ],
+    test_config_template: "VtsHalAudioCoreTargetTestTemplate.xml",
 }
 
 cc_test {

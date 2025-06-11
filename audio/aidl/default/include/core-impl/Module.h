@@ -61,6 +61,8 @@ class Module : public BnModule {
     // The vendor extension done via inheritance can override interface methods and augment
     // a call to the base implementation.
 
+    binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
+
     ndk::ScopedAStatus setModuleDebug(
             const ::aidl::android::hardware::audio::core::ModuleDebug& in_debug) override;
     ndk::ScopedAStatus getTelephony(std::shared_ptr<ITelephony>* _aidl_return) override;
@@ -148,10 +150,8 @@ class Module : public BnModule {
     struct VendorDebug {
         static const std::string kForceTransientBurstName;
         static const std::string kForceSynchronousDrainName;
-        static const std::string kForceDrainToDrainingName;
         bool forceTransientBurst = false;
         bool forceSynchronousDrain = false;
-        bool forceDrainToDraining = false;
     };
     // ids of device ports created at runtime via 'connectExternalDevice'.
     // Also stores a list of ids of mix ports with dynamic profiles that were populated from
@@ -161,6 +161,7 @@ class Module : public BnModule {
     // Multimap because both ports and configs can be used by multiple patches.
     using Patches = std::multimap<int32_t, int32_t>;
 
+    static const std::string kClipTransitionSupportName;
     const Type mType;
     std::unique_ptr<Configuration> mConfig;
     ModuleDebug mDebug;
@@ -207,12 +208,15 @@ class Module : public BnModule {
     virtual std::unique_ptr<Configuration> initializeConfig();
     virtual int32_t getNominalLatencyMs(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig);
+    virtual ndk::ScopedAStatus calculateBufferSizeFrames(
+            const ::aidl::android::media::audio::common::AudioFormatDescription &format,
+            int32_t latencyMs, int32_t sampleRateHz, int32_t *bufferSizeFrames);
     virtual ndk::ScopedAStatus createMmapBuffer(
-            const ::aidl::android::hardware::audio::core::StreamContext& context,
-            ::aidl::android::hardware::audio::core::StreamDescriptor* desc);
+            const ::aidl::android::media::audio::common::AudioPortConfig& portConfig,
+            int32_t bufferSizeFrames, int32_t frameSizeBytes, MmapBufferDescriptor* desc);
 
     // Utility and helper functions accessible to subclasses.
-    static int32_t calculateBufferSizeFrames(int32_t latencyMs, int32_t sampleRateHz) {
+    static int32_t calculateBufferSizeFramesForPcm(int32_t latencyMs, int32_t sampleRateHz) {
         const int32_t rawSizeFrames =
                 aidl::android::hardware::audio::common::frameCountFromDurationMs(latencyMs,
                                                                                  sampleRateHz);

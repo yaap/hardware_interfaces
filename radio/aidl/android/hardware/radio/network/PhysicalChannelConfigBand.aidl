@@ -24,6 +24,7 @@ import android.hardware.radio.network.UtranBands;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 union PhysicalChannelConfigBand {
     boolean noinit;
     /**

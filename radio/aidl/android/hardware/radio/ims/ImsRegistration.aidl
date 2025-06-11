@@ -24,6 +24,7 @@ import android.hardware.radio.ims.SuggestedAction;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ImsRegistration {
     /** Default value */
     const int IMS_MMTEL_CAPABILITY_NONE = 0;

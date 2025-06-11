@@ -29,6 +29,14 @@ aidl_interface {
             enabled: true,
         },
     },
-    frozen: false,
+    frozen: true,
     system_ext_specific: true,
+    vendor_available: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
 }

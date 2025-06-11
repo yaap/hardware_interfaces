@@ -28,7 +28,7 @@ aidl_interface {
         "android/hardware/security/see/authmgr/*.aidl",
     ],
     stability: "vintf",
-    frozen: false,
+    frozen: true,
     backend: {
         java: {
             platform_apis: true,
@@ -44,6 +44,13 @@ aidl_interface {
             ],
         },
     },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
 }
 
 // A rust_defaults that includes the latest authmgr AIDL library.

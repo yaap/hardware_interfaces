@@ -119,6 +119,8 @@ class RadioModemTest : public RadioServiceTest {
   public:
     void SetUp() override;
 
+    bool shouldTestCdma();
+
     /* radio modem service handle */
     std::shared_ptr<IRadioModem> radio_modem;
     /* radio modem response handle */

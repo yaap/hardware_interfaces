@@ -23,6 +23,7 @@ package android.hardware.radio.sim;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable PhonebookRecordInfo {
     /**
      * Record index. 0 is used to insert a record

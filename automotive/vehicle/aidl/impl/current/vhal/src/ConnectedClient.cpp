@@ -306,6 +306,30 @@ void SubscriptionClient::sendPropertySetErrors(std::shared_ptr<IVehicleCallback>
     }
 }
 
+void SubscriptionClient::sendSupportedValueChangeEvents(
+        std::shared_ptr<IVehicleCallback> callback,
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    if (propIdAreaIds.empty()) {
+        return;
+    }
+
+    std::vector<aidl::android::hardware::automotive::vehicle::PropIdAreaId> vhalPropIdAreaIds;
+    for (const auto& propIdAreaId : propIdAreaIds) {
+        vhalPropIdAreaIds.push_back(aidl::android::hardware::automotive::vehicle::PropIdAreaId{
+                .propId = propIdAreaId.propId,
+                .areaId = propIdAreaId.areaId,
+        });
+    }
+
+    if (ScopedAStatus callbackStatus = callback->onSupportedValueChange(vhalPropIdAreaIds);
+        !callbackStatus.isOk()) {
+        ALOGE("subscribe: failed to call onSupportedValueChange callback, client ID: %p, error: "
+              "%s, exception: %d, service specific error: %d",
+              callback->asBinder().get(), callbackStatus.getMessage(),
+              callbackStatus.getExceptionCode(), callbackStatus.getServiceSpecificError());
+    }
+}
+
 }  // namespace vehicle
 }  // namespace automotive
 }  // namespace hardware

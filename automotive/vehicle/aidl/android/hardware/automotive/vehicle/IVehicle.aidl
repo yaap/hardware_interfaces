@@ -237,6 +237,8 @@ interface IVehicle {
      * {@link StatusCode#INVALID_ARG}. If a specified propId was not subscribed
      * before, this method must ignore that propId.
      *
+     * Unsubscribe a not-subscribed property ID must do nothing.
+     *
      * If error is returned, some of the properties failed to unsubscribe.
      * Caller is safe to try again, since unsubscribing an already unsubscribed
      * property is okay.
@@ -266,6 +268,9 @@ interface IVehicle {
 
     /**
      * Gets the supported values lists for [propId, areaId]s.
+     *
+     * This is only supported for [propId, areaId]s that have non-null
+     * {@code hasSupportedValueInfo} for their {@code VehicleAreaConfig}.
      *
      * For a specific [propId, areaId], if the hardware currently specifies
      * a list of supported values for it, then it is returned through the
@@ -303,6 +308,9 @@ interface IVehicle {
 
     /**
      * Gets the min/max supported values for [propId, areaId]s.
+     *
+     * This is only supported for [propId, areaId]s that have non-null
+     * {@code hasSupportedValueInfo} for their {@code VehicleAreaConfig}.
      *
      * For a specific [propId, areaId], if the hardware currently specifies
      * min/max supported value for it, then it is returned through the
@@ -342,6 +350,9 @@ interface IVehicle {
     /**
      * Registers the supported value change callback.
      *
+     * This is only supported for [propId, areaId]s that have non-null
+     * {@code hasSupportedValueInfo} for their {@code VehicleAreaConfig}.
+     *
      * For the specified [propId, areaId]s,
      * {@code callback.onSupportedValueChange} must be invoked if change
      * happens.
@@ -359,6 +370,9 @@ interface IVehicle {
 
     /**
      * Unregisters the supported value change callback.
+     *
+     * This is only supported for [propId, areaId]s that have non-null
+     * {@code hasSupportedValueInfo} for their {@code VehicleAreaConfig}.
      *
      * @param callback The callback to unregister.
      * @param propIdAreaIds A list of [propId, areaId]s to unregister.

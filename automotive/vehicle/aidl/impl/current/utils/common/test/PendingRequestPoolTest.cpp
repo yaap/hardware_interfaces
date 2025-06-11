@@ -57,7 +57,7 @@ class PendingRequestPoolTest : public ::testing::Test {
 
   private:
     // Test timeout is 0.1s.
-    static const int64_t TEST_TIMEOUT = 100000000;
+    static constexpr int64_t TEST_TIMEOUT = 100000000;
 
     std::unique_ptr<PendingRequestPool> mPool;
 };

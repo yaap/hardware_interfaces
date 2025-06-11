@@ -18,7 +18,7 @@ package android.hardware.gnss.gnss_assistance;
 
 /**
  * Contains Galileo ionospheric model.
- * This is Defined in Galileo-OS-SIS-ICD-v2.1, 5.1.6.
+ * This is defined in Galileo-OS-SIS-ICD-v2.1, 5.1.6.
  *
  * @hide
  */

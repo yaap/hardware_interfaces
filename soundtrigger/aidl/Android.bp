@@ -35,7 +35,7 @@ aidl_interface {
             sdk_version: "module_current",
         },
     },
-    frozen: false,
+    frozen: true,
     versions_with_info: [
         {
             version: "1",
@@ -44,6 +44,10 @@ aidl_interface {
         {
             version: "2",
             imports: ["android.media.soundtrigger.types-V2"],
+        },
+        {
+            version: "3",
+            imports: ["android.media.soundtrigger.types-V3"],
         },
 
         // IMPORTANT: Update latest_android_hardware_soundtrigger3 every time

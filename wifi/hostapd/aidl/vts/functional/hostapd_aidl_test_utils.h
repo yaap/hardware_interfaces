@@ -77,4 +77,11 @@ std::string setupApIfaceAndGetName(bool isBridged) {
     return ap_iface_name;
 }
 
+std::shared_ptr<IWifiApIface> setupMloApIface() {
+    std::shared_ptr<IWifiChip> wifi_chip = getWifiChip(kWifiInstanceName);
+    EXPECT_TRUE(wifi_chip.get() != nullptr);
+    return getWifiApOrBridgedApIface(
+            wifi_chip, generateApIfaceParams(IfaceConcurrencyType::AP_BRIDGED, true, 0));
+}
+
 }  // namespace HostapdAidlTestUtils

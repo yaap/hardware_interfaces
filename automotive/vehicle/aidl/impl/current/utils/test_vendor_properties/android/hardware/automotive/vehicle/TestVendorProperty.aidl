@@ -19,6 +19,7 @@ package android.hardware.automotive.vehicle;
 /**
  * Test vendor properties used in reference VHAL implementation.
  */
+@JavaDerive(toString=true)
 @Backing(type="int")
 enum TestVendorProperty {
 

@@ -21,6 +21,7 @@ import android.hardware.radio.RadioTechnology;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable HardwareConfigModem {
     /**
      * RIL attachment model. Values are:
@@ -32,9 +33,12 @@ parcelable HardwareConfigModem {
      */
     int rilModel;
     /**
-     * Bitset value, based on RadioTechnology.
+     * All supported radio technologies.
+     *
+     * Despite the stated type, this is an int bitset: a mask where each bit position represents a
+     * radio technology.
      */
-    RadioTechnology rat = RadioTechnology.UNKNOWN;
+    RadioTechnology rat = RadioTechnology.UNKNOWN; // it's really an empty bitmask
     /**
      * Maximum number of concurrent active voice calls.
      */

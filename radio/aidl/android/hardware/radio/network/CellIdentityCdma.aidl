@@ -21,6 +21,7 @@ import android.hardware.radio.network.OperatorInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellIdentityCdma {
     /**
      * Network Id 0..65535, RadioConst:VALUE_UNAVAILABLE if unknown

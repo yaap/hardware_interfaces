@@ -36,7 +36,7 @@ class LinkedCallback {
     // cookie when it's unlinked.
     static ::android::base::Result<LinkedCallback*> Make(
             std::shared_ptr<Health> service, std::shared_ptr<IHealthInfoCallback> callback);
-    // On callback died, unreigster it from the service.
+    // On callback died, unregister it from the service.
     void OnCallbackDied();
 
   private:

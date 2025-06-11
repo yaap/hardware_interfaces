@@ -43,6 +43,7 @@ class ThreadChip : public BnThreadChip, ot::Posix::Mainloop::Source {
     ndk::ScopedAStatus hardwareReset() override;
     void Update(otSysMainloopContext& context) override;
     void Process(const otSysMainloopContext& context) override;
+    void setVendorCallback(const std::shared_ptr<IThreadChipCallback>& vendorCallback);
 
   private:
     static void onBinderDiedJump(void* context);
@@ -59,6 +60,7 @@ class ThreadChip : public BnThreadChip, ot::Posix::Mainloop::Source {
     std::shared_ptr<ot::Spinel::SpinelInterface> mSpinelInterface;
     ot::Spinel::SpinelInterface::RxFrameBuffer mRxFrameBuffer;
     std::shared_ptr<IThreadChipCallback> mCallback;
+    std::shared_ptr<IThreadChipCallback> mVendorCallback;
     ::ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
 };
 

@@ -35,9 +35,8 @@ parcelable CpuHeadroomParams {
     CalculationType calculationType = CalculationType.MIN;
 
     /**
-     * The calculation rolling window size in milliseconds.
-     * The device should support a superset of [50, 10000] and try to use the closest feasible
-     * window size to the provided value param.
+     * The device should support the range specified in SupportInfo#HeadroomSupportInfo and try to
+     * use the closest feasible window size to the provided value param.
      */
     int calculationWindowMillis = 1000;
 
@@ -50,6 +49,8 @@ parcelable CpuHeadroomParams {
      * This should handle all the cases including but not limited to core affinity and app cpuset
      * that change the available CPU cores for the caller. And the HAL should check that the TIDs
      * have the same core affinity.
+     *
+     * The device should support the maximum TID count specified SupportInfo#HeadroomSupportInfo.
      */
     int[] tids;
 }

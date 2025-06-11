@@ -25,6 +25,7 @@ import android.hardware.radio.data.SliceInfo;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RouteSelectionDescriptor {
     const byte SSC_MODE_UNKNOWN = -1;
     const byte SSC_MODE_1 = 1;

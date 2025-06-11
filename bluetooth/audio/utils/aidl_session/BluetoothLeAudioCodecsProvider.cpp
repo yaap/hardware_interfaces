@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+#include <optional>
 #include <set>
 
 #include "aidl/android/hardware/bluetooth/audio/ChannelMode.h"
 #include "aidl/android/hardware/bluetooth/audio/CodecId.h"
+#include "aidl/android/hardware/bluetooth/audio/CodecInfo.h"
+#include "aidl/android/hardware/bluetooth/audio/ConfigurationFlags.h"
 #include "aidl_android_hardware_bluetooth_audio_setting_enums.h"
 #define LOG_TAG "BTAudioCodecsProviderAidl"
 
@@ -50,6 +53,26 @@ BluetoothLeAudioCodecsProvider::ParseFromLeAudioOffloadSettingFile() {
                << kLeAudioCodecCapabilitiesFile;
   }
   return le_audio_offload_setting;
+}
+
+void add_flag(CodecInfo& codec_info, int32_t bitmask) {
+  auto& transport =
+      codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
+  if (!transport.flags.has_value()) transport.flags = ConfigurationFlags();
+  transport.flags->bitmask |= bitmask;
+}
+
+// Compare 2 codec info to see if they are equal.
+// Currently only compare bitdepth, frameDurationUs and samplingFrequencyHz
+bool is_equal(CodecInfo& codec_info_a, CodecInfo& codec_info_b) {
+  auto& transport_a =
+      codec_info_a.transport.get<CodecInfo::Transport::Tag::leAudio>();
+  auto& transport_b =
+      codec_info_b.transport.get<CodecInfo::Transport::Tag::leAudio>();
+  return codec_info_a.name == codec_info_b.name &&
+         transport_a.bitdepth == transport_b.bitdepth &&
+         transport_a.frameDurationUs == transport_b.frameDurationUs &&
+         transport_a.samplingFrequencyHz == transport_b.samplingFrequencyHz;
 }
 
 std::unordered_map<SessionType, std::vector<CodecInfo>>
@@ -111,6 +134,9 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
     codec_info.transport =
         CodecInfo::Transport::make<CodecInfo::Transport::Tag::leAudio>();
 
+    // Add low latency support by default
+    add_flag(codec_info, ConfigurationFlags::LOW_LATENCY);
+
     // Mapping codec configuration information
     auto& transport =
         codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
@@ -149,6 +175,25 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
       }
     } else {
       transport.channelMode.push_back(ChannelMode::UNKNOWN);
+    }
+  }
+
+  // Goes through a list of scenarios and detect asymmetrical config using
+  // codecConfiguration name.
+  for (auto& s : supported_scenarios_) {
+    if (s.hasEncode() && s.hasDecode() &&
+        config_codec_info_map_.count(s.getEncode()) &&
+        config_codec_info_map_.count(s.getDecode())) {
+      // Check if it's actually using the different codec
+      auto& encode_codec_info = config_codec_info_map_[s.getEncode()];
+      auto& decode_codec_info = config_codec_info_map_[s.getDecode()];
+      if (!is_equal(encode_codec_info, decode_codec_info)) {
+        // Change both x and y to become asymmetrical
+        add_flag(encode_codec_info,
+                 ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS);
+        add_flag(decode_codec_info,
+                 ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS);
+      }
     }
   }
 

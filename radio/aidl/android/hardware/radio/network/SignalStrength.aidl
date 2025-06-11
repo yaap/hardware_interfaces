@@ -27,6 +27,7 @@ import android.hardware.radio.network.WcdmaSignalStrength;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SignalStrength {
     /**
      * If GSM measurements are provided, this structure must contain valid measurements; otherwise

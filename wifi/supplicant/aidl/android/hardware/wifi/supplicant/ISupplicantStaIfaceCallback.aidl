@@ -37,8 +37,8 @@ import android.hardware.wifi.supplicant.StaIfaceCallbackState;
 import android.hardware.wifi.supplicant.StaIfaceReasonCode;
 import android.hardware.wifi.supplicant.SupplicantStateChangeData;
 import android.hardware.wifi.supplicant.UsdMessageInfo;
-import android.hardware.wifi.supplicant.UsdReasonCode;
 import android.hardware.wifi.supplicant.UsdServiceDiscoveryInfo;
+import android.hardware.wifi.supplicant.UsdTerminateReasonCode;
 import android.hardware.wifi.supplicant.WpsConfigError;
 import android.hardware.wifi.supplicant.WpsErrorIndication;
 
@@ -439,12 +439,32 @@ oneway interface ISupplicantStaIfaceCallback {
     void onUsdSubscribeStarted(in int cmdId, in int subscribeId);
 
     /**
+     * Error codes returned by |onUsdPublishConfigFailed| and |onUsdSubscribeConfigFailed|.
+     */
+    @VintfStability
+    @Backing(type="int")
+    enum UsdConfigErrorCode {
+        /**
+         * Unknown failure.
+         */
+        FAILURE_UNKNOWN = 0,
+        /**
+         * The requested operation timed out.
+         */
+        FAILURE_TIMEOUT = 1,
+        /**
+         * The requested operation is currently not available.
+         */
+        FAILURE_NOT_AVAILABLE = 2,
+    }
+
+    /**
      * Called in response to |ISupplicantStaIface.startUsdPublish| to indicate that the
      * publish session could not be configured.
      *
      * @param cmdId Identifier for the original request.
      */
-    void onUsdPublishConfigFailed(in int cmdId);
+    void onUsdPublishConfigFailed(in int cmdId, in UsdConfigErrorCode errorCode);
 
     /**
      * Called in response to |ISupplicantStaIface.startUsdSubscribe| to indicate that the
@@ -452,7 +472,7 @@ oneway interface ISupplicantStaIfaceCallback {
      *
      * @param cmdId Identifier for the original request.
      */
-    void onUsdSubscribeConfigFailed(in int cmdId);
+    void onUsdSubscribeConfigFailed(in int cmdId, in UsdConfigErrorCode errorCode);
 
     /**
      * Called in response to |ISupplicantStaIface.cancelUsdPublish| to indicate that the session
@@ -462,7 +482,7 @@ oneway interface ISupplicantStaIfaceCallback {
      * @param publishId Identifier for the publish session.
      * @param reasonCode Code indicating the reason for the session cancellation.
      */
-    void onUsdPublishTerminated(in int publishId, in UsdReasonCode reasonCode);
+    void onUsdPublishTerminated(in int publishId, in UsdTerminateReasonCode reasonCode);
 
     /**
      * Called in response to |ISupplicantStaIface.cancelUsdSubscribe| to indicate that the session
@@ -472,7 +492,7 @@ oneway interface ISupplicantStaIfaceCallback {
      * @param subscribeId Identifier for the subscribe session.
      * @param reasonCode Code indicating the reason for the session cancellation.
      */
-    void onUsdSubscribeTerminated(in int subscribeId, in UsdReasonCode reasonCode);
+    void onUsdSubscribeTerminated(in int subscribeId, in UsdTerminateReasonCode reasonCode);
 
     /**
      * Indicates that the publisher sent solicited publish message to the subscriber.

@@ -39,7 +39,7 @@ bool add(std::string_view eth, std::string_view vlan, uint16_t id) {
 
     {
         auto linkinfo = req.addNested(IFLA_LINKINFO);
-        req.addBuffer(IFLA_INFO_KIND, "vlan");
+        req.add(IFLA_INFO_KIND, "vlan");
 
         {
             auto linkinfo = req.addNested(IFLA_INFO_DATA);

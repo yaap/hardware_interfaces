@@ -77,6 +77,14 @@ class GrpcVehicleProxyServer : public proto::VehicleServer::Service {
             ::grpc::ServerContext* context, const ::google::protobuf::Empty* request,
             ::grpc::ServerWriter<proto::VehiclePropValues>* stream) override;
 
+    ::grpc::Status GetMinMaxSupportedValues(
+            ::grpc::ServerContext* context, const proto::GetMinMaxSupportedValuesRequest* requests,
+            proto::GetMinMaxSupportedValuesResult* results) override;
+
+    ::grpc::Status GetSupportedValuesLists(::grpc::ServerContext* context,
+                                           const proto::GetSupportedValuesListsRequest* requests,
+                                           proto::GetSupportedValuesListsResult* results) override;
+
     GrpcVehicleProxyServer& Start();
 
     GrpcVehicleProxyServer& Shutdown();

@@ -186,6 +186,12 @@ constexpr U makeBitPositionFlagMask(std::initializer_list<E> flags) {
 
 template <typename E, typename U = std::underlying_type_t<E>,
           typename = std::enable_if_t<is_bit_position_enum<E>::value>>
+constexpr bool areAllBitPositionFlagsSet(U mask, std::initializer_list<E> flags) {
+    return (mask & makeBitPositionFlagMask<E>(flags)) == makeBitPositionFlagMask<E>(flags);
+}
+
+template <typename E, typename U = std::underlying_type_t<E>,
+          typename = std::enable_if_t<is_bit_position_enum<E>::value>>
 constexpr bool isAnyBitPositionFlagSet(U mask, std::initializer_list<E> flags) {
     return (mask & makeBitPositionFlagMask<E>(flags)) != 0;
 }

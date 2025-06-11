@@ -20,12 +20,11 @@
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
 
-namespace android::hardware::macsec {
-
 using namespace std::string_literals;
+using namespace android;
 using ::aidl::android::hardware::macsec::MacsecPskPlugin;
 
-extern "C" int main() {
+int main() {
     base::SetDefaultTag("MacsecPskPlugin");
     base::SetMinimumLogSeverity(base::VERBOSE);
 
@@ -40,4 +39,3 @@ extern "C" int main() {
     LOG(FATAL) << "MacsecPskPlugin exited unexpectedly!";
     return EXIT_FAILURE;
 }
-}  // namespace android::hardware::macsec

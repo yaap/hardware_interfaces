@@ -39,6 +39,7 @@
 #include <gtest/gtest.h>
 #include <hidl/GtestPrinter.h>
 #include <hidl/ServiceManagement.h>
+#include <hwbinder/IPCThreadState.h>
 
 using ::android::sp;
 using ::android::hardware::hidl_handle;
@@ -205,6 +206,11 @@ class AudioEffectHidlTest : public ::testing::TestWithParam<EffectParameter> {
     void TearDown() override {
         effect.clear();
         effectsFactory.clear();
+        // Ensure all pending binder transactions are completed before proceeding.
+        android::hardware::IPCThreadState::self()->flushCommands();
+        // Add a delay to allow the binder destruction to propagate and ensure
+        // the remote objects are properly cleaned up.
+        usleep(100 * 1000);
     }
 
    protected:

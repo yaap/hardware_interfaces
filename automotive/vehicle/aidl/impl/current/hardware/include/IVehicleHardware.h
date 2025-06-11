@@ -18,9 +18,11 @@
 #define android_hardware_automotive_vehicle_aidl_impl_hardware_include_IVehicleHardware_H_
 
 #include <VehicleHalTypes.h>
+#include <VehicleUtils.h>
 
 #include <memory>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace android {
@@ -59,10 +61,23 @@ class IVehicleHardware {
     using GetValuesCallback = std::function<void(std::vector<aidlvhal::GetValueResult>)>;
     using PropertyChangeCallback = std::function<void(std::vector<aidlvhal::VehiclePropValue>)>;
     using PropertySetErrorCallback = std::function<void(std::vector<SetValueErrorEvent>)>;
+    using SupportedValueChangeCallback = std::function<void(std::vector<PropIdAreaId>)>;
 
     virtual ~IVehicleHardware() = default;
 
     // Get all the property configs.
+    //
+    // Note that {@code VehicleAreaConfig.HasSupportedValueInfo} field is newly introduced in VHAL
+    // V4 to specify whether the [propertyId, areaId] has specified min/max supported value or
+    // supported values list.
+    //
+    // Since IVehicleHardware is designed to be backward compatible, this field can be set to null.
+    // If this field is set to null, VHAL client should fallback to use min/max supported value
+    // information in {@code VehicleAreaConfig} and {@code supportedEnumVaules} for enum properties.
+    //
+    // It is highly recommended to specify {@code VehicleAreaConfig.HasSupportedValueInfo} for new
+    // property implementations, even if the property does not specify supported values or the
+    // supported values are static.
     virtual std::vector<aidlvhal::VehiclePropConfig> getAllPropertyConfigs() const = 0;
 
     // Get the property configs for the specified propId. This is used for early-boot
@@ -238,6 +253,78 @@ class IVehicleHardware {
     virtual aidlvhal::StatusCode updateSampleRate([[maybe_unused]] int32_t propId,
                                                   [[maybe_unused]] int32_t areaId,
                                                   [[maybe_unused]] float sampleRate) {
+        return aidlvhal::StatusCode::OK;
+    }
+
+    // Gets the min/max supported values for each of the specified [propId, areaId]s.
+    //
+    // The returned result may change dynamically.
+    //
+    // This is only called for [propId, areaId] that has
+    // {@code HasSupportedValueInfo.hasMinSupportedValue} or
+    // {@code HasSupportedValueInfo.hasMinSupportedValue} set to true.
+    //
+    // Client must implement (override) this function if at least one [propId, areaId]'s
+    // {@code HasSupportedValueInfo} is not null.
+    virtual std::vector<aidlvhal::MinMaxSupportedValueResult> getMinMaxSupportedValues(
+            [[maybe_unused]] const std::vector<PropIdAreaId>& propIdAreaIds) {
+        return {};
+    }
+
+    // Gets the supported values list for each of the specified [propId, areaId]s.
+    //
+    // The returned result may change dynamically.
+    //
+    // This is only called for [propId, areaId] that has
+    // {@code HasSupportedValueInfo.hasSupportedValuesList} set to true.
+    //
+    // Client must implement (override) this function if at least one [propId, areaId]'s
+    // {@code HasSupportedValueInfo} is not null.
+    virtual std::vector<aidlvhal::SupportedValuesListResult> getSupportedValuesLists(
+            [[maybe_unused]] const std::vector<PropIdAreaId>& propIdAreaIds) {
+        return {};
+    }
+
+    // Register a callback that would be called when the min/max supported value or supported
+    // values list change dynamically for propertyID returned from
+    // getPropertyIdsThatImplementGetSupportedValue
+    //
+    // This function must only be called once during initialization.
+    //
+    // Client must implement (override) this function if at least one [propId, areaId]'s
+    // {@code HasSupportedValueInfo} is not null.
+    virtual void registerSupportedValueChangeCallback(
+            [[maybe_unused]] std::unique_ptr<const SupportedValueChangeCallback> callback) {
+        // Do nothing.
+    }
+
+    // Subscribes to the min/max supported value or supported values list change for the specified
+    // [propId, areaId]s.
+    //
+    // If the propertyId's supported values are static, then must do nothing.
+    //
+    // If some of the [propId, areaId]s are already subscribed, then do nothing.
+    //
+    // This is only called for [propId, areaId] that has non-null {@code HasSupportedValueInfo}.
+    //
+    // Client must implement (override) this function if at least one [propId, areaId]'s
+    // {@code HasSupportedValueInfo} is not null.
+    virtual aidlvhal::StatusCode subscribeSupportedValueChange(
+            [[maybe_unused]] const std::vector<PropIdAreaId>& propIdAreaIds) {
+        return aidlvhal::StatusCode::OK;
+    }
+
+    // Unsubscrbies to the min/max supported value or supported values list change.
+    //
+    // Must do nothing if the [propId, areaId] was not previously subscribed to for supported
+    // values change.
+    //
+    // This is only called for [propId, areaId] that has non-null {@code HasSupportedValueInfo}.
+    //
+    // Client must implement (override) this function if at least one [propId, areaId]'s
+    // {@code HasSupportedValueInfo} is not null.
+    virtual aidlvhal::StatusCode unsubscribeSupportedValueChange(
+            [[maybe_unused]] const std::vector<PropIdAreaId>& propIdAreaIds) {
         return aidlvhal::StatusCode::OK;
     }
 };

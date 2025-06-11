@@ -26,8 +26,7 @@ import android.hardware.thermal.TemperatureThreshold;
 @VintfStability
 interface IThermalChangedCallback {
     /**
-     * Send a thermal throttling event to all Thermal HAL
-     * thermal event listeners.
+     * Send a thermal throttling event to all Thermal HAL thermal event listeners.
      *
      * @param temperature The temperature associated with the
      *    throttling event.
@@ -35,8 +34,14 @@ interface IThermalChangedCallback {
     oneway void notifyThrottling(in Temperature temperature);
 
     /**
-     * Send a thermal threshold change event to all Thermal HAL
-     * thermal event listeners.
+     * Send a thermal threshold change event to all Thermal HAL thermal event listeners.
+     *
+     * Some devices may change the thresholds based on hardware state or app workload changes.
+     * While this is generally not recommended, it should be used with caution at low frequency
+     * especially for the {@link TemperatureType#SKIN} type temperature thresholds. Since such
+     * a skin type callback to system may trigger notifications to apps that have preivously
+     * registered thermal headroom listeners with a new set of headroom and thresholds in case
+     * any of them changed.
      *
      * @param threshold The temperature threshold that changed.
      */

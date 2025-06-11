@@ -21,6 +21,7 @@
 
 #include <IVehicleHardware.h>
 #include <LargeParcelableBase.h>
+#include <aidl/android/hardware/automotive/vehicle/HasSupportedValueInfo.h>
 #include <aidl/android/hardware/automotive/vehicle/IVehicle.h>
 #include <aidl/android/hardware/automotive/vehicle/IVehicleCallback.h>
 
@@ -51,14 +52,20 @@ using ::aidl::android::hardware::automotive::vehicle::GetValueRequest;
 using ::aidl::android::hardware::automotive::vehicle::GetValueRequests;
 using ::aidl::android::hardware::automotive::vehicle::GetValueResult;
 using ::aidl::android::hardware::automotive::vehicle::GetValueResults;
+using ::aidl::android::hardware::automotive::vehicle::HasSupportedValueInfo;
 using ::aidl::android::hardware::automotive::vehicle::IVehicle;
 using ::aidl::android::hardware::automotive::vehicle::IVehicleCallback;
+using ::aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult;
+using ::aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResults;
+using ::aidl::android::hardware::automotive::vehicle::RawPropValues;
 using ::aidl::android::hardware::automotive::vehicle::SetValueRequest;
 using ::aidl::android::hardware::automotive::vehicle::SetValueRequests;
 using ::aidl::android::hardware::automotive::vehicle::SetValueResult;
 using ::aidl::android::hardware::automotive::vehicle::SetValueResults;
 using ::aidl::android::hardware::automotive::vehicle::StatusCode;
 using ::aidl::android::hardware::automotive::vehicle::SubscribeOptions;
+using ::aidl::android::hardware::automotive::vehicle::SupportedValuesListResult;
+using ::aidl::android::hardware::automotive::vehicle::SupportedValuesListResults;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaWindow;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
@@ -85,6 +92,8 @@ using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 using ::testing::WhenSortedBy;
 
+using VhalPropIdAreaId = ::aidl::android::hardware::automotive::vehicle::PropIdAreaId;
+
 constexpr int32_t INVALID_PROP_ID = 0;
 // VehiclePropertyGroup:VENDOR,VehicleArea:WINDOW,VehiclePropertyType:INT32
 constexpr int32_t INT32_WINDOW_PROP = 10001 + 0x20000000 + 0x03000000 + 0x00400000;
@@ -110,6 +119,11 @@ constexpr int32_t AREA_NONE_ACCESS_PROP = 10010 + 0x20000000 + 0x03000000 + 0x00
 int32_t testInt32VecProp(size_t i) {
     // VehiclePropertyGroup:VENDOR,VehicleArea:GLOBAL,VehiclePropertyType:INT32_VEC
     return static_cast<int32_t>(i) + 0x20000000 + 0x01000000 + 0x00410000;
+}
+
+int32_t testInt32VecWindowProp(size_t i) {
+    // VehiclePropertyGroup:VENDOR,VehicleArea:WINDOW,VehiclePropertyType:INT32_VEC
+    return static_cast<int32_t>(i) + 0x20000000 + 0x03000000 + 0x00410000;
 }
 
 std::string toString(const std::vector<SubscribeOptions>& options) {
@@ -258,6 +272,10 @@ class DefaultVehicleHalTest : public testing::Test {
     void SetUp() override { init(std::make_unique<MockVehicleHardware>()); }
 
     void init(std::unique_ptr<MockVehicleHardware> hardware) {
+        // Default init uses the following static configs to create the mock IVehicleHardware,
+        // individual test case may use setHardware to overwrite the underlying IVehicleHardware
+        // to use a different set of configs.
+
         std::vector<VehiclePropConfig> testConfigs;
         for (size_t i = 0; i < 10000; i++) {
             testConfigs.push_back(VehiclePropConfig{
@@ -406,18 +424,8 @@ class DefaultVehicleHalTest : public testing::Test {
                 .changeMode = VehiclePropertyChangeMode::ON_CHANGE,
         });
         hardware->setPropertyConfigs(testConfigs);
-        mHardwarePtr = hardware.get();
-        mVhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
-        mVhalClient = IVehicle::fromBinder(mVhal->asBinder());
-        mCallback = ndk::SharedRefBase::make<MockVehicleCallback>();
-        // Keep the local binder alive.
-        mBinder = mCallback->asBinder();
-        mCallbackClient = IVehicleCallback::fromBinder(mBinder);
 
-        // Set the linkToDeath to a fake implementation that always returns OK.
-        auto handler = std::make_unique<TestBinderLifecycleHandler>();
-        mBinderLifecycleHandler = handler.get();
-        mVhal->setBinderLifecycleHandler(std::move(handler));
+        setHardware(std::move(hardware));
     }
 
     void TearDown() override {
@@ -437,11 +445,7 @@ class DefaultVehicleHalTest : public testing::Test {
 
     size_t countPendingRequests() { return mVhal->mPendingRequestPool->countPendingRequests(); }
 
-    size_t countClients() {
-        std::scoped_lock<std::mutex> lockGuard(mVhal->mLock);
-        return mVhal->mGetValuesClients.size() + mVhal->mSetValuesClients.size() +
-               mVhal->countSubscribeClients();
-    }
+    size_t countClients() { return mVhal->countClients(); }
 
     std::shared_ptr<PendingRequestPool> getPool() { return mVhal->mPendingRequestPool; }
 
@@ -534,6 +538,33 @@ class DefaultVehicleHalTest : public testing::Test {
         return {};
     }
 
+  protected:
+    // Sets the underlying IVehicleHardware and recreates the DefaultVehicleHal objects under test.
+    // If used, caller should call this at the beginning of the test case.
+    void setHardware(std::unique_ptr<MockVehicleHardware> hardware) {
+        setHardware(std::move(hardware), 0);
+    }
+
+    void setHardware(std::unique_ptr<MockVehicleHardware> hardware, int32_t testInterfaceVersion) {
+        mHardwarePtr = hardware.get();
+        if (testInterfaceVersion == 0) {
+            mVhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
+        } else {
+            mVhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware),
+                                                                testInterfaceVersion);
+        }
+        // Set the linkToDeath to a fake implementation that always returns OK.
+        auto handler = std::make_unique<TestBinderLifecycleHandler>();
+        mBinderLifecycleHandler = handler.get();
+        mVhal->setBinderLifecycleHandler(std::move(handler));
+
+        mVhalClient = IVehicle::fromBinder(mVhal->asBinder());
+        mCallback = ndk::SharedRefBase::make<MockVehicleCallback>();
+        // Keep the local binder alive.
+        mBinder = mCallback->asBinder();
+        mCallbackClient = IVehicleCallback::fromBinder(mBinder);
+    }
+
   private:
     class TestBinderLifecycleHandler final : public DefaultVehicleHal::BinderLifecycleInterface {
       public:
@@ -574,11 +605,10 @@ TEST_F(DefaultVehicleHalTest, testGetAllPropConfigsSmall) {
 
     auto hardware = std::make_unique<MockVehicleHardware>();
     hardware->setPropertyConfigs(testConfigs);
-    auto vhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
-    std::shared_ptr<IVehicle> client = IVehicle::fromBinder(vhal->asBinder());
+    setHardware(std::move(hardware));
 
     VehiclePropConfigs output;
-    auto status = client->getAllPropConfigs(&output);
+    auto status = getClient()->getAllPropConfigs(&output);
 
     ASSERT_TRUE(status.isOk()) << "getAllPropConfigs failed: " << status.getMessage();
     ASSERT_THAT(output.payloads, WhenSortedBy(propConfigCmp, Eq(testConfigs)));
@@ -595,11 +625,10 @@ TEST_F(DefaultVehicleHalTest, testGetAllPropConfigsLarge) {
 
     auto hardware = std::make_unique<MockVehicleHardware>();
     hardware->setPropertyConfigs(testConfigs);
-    auto vhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
-    std::shared_ptr<IVehicle> client = IVehicle::fromBinder(vhal->asBinder());
+    setHardware(std::move(hardware));
 
     VehiclePropConfigs output;
-    auto status = client->getAllPropConfigs(&output);
+    auto status = getClient()->getAllPropConfigs(&output);
 
     ASSERT_TRUE(status.isOk()) << "getAllPropConfigs failed: " << status.getMessage();
     ASSERT_TRUE(output.payloads.empty());
@@ -623,12 +652,10 @@ TEST_F(DefaultVehicleHalTest, testGetAllPropConfigsFilterOutUnsupportedPropIdsFo
 
     auto hardware = std::make_unique<MockVehicleHardware>();
     hardware->setPropertyConfigs(testConfigs);
-    auto vhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware),
-                                                            /* testInterfaceVersion= */ 2);
-    std::shared_ptr<IVehicle> client = IVehicle::fromBinder(vhal->asBinder());
+    setHardware(std::move(hardware), /* testInterfaceVersion= */ 2);
 
     VehiclePropConfigs output;
-    auto status = client->getAllPropConfigs(&output);
+    auto status = getClient()->getAllPropConfigs(&output);
 
     ASSERT_TRUE(status.isOk()) << "getAllPropConfigs failed: " << status.getMessage();
     ASSERT_THAT(output.payloads, ElementsAre(VehiclePropConfig{
@@ -652,15 +679,14 @@ TEST_F(DefaultVehicleHalTest, testGetPropConfigs) {
     hardware->setPropertyConfigs(testConfigs);
     // Store the pointer for testing. We are sure it is valid.
     MockVehicleHardware* hardwarePtr = hardware.get();
-    auto vhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
-    std::shared_ptr<IVehicle> client = IVehicle::fromBinder(vhal->asBinder());
+    setHardware(std::move(hardware));
 
     VehiclePropConfigs output;
-    auto status = client->getPropConfigs(std::vector<int32_t>({propId1, propId2}), &output);
+    auto status = getClient()->getPropConfigs(std::vector<int32_t>({propId1, propId2}), &output);
 
     ASSERT_TRUE(status.isOk()) << "getPropConfigs failed: " << status.getMessage();
     ASSERT_EQ(output.payloads, testConfigs);
-    ASSERT_FALSE(hardwarePtr->getAllPropertyConfigsCalled());
+    ASSERT_FALSE(getHardware()->getAllPropertyConfigsCalled());
 }
 
 TEST_F(DefaultVehicleHalTest, testGetPropConfigsInvalidArg) {
@@ -675,11 +701,10 @@ TEST_F(DefaultVehicleHalTest, testGetPropConfigsInvalidArg) {
 
     auto hardware = std::make_unique<MockVehicleHardware>();
     hardware->setPropertyConfigs(testConfigs);
-    auto vhal = ndk::SharedRefBase::make<DefaultVehicleHal>(std::move(hardware));
-    std::shared_ptr<IVehicle> client = IVehicle::fromBinder(vhal->asBinder());
+    setHardware(std::move(hardware));
 
     VehiclePropConfigs output;
-    auto status = client->getPropConfigs(
+    auto status = getClient()->getPropConfigs(
             std::vector<int32_t>({testInt32VecProp(1), testInt32VecProp(2), testInt32VecProp(3)}),
             &output);
 
@@ -1828,12 +1853,11 @@ TEST_F(DefaultVehicleHalTest, testSubscribeAreaNoneAccess) {
     ASSERT_EQ(status.getServiceSpecificError(), toInt(StatusCode::ACCESS_DENIED));
 }
 
-TEST_F(DefaultVehicleHalTest, testUnsubscribeFailure) {
+TEST_F(DefaultVehicleHalTest, testUnsubscribeNotSubscribedProperty) {
     auto status = getClient()->unsubscribe(getCallbackClient(),
                                            std::vector<int32_t>({GLOBAL_ON_CHANGE_PROP}));
 
-    ASSERT_FALSE(status.isOk()) << "unsubscribe to a not-subscribed property must fail";
-    ASSERT_EQ(status.getServiceSpecificError(), toInt(StatusCode::INVALID_ARG));
+    ASSERT_TRUE(status.isOk()) << "unsubscribe to a not-subscribed property must do nothing";
 }
 
 TEST_F(DefaultVehicleHalTest, testHeartbeatEvent) {
@@ -1850,8 +1874,8 @@ TEST_F(DefaultVehicleHalTest, testHeartbeatEvent) {
 
     auto maybeResults = getCallback()->nextOnPropertyEventResults();
     size_t retryCount = 0;
-    // Add a 1s (100ms * 10) buffer time.
-    while (!maybeResults.has_value() && retryCount < 10) {
+    // Add a 10s (100ms * 100) buffer time.
+    while (!maybeResults.has_value() && retryCount < 100) {
         retryCount++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -2119,6 +2143,742 @@ TEST_F(DefaultVehicleHalTest, testBatchOnPropertyChangeEvents) {
         ASSERT_FALSE(getCallback()->nextOnPropertyEventResults().has_value())
                 << "more results than expected";
     }
+}
+
+TEST_F(DefaultVehicleHalTest, testGetSupportedValuesLists) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {// This ia valid request, but no supported values are specified.
+             VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             },
+             // This is an invalid request since hasSupportedValueInfo is null. This is not
+             // supported.
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {
+                                             .areaId = 2,
+                                     },
+                             },
+             },
+             // This is an invalid request for global property.
+             VehiclePropConfig{
+                     .prop = testInt32VecProp(3),
+             },
+             // This is a normal request.
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(4),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 4,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasSupportedValuesList = true,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    MockVehicleHardware* hardwarePtr = hardware.get();
+    hardware->setPropertyConfigs(testConfigs);
+
+    SupportedValuesListResult resultFromHardware = {
+            .status = StatusCode::OK,
+            .supportedValuesList =
+                    std::vector<std::optional<RawPropValues>>{RawPropValues{.int32Values = {1}}}};
+    auto response = std::vector<SupportedValuesListResult>({resultFromHardware});
+    hardware->setSupportedValuesListResponse(response);
+
+    setHardware(std::move(hardware));
+
+    SupportedValuesListResults results;
+
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto propIdAreaId3 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(3), .areaId = 0};
+    auto propIdAreaId4 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(4), .areaId = 4};
+    auto status = getClient()->getSupportedValuesLists(
+            std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2, propIdAreaId3,
+                                          propIdAreaId4},
+            &results);
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from getSupportedValuesLists"
+                               << status.getMessage();
+    ASSERT_THAT(getHardware()->getSupportedValuesListRequest(),
+                ElementsAre(PropIdAreaId{.propId = testInt32VecWindowProp(4), .areaId = 4}))
+            << "Only valid request 4 should get to hardware";
+
+    ASSERT_EQ(results.payloads.size(), 4u);
+    SupportedValuesListResult result = results.payloads[0];
+    ASSERT_EQ(result.status, StatusCode::OK)
+            << "Must return OK even if the supported values list is not specified";
+    ASSERT_FALSE(result.supportedValuesList.has_value())
+            << "Must return an empty supported values list if not specified";
+
+    result = results.payloads[1];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG)
+            << "PropId, areaId that set hasSupportedValueInfo to null must not be supported";
+    ASSERT_FALSE(result.supportedValuesList.has_value());
+
+    result = results.payloads[2];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG)
+            << "Must return INVALID_ARG for global property without area config";
+    ASSERT_FALSE(result.supportedValuesList.has_value());
+
+    result = results.payloads[3];
+    ASSERT_EQ(result.status, StatusCode::OK);
+    ASSERT_TRUE(result.supportedValuesList.has_value());
+    ASSERT_EQ(result.supportedValuesList.value().size(), 1u);
+    ASSERT_EQ(result.supportedValuesList.value()[0]->int32Values.size(), 1u);
+    ASSERT_EQ((result.supportedValuesList.value())[0]->int32Values[0], 1);
+}
+
+TEST_F(DefaultVehicleHalTest, testGetSupportedValuesLists_propIdAreaIdNotFound) {
+    auto testConfigs = std::vector<VehiclePropConfig>({
+            VehiclePropConfig{
+                    .prop = testInt32VecWindowProp(1),
+                    .areaConfigs =
+                            {
+                                    {.areaId = 1,
+                                     .hasSupportedValueInfo =
+                                             HasSupportedValueInfo{
+                                                     .hasSupportedValuesList = true,
+                                             }},
+                            },
+            },
+    });
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    SupportedValuesListResults results;
+
+    // propId not valid.
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 1};
+    // areaId not valid.
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(1), .areaId = 2};
+
+    auto status = getClient()->getSupportedValuesLists(
+            std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2}, &results);
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from getSupportedValuesLists"
+                               << status.getMessage();
+    ASSERT_EQ(results.payloads.size(), 2u);
+    SupportedValuesListResult result = results.payloads[0];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG);
+    result = results.payloads[1];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG);
+}
+
+TEST_F(DefaultVehicleHalTest, testGetMinMaxSupportedValue) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {// This ia valid request, but no supported values are specified.
+             VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                              }},
+                             },
+             },
+             // This is an invalid request since hasSupportedValueInfo is null. This is not
+             // supported.
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {
+                                             .areaId = 2,
+                                     },
+                             },
+             },
+             // This is an invalid request for global property.
+             VehiclePropConfig{
+                     .prop = testInt32VecProp(3),
+             },
+             // This is a normal request.
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(4),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 4,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    MockVehicleHardware* hardwarePtr = hardware.get();
+    hardware->setPropertyConfigs(testConfigs);
+
+    MinMaxSupportedValueResult resultFromHardware = {
+            .status = StatusCode::OK,
+            .minSupportedValue = std::optional<RawPropValues>{RawPropValues{.int32Values = {1}}},
+            .maxSupportedValue = std::nullopt,
+    };
+    auto response = std::vector<MinMaxSupportedValueResult>({resultFromHardware});
+    hardware->setMinMaxSupportedValueResponse(response);
+
+    setHardware(std::move(hardware));
+
+    MinMaxSupportedValueResults results;
+
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto propIdAreaId3 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(3), .areaId = 0};
+    auto propIdAreaId4 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(4), .areaId = 4};
+    auto status = getClient()->getMinMaxSupportedValue(
+            std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2, propIdAreaId3,
+                                          propIdAreaId4},
+            &results);
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from getMinMaxSupportedValue"
+                               << status.getMessage();
+    ASSERT_THAT(getHardware()->getMinMaxSupportedValueRequest(),
+                ElementsAre(PropIdAreaId{.propId = testInt32VecWindowProp(4), .areaId = 4}))
+            << "Only valid request 4 should get to hardware";
+
+    ASSERT_EQ(results.payloads.size(), 4u);
+    MinMaxSupportedValueResult result = results.payloads[0];
+    ASSERT_EQ(result.status, StatusCode::OK)
+            << "Must return OK even if the min/max supported values are not specified";
+    ASSERT_FALSE(result.minSupportedValue.has_value())
+            << "Must return null min supported value if not specified";
+    ASSERT_FALSE(result.maxSupportedValue.has_value())
+            << "Must return null max supported value if not specified";
+
+    result = results.payloads[1];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG)
+            << "PropId, areaId that set hasSupportedValueInfo to null must not be supported";
+    ASSERT_FALSE(result.minSupportedValue.has_value());
+    ASSERT_FALSE(result.maxSupportedValue.has_value());
+
+    result = results.payloads[2];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG)
+            << "Must return INVALID_ARG for global property without area config";
+    ASSERT_FALSE(result.minSupportedValue.has_value());
+    ASSERT_FALSE(result.maxSupportedValue.has_value());
+
+    result = results.payloads[3];
+    ASSERT_EQ(result.status, StatusCode::OK);
+    ASSERT_TRUE(result.minSupportedValue.has_value());
+    ASSERT_EQ(result.minSupportedValue->int32Values.size(), 1u);
+    ASSERT_EQ(result.minSupportedValue->int32Values[0], 1);
+    ASSERT_FALSE(result.maxSupportedValue.has_value());
+}
+
+TEST_F(DefaultVehicleHalTest, testGetMinMaxSupportedValue_propIdAreaIdNotFound) {
+    auto testConfigs = std::vector<VehiclePropConfig>({
+            VehiclePropConfig{
+                    .prop = testInt32VecWindowProp(1),
+                    .areaConfigs =
+                            {
+                                    {.areaId = 1,
+                                     .hasSupportedValueInfo =
+                                             HasSupportedValueInfo{
+                                                     .hasMinSupportedValue = true,
+                                                     .hasMaxSupportedValue = true,
+                                             }},
+                            },
+            },
+    });
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    MinMaxSupportedValueResults results;
+
+    // propId not valid.
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 1};
+    // areaId not valid.
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(1), .areaId = 2};
+
+    auto status = getClient()->getMinMaxSupportedValue(
+            std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2}, &results);
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from getMinMaxSupportedValue"
+                               << status.getMessage();
+    ASSERT_EQ(results.payloads.size(), 2u);
+    MinMaxSupportedValueResult result = results.payloads[0];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG);
+    result = results.payloads[1];
+    ASSERT_EQ(result.status, StatusCode::INVALID_ARG);
+}
+
+TEST_F(DefaultVehicleHalTest, testRegisterSupportedValueChangeCallback) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             },
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 2,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    // This request is ignored because it does not have supported value info.
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+    ASSERT_THAT(
+            getHardware()->getSubscribedSupportedValueChangePropIdAreaIds(),
+            UnorderedElementsAre(PropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2}));
+}
+
+TEST_F(DefaultVehicleHalTest, testRegisterSupportedValueChangeCallback_invalidRequest) {
+    auto testConfigs = std::vector<VehiclePropConfig>({VehiclePropConfig{
+            .prop = testInt32VecProp(1),
+            .areaConfigs =
+                    {
+                            {.areaId = 0, .hasSupportedValueInfo = std::nullopt},
+                    },
+    }});
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId1});
+
+    ASSERT_FALSE(status.isOk()) << "registerSupportedValueChangeCallback must return error if one "
+                                   "of the requested [propId, areaId]"
+                                   " does not have supportedValueInfo";
+}
+
+TEST_F(DefaultVehicleHalTest, testRegisterSupportedValueChangeCallback_errorStatusFromHardware) {
+    auto testConfigs = std::vector<VehiclePropConfig>({VehiclePropConfig{
+            .prop = testInt32VecWindowProp(2),
+            .areaConfigs =
+                    {
+                            {.areaId = 2,
+                             .hasSupportedValueInfo =
+                                     HasSupportedValueInfo{
+                                             .hasMinSupportedValue = true,
+                                             .hasMaxSupportedValue = false,
+                                             .hasSupportedValuesList = false,
+                                     }},
+                    },
+    }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setStatus("subscribeSupportedValueChange", StatusCode::INTERNAL_ERROR);
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto propIdAreaId = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId});
+
+    ASSERT_FALSE(status.isOk()) << "registerSupportedValueChangeCallback must return error if "
+                                   "VehicleHardware returns error";
+}
+
+TEST_F(DefaultVehicleHalTest, testUnregisterSupportedValueChangeCallback) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = true,
+                                              }},
+                             },
+             },
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 2,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    status = getClient()->unregisterSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from unregisterSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    EXPECT_TRUE(getHardware()->getSubscribedSupportedValueChangePropIdAreaIds().empty())
+            << "All registered [propId, areaId]s must be unregistered";
+    EXPECT_EQ(countClients(), static_cast<size_t>(0)) << "subscribe clients must be cleared";
+    EXPECT_TRUE(hasNoSubscriptions()) << "subscribe clients must be cleared";
+}
+
+TEST_F(DefaultVehicleHalTest, testUnregisterSupportedValueChangeCallback_errorFromHardware) {
+    auto testConfigs = std::vector<VehiclePropConfig>({VehiclePropConfig{
+            .prop = testInt32VecProp(1),
+            .areaConfigs =
+                    {
+                            {.areaId = 0,
+                             .hasSupportedValueInfo =
+                                     HasSupportedValueInfo{
+                                             .hasMinSupportedValue = false,
+                                             .hasMaxSupportedValue = false,
+                                             .hasSupportedValuesList = true,
+                                     }},
+                    },
+    }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setStatus("unsubscribeSupportedValueChange", StatusCode::INTERNAL_ERROR);
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto propIdAreaId = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    status = getClient()->unregisterSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId});
+
+    ASSERT_FALSE(status.isOk()) << "unregisterSupportedValueChangeCallback must return error if "
+                                   "VehicleHardware returns error";
+}
+
+TEST_F(DefaultVehicleHalTest, testUnregisterSupportedValueChangeCallback_ignoreUnregistered) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = true,
+                                              }},
+                             },
+             },
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 2,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto propIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto status = getClient()->unregisterSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{propIdAreaId1, propIdAreaId2});
+
+    ASSERT_TRUE(status.isOk());
+}
+
+TEST_F(DefaultVehicleHalTest, testSupportedValueChangeCallback) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = true,
+                                              }},
+                             },
+             },
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 2,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto vhalPropIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto vhalPropIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto propIdAreaId1 = PropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = PropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(),
+            std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1, vhalPropIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    getHardware()->sendSupportedValueChangeEvent(
+            std::vector<PropIdAreaId>{propIdAreaId1, propIdAreaId2});
+
+    getCallback()->waitForOnSupportedValueChange(/*size=*/2, /*timeoutInNano=*/1'000'000'000);
+
+    ASSERT_THAT(getCallback()->getOnSupportedValueChangePropIdAreaIds(),
+                ElementsAre(vhalPropIdAreaId1, vhalPropIdAreaId2));
+}
+
+TEST_F(DefaultVehicleHalTest, testSupportedValueChangeCallback_unregister) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = true,
+                                              }},
+                             },
+             },
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 2,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto vhalPropIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto vhalPropIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto propIdAreaId1 = PropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = PropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(),
+            std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1, vhalPropIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    // After unregistering for propIdAreaId1, we should no longer receive events for it.
+    status = getClient()->unregisterSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from unregisterSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    getHardware()->sendSupportedValueChangeEvent(
+            std::vector<PropIdAreaId>{propIdAreaId1, propIdAreaId2});
+
+    getCallback()->waitForOnSupportedValueChange(/*size=*/1, /*timeoutInNano=*/1'000'000'000);
+
+    ASSERT_THAT(getCallback()->getOnSupportedValueChangePropIdAreaIds(),
+                ElementsAre(vhalPropIdAreaId2));
+}
+
+TEST_F(DefaultVehicleHalTest, testRegisterSupportedValueChangeCallback_twoClients) {
+    auto testConfigs = std::vector<VehiclePropConfig>(
+            {VehiclePropConfig{
+                     .prop = testInt32VecProp(1),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 0,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = false,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = true,
+                                              }},
+                             },
+             },
+             VehiclePropConfig{
+                     .prop = testInt32VecWindowProp(2),
+                     .areaConfigs =
+                             {
+                                     {.areaId = 2,
+                                      .hasSupportedValueInfo =
+                                              HasSupportedValueInfo{
+                                                      .hasMinSupportedValue = true,
+                                                      .hasMaxSupportedValue = false,
+                                                      .hasSupportedValuesList = false,
+                                              }},
+                             },
+             }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto vhalPropIdAreaId1 = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto vhalPropIdAreaId2 = VhalPropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    auto propIdAreaId1 = PropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+    auto propIdAreaId2 = PropIdAreaId{.propId = testInt32VecWindowProp(2), .areaId = 2};
+    std::shared_ptr<IVehicleCallback> callback1 = ndk::SharedRefBase::make<MockVehicleCallback>();
+    std::shared_ptr<IVehicleCallback> callback2 = ndk::SharedRefBase::make<MockVehicleCallback>();
+    // Keep binder alive to prevent binder reuse.
+    SpAIBinder binder1 = callback1->asBinder();
+    // Keep binder alive to prevent binder reuse.
+    SpAIBinder binder2 = callback2->asBinder();
+
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            callback1, std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1, vhalPropIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    status = getClient()->registerSupportedValueChangeCallback(
+            callback2, std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1, vhalPropIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    ASSERT_THAT(getHardware()->getSubscribedSupportedValueChangePropIdAreaIds(),
+                UnorderedElementsAre(propIdAreaId1, propIdAreaId2));
+
+    status = getClient()->unregisterSupportedValueChangeCallback(
+            callback1, std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1, vhalPropIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from unregisterSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    ASSERT_THAT(getHardware()->getSubscribedSupportedValueChangePropIdAreaIds(),
+                UnorderedElementsAre(propIdAreaId1, propIdAreaId2))
+            << "[propId, areaId] must still be subscribed if one of the two clients unsubscribe";
+
+    status = getClient()->unregisterSupportedValueChangeCallback(
+            callback2, std::vector<VhalPropIdAreaId>{vhalPropIdAreaId1, vhalPropIdAreaId2});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from unregisterSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    ASSERT_TRUE(getHardware()->getSubscribedSupportedValueChangePropIdAreaIds().empty())
+            << "All registered [propId, areaId]s must be unregistered";
+}
+
+TEST_F(DefaultVehicleHalTest, testRegisterSupportedValueChange_monitorBinderLifecycle) {
+    auto testConfigs = std::vector<VehiclePropConfig>({VehiclePropConfig{
+            .prop = testInt32VecProp(1),
+            .areaConfigs =
+                    {
+                            {.areaId = 0,
+                             .hasSupportedValueInfo =
+                                     HasSupportedValueInfo{
+                                             .hasMinSupportedValue = false,
+                                             .hasMaxSupportedValue = false,
+                                             .hasSupportedValuesList = true,
+                                     }},
+                    },
+    }});
+
+    auto hardware = std::make_unique<MockVehicleHardware>();
+    hardware->setPropertyConfigs(testConfigs);
+
+    setHardware(std::move(hardware));
+
+    auto vhalPropIdAreaId = VhalPropIdAreaId{.propId = testInt32VecProp(1), .areaId = 0};
+
+    auto status = getClient()->registerSupportedValueChangeCallback(
+            getCallbackClient(), std::vector<VhalPropIdAreaId>{vhalPropIdAreaId});
+
+    ASSERT_TRUE(status.isOk()) << "Get non-okay status from registerSupportedValueChangeCallback"
+                               << status.getMessage();
+
+    ASSERT_EQ(countOnBinderDiedContexts(), static_cast<size_t>(1))
+            << "expect one OnBinderDied context when one client is registered";
 }
 
 }  // namespace vehicle

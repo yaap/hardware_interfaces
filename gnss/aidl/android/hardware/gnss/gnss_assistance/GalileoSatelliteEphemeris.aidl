@@ -82,27 +82,45 @@ parcelable GalileoSatelliteEphemeris {
      */
     @VintfStability
     parcelable GalileoSvHealth {
+        /** Galileo health data validity type. */
+        @VintfStability
+        @Backing(type="int")
+        enum GalileoHealthDataVaidityType {
+            DATA_VALID = 0,
+            WORKING_WITHOUT_GUARANTEE = 1
+        }
+
+        /** Galileo health status type. */
+        @VintfStability
+        @Backing(type="int")
+        enum GalileoHealthStatusType {
+            OK = 0,
+            OUT_OF_SERVICE = 1,
+            EXTENDED_OPERATION_MODE = 2,
+            IN_TEST = 3
+        }
+
         /** E1-B data validity status. */
-        int dataValidityStatusE1b;
+        GalileoHealthDataVaidityType dataValidityStatusE1b;
 
         /** E1-B/C signal health status. */
-        int signalHealthStatusE1b;
+        GalileoHealthStatusType signalHealthStatusE1b;
 
         /** E5a data validity status. */
-        int dataValidityStatusE5a;
+        GalileoHealthDataVaidityType dataValidityStatusE5a;
 
         /** E5a signal health status. */
-        int signalHealthStatusE5a;
+        GalileoHealthStatusType signalHealthStatusE5a;
 
         /** E5b data validity status. */
-        int dataValidityStatusE5b;
+        GalileoHealthDataVaidityType dataValidityStatusE5b;
 
         /** E5b signal health status. */
-        int signalHealthStatusE5b;
+        GalileoHealthStatusType signalHealthStatusE5b;
     }
 
-    /** Satellite code number. */
-    int satelliteCodeNumber;
+    /** PRN or satellite ID number for the Galileo satellite. */
+    int svid;
 
     /** Array of satellite clock model. */
     GalileoSatelliteClockModel[] satelliteClockModel;

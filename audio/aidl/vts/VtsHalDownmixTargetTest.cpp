@@ -52,7 +52,7 @@ static const std::vector<int32_t> kLayoutValues = {
         AudioChannelLayout::LAYOUT_5POINT1POINT4, AudioChannelLayout::LAYOUT_6POINT1,
         AudioChannelLayout::LAYOUT_7POINT1,       AudioChannelLayout::LAYOUT_7POINT1POINT2,
         AudioChannelLayout::LAYOUT_7POINT1POINT4, AudioChannelLayout::LAYOUT_9POINT1POINT4,
-        AudioChannelLayout::LAYOUT_9POINT1POINT6, AudioChannelLayout::LAYOUT_13POINT_360RA,
+        AudioChannelLayout::LAYOUT_9POINT1POINT6, AudioChannelLayout::LAYOUT_13POINT0,
         AudioChannelLayout::LAYOUT_22POINT2};
 
 static const std::vector<int32_t> kChannels = {
@@ -86,7 +86,7 @@ static const std::vector<int32_t> kChannels = {
 
 class DownmixEffectHelper : public EffectHelper {
   public:
-    void SetUpDownmix(int32_t inputBufferLayout = AudioChannelLayout::LAYOUT_STEREO) {
+    void SetUpDownmix(int32_t inputBufferLayout = kDefaultChannelLayout) {
         ASSERT_NE(nullptr, mFactory);
         ASSERT_NO_FATAL_FAILURE(create(mFactory, mEffect, mDescriptor));
 
@@ -190,7 +190,7 @@ class DownmixParamTest : public ::testing::TestWithParam<DownmixParamTestParam>,
         std::tie(mFactory, mDescriptor) = std::get<PARAM_INSTANCE_NAME>(GetParam());
     }
 
-    void SetUp() override { SetUpDownmix(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpDownmix()); }
 
     void TearDown() override { TearDownDownmix(); }
 
@@ -216,11 +216,8 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
 
     void SetUp() override {
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
-        SetUpDownmix(mInputChannelLayout);
-        if (int32_t version;
-            mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
-            GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
-        }
+        ASSERT_NO_FATAL_FAILURE(SetUpDownmix(mInputChannelLayout));
+        SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
         if (!isLayoutValid(mInputChannelLayout)) {
             GTEST_SKIP() << "Layout not supported \n";
         }
@@ -288,7 +285,7 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
             case AudioChannelLayout::CHANNEL_TOP_BACK_LEFT:
             case AudioChannelLayout::CHANNEL_FRONT_WIDE_LEFT:
             case AudioChannelLayout::CHANNEL_TOP_SIDE_LEFT:
-                checkAtLeft(position);
+                ASSERT_NO_FATAL_FAILURE(checkAtLeft(position));
                 break;
 
             case AudioChannelLayout::CHANNEL_FRONT_RIGHT:
@@ -300,7 +297,7 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
             case AudioChannelLayout::CHANNEL_FRONT_WIDE_RIGHT:
             case AudioChannelLayout::CHANNEL_TOP_SIDE_RIGHT:
             case AudioChannelLayout::CHANNEL_LOW_FREQUENCY_2:
-                checkAtRight(position);
+                ASSERT_NO_FATAL_FAILURE(checkAtRight(position));
                 break;
 
             case AudioChannelLayout::CHANNEL_FRONT_CENTER:
@@ -311,17 +308,17 @@ class DownmixFoldDataTest : public ::testing::TestWithParam<DownmixDataTestParam
             case AudioChannelLayout::CHANNEL_FRONT_RIGHT_OF_CENTER:
             case AudioChannelLayout::CHANNEL_TOP_CENTER:
             case AudioChannelLayout::CHANNEL_TOP_BACK_CENTER:
-                checkAtCenter(position);
+                ASSERT_NO_FATAL_FAILURE(checkAtCenter(position));
                 break;
 
             case AudioChannelLayout::CHANNEL_LOW_FREQUENCY:
                 // If CHANNEL_LOW_FREQUENCY_2 is supported
                 if (mInputChannelLayout & AudioChannelLayout::CHANNEL_LOW_FREQUENCY_2) {
                     // Validate that only Left channel has audio
-                    checkAtLeft(position);
+                    ASSERT_NO_FATAL_FAILURE(checkAtLeft(position));
                 } else {
                     // Validate that both channels have audio
-                    checkAtCenter(position);
+                    ASSERT_NO_FATAL_FAILURE(checkAtCenter(position));
                 }
                 break;
         }
@@ -371,11 +368,8 @@ class DownmixStripDataTest : public ::testing::TestWithParam<DownmixStripDataTes
     }
 
     void SetUp() override {
-        SetUpDownmix(mInputChannelLayout);
-        if (int32_t version;
-            mEffect->getInterfaceVersion(&version).isOk() && version < kMinDataTestHalVersion) {
-            GTEST_SKIP() << "Skipping the data test for version: " << version << "\n";
-        }
+        ASSERT_NO_FATAL_FAILURE(SetUpDownmix(mInputChannelLayout));
+        SKIP_TEST_IF_VERSION_UNSUPPORTED(mEffect, kMinDataTestHalVersion);
         if (!isLayoutValid(mInputChannelLayout)) {
             GTEST_SKIP() << "Layout not supported \n";
         }
@@ -406,7 +400,7 @@ TEST_P(DownmixStripDataTest, DownmixProcessData) {
                         mInputChannelCount /*channelCount*/, kMaxDownmixSample);
     ASSERT_NO_FATAL_FAILURE(
             processAndWriteToOutput(mInputBuffer, mOutputBuffer, mEffect, &mOpenEffectReturn));
-    validateOutput();
+    ASSERT_NO_FATAL_FAILURE(validateOutput());
 }
 
 INSTANTIATE_TEST_SUITE_P(

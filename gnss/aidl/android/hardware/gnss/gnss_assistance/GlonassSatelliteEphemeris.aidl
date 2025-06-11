@@ -16,8 +16,6 @@
 
 package android.hardware.gnss.gnss_assistance;
 
-import android.hardware.gnss.gnss_assistance.SatelliteEphemerisTime;
-
 /**
  * Contains ephemeris parameters specific to Glonass satellites.
  * This is defined in RINEX 3.05 APPENDIX 10 and Glonass ICD v5.1, section 4.4.
@@ -41,10 +39,21 @@ parcelable GlonassSatelliteEphemeris {
         double clockBias;
 
         /** Frequency bias (+GammaN). */
-        double freqBias;
+        double frequencyBias;
 
-        /** Frequency number. */
-        int freqNumber;
+        /**
+         * Frequency channel number.
+         *
+         * This is defined in Glonass ICD v5.1 section 3.3.1.1.
+         */
+        int frequencyChannelNumber;
+
+        /**
+         * L1/L2 group delay difference in seconds (DeltaTau).
+         *
+         * It is set to 0.999999999999E+09 if the value is not available.
+         */
+        double groupDelayDiffSeconds;
     }
 
     /** Contains Glonass orbit model parameters in PZ-90 coordinate system. */
@@ -78,13 +87,16 @@ parcelable GlonassSatelliteEphemeris {
         double zAccel;
     }
 
-    /**
-     * L1/Satellite system (R), satellite number (slot number in sat.
-     * constellation).
-     */
+    /** Glonass health status healthy. */
+    const int GLONASS_HEALTH_STATUS_HEALTHY = 0;
+
+    /** Glonass health status unhealthy. */
+    const int GLONASS_HEALTH_STATUS_UNHEALTHY = 1;
+
+    /** Slot number. */
     int slotNumber;
 
-    /** Satellite health (0=healthy, 1=unhealthy). */
+    /** Satellite health which is set with the GLONASS_HEALTH_STATUS_* constants */
     int svHealth;
 
     /** Message frame time in seconds of the UTC week (tk+nd*86400). */
@@ -92,6 +104,15 @@ parcelable GlonassSatelliteEphemeris {
 
     /** Age of current information in days (E). */
     int ageInDays;
+
+    /** Update and validity interval in minutes (P1) **/
+    int updateIntervalMinutes;
+
+    /** Flag to indicate oddness(1) or evenness(0) of update interval (P2). */
+    boolean isOddUpdateInterval;
+
+    /** Flag to indicates if the satellite is a Glonass-M satellitee (M). */
+    boolean isGlonassM;
 
     /** Satellite clock model. */
     GlonassSatelliteClockModel satelliteClockModel;

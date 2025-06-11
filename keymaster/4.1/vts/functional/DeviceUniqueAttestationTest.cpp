@@ -229,13 +229,13 @@ TEST_P(DeviceUniqueAttestationTest, NonStrongBoxOnly) {
                                                          .Authorization(TAG_INCLUDE_UNIQUE_ID))));
 
     hidl_vec<hidl_vec<uint8_t>> cert_chain;
-    EXPECT_EQ(ErrorCode::UNIMPLEMENTED,
-              convert(AttestKey(
-                      AuthorizationSetBuilder()
+    ErrorCode result = convert(
+            AttestKey(AuthorizationSetBuilder()
                               .Authorization(TAG_DEVICE_UNIQUE_ATTESTATION)
                               .Authorization(TAG_ATTESTATION_CHALLENGE, HidlBuf("challenge"))
                               .Authorization(TAG_ATTESTATION_APPLICATION_ID, HidlBuf("foo")),
-                      &cert_chain)));
+                      &cert_chain));
+    EXPECT_TRUE(result == ErrorCode::UNIMPLEMENTED || result == ErrorCode::INVALID_ARGUMENT);
     CheckedDeleteKey();
 
     ASSERT_EQ(ErrorCode::OK, convert(GenerateKey(AuthorizationSetBuilder()
@@ -244,13 +244,13 @@ TEST_P(DeviceUniqueAttestationTest, NonStrongBoxOnly) {
                                                          .Digest(Digest::SHA_2_256)
                                                          .Authorization(TAG_INCLUDE_UNIQUE_ID))));
 
-    EXPECT_EQ(ErrorCode::UNIMPLEMENTED,
-              convert(AttestKey(
-                      AuthorizationSetBuilder()
+    result = convert(
+            AttestKey(AuthorizationSetBuilder()
                               .Authorization(TAG_DEVICE_UNIQUE_ATTESTATION)
                               .Authorization(TAG_ATTESTATION_CHALLENGE, HidlBuf("challenge"))
                               .Authorization(TAG_ATTESTATION_APPLICATION_ID, HidlBuf("foo")),
-                      &cert_chain)));
+                      &cert_chain));
+    EXPECT_TRUE(result == ErrorCode::UNIMPLEMENTED || result == ErrorCode::INVALID_ARGUMENT);
     CheckedDeleteKey();
 }
 

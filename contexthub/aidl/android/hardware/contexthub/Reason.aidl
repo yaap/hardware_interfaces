@@ -63,4 +63,9 @@ enum Reason {
      * Hub was reset or is resetting.
      */
     HUB_RESET,
+
+    /**
+     * The caller does not have the required permissions.
+     */
+    PERMISSION_DENIED,
 }

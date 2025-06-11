@@ -60,9 +60,16 @@ aidl_interface {
                 "android.hardware.audio.common-V3",
             ],
         },
+        {
+            version: "5",
+            imports: [
+                "android.media.audio.common.types-V4",
+                "android.hardware.audio.common-V4",
+            ],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
 
 }
 

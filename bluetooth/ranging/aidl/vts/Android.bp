@@ -18,7 +18,6 @@ cc_test {
     ],
     static_libs: [
         "android.hardware.bluetooth.ranging-V2-ndk",
-        "libbluetooth-types",
     ],
     test_config: "VtsHalBluetoothRangingTargetTest.xml",
     test_suites: [

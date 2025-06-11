@@ -22,6 +22,7 @@ package android.hardware.radio.modem;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ImeiInfo {
     @VintfStability
     @Backing(type="int")

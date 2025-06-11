@@ -24,6 +24,7 @@ import android.hardware.radio.data.QosBandwidth;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable EpsQos {
     /**
      * Quality of Service Class Identifier (QCI), see 3GPP TS 23.203 and 29.212.

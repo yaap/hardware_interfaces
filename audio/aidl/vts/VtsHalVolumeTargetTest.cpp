@@ -66,7 +66,7 @@ class VolumeControlHelper : public EffectHelper {
 
     void initFrameCount() {
         int channelCount = getChannelCount(
-                AudioChannelLayout::make<AudioChannelLayout::layoutMask>(kDefaultChannelLayout));
+                AudioChannelLayout::make<AudioChannelLayout::layoutMask>(mChannelLayout));
         mInputFrameCount = kBufferSize / channelCount;
         mOutputFrameCount = kBufferSize / channelCount;
     }
@@ -93,10 +93,10 @@ class VolumeControlHelper : public EffectHelper {
         }
     }
 
-    static constexpr int kDurationMilliSec = 720;
+    static constexpr int kDurationMilliSec = 1440;
     static constexpr int kBufferSize = kSamplingFrequency * kDurationMilliSec / 1000;
     static constexpr int kMinLevel = -96;
-    static constexpr int kDefaultChannelLayout = AudioChannelLayout::LAYOUT_STEREO;
+    static constexpr int mChannelLayout = kDefaultChannelLayout;
     long mInputFrameCount, mOutputFrameCount;
     std::shared_ptr<IFactory> mFactory;
     std::shared_ptr<IEffect> mEffect;
@@ -162,8 +162,6 @@ class VolumeDataTest : public ::testing::TestWithParam<VolumeDataTestParam>,
         mInputMag.resize(mTestFrequencies.size());
         mBinOffsets.resize(mTestFrequencies.size());
         roundToFreqCenteredToFftBin(mTestFrequencies, mBinOffsets, kBinWidth);
-        generateSineWave(mTestFrequencies, mInput);
-        mInputMag = calculateMagnitude(mInput, mBinOffsets, kNPointFFT);
     }
 
     std::vector<int> calculatePercentageDiff(const std::vector<float>& outputMag) {
@@ -183,6 +181,11 @@ class VolumeDataTest : public ::testing::TestWithParam<VolumeDataTestParam>,
         SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
         // Skips test fixture if api_level <= 34 (__ANDROID_API_U__).
         if (kVsrApiLevel <= __ANDROID_API_U__) GTEST_SKIP();
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(mTestFrequencies, mInput, 1.0, kSamplingFrequency,
+                                                 mChannelLayout));
+        ASSERT_NO_FATAL_FAILURE(
+                calculateAndVerifyMagnitude(mInputMag, mChannelLayout, mInput, mBinOffsets));
+
         ASSERT_NO_FATAL_FAILURE(SetUpVolumeControl());
     }
     void TearDown() override {
@@ -194,7 +197,6 @@ class VolumeDataTest : public ::testing::TestWithParam<VolumeDataTestParam>,
     const int kVsrApiLevel;
     static constexpr int kMaxAudioSample = 1;
     static constexpr int kTransitionDuration = 300;
-    static constexpr int kNPointFFT = 16384;
     static constexpr float kBinWidth = (float)kSamplingFrequency / kNPointFFT;
     static constexpr size_t offset = kSamplingFrequency * kTransitionDuration / 1000;
     static constexpr float kBaseLevel = 0;
@@ -218,7 +220,9 @@ TEST_P(VolumeDataTest, ApplyLevelMuteUnmute) {
     ASSERT_NO_FATAL_FAILURE(setAndVerifyParameters(Volume::levelDb, kBaseLevel, EX_NONE));
     ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput(mInput, output, mEffect, &mOpenEffectReturn));
 
-    outputMag = calculateMagnitude(output, mBinOffsets, kNPointFFT);
+    ASSERT_NO_FATAL_FAILURE(
+            calculateAndVerifyMagnitude(outputMag, mChannelLayout, output, mBinOffsets));
+
     diffs = calculatePercentageDiff(outputMag);
 
     for (size_t i = 0; i < diffs.size(); i++) {
@@ -231,7 +235,10 @@ TEST_P(VolumeDataTest, ApplyLevelMuteUnmute) {
     ASSERT_NO_FATAL_FAILURE(processAndWriteToOutput(mInput, output, mEffect, &mOpenEffectReturn));
 
     std::vector<float> subOutputMute(output.begin() + offset, output.end());
-    outputMag = calculateMagnitude(subOutputMute, mBinOffsets, kNPointFFT);
+
+    ASSERT_NO_FATAL_FAILURE(
+            calculateAndVerifyMagnitude(outputMag, mChannelLayout, subOutputMute, mBinOffsets));
+
     diffs = calculatePercentageDiff(outputMag);
 
     for (size_t i = 0; i < diffs.size(); i++) {
@@ -239,7 +246,9 @@ TEST_P(VolumeDataTest, ApplyLevelMuteUnmute) {
     }
 
     // Verifying Fade out
-    outputMag = calculateMagnitude(output, mBinOffsets, kNPointFFT);
+    ASSERT_NO_FATAL_FAILURE(
+            calculateAndVerifyMagnitude(outputMag, mChannelLayout, output, mBinOffsets));
+
     diffs = calculatePercentageDiff(outputMag);
 
     for (size_t i = 0; i < diffs.size(); i++) {
@@ -253,7 +262,9 @@ TEST_P(VolumeDataTest, ApplyLevelMuteUnmute) {
 
     std::vector<float> subOutputUnmute(output.begin() + offset, output.end());
 
-    outputMag = calculateMagnitude(subOutputUnmute, mBinOffsets, kNPointFFT);
+    ASSERT_NO_FATAL_FAILURE(
+            calculateAndVerifyMagnitude(outputMag, mChannelLayout, subOutputUnmute, mBinOffsets));
+
     diffs = calculatePercentageDiff(outputMag);
 
     for (size_t i = 0; i < diffs.size(); i++) {
@@ -261,7 +272,9 @@ TEST_P(VolumeDataTest, ApplyLevelMuteUnmute) {
     }
 
     // Verifying Fade in
-    outputMag = calculateMagnitude(output, mBinOffsets, kNPointFFT);
+    ASSERT_NO_FATAL_FAILURE(
+            calculateAndVerifyMagnitude(outputMag, mChannelLayout, output, mBinOffsets));
+
     diffs = calculatePercentageDiff(outputMag);
 
     for (size_t i = 0; i < diffs.size(); i++) {
@@ -283,7 +296,9 @@ TEST_P(VolumeDataTest, DecreasingLevels) {
     ASSERT_NO_FATAL_FAILURE(
             processAndWriteToOutput(mInput, baseOutput, mEffect, &mOpenEffectReturn));
 
-    outputMag = calculateMagnitude(baseOutput, mBinOffsets, kNPointFFT);
+    ASSERT_NO_FATAL_FAILURE(
+            calculateAndVerifyMagnitude(outputMag, mChannelLayout, baseOutput, mBinOffsets));
+
     baseDiffs = calculatePercentageDiff(outputMag);
 
     for (int level : decreasingLevels) {
@@ -298,7 +313,9 @@ TEST_P(VolumeDataTest, DecreasingLevels) {
         ASSERT_NO_FATAL_FAILURE(
                 processAndWriteToOutput(mInput, output, mEffect, &mOpenEffectReturn));
 
-        outputMag = calculateMagnitude(output, mBinOffsets, kNPointFFT);
+        ASSERT_NO_FATAL_FAILURE(
+                calculateAndVerifyMagnitude(outputMag, mChannelLayout, output, mBinOffsets));
+
         diffs = calculatePercentageDiff(outputMag);
 
         // Decrease in volume level results in greater magnitude difference

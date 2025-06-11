@@ -28,7 +28,7 @@ aidl_interface {
         // This HAL was originally part of android.hardware.automotive.vehicle
         "android/hardware/automotive/vehicle/*.aidl",
     ],
-    frozen: false,
+    frozen: true,
     stability: "vintf",
     backend: {
         cpp: {
@@ -57,6 +57,10 @@ aidl_interface {
         },
         {
             version: "3",
+            imports: [],
+        },
+        {
+            version: "4",
             imports: [],
         },
 

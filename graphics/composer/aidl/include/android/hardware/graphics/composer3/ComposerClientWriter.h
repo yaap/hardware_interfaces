@@ -297,7 +297,8 @@ class ComposerClientWriter final {
 
     DisplayCommand& getDisplayCommand(int64_t display) {
         if (!mDisplayCommand.has_value() || mDisplayCommand->display != display) {
-            LOG_ALWAYS_FATAL_IF(display != mDisplay);
+            LOG_ALWAYS_FATAL_IF(display != mDisplay, "Expected display %" PRId64 ", got %" PRId64,
+                                mDisplay, display);
             flushLayerCommand();
             flushDisplayCommand();
             mDisplayCommand.emplace();

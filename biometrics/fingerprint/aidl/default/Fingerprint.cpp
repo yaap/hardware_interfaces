@@ -50,6 +50,9 @@ Fingerprint::Fingerprint() : mWorker(MAX_WORKER_QUEUE_SIZE) {
     } else if (sensorTypeProp == "udfps") {
         mSensorType = FingerprintSensorType::UNDER_DISPLAY_OPTICAL;
         mEngine = std::make_unique<FakeFingerprintEngineUdfps>();
+    } else if (sensorTypeProp == "udfps-us") {
+        mSensorType = FingerprintSensorType::UNDER_DISPLAY_ULTRASONIC;
+        mEngine = std::make_unique<FakeFingerprintEngineUdfps>();
     } else if (sensorTypeProp == "side") {
         mSensorType = FingerprintSensorType::POWER_BUTTON;
         mEngine = std::make_unique<FakeFingerprintEngineSide>();
@@ -71,7 +74,7 @@ ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
     auto sensorId = Fingerprint::cfg().get<std::int32_t>("sensor_id");
     auto sensorStrength = Fingerprint::cfg().get<std::int32_t>("sensor_strength");
     auto maxEnrollments = Fingerprint::cfg().get<std::int32_t>("max_enrollments");
-    auto navigationGuesture = Fingerprint::cfg().get<bool>("navigation_guesture");
+    auto navigationGesture = Fingerprint::cfg().get<bool>("navigation_gesture");
     auto detectInteraction = Fingerprint::cfg().get<bool>("detect_interaction");
     auto displayTouch = Fingerprint::cfg().get<bool>("display_touch");
     auto controlIllumination = Fingerprint::cfg().get<bool>("control_illumination");
@@ -79,19 +82,15 @@ ndk::ScopedAStatus Fingerprint::getSensorProps(std::vector<SensorProps>* out) {
     common::CommonProps commonProps = {sensorId, (common::SensorStrength)sensorStrength,
                                        maxEnrollments, componentInfo};
 
-    SensorLocation sensorLocation = mEngine->getSensorLocation();
+    std::vector<SensorLocation> sensorLocation;
+    mEngine->getSensorLocation(sensorLocation);
+    LOG(INFO) << "sensor type:" << ::android::internal::ToString(mSensorType);
+    for (auto location : sensorLocation) {
+        LOG(INFO) << "sensor location:  " << location.toString();
+    }
 
-    LOG(INFO) << "sensor type:" << ::android::internal::ToString(mSensorType)
-              << " location:" << sensorLocation.toString();
-
-    *out = {{commonProps,
-             mSensorType,
-             {sensorLocation},
-             navigationGuesture,
-             detectInteraction,
-             displayTouch,
-             controlIllumination,
-             std::nullopt}};
+    *out = {{commonProps, mSensorType, sensorLocation, navigationGesture, detectInteraction,
+             displayTouch, controlIllumination, std::nullopt}};
     return ndk::ScopedAStatus::ok();
 }
 
@@ -201,7 +200,7 @@ void Fingerprint::clearConfigSysprop() {
     RESET_CONFIG_O(sensor_id);
     RESET_CONFIG_O(sensor_strength);
     RESET_CONFIG_O(max_enrollments);
-    RESET_CONFIG_O(navigation_guesture);
+    RESET_CONFIG_O(navigation_gesture);
     RESET_CONFIG_O(detect_interaction);
     RESET_CONFIG_O(display_touch);
     RESET_CONFIG_O(control_illumination);
@@ -220,7 +219,7 @@ const char* Fingerprint::type2String(FingerprintSensorType type) {
         case FingerprintSensorType::UNDER_DISPLAY_OPTICAL:
             return "udfps";
         case FingerprintSensorType::UNDER_DISPLAY_ULTRASONIC:
-            return "udfps";
+            return "udfps-us";
         default:
             return "unknown";
     }

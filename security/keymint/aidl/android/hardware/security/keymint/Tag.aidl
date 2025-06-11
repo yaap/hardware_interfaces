@@ -904,6 +904,9 @@ enum Tag {
      * Tag::MODULE_HASH specifies the SHA-256 hash of the DER-encoded module information (see
      * KeyCreationResult.aidl for the ASN.1 schema).
      *
+     * KeyStore clients can retrieve the unhashed DER-encoded module information from Android
+     * via KeyStoreManager.getSupplementaryAttestationInfo.
+     *
      * This tag is never provided or returned from KeyMint in the key characteristics. It exists
      * only to define the tag for use in the attestation record.
      *

@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable WcdmaSignalStrength {
     /**
      * Valid values are (0-31, 99) as defined in TS 27.007 8.5; RadioConst:VALUE_UNAVAILABLE means

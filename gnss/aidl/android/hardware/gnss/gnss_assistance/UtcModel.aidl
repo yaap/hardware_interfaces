@@ -33,6 +33,6 @@ parcelable UtcModel {
     /** Reference GNSS time of week in seconds. */
     int timeOfWeek;
 
-    /** Reference GNSS week number. */
+    /** Reference GNSS week number. If it is -1, the UTC model is not available. */
     int weekNumber;
 }

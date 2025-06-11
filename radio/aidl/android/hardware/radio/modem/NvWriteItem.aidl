@@ -23,6 +23,7 @@ import android.hardware.radio.modem.NvItem;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable NvWriteItem {
     /**
      * @deprecated NV APIs are deprecated starting from Android U.

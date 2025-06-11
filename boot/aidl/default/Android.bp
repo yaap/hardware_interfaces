@@ -57,7 +57,7 @@ cc_binary {
     name: "android.hardware.boot-service.default_recovery",
     defaults: ["android.hardware.boot-service_common"],
     init_rc: ["android.hardware.boot-service.default_recovery.rc"],
-    vintf_fragments: ["android.hardware.boot-service.default.xml"],
+    vintf_fragment_modules: ["android.hardware.boot-service.default.xml.recovery"],
     recovery: true,
 
     shared_libs: [
@@ -77,11 +77,16 @@ prebuilt_etc {
     installable: false,
 }
 
-prebuilt_etc {
+vintf_fragment {
+    name: "android.hardware.boot-service.default.xml.recovery",
+    src: "android.hardware.boot-service.default.xml",
+    recovery: true,
+}
+
+vintf_fragment {
     name: "android.hardware.boot-service.default.xml",
     src: "android.hardware.boot-service.default.xml",
-    sub_dir: "vintf",
-    installable: false,
+    vendor: true,
 }
 
 apex {
@@ -98,6 +103,8 @@ apex {
     ],
     prebuilts: [
         "android.hardware.boot-service.default.rc",
+    ],
+    vintf_fragment_modules: [
         "android.hardware.boot-service.default.xml",
     ],
 }

@@ -60,6 +60,10 @@ constexpr uint8_t MAX_CHALLENGE_SIZE = 64;
 const string KEYMINT_STRONGBOX_INSTANCE_NAME =
         "android.hardware.security.keymint.IKeyMintDevice/strongbox";
 
+constexpr std::string_view kVerifiedBootState = "ro.boot.verifiedbootstate";
+constexpr std::string_view kDeviceState = "ro.boot.vbmeta.device_state";
+constexpr std::string_view kDefaultValue = "";
+
 #define INSTANTIATE_REM_PROV_AIDL_TEST(name)                                         \
     GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(name);                             \
     INSTANTIATE_TEST_SUITE_P(                                                        \
@@ -151,20 +155,55 @@ ErrMsgOr<bytevec> corrupt_sig_chain(const bytevec& encodedEekChain, int which) {
     return corruptChain.encode();
 }
 
-bool matching_keymint_device(const string& rp_name, std::shared_ptr<IKeyMintDevice>* keyMint) {
-    auto rp_suffix = deviceSuffix(rp_name);
+template <class T>
+auto getHandle(const string& serviceName) {
+    ::ndk::SpAIBinder binder(AServiceManager_waitForService(serviceName.c_str()));
+    return T::fromBinder(binder);
+}
 
-    vector<string> km_names = ::android::getAidlHalInstanceNames(IKeyMintDevice::descriptor);
-    for (const string& km_name : km_names) {
+std::shared_ptr<IKeyMintDevice> matchingKeyMintDevice(const string& rpcName) {
+    auto rpcSuffix = deviceSuffix(rpcName);
+
+    vector<string> kmNames = ::android::getAidlHalInstanceNames(IKeyMintDevice::descriptor);
+    for (const string& kmName : kmNames) {
         // If the suffix of the KeyMint instance equals the suffix of the
         // RemotelyProvisionedComponent instance, assume they match.
-        if (deviceSuffix(km_name) == rp_suffix && AServiceManager_isDeclared(km_name.c_str())) {
-            ::ndk::SpAIBinder binder(AServiceManager_waitForService(km_name.c_str()));
-            *keyMint = IKeyMintDevice::fromBinder(binder);
-            return true;
+        if (deviceSuffix(kmName) == rpcSuffix && AServiceManager_isDeclared(kmName.c_str())) {
+            getHandle<IKeyMintDevice>(kmName);
         }
     }
-    return false;
+    return nullptr;
+}
+
+void unlockedBootloaderStatesImpliesNonNormalDiceChain(
+        const string& rpcInstanceName, std::shared_ptr<IRemotelyProvisionedComponent> rpc) {
+    auto challenge = randomBytes(MAX_CHALLENGE_SIZE);
+    bytevec csr;
+    auto status = rpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &csr);
+    ASSERT_TRUE(status.isOk()) << status.getDescription();
+
+    auto isProper = isCsrWithProperDiceChain(csr, rpcInstanceName);
+    ASSERT_TRUE(isProper) << isProper.message();
+    if (!*isProper) {
+        GTEST_SKIP() << "Skipping test: Only a proper DICE chain has a mode set.";
+    }
+
+    auto nonNormalMode = hasNonNormalModeInDiceChain(csr, rpcInstanceName);
+    ASSERT_TRUE(nonNormalMode) << nonNormalMode.message();
+
+    auto deviceState = ::android::base::GetProperty(string(kDeviceState), string(kDefaultValue));
+    auto verifiedBootState =
+            ::android::base::GetProperty(string(kVerifiedBootState), string(kDefaultValue));
+
+    ASSERT_TRUE(!deviceState.empty());
+    ASSERT_TRUE(!verifiedBootState.empty());
+
+    ASSERT_EQ(deviceState != "locked" || verifiedBootState != "green", *nonNormalMode)
+            << kDeviceState << " = '" << deviceState << "' and " << kVerifiedBootState << " = '"
+            << verifiedBootState << "', but the DICE "
+            << " chain has a " << (*nonNormalMode ? "non-normal" : "normal") << " DICE mode."
+            << " Locked devices must report normal, and unlocked devices must report "
+            << " non-normal.";
 }
 
 }  // namespace
@@ -173,8 +212,7 @@ class VtsRemotelyProvisionedComponentTests : public testing::TestWithParam<std::
   public:
     virtual void SetUp() override {
         if (AServiceManager_isDeclared(GetParam().c_str())) {
-            ::ndk::SpAIBinder binder(AServiceManager_waitForService(GetParam().c_str()));
-            provisionable_ = IRemotelyProvisionedComponent::fromBinder(binder);
+            provisionable_ = getHandle<IRemotelyProvisionedComponent>(GetParam());
         }
         ASSERT_NE(provisionable_, nullptr);
         auto status = provisionable_->getHardwareInfo(&rpcHardwareInfo);
@@ -183,10 +221,10 @@ class VtsRemotelyProvisionedComponentTests : public testing::TestWithParam<std::
             if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
                 GTEST_SKIP() << "The RKP VM is not supported on this system.";
             }
-            int apiLevel = get_vsr_api_level();
-            if (apiLevel < __ANDROID_API_V__) {
-                GTEST_SKIP() << "The RKP VM is supported only on V+ devices. Vendor API level: "
-                             << apiLevel;
+            int vendorApiLevel = get_vendor_api_level();
+            if (vendorApiLevel < __ANDROID_API_V__) {
+                GTEST_SKIP() << "The RKP VM is supported only on vendor API level >= 202404. This "
+                             << "device has vendor API level: " << vendorApiLevel;
             }
         }
         ASSERT_TRUE(status.isOk());
@@ -210,9 +248,7 @@ TEST(NonParameterizedTests, eachRpcHasAUniqueId) {
     std::set<std::string> uniqueIds;
     for (auto hal : ::android::getAidlHalInstanceNames(IRemotelyProvisionedComponent::descriptor)) {
         ASSERT_TRUE(AServiceManager_isDeclared(hal.c_str()));
-        ::ndk::SpAIBinder binder(AServiceManager_waitForService(hal.c_str()));
-        std::shared_ptr<IRemotelyProvisionedComponent> rpc =
-                IRemotelyProvisionedComponent::fromBinder(binder);
+        auto rpc = getHandle<IRemotelyProvisionedComponent>(hal);
         ASSERT_NE(rpc, nullptr);
 
         RpcHardwareInfo hwInfo;
@@ -237,11 +273,87 @@ TEST(NonParameterizedTests, eachRpcHasAUniqueId) {
  * on the device.
  */
 // @VsrTest = 3.10-015
-TEST(NonParameterizedTests, requireDiceOnDefaultInstanceIfStrongboxPresent) {
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level < 35) {
-        GTEST_SKIP() << "Applies only to VSR API level 35 or newer, this device is: "
-                     << vsr_api_level;
+// @VsrTest = 3.10-018.001
+TEST(NonParameterizedTests, requireDiceOnDefaultInstanceIfProtectedVmSupported) {
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < __ANDROID_API_V__) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 202404, but this device is: "
+                     << vendor_api_level;
+    }
+
+    if (!::android::base::GetBoolProperty("ro.boot.hypervisor.protected_vm.supported", false)) {
+        GTEST_SKIP() << "DICE is only required when protected VMs are supported";
+    }
+
+    auto rpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
+    ASSERT_NE(rpc, nullptr);
+
+    bytevec challenge = randomBytes(64);
+    bytevec csr;
+    auto status = rpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &csr);
+    EXPECT_TRUE(status.isOk()) << status.getDescription();
+
+    auto result = isCsrWithProperDiceChain(csr, DEFAULT_INSTANCE_NAME);
+    ASSERT_TRUE(result) << result.message();
+    ASSERT_TRUE(*result);
+}
+
+/**
+ * Verify that if a protected VM (also called `avf` or RKP VM) implementation exists, then the
+ * protected VM and the primary KeyMint (also called 'default') implementation's DICE certificate
+ * chain has the same root public key, i.e., the same UDS public key
+ */
+// @VsrTest = 7.1-003.001
+TEST(NonParameterizedTests, equalUdsPubInDiceCertChainForRkpVmAndPrimaryKeyMintInstances) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "The RKP VM (" << RKPVM_INSTANCE_NAME << ") is not present on this device.";
+    }
+
+    auto rkpVmRpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rkpVmRpc, nullptr) << "The RKP VM (" << RKPVM_INSTANCE_NAME
+                                 << ") RPC is unavailable.";
+
+    RpcHardwareInfo hardwareInfo;
+    auto status = rkpVmRpc->getHardwareInfo(&hardwareInfo);
+    if (!status.isOk()) {
+        GTEST_SKIP() << "The RKP VM is not supported on this system.";
+    }
+
+    bytevec rkpVmChallenge = randomBytes(MAX_CHALLENGE_SIZE);
+    bytevec rkpVmCsr;
+    auto rkpVmStatus =
+            rkpVmRpc->generateCertificateRequestV2({} /* keysToSign */, rkpVmChallenge, &rkpVmCsr);
+    ASSERT_TRUE(rkpVmStatus.isOk()) << rkpVmStatus.getDescription();
+
+    auto primaryKeyMintRpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
+    ASSERT_NE(primaryKeyMintRpc, nullptr)
+            << "The Primary KeyMint (" << DEFAULT_INSTANCE_NAME << ") RPC is unavailable.";
+
+    bytevec primaryKeyMintChallenge = randomBytes(MAX_CHALLENGE_SIZE);
+    bytevec primaryKeyMintCsr;
+    auto primaryKeyMintStatus = primaryKeyMintRpc->generateCertificateRequestV2(
+            {} /* keysToSign */, primaryKeyMintChallenge, &primaryKeyMintCsr);
+    ASSERT_TRUE(primaryKeyMintStatus.isOk()) << primaryKeyMintStatus.getDescription();
+
+    auto equal = compareRootPublicKeysInDiceChains(rkpVmCsr, RKPVM_INSTANCE_NAME, primaryKeyMintCsr,
+                                                   DEFAULT_INSTANCE_NAME);
+    ASSERT_TRUE(equal) << equal.message();
+    ASSERT_TRUE(*equal) << "Primary KeyMint and RKP VM RPCs have different UDS public keys";
+}
+
+/**
+ * Suppose that there is a StrongBox KeyMint instance on the device.
+ *
+ * Then, this test verifies that "keymint" is a substring of the component name in the configuration
+ * descriptor in the leaf certificate of the DICE chain for the primary ("default") KeyMint
+ * instance.
+ */
+// @VsrTest = 3.10-018.003
+TEST(NonParameterizedTests, componentNameInConfigurationDescriptorForPrimaryKeyMintInstance) {
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < 202504) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 202504, but this device is: "
+                     << vendor_api_level;
     }
 
     if (!AServiceManager_isDeclared(KEYMINT_STRONGBOX_INSTANCE_NAME.c_str())) {
@@ -258,9 +370,55 @@ TEST(NonParameterizedTests, requireDiceOnDefaultInstanceIfStrongboxPresent) {
     auto status = rpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &csr);
     EXPECT_TRUE(status.isOk()) << status.getDescription();
 
-    auto result = isCsrWithProperDiceChain(csr, DEFAULT_INSTANCE_NAME);
+    auto result = verifyComponentNameInKeyMintDiceChain(csr);
     ASSERT_TRUE(result) << result.message();
     ASSERT_TRUE(*result);
+}
+
+/**
+ * Check that ro.boot.vbmeta.device_state is not "locked" or ro.boot.verifiedbootstate
+ * is not "green" if and only if the mode on at least one certificate in the DICE chain
+ * is non-normal.
+ */
+TEST(NonParameterizedTests, unlockedBootloaderStatesImpliesNonNormalRkpVmDiceChain) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "The RKP VM (" << RKPVM_INSTANCE_NAME << ") is not present on this device.";
+    }
+
+    auto rpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rpc, nullptr) << "The RKP VM (" << RKPVM_INSTANCE_NAME << ") RPC is unavailable.";
+
+    RpcHardwareInfo hardwareInfo;
+    auto status = rpc->getHardwareInfo(&hardwareInfo);
+    if (!status.isOk()) {
+        GTEST_SKIP() << "The RKP VM is not supported on this system.";
+    }
+
+    unlockedBootloaderStatesImpliesNonNormalDiceChain(RKPVM_INSTANCE_NAME, rpc);
+}
+
+/**
+ * If trusty.security_vm.keymint.enabled is set to "true", then do the following.
+ *
+ * Check that ro.boot.vbmeta.device_state is not "locked" or ro.boot.verifiedbootstate
+ * is not "green" if and only if the mode on at least one certificate in the DICE chain
+ * is non-normal.
+ */
+TEST(NonParameterizedTests, unlockedBootloaderStatesImpliesNonNormalKeyMintInAVmDiceChain) {
+    if (!::android::base::GetBoolProperty("trusty.security_vm.keymint.enabled", false)) {
+        GTEST_SKIP() << "The KeyMint (" << DEFAULT_INSTANCE_NAME
+                     << ") instance is not inside a VM.";
+    }
+
+    auto rpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
+    ASSERT_NE(rpc, nullptr) << "The KeyMint (" << DEFAULT_INSTANCE_NAME
+                            << ") instance RPC is unavailable.";
+
+    RpcHardwareInfo hardwareInfo;
+    auto status = rpc->getHardwareInfo(&hardwareInfo);
+    ASSERT_TRUE(status.isOk()) << status.getDescription();
+
+    unlockedBootloaderStatesImpliesNonNormalDiceChain(DEFAULT_INSTANCE_NAME, rpc);
 }
 
 using GetHardwareInfoTests = VtsRemotelyProvisionedComponentTests;
@@ -336,9 +494,8 @@ TEST_P(GenerateKeyTests, generateEcdsaP256Key_prodMode) {
  */
 TEST_P(GenerateKeyTests, generateAndUseEcdsaP256Key_prodMode) {
     // See if there is a matching IKeyMintDevice for this IRemotelyProvisionedComponent.
-    std::shared_ptr<IKeyMintDevice> keyMint;
-    if (!matching_keymint_device(GetParam(), &keyMint)) {
-        // No matching IKeyMintDevice.
+    auto keyMint = matchingKeyMintDevice(GetParam());
+    if (!keyMint) {
         GTEST_SKIP() << "Skipping key use test as no matching KeyMint device found";
         return;
     }
@@ -931,9 +1088,8 @@ void parse_root_of_trust(const vector<uint8_t>& attestation_cert,
 // @VsrTest = 3.10-015
 TEST_P(CertificateRequestV2Test, DeviceInfo) {
     // See if there is a matching IKeyMintDevice for this IRemotelyProvisionedComponent.
-    std::shared_ptr<IKeyMintDevice> keyMint;
-    if (!matching_keymint_device(GetParam(), &keyMint)) {
-        // No matching IKeyMintDevice.
+    std::shared_ptr<IKeyMintDevice> keyMint = matchingKeyMintDevice(GetParam());
+    if (!keyMint) {
         GTEST_SKIP() << "Skipping key use test as no matching KeyMint device found";
         return;
     }
@@ -999,6 +1155,7 @@ TEST_P(CertificateRequestV2Test, DeviceInfo) {
 
     std::unique_ptr<cppbor::Array> csrPayload = std::move(*result);
     ASSERT_TRUE(csrPayload);
+    ASSERT_TRUE(csrPayload->size() > 2);
 
     auto deviceInfo = csrPayload->get(2)->asMap();
     ASSERT_TRUE(deviceInfo);
@@ -1044,10 +1201,10 @@ INSTANTIATE_REM_PROV_AIDL_TEST(VsrRequirementTest);
 TEST_P(VsrRequirementTest, VsrEnforcementTest) {
     RpcHardwareInfo hwInfo;
     ASSERT_TRUE(provisionable_->getHardwareInfo(&hwInfo).isOk());
-    int vsr_api_level = get_vsr_api_level();
-    if (vsr_api_level < 34) {
-        GTEST_SKIP() << "Applies only to VSR API level 34 or newer, this device is: "
-                     << vsr_api_level;
+    int vendor_api_level = get_vendor_api_level();
+    if (vendor_api_level < __ANDROID_API_U__) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 34, but this device is: "
+                     << vendor_api_level;
     }
     EXPECT_GE(hwInfo.versionNumber, 3)
             << "VSR 14+ requires IRemotelyProvisionedComponent v3 or newer.";

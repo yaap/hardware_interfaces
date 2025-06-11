@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable OperatorInfo {
     const int STATUS_UNKNOWN = 0;
     const int STATUS_AVAILABLE = 1;

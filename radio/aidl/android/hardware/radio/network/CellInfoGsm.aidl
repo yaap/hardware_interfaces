@@ -22,6 +22,7 @@ import android.hardware.radio.network.GsmSignalStrength;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellInfoGsm {
     CellIdentityGsm cellIdentityGsm;
     GsmSignalStrength signalStrengthGsm;

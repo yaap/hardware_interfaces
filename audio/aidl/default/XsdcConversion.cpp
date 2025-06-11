@@ -816,4 +816,23 @@ ConversionResult<AudioHalVolumeCurve::CurvePoint> convertCurvePointToAidl(
     }
     return aidlCurvePoint;
 }
+
+/**
+ * The hard coded id must be in sync with policy.h definition of legacy strategy ids.
+ */
+std::unordered_map<std::string, int> getLegacyProductStrategyMap() {
+#define STRATEGY_ENTRY(name, id) {"STRATEGY_" #name, static_cast<int>(id)}
+
+        return {STRATEGY_ENTRY(MEDIA, 5),
+                STRATEGY_ENTRY(PHONE, 0),
+                STRATEGY_ENTRY(SONIFICATION, 1),
+                STRATEGY_ENTRY(SONIFICATION_RESPECTFUL, 4),
+                STRATEGY_ENTRY(DTMF, 6),
+                STRATEGY_ENTRY(ENFORCED_AUDIBLE, 2),
+                STRATEGY_ENTRY(CALL_ASSISTANT, 7),
+                STRATEGY_ENTRY(TRANSMITTED_THROUGH_SPEAKER,8),
+                STRATEGY_ENTRY(ACCESSIBILITY, 3)};
+#undef STRATEGY_ENTRY
+}
+
 }  // namespace aidl::android::hardware::audio::core::internal

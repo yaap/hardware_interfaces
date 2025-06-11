@@ -36,6 +36,8 @@ parcelable SupportedValuesListResult {
      *
      * If the [propId, areaId] does not specify a supported values list, this
      * is {@code null}.
+     *
+     * This must be ignored if status is not {@code StatusCode.OK}.
      */
     @nullable List<RawPropValues> supportedValuesList;
 }

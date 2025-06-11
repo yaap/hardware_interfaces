@@ -24,6 +24,7 @@ package android.hardware.radio.config;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable PhoneCapability {
     const byte UNKNOWN = -1;
     /**

@@ -33,7 +33,7 @@
 
 package android.hardware.radio.ims.media;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable EvsParams {
   android.hardware.radio.ims.media.EvsBandwidth bandwidth = android.hardware.radio.ims.media.EvsBandwidth.NONE;
   android.hardware.radio.ims.media.EvsMode evsMode = android.hardware.radio.ims.media.EvsMode.INVALID;

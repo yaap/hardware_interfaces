@@ -23,6 +23,8 @@
 #include <map>
 #include "Sensor.h"
 
+#include <android-base/thread_annotations.h>
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -125,6 +127,11 @@ class Sensors : public BnSensors, public ISensorsEventCallback {
     void deleteEventFlag() {
         // Hold the lock to ensure we don't delete the flag while it's being used in postEvents()
         std::lock_guard<std::mutex> lock(mWriteLock);
+        deleteEventFlagLocked();
+    }
+
+    // Expects mWriteLock to be locked prior to invocation
+    void deleteEventFlagLocked() {
         if (mEventQueueFlag != nullptr) {
             status_t status = EventFlag::deleteEventFlag(&mEventQueueFlag);
             if (status != OK) {
@@ -193,7 +200,7 @@ class Sensors : public BnSensors, public ISensorsEventCallback {
     // The Wake Lock FMQ that is read to determine when the framework has handled WAKE_UP events
     std::unique_ptr<AidlMessageQueue<int32_t, SynchronizedReadWrite>> mWakeLockQueue;
     // Event Flag to signal to the framework when sensor events are available to be read
-    EventFlag* mEventQueueFlag;
+    EventFlag* mEventQueueFlag GUARDED_BY(mWriteLock);
     // Callback for asynchronous events, such as dynamic sensor connections.
     std::shared_ptr<::aidl::android::hardware::sensors::ISensorsCallback> mCallback;
     // A map of the available sensors.

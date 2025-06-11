@@ -78,10 +78,6 @@ class StreamContext {
         bool forceTransientBurst = false;
         // Force the "drain" command to be synchronous, going directly to the IDLE state.
         bool forceSynchronousDrain = false;
-        // Force the "drain early notify" command to keep the SM in the DRAINING state
-        // after sending 'onDrainReady' callback. The SM moves to IDLE after
-        // 'transientStateDelayMs'.
-        bool forceDrainToDraining = false;
     };
 
     StreamContext() = default;
@@ -108,6 +104,27 @@ class StreamContext {
           mOutEventCallback(outEventCallback),
           mStreamDataProcessor(streamDataProcessor),
           mDebugParameters(debugParameters) {}
+    StreamContext(std::unique_ptr<CommandMQ> commandMQ, std::unique_ptr<ReplyMQ> replyMQ,
+                  const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+                  const ::aidl::android::media::audio::common::AudioChannelLayout& channelLayout,
+                  int sampleRate, const ::aidl::android::media::audio::common::AudioIoFlags& flags,
+                  int32_t nominalLatencyMs, int32_t mixPortHandle, MmapBufferDescriptor&& mmapDesc,
+                  std::shared_ptr<IStreamOutEventCallback> outEventCallback,
+                  std::weak_ptr<sounddose::StreamDataProcessorInterface> streamDataProcessor,
+                  DebugParameters debugParameters)
+        : mCommandMQ(std::move(commandMQ)),
+          mInternalCommandCookie(std::rand() | 1 /* make sure it's not 0 */),
+          mReplyMQ(std::move(replyMQ)),
+          mFormat(format),
+          mChannelLayout(channelLayout),
+          mSampleRate(sampleRate),
+          mFlags(flags),
+          mNominalLatencyMs(nominalLatencyMs),
+          mMixPortHandle(mixPortHandle),
+          mMmapBufferDesc(std::move(mmapDesc)),
+          mOutEventCallback(outEventCallback),
+          mStreamDataProcessor(streamDataProcessor),
+          mDebugParameters(debugParameters) {}
 
     void fillDescriptor(StreamDescriptor* desc);
     std::shared_ptr<IStreamCallback> getAsyncCallback() const { return mAsyncCallback; }
@@ -123,7 +140,6 @@ class StreamContext {
     ::aidl::android::media::audio::common::AudioIoFlags getFlags() const { return mFlags; }
     bool getForceTransientBurst() const { return mDebugParameters.forceTransientBurst; }
     bool getForceSynchronousDrain() const { return mDebugParameters.forceSynchronousDrain; }
-    bool getForceDrainToDraining() const { return mDebugParameters.forceDrainToDraining; }
     size_t getFrameSize() const;
     int getInternalCommandCookie() const { return mInternalCommandCookie; }
     int32_t getMixPortHandle() const { return mMixPortHandle; }
@@ -141,13 +157,14 @@ class StreamContext {
     bool isInput() const {
         return mFlags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::input;
     }
+    bool isMmap() const { return ::aidl::android::hardware::audio::common::hasMmapFlag(mFlags); }
     bool isValid() const;
     // 'reset' is called on a Binder thread when closing the stream. Does not use
     // locking because it only cleans MQ pointers which were also set on the Binder thread.
     void reset();
     // 'advanceFrameCount' and 'getFrameCount' are only called on the worker thread.
-    long advanceFrameCount(size_t increase) { return mFrameCount += increase; }
-    long getFrameCount() const { return mFrameCount; }
+    int64_t advanceFrameCount(size_t increase) { return mFrameCount += increase; }
+    int64_t getFrameCount() const { return mFrameCount; }
 
   private:
     // Fields are non const to allow move assignment.
@@ -160,19 +177,37 @@ class StreamContext {
     ::aidl::android::media::audio::common::AudioIoFlags mFlags;
     int32_t mNominalLatencyMs;
     int32_t mMixPortHandle;
+    // Only one of `mDataMQ` or `mMapBufferDesc` can be active, depending on `isMmap`
     std::unique_ptr<DataMQ> mDataMQ;
+    MmapBufferDescriptor mMmapBufferDesc;
     std::shared_ptr<IStreamCallback> mAsyncCallback;
     std::shared_ptr<IStreamOutEventCallback> mOutEventCallback;  // Only used by output streams
     std::weak_ptr<sounddose::StreamDataProcessorInterface> mStreamDataProcessor;
     DebugParameters mDebugParameters;
-    long mFrameCount = 0;
+    int64_t mFrameCount = 0;
+};
+
+// Driver callbacks are executed on a dedicated thread, not on the worker thread.
+struct DriverCallbackInterface {
+    virtual ~DriverCallbackInterface() = default;
+    // Both callbacks are used to notify the worker about the progress of the playback
+    // offloaded to the DSP.
+
+    //   'bufferFramesLeft' is how many *encoded* frames are left in the buffer until
+    //    it depletes.
+    virtual void onBufferStateChange(size_t bufferFramesLeft) = 0;
+    //   'clipFramesLeft' is how many *decoded* frames are left until the end of the currently
+    //    playing clip. '0' frames left means that the clip has ended (by itself or due
+    //    to draining).
+    //   'hasNextClip' indicates whether the DSP has audio data for the next clip.
+    virtual void onClipStateChange(size_t clipFramesLeft, bool hasNextClip) = 0;
 };
 
 // This interface provides operations of the stream which are executed on the worker thread.
 struct DriverInterface {
     virtual ~DriverInterface() = default;
     // All the methods below are called on the worker thread.
-    virtual ::android::status_t init() = 0;  // This function is only called once.
+    virtual ::android::status_t init(DriverCallbackInterface* callback) = 0;  // Called once.
     virtual ::android::status_t drain(StreamDescriptor::DrainMode mode) = 0;
     virtual ::android::status_t flush() = 0;
     virtual ::android::status_t pause() = 0;
@@ -194,7 +229,8 @@ struct DriverInterface {
     virtual void shutdown() = 0;  // This function is only called once.
 };
 
-class StreamWorkerCommonLogic : public ::android::hardware::audio::common::StreamLogic {
+class StreamWorkerCommonLogic : public ::android::hardware::audio::common::StreamLogic,
+                                public DriverCallbackInterface {
   public:
     bool isClosed() const { return mState == StreamContext::STATE_CLOSED; }
     StreamDescriptor::State setClosed() {
@@ -214,7 +250,13 @@ class StreamWorkerCommonLogic : public ::android::hardware::audio::common::Strea
           mDriver(driver),
           mTransientStateDelayMs(context->getTransientStateDelayMs()) {}
     pid_t getTid() const;
+
+    // ::android::hardware::audio::common::StreamLogic
     std::string init() override;
+    // DriverCallbackInterface
+    void onBufferStateChange(size_t bufferFramesLeft) override;
+    void onClipStateChange(size_t clipFramesLeft, bool hasNextClip) override;
+
     void populateReply(StreamDescriptor::Reply* reply, bool isConnected) const;
     void populateReplyWrongState(StreamDescriptor::Reply* reply,
                                  const StreamDescriptor::Command& command) const;
@@ -289,6 +331,7 @@ class StreamInWorkerLogic : public StreamWorkerCommonLogic {
 
   private:
     bool read(size_t clientSize, StreamDescriptor::Reply* reply);
+    bool readMmap(StreamDescriptor::Reply* reply);
 };
 using StreamInWorker = StreamWorkerImpl<StreamInWorkerLogic>;
 
@@ -301,14 +344,18 @@ class StreamOutWorkerLogic : public StreamWorkerCommonLogic {
 
   protected:
     Status cycle() override;
+    // DriverCallbackInterface
+    void onBufferStateChange(size_t bufferFramesLeft) override;
+    void onClipStateChange(size_t clipFramesLeft, bool hasNextClip) override;
 
   private:
     bool write(size_t clientSize, StreamDescriptor::Reply* reply);
+    bool writeMmap(StreamDescriptor::Reply* reply);
 
     std::shared_ptr<IStreamOutEventCallback> mEventCallback;
 
-    enum OnDrainReadyStatus : int32_t { IGNORE /*used for DRAIN_ALL*/, UNSENT, SENT };
-    OnDrainReadyStatus mOnDrainReadyStatus = OnDrainReadyStatus::IGNORE;
+    enum DrainState : int32_t { NONE, ALL, EN /*early notify*/, EN_SENT };
+    std::atomic<DrainState> mDrainState = DrainState::NONE;
 };
 using StreamOutWorker = StreamWorkerImpl<StreamOutWorkerLogic>;
 
@@ -475,6 +522,7 @@ class StreamCommonImpl : virtual public StreamCommonInterface, virtual public Dr
     // the destructor in order to stop and join the worker thread in the case when the client
     // has not called 'IStreamCommon::close' method.
     void cleanupWorker();
+    void setWorkerThreadPriority(pid_t workerTid);
     void stopAndJoinWorker();
     void stopWorker();
 
@@ -629,6 +677,12 @@ class StreamWrapper {
         return ndk::ScopedAStatus::ok();
     }
 
+    void dump(int fd, const char** args, uint32_t numArgs) const {
+        auto s = ::ndk::ICInterface::asInterface(mStreamBinder.get());
+        if (s) s->dump(fd, args, numArgs);
+        return;
+    }
+
   private:
     std::weak_ptr<StreamCommonInterface> mStream;
     ndk::SpAIBinder mStreamBinder;
@@ -669,6 +723,12 @@ class Streams {
             return it->second.setGain(gain);
         }
         return ndk::ScopedAStatus::ok();
+    }
+    void dump(int32_t portConfigId, int fd, const char** args, uint32_t numArgs) const {
+        if (auto it = mStreams.find(portConfigId); it != mStreams.end()) {
+            it->second.dump(fd, args, numArgs);
+        }
+        return;
     }
 
   private:

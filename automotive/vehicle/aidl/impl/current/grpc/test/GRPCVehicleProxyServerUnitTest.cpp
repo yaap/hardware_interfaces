@@ -105,6 +105,10 @@ class MockVehicleHardware : public IVehicleHardware {
     MOCK_METHOD(aidlvhal::StatusCode, unsubscribe, (int32_t propId, int32_t areaId), (override));
     MOCK_METHOD(aidlvhal::StatusCode, updateSampleRate,
                 (int32_t propId, int32_t areaId, float sampleRate), (override));
+    MOCK_METHOD(std::vector<aidlvhal::MinMaxSupportedValueResult>, getMinMaxSupportedValues,
+                (const std::vector<PropIdAreaId>& propIdAreaIds), (override));
+    MOCK_METHOD(std::vector<aidlvhal::SupportedValuesListResult>, getSupportedValuesLists,
+                (const std::vector<PropIdAreaId>& propIdAreaIds), (override));
 };
 
 TEST(GRPCVehicleProxyServerUnitTest, ClientConnectDisconnect) {
@@ -117,7 +121,7 @@ TEST(GRPCVehicleProxyServerUnitTest, ClientConnectDisconnect) {
 
     constexpr auto kWaitForConnectionMaxTime = std::chrono::seconds(5);
     constexpr auto kWaitForStreamStartTime = std::chrono::seconds(1);
-    constexpr auto kWaitForUpdateDeliveryTime = std::chrono::milliseconds(100);
+    constexpr auto kWaitForUpdateDeliveryTime = std::chrono::seconds(1);
 
     auto updateReceived1 = std::make_shared<bool>(false);
     auto vehicleHardware1 = std::make_unique<GRPCVehicleHardware>(kFakeServerAddr);
@@ -129,7 +133,7 @@ TEST(GRPCVehicleProxyServerUnitTest, ClientConnectDisconnect) {
 
     // Client hardware 1 received update from the server.
     EXPECT_FALSE(*updateReceived1);
-    testHardwareRaw->onPropertyEvent({});
+    testHardwareRaw->onPropertyEvent({aidlvhal::VehiclePropValue{.prop = 1}});
     // Wait for the update delivery.
     std::this_thread::sleep_for(kWaitForUpdateDeliveryTime);
     EXPECT_TRUE(*updateReceived1);
@@ -148,7 +152,7 @@ TEST(GRPCVehicleProxyServerUnitTest, ClientConnectDisconnect) {
     // Both client hardware 1 and 2 received update from the server.
     EXPECT_FALSE(*updateReceived1);
     EXPECT_FALSE(*updateReceived2);
-    testHardwareRaw->onPropertyEvent({});
+    testHardwareRaw->onPropertyEvent({aidlvhal::VehiclePropValue{.prop = 1}});
     // Wait for the update delivery.
     std::this_thread::sleep_for(kWaitForUpdateDeliveryTime);
     EXPECT_TRUE(*updateReceived1);
@@ -163,7 +167,7 @@ TEST(GRPCVehicleProxyServerUnitTest, ClientConnectDisconnect) {
     // Client 1 exited, only client hardware 2 received update from the server.
     EXPECT_FALSE(*updateReceived1);
     EXPECT_FALSE(*updateReceived2);
-    testHardwareRaw->onPropertyEvent({});
+    testHardwareRaw->onPropertyEvent({aidlvhal::VehiclePropValue{.prop = 1}});
     // Wait for the update delivery.
     std::this_thread::sleep_for(kWaitForUpdateDeliveryTime);
     EXPECT_FALSE(*updateReceived1);
@@ -236,6 +240,87 @@ TEST(GRPCVehicleProxyServerUnitTest, Unsubscribe) {
 
     EXPECT_TRUE(grpcStatus.ok());
     EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::OK);
+}
+
+TEST(GRPCVehicleProxyServerUnitTest, testGetMinMaxSupportedValues) {
+    int32_t testPropId = 1234;
+    int32_t testAreaId = 4321;
+    int32_t testValue1 = 12345;
+    int32_t testValue2 = 54321;
+    auto mockHardware = std::make_unique<MockVehicleHardware>();
+    // We make sure this is alive inside the function scope.
+    MockVehicleHardware* mockHardwarePtr = mockHardware.get();
+    GrpcVehicleProxyServer server = GrpcVehicleProxyServer("", std::move(mockHardware));
+    ::grpc::ServerContext context;
+    proto::GetMinMaxSupportedValuesRequest request;
+    proto::GetMinMaxSupportedValuesResult result;
+    auto* requestPropIdAreaId = request.add_prop_id_area_id();
+    requestPropIdAreaId->set_prop_id(testPropId);
+    requestPropIdAreaId->set_area_id(testAreaId);
+    std::vector<PropIdAreaId> propIdAreaIds;
+    std::vector<aidlvhal::MinMaxSupportedValueResult> resultFromHardware = {{
+            .status = aidlvhal::StatusCode::OK,
+            .minSupportedValue = aidlvhal::RawPropValues{.int32Values = {testValue1}},
+            .maxSupportedValue = aidlvhal::RawPropValues{.int32Values = {testValue2}},
+    }};
+
+    EXPECT_CALL(*mockHardwarePtr, getMinMaxSupportedValues(_))
+            .WillOnce(DoAll(SaveArg<0>(&propIdAreaIds), Return(resultFromHardware)));
+
+    auto grpcStatus = server.GetMinMaxSupportedValues(&context, &request, &result);
+
+    ASSERT_THAT(propIdAreaIds, ::testing::SizeIs(1));
+    EXPECT_EQ(propIdAreaIds[0], PropIdAreaId({.propId = testPropId, .areaId = testAreaId}));
+
+    ASSERT_TRUE(grpcStatus.ok());
+    ASSERT_THAT(result.result(), ::testing::SizeIs(1));
+    EXPECT_EQ(result.result()[0].status(), proto::StatusCode::OK);
+    ASSERT_THAT(result.result()[0].min_supported_value().int32_values(), ::testing::SizeIs(1));
+    EXPECT_EQ(result.result()[0].min_supported_value().int32_values()[0], testValue1);
+    ASSERT_THAT(result.result()[0].max_supported_value().int32_values(), ::testing::SizeIs(1));
+    EXPECT_EQ(result.result()[0].max_supported_value().int32_values()[0], testValue2);
+}
+
+TEST(GRPCVehicleProxyServerUnitTest, testGetSupportedValuesLists) {
+    int32_t testPropId = 1234;
+    int32_t testAreaId = 4321;
+    int32_t testValue1 = 12345;
+    int32_t testValue2 = 54321;
+    auto mockHardware = std::make_unique<MockVehicleHardware>();
+    // We make sure this is alive inside the function scope.
+    MockVehicleHardware* mockHardwarePtr = mockHardware.get();
+    GrpcVehicleProxyServer server = GrpcVehicleProxyServer("", std::move(mockHardware));
+    ::grpc::ServerContext context;
+    proto::GetSupportedValuesListsRequest request;
+    proto::GetSupportedValuesListsResult result;
+    auto* requestPropIdAreaId = request.add_prop_id_area_id();
+    requestPropIdAreaId->set_prop_id(testPropId);
+    requestPropIdAreaId->set_area_id(testAreaId);
+    std::vector<PropIdAreaId> propIdAreaIds;
+    std::vector<aidlvhal::SupportedValuesListResult> resultFromHardware = {{
+            .status = aidlvhal::StatusCode::OK,
+            .supportedValuesList = std::vector<std::optional<aidlvhal::RawPropValues>>({
+                    aidlvhal::RawPropValues{.int32Values = {testValue1}},
+                    aidlvhal::RawPropValues{.int32Values = {testValue2}},
+            }),
+    }};
+
+    EXPECT_CALL(*mockHardwarePtr, getSupportedValuesLists(_))
+            .WillOnce(DoAll(SaveArg<0>(&propIdAreaIds), Return(resultFromHardware)));
+
+    auto grpcStatus = server.GetSupportedValuesLists(&context, &request, &result);
+
+    ASSERT_THAT(propIdAreaIds, ::testing::SizeIs(1));
+    EXPECT_EQ(propIdAreaIds[0], PropIdAreaId({.propId = testPropId, .areaId = testAreaId}));
+
+    ASSERT_TRUE(grpcStatus.ok());
+    ASSERT_THAT(result.result(), ::testing::SizeIs(1));
+    EXPECT_EQ(result.result()[0].status(), proto::StatusCode::OK);
+    ASSERT_THAT(result.result()[0].supported_values_list(), ::testing::SizeIs(2));
+    ASSERT_THAT(result.result()[0].supported_values_list()[0].int32_values(), ::testing::SizeIs(1));
+    EXPECT_THAT(result.result()[0].supported_values_list()[0].int32_values()[0], testValue1);
+    ASSERT_THAT(result.result()[0].supported_values_list()[1].int32_values(), ::testing::SizeIs(1));
+    EXPECT_THAT(result.result()[0].supported_values_list()[1].int32_values()[0], testValue2);
 }
 
 }  // namespace android::hardware::automotive::vehicle::virtualization

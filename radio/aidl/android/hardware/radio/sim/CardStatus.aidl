@@ -24,9 +24,10 @@ import android.hardware.radio.sim.PinState;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CardStatus {
     /*
-     * Card is physically absent from device. (Some old modems use STATE_ABSENT when the SIM
+     * Card is physically absent from the device. (Some old modems use STATE_ABSENT when the SIM
      * is powered off. This is no longer correct, however the platform will still support this
      * legacy behavior.)
      */
@@ -75,7 +76,7 @@ parcelable CardStatus {
      */
     String atr;
     /**
-     * Integrated Circuit Card IDentifier (ICCID) is Unique Identifier of the SIM CARD. File is
+     * Integrated Circuit Card IDentifier (ICCID) is the Unique Identifier of the SIM CARD. File is
      * located in the SIM card at EFiccid (0x2FE2) as per ETSI 102.221. The ICCID is defined by
      * the ITU-T recommendation E.118 ISO/IEC 7816.
      *

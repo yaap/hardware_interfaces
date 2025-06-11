@@ -87,12 +87,14 @@ import android.hardware.security.secureclock.TimeStampToken;
  *        SHA-2 256.
  *      - Unpadded, RSAES-OAEP and RSAES-PKCS1-v1_5 padding modes for RSA encryption.
  *
- * o   ECDSA
+ * o   ECDSA and ECDH
  *
+ *      - IKeyMintDevices must support elliptic curve signing (Purpose::SIGN, Purpose::ATTEST_KEY)
+ *        and key agreement operations (Purpose::AGREE_KEY).
  *      - TRUSTED_ENVIRONMENT IKeyMintDevices must support NIST curves P-224, P-256, P-384 and
  *        P-521.  STRONGBOX IKeyMintDevices must support NIST curve P-256.
- *      - TRUSTED_ENVIRONMENT IKeyMintDevices must support SHA1, SHA-2 224, SHA-2 256, SHA-2
- *        384 and SHA-2 512 digest modes.  STRONGBOX IKeyMintDevices must support SHA-2 256.
+ *      - For signing, TRUSTED_ENVIRONMENT IKeyMintDevices must support SHA1, SHA-2 224, SHA-2 256,
+ *        SHA-2 384 and SHA-2 512 digest modes.  STRONGBOX IKeyMintDevices must support SHA-2 256.
  *      - TRUSTED_ENVRIONMENT IKeyMintDevices must support curve 25519 for Purpose::SIGN (Ed25519,
  *        as specified in RFC 8032), Purpose::ATTEST_KEY (Ed25519) or for KeyPurpose::AGREE_KEY
  *        (X25519, as specified in RFC 7748).  However, a key must have exactly one of these
@@ -302,12 +304,12 @@ interface IKeyMintDevice {
      *   PaddingMode::RSA_OAEP, PaddingMode::RSA_PSS, PaddingMode::RSA_PKCS1_1_5_ENCRYPT and
      *   PaddingMode::RSA_PKCS1_1_5_SIGN for RSA keys.
      *
-     * == ECDSA Keys ==
+     * == ECDSA/ECDH Keys ==
      *
-     * Tag::EC_CURVE must be provided to generate an ECDSA key.  If it is not provided, generateKey
-     * must return ErrorCode::UNSUPPORTED_KEY_SIZE or ErrorCode::UNSUPPORTED_EC_CURVE. TEE
-     * IKeyMintDevice implementations must support all required curves.  StrongBox implementations
-     * must support P_256 and no other curves.
+     * Tag::EC_CURVE must be provided to generate an elliptic curve key.  If it is not provided,
+     * generateKey must return ErrorCode::UNSUPPORTED_KEY_SIZE or ErrorCode::UNSUPPORTED_EC_CURVE.
+     * TEE IKeyMintDevice implementations must support all required curves.  StrongBox
+     * implementations must support P_256 and no other curves.
      *
      * Tag::CERTIFICATE_NOT_BEFORE and Tag::CERTIFICATE_NOT_AFTER must be provided to specify the
      * valid date range for the returned X.509 certificate holding the public key. If omitted,
@@ -318,10 +320,10 @@ interface IKeyMintDevice {
      * than one purpose should be rejected with ErrorCode::INCOMPATIBLE_PURPOSE.
      * StrongBox implementation do not support CURVE_25519.
      *
-     * Tag::DIGEST specifies digest algorithms that may be used with the new key.  TEE
-     * IKeyMintDevice implementations must support all Digest values (see Digest.aidl) for ECDSA
-     * keys; Ed25519 keys only support Digest::NONE. StrongBox IKeyMintDevice implementations must
-     * support SHA_2_256.
+     * Tag::DIGEST specifies digest algorithms that may be used with the new key when used for
+     * signing.  TEE IKeyMintDevice implementations must support all Digest values (see Digest.aidl)
+     * for ECDSA keys; Ed25519 keys only support Digest::NONE. StrongBox IKeyMintDevice
+     * implementations must support SHA_2_256.
      *
      * == AES Keys ==
      *
@@ -477,8 +479,8 @@ interface IKeyMintDevice {
      *        structure.
      *
      * @param unwrappingParams must contain any parameters needed to perform the unwrapping
-     *        operation.  For example, if the wrapping key is an AES key the block and padding modes
-     *        must be specified in this argument.
+     *        operation.  For example, the padding mode for the RSA wrapping key must be specified
+     *        in this argument.
      *
      * @param passwordSid specifies the password secure ID (SID) of the user that owns the key being
      *        installed.  If the authorization list in wrappedKeyData contains a
@@ -548,10 +550,14 @@ interface IKeyMintDevice {
     void deleteKey(in byte[] keyBlob);
 
     /**
-     * Deletes all keys in the hardware keystore.  Used when keystore is reset completely.  After
-     * this function is called all keys with Tag::ROLLBACK_RESISTANCE in their hardware-enforced
-     * authorization lists must be rendered permanently unusable.  Keys without
-     * Tag::ROLLBACK_RESISTANCE may or may not be rendered unusable.
+     * Deletes all keys in the hardware keystore. Used when keystore is reset completely.
+     *
+     * For StrongBox KeyMint: After this function is called all keys created previously must be
+     * rendered permanently unusable.
+     *
+     * For TEE KeyMint: After this function is called all keys with Tag::ROLLBACK_RESISTANCE in
+     * their hardware-enforced authorization lists must be rendered permanently unusable.  Keys
+     * without Tag::ROLLBACK_RESISTANCE may or may not be rendered unusable.
      */
     void deleteAllKeys();
 
@@ -828,6 +834,7 @@ interface IKeyMintDevice {
      *
      * @param passwordOnly N/A due to the deprecation
      * @param timestampToken N/A due to the deprecation
+     * @deprecated Method has never been used due to design limitations
      */
     void deviceLocked(in boolean passwordOnly, in @nullable TimeStampToken timestampToken);
 
@@ -966,10 +973,11 @@ interface IKeyMintDevice {
      * IKeyMintDevice must ignore KeyParameters with tags not included in the following list:
      *
      * o Tag::MODULE_HASH: holds a hash that must be included in attestations in the moduleHash
-     *   field of the software enforced authorization list. If Tag::MODULE_HASH is included in more
-     *   than one setAdditionalAttestationInfo call, the implementation should compare the initial
-     *   KeyParamValue with the more recent one. If they differ, the implementation should fail with
-     *   ErrorCode::MODULE_HASH_ALREADY_SET. If they are the same, no action needs to be taken.
+     *   field of the software enforced authorization list.
+     *
+     * @return error ErrorCode::MODULE_HASH_ALREADY_SET if this is not the first time
+     *         setAdditionalAttestationInfo is called with Tag::MODULE_HASH, and the associated
+     *         KeyParamValue of the current call doesn't match the KeyParamValue of the first call.
      */
     void setAdditionalAttestationInfo(in KeyParameter[] info);
 }

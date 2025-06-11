@@ -17,7 +17,9 @@
 #pragma once
 
 #include <aidl/android/hardware/contexthub/BnContextHub.h>
+#include <aidl/android/hardware/contexthub/BnEndpointCommunication.h>
 
+#include <atomic>
 #include <mutex>
 #include <unordered_set>
 #include <vector>
@@ -56,54 +58,79 @@ class ContextHub : public BnContextHub {
 
     ::ndk::ScopedAStatus getHubs(std::vector<HubInfo>* _aidl_return) override;
     ::ndk::ScopedAStatus getEndpoints(std::vector<EndpointInfo>* _aidl_return) override;
-    ::ndk::ScopedAStatus registerEndpoint(const EndpointInfo& in_endpoint) override;
-    ::ndk::ScopedAStatus unregisterEndpoint(const EndpointInfo& in_endpoint) override;
-    ::ndk::ScopedAStatus registerEndpointCallback(
-            const std::shared_ptr<IEndpointCallback>& in_callback) override;
-    ::ndk::ScopedAStatus requestSessionIdRange(int32_t in_size,
-                                               std::vector<int32_t>* _aidl_return) override;
-    ::ndk::ScopedAStatus openEndpointSession(
-            int32_t in_sessionId, const EndpointId& in_destination, const EndpointId& in_initiator,
-            const std::optional<std::string>& in_serviceDescriptor) override;
-    ::ndk::ScopedAStatus sendMessageToEndpoint(int32_t in_sessionId,
-                                               const Message& in_msg) override;
-    ::ndk::ScopedAStatus sendMessageDeliveryStatusToEndpoint(
-            int32_t in_sessionId, const MessageDeliveryStatus& in_msgStatus) override;
-    ::ndk::ScopedAStatus closeEndpointSession(int32_t in_sessionId, Reason in_reason) override;
-    ::ndk::ScopedAStatus endpointSessionOpenComplete(int32_t in_sessionId) override;
+    ::ndk::ScopedAStatus registerEndpointHub(
+            const std::shared_ptr<IEndpointCallback>& in_callback, const HubInfo& in_hubInfo,
+            std::shared_ptr<IEndpointCommunication>* _aidl_return) override;
 
   private:
-    struct EndpointSession {
-        int32_t sessionId;
-        EndpointId initiator;
-        EndpointId peer;
-        std::optional<std::string> serviceDescriptor;
+    class HubInterface : public BnEndpointCommunication {
+      public:
+        HubInterface(ContextHub& hal, const std::shared_ptr<IEndpointCallback>& in_callback,
+                     const HubInfo& in_hubInfo)
+            : mHal(hal), mEndpointCallback(in_callback), kInfo(in_hubInfo) {}
+        ~HubInterface() = default;
+
+        ::ndk::ScopedAStatus registerEndpoint(const EndpointInfo& in_endpoint) override;
+        ::ndk::ScopedAStatus unregisterEndpoint(const EndpointInfo& in_endpoint) override;
+        ::ndk::ScopedAStatus requestSessionIdRange(int32_t in_size,
+                                                   std::array<int32_t, 2>* _aidl_return) override;
+        ::ndk::ScopedAStatus openEndpointSession(
+                int32_t in_sessionId, const EndpointId& in_destination,
+                const EndpointId& in_initiator,
+                const std::optional<std::string>& in_serviceDescriptor) override;
+        ::ndk::ScopedAStatus sendMessageToEndpoint(int32_t in_sessionId,
+                                                   const Message& in_msg) override;
+        ::ndk::ScopedAStatus sendMessageDeliveryStatusToEndpoint(
+                int32_t in_sessionId, const MessageDeliveryStatus& in_msgStatus) override;
+        ::ndk::ScopedAStatus closeEndpointSession(int32_t in_sessionId, Reason in_reason) override;
+        ::ndk::ScopedAStatus endpointSessionOpenComplete(int32_t in_sessionId) override;
+        ::ndk::ScopedAStatus unregister() override;
+
+      private:
+        friend class ContextHub;
+
+        struct EndpointSession {
+            int32_t sessionId;
+            EndpointId initiator;
+            EndpointId peer;
+            std::optional<std::string> serviceDescriptor;
+        };
+
+        //! Finds an endpoint in the range defined by the endpoints
+        //! @return whether the endpoint was found
+        template <typename Iter>
+        bool findEndpoint(const EndpointId& target, const Iter& begin, const Iter& end) {
+            for (auto iter = begin; iter != end; ++iter) {
+                if (iter->id.id == target.id && iter->id.hubId == target.hubId) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        //! Endpoint storage and information
+        ContextHub& mHal;
+        std::shared_ptr<IEndpointCallback> mEndpointCallback;
+        const HubInfo kInfo;
+
+        std::atomic<bool> mActive = true;
+
+        std::mutex mEndpointMutex;
+        std::vector<EndpointInfo> mEndpoints;
+        std::vector<EndpointSession> mEndpointSessions;
+        uint16_t mBaseSessionId;
+        uint16_t mMaxSessionId;
     };
 
     static constexpr uint32_t kMockHubId = 0;
-
-    //! Finds an endpoint in the range defined by the endpoints
-    //! @return whether the endpoint was found
-    template <typename Iter>
-    bool findEndpoint(const EndpointId& target, const Iter& begin, const Iter& end) {
-        for (auto iter = begin; iter != end; ++iter) {
-            if (iter->id.id == target.id && iter->id.hubId == target.hubId) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     std::shared_ptr<IContextHubCallback> mCallback;
 
     std::unordered_set<char16_t> mConnectedHostEndpoints;
 
-    //! Endpoint storage and information
-    std::mutex mEndpointMutex;
-    std::vector<EndpointInfo> mEndpoints;
-    std::vector<EndpointSession> mEndpointSessions;
-    std::shared_ptr<IEndpointCallback> mEndpointCallback;
-    int32_t mMaxValidSessionId = 0;
+    std::mutex mHostHubsLock;
+    std::unordered_map<int64_t, std::shared_ptr<HubInterface>> mIdToHostHub;
+    int32_t mNextSessionIdBase = 0;
 };
 
 }  // namespace contexthub

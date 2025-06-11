@@ -86,7 +86,7 @@ TEST(UtilsTest, ChannelCountForLayoutMask) {
             std::make_pair(6UL, AudioChannelLayout::LAYOUT_5POINT1),
             std::make_pair(8UL, AudioChannelLayout::LAYOUT_7POINT1),
             std::make_pair(16UL, AudioChannelLayout::LAYOUT_9POINT1POINT6),
-            std::make_pair(13UL, AudioChannelLayout::LAYOUT_13POINT_360RA),
+            std::make_pair(13UL, AudioChannelLayout::LAYOUT_13POINT0),
             std::make_pair(24UL, AudioChannelLayout::LAYOUT_22POINT2),
             std::make_pair(3UL, AudioChannelLayout::LAYOUT_STEREO_HAPTIC_A),
             std::make_pair(4UL, AudioChannelLayout::LAYOUT_STEREO_HAPTIC_AB)};

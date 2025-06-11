@@ -61,6 +61,8 @@ oneway interface IRadioNetwork {
      * Response function is IRadioNetworkResponse.getAvailableBandModesResponse()
      *
      * This is available when android.hardware.telephony.radio.access is defined.
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void getAvailableBandModes(in int serial);
 
@@ -247,6 +249,8 @@ oneway interface IRadioNetwork {
      * Response function is IRadioNetworkResponse.setBandModeResponse()
      *
      * This is available when android.hardware.telephony.radio.access is defined.
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setBandMode(in int serial, in RadioBandMode mode);
 
@@ -348,6 +352,8 @@ oneway interface IRadioNetwork {
      * Response function is IRadioNetworkResponse.setLocationUpdatesResponse()
      *
      * This is available when android.hardware.telephony.radio.access is defined.
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setLocationUpdates(in int serial, in boolean enable);
 
@@ -441,6 +447,8 @@ oneway interface IRadioNetwork {
      * Response function is IRadioNetworkResponse.setSuppServiceNotificationsResponse()
      *
      * This is available when android.hardware.telephony.calling is defined.
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setSuppServiceNotifications(in int serial, in boolean enable);
 
@@ -487,7 +495,7 @@ oneway interface IRadioNetwork {
      * Requests that network personalization be deactivated
      *
      * @param serial Serial number of request.
-     * @param netPin Network depersonlization code
+     * @param netPin Network depersonalization code
      *
      * Response function is IRadioNetworkResponse.supplyNetworkDepersonalizationResponse()
      *
@@ -726,8 +734,6 @@ oneway interface IRadioNetwork {
      * satellite LTE service.
      *
      * @param serial Serial number of request
-     * @param simSlot Indicates the SIM slot to which this API will be applied. The modem will use
-     *                this information to determine the relevant carrier.
      * @param carrierPlmnArray Array of roaming PLMN used for connecting to satellite networks
      *                         supported by user subscription.
      * @param allSatellitePlmnArray allSatellitePlmnArray contains all the PLMNs present in
@@ -741,8 +747,8 @@ oneway interface IRadioNetwork {
      *
      * This is available when android.hardware.telephony.radio.access is defined.
      */
-    void setSatellitePlmn(in int serial, in int simSlot, in String[] carrierPlmnArray,
-            in String[] allSatellitePlmnArray);
+    void setSatellitePlmn(
+            in int serial, in String[] carrierPlmnArray, in String[] allSatellitePlmnArray);
 
     /**
      * Enable or disable satellite in the cellular modem associated with a carrier.
@@ -752,25 +758,22 @@ oneway interface IRadioNetwork {
      * If modem is enabled, modem should attach to only PLMNs present in carrierPlmnArray.
      *
      * @param serial Serial number of request
-     * @param simSlot Indicates the SIM slot to which this API will be applied. The modem will use
-     *                this information to determine the relevant carrier.
      * @param satelliteEnabled {@code true} to enable satellite, {@code false} to disable satellite.
      *
      * Response function is IRadioNetworkResponse.setSatelliteEnabledForCarrier()
      *
      * This is available when android.hardware.telephony.radio.access is defined.
      */
-    void setSatelliteEnabledForCarrier(in int serial, in int simSlot, boolean satelliteEnabled);
+    void setSatelliteEnabledForCarrier(in int serial, boolean satelliteEnabled);
 
     /**
      * Check whether satellite is enabled in the cellular modem associated with a carrier.
      *
      * @param serial Serial number of request
-     * @param simSlot Indicates the SIM slot to which this API will be applied.
      *
      * Response function is IRadioNetworkResponse.isSatelliteEnabledForCarrier()
      *
      * This is available when android.hardware.telephony.radio.access is defined.
      */
-    void isSatelliteEnabledForCarrier(in int serial, in int simSlot);
+    void isSatelliteEnabledForCarrier(in int serial);
 }

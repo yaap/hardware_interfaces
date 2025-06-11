@@ -26,6 +26,7 @@ package {
 
 cc_test {
     name: "VtsHalAutomotiveVehicle_TargetTest",
+    team: "trendy_team_aaos_carframework_triage",
     srcs: [
         "src/*.cpp",
     ],
@@ -44,7 +45,7 @@ cc_test {
         "vhalclient_defaults",
     ],
     header_libs: [
-        "IVehicleGeneratedHeaders-V4",
+        "IVehicleGeneratedHeaders",
     ],
     test_suites: [
         "general-tests",

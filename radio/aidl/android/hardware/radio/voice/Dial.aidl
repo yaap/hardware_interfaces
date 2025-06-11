@@ -21,6 +21,7 @@ import android.hardware.radio.voice.UusInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable Dial {
     /**
      * Use subscription default value

@@ -134,10 +134,10 @@ bool SubmixRoute::hasAtleastOneStreamOpen() {
 // - the peer input is in standby AFTER having been active.
 // We DO block if:
 // - the input was never activated to avoid discarding first frames in the pipe in case capture
-// start was delayed
+//   start was delayed
 bool SubmixRoute::shouldBlockWrite() {
     std::lock_guard guard(mLock);
-    return (mStreamInOpen || (mStreamInStandby && (mReadCounterFrames != 0)));
+    return mStreamInOpen && (!mStreamInStandby || mReadCounterFrames == 0);
 }
 
 long SubmixRoute::updateReadCounterFrames(size_t frameCount) {

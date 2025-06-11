@@ -29,142 +29,168 @@ parcelable VehicleAreaConfig {
     int areaId;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * The optional minimum int32 value at boot time.
      *
-     * Only applicable for {@code INT32} type property. Ignored for other types.
+     * Assume unspecified if both {@code minInt32Value} and
+     * {@code maxInt32Value} is 0. If either one is not 0, then we assume min
+     * and max both take effect. If no minimum or maximum value is available at
+     * boot time, both {@code minInt32Value} and {@code maxInt32Value} must be
+     * set to 0.
      *
-     * The optional minimum value at boot time.
+     * Note that this property only represents the minimum value at boot time
+     * and may not represent the current actual minimum value.
      *
-     * For backward compatibility,
-     * if {@code HasSupportedValueInfo.hasMinSupportedValue} is {@code true},
-     * and {@code HasSupportedValueInfo.hasMaxSupportedValue} is {@code true},
-     * this must be equal to the min supported value
-     * ({@code MinMaxSupportedValueResult.minSupportedValue}) at boot time.
+     * Only applicable for {@code INT32} type property. For other types, must be
+     * 0.
      *
-     * If no minimum or maximum value is available at boot time, both
-     * {@code minInt32Value} and {@code maxInt32Value} must be set to 0.
+     * For certain properties, this field must be specified, see
+     * {@code VehicleProperty} documentation.
      *
-     * If either one is not 0, then we assume min and max both take effect.
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * specified, {@code HasSupportedValueInfo.hasMinSupportedValue} must be
+     * {@code true}.
      */
     int minInt32Value;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * The optional maximum int32 value at boot time.
      *
-     * Only applicable for {@code INT32} type property. Ignored for other types.
+     * Assume unspecified if both {@code minInt32Value} and
+     * {@code maxInt32Value} is 0. If either one is not 0, then we assume min
+     * and max both take effect. If no minimum or maximum value is available at
+     * boot time, both {@code minInt32Value} and {@code maxInt32Value} must be
+     * set to 0.
      *
-     * The optional maximum value at boot time.
+     * Note that this property only represents the maximum value at boot time
+     * and may not represent the current actual maximum value.
      *
-     * For backward compatibility,
-     * if {@code HasSupportedValueInfo.hasMinSupportedValue} is {@code true},
-     * and {@code HasSupportedValueInfo.hasMaxSupportedValue} is {@code true},
-     * this must be equal to the max supported value
-     * ({@code MinMaxSupportedValueResult.maxSupportedValue}) at boot time.
+     * Only applicable for {@code INT32} type property. For other types, must be
+     * 0.
      *
-     * If no minimum or maximum value is available at boot time, both
-     * {@code minInt32Value} and {@code maxInt32Value} must be set to 0.
+     * Must be larger or equal to {@code minInt32Value}.
      *
-     * If either one is not 0, then we assume min and max both take effect.
+     * For certain properties, this field must be specified, see
+     * {@code VehicleProperty} documentation.
+     *
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * specified, {@code HasSupportedValueInfo.hasMaxSupportedValue} must be
+     * {@code true}.
      */
     int maxInt32Value;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * The optional minimum int64 value at boot time.
      *
-     * Only applicable for {@code INT64} type property. Ignored for other types.
+     * Assume unspecified if both {@code minInt64Value} and
+     * {@code maxInt64Value} is 0. If either one is not 0, then we assume min
+     * and max both take effect. If no minimum or maximum value is available at
+     * boot time, both {@code minInt64Value} and {@code maxInt64Value} must be
+     * set to 0.
      *
-     * The optional minimum value at boot time.
+     * Note that this property only represents the minimum value at boot time
+     * and may not represent the current actual minimum value.
      *
-     * For backward compatibility,
-     * if {@code HasSupportedValueInfo.hasMinSupportedValue} is {@code true},
-     * and {@code HasSupportedValueInfo.hasMaxSupportedValue} is {@code true},
-     * this must be equal to the min supported value
-     * ({@code MinMaxSupportedValueResult.minSupportedValue}) at boot time.
+     * Only applicable for {@code INT64} type property. For other types, must be
+     * 0.
      *
-     * If no minimum or maximum value is available at boot time, both
-     * {@code minInt64Value} and {@code maxInt64Value} must be set to 0.
+     * For certain properties, this field must be specified, see
+     * {@code VehicleProperty} documentation.
      *
-     * If either one is not 0, then we assume min and max both take effect.
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * specified, {@code HasSupportedValueInfo.hasMinSupportedValue} must be
+     * {@code true}.
      */
     long minInt64Value;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * The optional maximum int64 value at boot time.
      *
-     * Only applicable for {@code INT64} type property. Ignored for other types.
+     * Assume unspecified if both {@code minInt64Value} and
+     * {@code maxInt64Value} is 0. If either one is not 0, then we assume min
+     * and max both take effect. If no minimum or maximum value is available at
+     * boot time, both {@code minInt64Value} and {@code maxInt64Value} must be
+     * set to 0.
      *
-     * The optional maximum value at boot time.
+     * Note that this property only represents the maximum value at boot time
+     * and may not represent the current actual maximum value.
      *
-     * For backward compatibility,
-     * if {@code HasSupportedValueInfo.hasMinSupportedValue} is {@code true},
-     * and {@code HasSupportedValueInfo.hasMaxSupportedValue} is {@code true},
-     * this must be equal to the max supported value
-     * ({@code MinMaxSupportedValueResult.maxSupportedValue}) at boot time.
+     * Only applicable for {@code INT64} type property. For other types, must be
+     * 0.
      *
-     * If no minimum or maximum value is available at boot time, both
-     * {@code minInt64Value} and {@code maxInt64Value} must be set to 0.
+     * Must be larger or equal to {@code minInt64Value}.
      *
-     * If either one is not 0, then we assume min and max both take effect.
+     * For certain properties, this field must be specified, see
+     * {@code VehicleProperty} documentation.
+     *
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * specified, {@code HasSupportedValueInfo.hasMaxSupportedValue} must be
+     * {@code true}.
      */
     long maxInt64Value;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * The optional minimum float value at boot time.
      *
-     * Only applicable for {@code FLOAT} type property. Ignored for other types.
+     * Assume unspecified if both {@code minFloatValue} and
+     * {@code maxFloatValue} is 0. If either one is not 0, then we assume min
+     * and max both take effect. If no minimum or maximum value is available at
+     * boot time, both {@code minFloatValue} and {@code maxFloatValue} must be
+     * set to 0.
      *
-     * The optional minimum value at boot time.
+     * Note that this property only represents the minimum value at boot time
+     * and may not represent the current actual minimum value.
      *
-     * For backward compatibility,
-     * if {@code HasSupportedValueInfo.hasMinSupportedValue} is {@code true},
-     * and {@code HasSupportedValueInfo.hasMaxSupportedValue} is {@code true},
-     * this must be equal to the min supported value
-     * ({@code MinMaxSupportedValueResult.minSupportedValue}) at boot time.
+     * Only applicable for {@code FLOAT} type property. For other types, must be
+     * 0.
      *
-     * If no minimum or maximum value is available at boot time, both
-     * {@code minFloatValue} and {@code maxFloatValue} must be set to 0.
+     * For certain properties, this field must be specified, see
+     * {@code VehicleProperty} documentation.
      *
-     * If either one is not 0, then we assume min and max both take effect.
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * specified, {@code HasSupportedValueInfo.hasMinSupportedValue} must be
+     * {@code true}.
      */
     float minFloatValue;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * The optional maximum float value at boot time.
      *
-     * Only applicable for {@code FLOAT} type property. Ignored for other types.
+     * Assume unspecified if both {@code minFloatValue} and
+     * {@code maxFloatValue} is 0. If either one is not 0, then we assume min
+     * and max both take effect. If no minimum or maximum value is available at
+     * boot time, both {@code minFloatValue} and {@code maxFloatValue} must be
+     * set to 0.
      *
-     * The optional maximum value at boot time.
+     * Note that this property only represents the maximum value at boot time
+     * and may not represent the current actual maximum value.
      *
-     * For backward compatibility,
-     * if {@code HasSupportedValueInfo.hasMinSupportedValue} is {@code true},
-     * and {@code HasSupportedValueInfo.hasMaxSupportedValue} is {@code true},
-     * this must be equal to the max supported value
-     * ({@code MinMaxSupportedValueResult.maxSupportedValue}) at boot time.
+     * Only applicable for {@code FLOAT} type property. For other types, must be
+     * 0.
      *
-     * If no minimum or maximum value is available at boot time, both
-     * {@code minFloatValue} and {@code maxFloatValue} must be set to 0.
+     * Must be larger or equal to {@code minFloatValue}.
      *
-     * If either one is not 0, then we assume min and max both take effect.
+     * For certain properties, this field must be specified, see
+     * {@code VehicleProperty} documentation.
+     *
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * specified, {@code HasSupportedValueInfo.hasMinSupportedValue} must be
+     * {@code true}.
      */
     float maxFloatValue;
 
     /**
-     * @deprecated client should use {@code getMinMaxSupportedValue} instead.
+     * Optional supported subset of supported enum values at boot time.
      *
      * Only applicable for property with {@code @data_enum} annotation. Ignored
      * for other properties.
-     *
-     * Optional supported subset of supported values at boot time.
      *
      * If the property has a @data_enum and supportedEnumValues is {@code null},
      * then it is assumed all @data_enum values are supported unless specified
      * through another mechanism.
      *
-     * For backward compatibility, if
-     * {@code HasSupportedValueInfo.hasSupportedValuesList} is {@code true}
-     * and this property has {@code data_enum} annotation,
-     * this must be set to the same as
-     * {@code SupportedValuesListResult.supportedValuesList} at boot time.
+     * If {@code HasSupportedValueInfo} is not {@code null} and this field is
+     * not {@code null}, {@code HasSupportedValueInfo.hasSupportedValuesList}
+     * must be {@code true}.
      */
     @nullable long[] supportedEnumValues;
 
@@ -230,10 +256,29 @@ parcelable VehicleAreaConfig {
     boolean supportVariableUpdateRate;
 
     /**
-     * For VHAL implementation >= V4, this must not be {@code null}. This specifies whether
-     * this property may have min/max supported value or supported values list.
+     * This specifies whether this property may have min/max supported value or supported values
+     * list for [propId, areaId] that supports new supported values APIs.
      *
-     * For VHAL implementation < V4, this is always {@code null} and is not accessed.
+     * If this is not {@code null}. The client may use {@code getMinMaxSupportedValue},
+     * {@code getSupportedValuesLists}, {@code subscribeSupportedValueChange},
+     * {@code unsubscribeSupportedValueChange}.
+     *
+     * If this is not {@code null}. The VHAL implementation must implement
+     * {@code getMinMaxSupportedValue}, {@code getSupportedValuesLists},
+     * {@code subscribeSupportedValueChange} for the [propId, areaId].
+     *
+     * This should be non-null if the VHAL implementation wants to expose
+     * min/max supported value or supported values list that may change dynamically. For example,
+     * if the max HVAC fan speed may change due to HVAC power settings.
+     *
+     * This should not be non-null if the VHAL implementation wants to expose supported
+     * values list for property ID that is not an enum type (hence do not support
+     * {@code VehicleAreaConfig#supportedEnumValues}).
+     *
+     * If this is {@code null}, the APIs mentioned before are not supported.
+     * Client must fallback to use static supported value information in {@code VehicleAreaConfig}.
+     *
+     * For VHAL implementation < V4, this is always {@code null}.
      */
     @nullable HasSupportedValueInfo hasSupportedValueInfo;
 }

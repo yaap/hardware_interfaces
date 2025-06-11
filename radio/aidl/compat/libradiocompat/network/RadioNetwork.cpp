@@ -41,7 +41,7 @@ ScopedAStatus RadioNetwork::getAllowedNetworkTypesBitmap(int32_t serial) {
     if (mHal1_6) {
         mHal1_6->getAllowedNetworkTypesBitmap(serial);
     } else {
-        mHal1_5->getPreferredNetworkType(serial);
+        mHal1_5->getPreferredNetworkTypeBitmap(serial);
     }
     return ok();
 }
@@ -166,7 +166,7 @@ ScopedAStatus RadioNetwork::setAllowedNetworkTypesBitmap(int32_t serial, int32_t
     if (mHal1_6) {
         mHal1_6->setAllowedNetworkTypesBitmap(serial, raf);
     } else {
-        mHal1_5->setPreferredNetworkType(serial, getNetworkTypeFromRaf(raf));
+        mHal1_5->setPreferredNetworkTypeBitmap(serial, raf);
     }
     return ok();
 }
@@ -403,7 +403,7 @@ ScopedAStatus RadioNetwork::setSecurityAlgorithmsUpdatedEnabled(int32_t serial, 
 }
 
 ScopedAStatus RadioNetwork::setSatellitePlmn(
-        int32_t serial, int32_t /*simSlot*/, const std::vector<std::string>& /*carrierPlmnArray*/,
+        int32_t serial, const std::vector<std::string>& /*carrierPlmnArray*/,
         const std::vector<std::string>& /*allSatellitePlmnArray*/) {
     LOG_CALL << serial;
     LOG(ERROR) << " setSatellitePlmn is unsupported by HIDL HALs";
@@ -411,15 +411,14 @@ ScopedAStatus RadioNetwork::setSatellitePlmn(
     return ok();
 }
 
-ScopedAStatus RadioNetwork::setSatelliteEnabledForCarrier(int32_t serial, int32_t /*simSlot*/,
-                                                          bool /*enable*/) {
+ScopedAStatus RadioNetwork::setSatelliteEnabledForCarrier(int32_t serial, bool /*enable*/) {
     LOG_CALL << serial;
     LOG(ERROR) << " setSatelliteEnabledForCarrier is unsupported by HIDL HALs";
     respond()->setSatelliteEnabledForCarrierResponse(notSupported(serial));
     return ok();
 }
 
-ScopedAStatus RadioNetwork::isSatelliteEnabledForCarrier(int32_t serial, int32_t /*simSlot*/) {
+ScopedAStatus RadioNetwork::isSatelliteEnabledForCarrier(int32_t serial) {
     LOG_CALL << serial;
     LOG(ERROR) << " isSatelliteEnabledForCarrier is unsupported by HIDL HALs";
     respond()->isSatelliteEnabledForCarrierResponse(notSupported(serial), false);

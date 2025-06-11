@@ -83,7 +83,7 @@ cc_binary {
     vendor: true,
     relative_install_path: "hw",
     init_rc: ["fingerprint-default.rc"],
-    vintf_fragments: ["fingerprint-default.xml"],
+    vintf_fragment_modules: ["android.hardware.biometrics.fingerprint-service.default.vintf"],
     local_include_dirs: ["include"],
     srcs: [
     ],
@@ -103,6 +103,12 @@ cc_binary {
     apex_available: [
         "//apex_available:platform",
     ],
+}
+
+vintf_fragment {
+    name: "android.hardware.biometrics.fingerprint-service.default.vintf",
+    src: "fingerprint-default.xml",
+    vendor: true,
 }
 
 cc_test {

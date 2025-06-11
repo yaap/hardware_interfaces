@@ -57,4 +57,15 @@ public class VehiclePropertyAnnotationJavaTest {
                 .that(doesAnnotationMapContainsAllProps(AccessForVehicleProperty.values))
                 .isTrue();
     }
+
+    @Test
+    @SmallTest
+    public void testAnnotations() {
+        for (int propertyId : AnnotationsForVehicleProperty.values.keySet()) {
+            assertWithMessage("annotations set for property: "
+                    + VehicleProperty.$.toString(propertyId) + " must not be empty")
+                    .that(AnnotationsForVehicleProperty.values.get(propertyId))
+                    .isNotEmpty();
+        }
+    }
 }

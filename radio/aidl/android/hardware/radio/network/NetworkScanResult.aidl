@@ -22,6 +22,7 @@ import android.hardware.radio.network.CellInfo;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 @SuppressWarnings(value={"redundant-name"})
 parcelable NetworkScanResult {
     /**

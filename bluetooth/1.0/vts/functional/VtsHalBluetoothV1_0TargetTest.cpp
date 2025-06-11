@@ -20,7 +20,6 @@
 #include <android/hardware/bluetooth/1.0/IBluetoothHci.h>
 #include <android/hardware/bluetooth/1.0/IBluetoothHciCallbacks.h>
 #include <android/hardware/bluetooth/1.0/types.h>
-#include <hardware/bluetooth.h>
 #include <utils/Log.h>
 
 #include <VtsHalHidlTargetCallbackBase.h>
@@ -535,6 +534,8 @@ void BluetoothHidlTest::sendAndCheckACL(int num_packets, size_t size,
     // Check the loopback of the ACL packet
     ASSERT_TRUE(bluetooth_cb->WaitForCallback(kCallbackNameAclEventReceived)
                     .no_timeout);
+    ASSERT_FALSE(acl_queue.empty());
+
     hidl_vec<uint8_t> acl_loopback = acl_queue.front();
     acl_queue.pop();
 

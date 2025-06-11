@@ -24,14 +24,11 @@ package {
     default_applicable_licenses: ["hardware_interfaces_license"],
 }
 
-cc_test {
-    name: "VtsHalWifiChipTargetTest",
+cc_defaults {
+    name: "wifi_vendor_hal_vts_test_defaults",
     defaults: [
         "VtsHalTargetTestDefaults",
         "use_libaidlvintf_gtest_helper_static",
-    ],
-    srcs: [
-        "wifi_chip_aidl_test.cpp",
     ],
     shared_libs: [
         "libbinder",
@@ -48,110 +45,42 @@ cc_test {
         "general-tests",
         "vts",
     ],
+}
+
+cc_test {
+    name: "VtsHalWifiTargetTest",
+    defaults: ["wifi_vendor_hal_vts_test_defaults"],
+    srcs: ["wifi_aidl_test.cpp"],
+}
+
+cc_test {
+    name: "VtsHalWifiChipTargetTest",
+    defaults: ["wifi_vendor_hal_vts_test_defaults"],
+    srcs: ["wifi_chip_aidl_test.cpp"],
 }
 
 cc_test {
     name: "VtsHalWifiStaIfaceTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-        "use_libaidlvintf_gtest_helper_static",
-    ],
-    srcs: [
-        "wifi_sta_iface_aidl_test.cpp",
-    ],
-    shared_libs: [
-        "libbinder",
-        "libbinder_ndk",
-        "libvndksupport",
-    ],
-    static_libs: [
-        "VtsHalWifiTargetTestUtil",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi-V3-ndk",
-        "libwifi-system-iface",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
+    defaults: ["wifi_vendor_hal_vts_test_defaults"],
+    srcs: ["wifi_sta_iface_aidl_test.cpp"],
 }
 
 cc_test {
     name: "VtsHalWifiApIfaceTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-        "use_libaidlvintf_gtest_helper_static",
-    ],
-    srcs: [
-        "wifi_ap_iface_aidl_test.cpp",
-    ],
-    shared_libs: [
-        "libbinder",
-        "libbinder_ndk",
-        "libvndksupport",
-    ],
-    static_libs: [
-        "VtsHalWifiTargetTestUtil",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi-V3-ndk",
-        "libwifi-system-iface",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
+    defaults: ["wifi_vendor_hal_vts_test_defaults"],
+    srcs: ["wifi_ap_iface_aidl_test.cpp"],
 }
 
 cc_test {
     name: "VtsHalWifiNanIfaceTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-        "use_libaidlvintf_gtest_helper_static",
-    ],
-    srcs: [
-        "wifi_nan_iface_aidl_test.cpp",
-    ],
-    shared_libs: [
-        "libbinder",
-        "libbinder_ndk",
-        "libvndksupport",
-    ],
-    static_libs: [
-        "VtsHalWifiTargetTestUtil",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi-V3-ndk",
-        "libwifi-system-iface",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
+    defaults: ["wifi_vendor_hal_vts_test_defaults"],
+    srcs: ["wifi_nan_iface_aidl_test.cpp"],
 }
 
 cc_test {
     name: "VtsHalWifiRttControllerTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-        "use_libaidlvintf_gtest_helper_static",
-    ],
-    srcs: [
-        "wifi_rtt_controller_aidl_test.cpp",
-    ],
-    shared_libs: [
-        "libbinder",
-        "libbinder_ndk",
-        "libvndksupport",
-    ],
-    static_libs: [
-        "VtsHalWifiTargetTestUtil",
-        "android.hardware.wifi.common-V2-ndk",
-        "android.hardware.wifi-V3-ndk",
-        "libwifi-system-iface",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
+    defaults: ["wifi_vendor_hal_vts_test_defaults"],
+    srcs: ["wifi_rtt_controller_aidl_test.cpp"],
 }
 
 cc_library_static {

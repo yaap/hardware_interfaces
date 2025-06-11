@@ -31,6 +31,7 @@ const float kMockBearingAccuracyDegrees = 90;
 const int64_t kMockTimestamp = 1519930775453L;
 const float kGpsL1FreqHz = 1575.42 * 1e6;
 const float kGpsL5FreqHz = 1176.45 * 1e6;
+const float kGalE1FreqHz = 1575.42 * 1e6;
 const float kGloG1FreqHz = 1602.0 * 1e6;
 const float kIrnssL5FreqHz = 1176.45 * 1e6;
 

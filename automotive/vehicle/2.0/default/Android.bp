@@ -163,6 +163,7 @@ cc_library_static {
 
 cc_test {
     name: "android.hardware.automotive.vehicle@2.0-manager-unit-tests",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     defaults: ["vhal_v2_0_target_defaults"],
     whole_static_libs: ["android.hardware.automotive.vehicle@2.0-manager-lib"],
@@ -197,6 +198,7 @@ cc_test {
 
 cc_test {
     name: "android.hardware.automotive.vehicle@2.0-default-impl-unit-tests",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     defaults: ["vhal_v2_0_target_defaults"],
     srcs: [
@@ -231,6 +233,7 @@ cc_test {
 
 cc_test {
     name: "android.hardware.automotive.vehicle@2.0-default-config-test",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     defaults: ["vhal_v2_0_target_defaults"],
     srcs: [

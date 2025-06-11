@@ -24,6 +24,7 @@ package android.hardware.radio.network;
 @VintfStability
 @JavaDerive(toString=true)
 @SuppressWarnings(value={"redundant-name"})
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable NrVopsInfo {
     /**
      * Emergency services not supported

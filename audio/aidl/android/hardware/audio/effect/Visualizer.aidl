@@ -20,10 +20,12 @@ import android.hardware.audio.effect.VendorExtension;
 
 /**
  * Visualizer specific definitions. Visualizer enables application to retrieve part of the currently
- * playing audio for visualization purpose
+ * playing audio for visualization purpose. The output is identical to the input, while
+ * visualization data is generated separately based on scalingMode and captureSamples parameter
+ * values.
  *
  * All parameter settings must be inside the range of Capability.Range.visualizer definition if the
- * definition for the corresponding parameter tag exist. See more detals about Range in Range.aidl.
+ * definition for the corresponding parameter tag exist. See more details about Range in Range.aidl.
  *
  */
 @VintfStability
@@ -50,14 +52,24 @@ union Visualizer {
     enum ScalingMode {
         /**
          * Defines a capture mode where amplification is applied based on the content of the
-         * captured data. This is the default Visualizer mode, and is suitable for music
-         * visualization.
+         * captured data in order to normalize it to the unsigned 8 bit sample range. This is the
+         * default Visualizer mode, and is suitable for music visualization.
+         *
+         * For example,
+         * Input Range:[-0.5, 0.5] -> Visualization Data Range:[0, 255]
+         * Input Range:[-1,1]      -> Visualization Data Range:[0, 255]
+         *
          */
         NORMALIZED = 0,
         /**
-         * Defines a capture mode where the playback volume will affect (scale) the range of the
-         * captured data. A low playback volume will lead to low sample and fft values, and
-         * vice-versa.
+         * Defines a capture mode where no additional scaling is done on the input audio data thus
+         * the visualization data remains as close as possible to the input. The visualization
+         * directly reflects the actual loudness and waveform shape, rather than fitting everything
+         * into a normalized visual range.
+         *
+         * For example,
+         * Input Range:[-0.5, 0.5] -> Visualization Data Range:[64, 192]
+         * Input Range:[-1,1]      -> Visualization Data Range:[0, 255]
          */
         AS_PLAYED,
     }
@@ -93,7 +105,10 @@ union Visualizer {
     Measurement measurement;
 
     /**
-     * Get only parameter to get the latest captured samples of PCM samples (8 bits per sample).
+     * Get only parameter to get the latest captured samples of PCM samples (8 bits per sample). It
+     * represents the visualization data. The capture is intended for passing to applications, and
+     * it contains the same audio data as the input, but with intentionally lower sample resolution,
+     * and optionally normalized, depending on the scalingMode.
      */
     byte[] captureSampleBuffer;
 

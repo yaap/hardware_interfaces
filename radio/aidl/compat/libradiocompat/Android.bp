@@ -25,16 +25,16 @@ package {
 cc_defaults {
     name: "android.hardware.radio-library.aidl_deps",
     shared_libs: [
-        "android.hardware.radio.config-V4-ndk",
-        "android.hardware.radio.data-V4-ndk",
-        "android.hardware.radio.ims-V3-ndk",
-        "android.hardware.radio.ims.media-V3-ndk",
-        "android.hardware.radio.messaging-V4-ndk",
-        "android.hardware.radio.modem-V4-ndk",
-        "android.hardware.radio.network-V4-ndk",
+        "android.hardware.radio.config-V5-ndk",
+        "android.hardware.radio.data-V5-ndk",
+        "android.hardware.radio.ims-V4-ndk",
+        "android.hardware.radio.ims.media-V4-ndk",
+        "android.hardware.radio.messaging-V5-ndk",
+        "android.hardware.radio.modem-V5-ndk",
+        "android.hardware.radio.network-V5-ndk",
         "android.hardware.radio.sap-V1-ndk",
-        "android.hardware.radio.sim-V4-ndk",
-        "android.hardware.radio.voice-V4-ndk",
+        "android.hardware.radio.sim-V5-ndk",
+        "android.hardware.radio.voice-V5-ndk",
     ],
 }
 

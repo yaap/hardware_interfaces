@@ -64,4 +64,5 @@ ConversionResult<aidlaudiocommon::AudioStreamType> convertAudioStreamTypeToAidl(
         const engineconfiguration::Stream& xsdStreamType);
 ConversionResult<int32_t> convertAudioFlagsToAidl(
         const std::vector<engineconfiguration::FlagType>& xsdcFlagTypeVec);
+std::unordered_map<std::string, int> getLegacyProductStrategyMap();
 }  // namespace aidl::android::hardware::audio::core::internal

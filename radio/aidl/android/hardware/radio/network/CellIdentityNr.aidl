@@ -26,6 +26,7 @@ import android.hardware.radio.network.OperatorInfo;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CellIdentityNr {
     /**
      * 3-digit Mobile Country Code, in range[0, 999]; This value must be valid for registered or

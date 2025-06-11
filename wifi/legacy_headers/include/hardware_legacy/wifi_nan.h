@@ -477,6 +477,9 @@ typedef struct {
     bool is_pairing_supported;
     bool is_set_cluster_id_supported;
     bool is_suspension_supported;
+    bool is_periodic_ranging_supported;
+    wifi_rtt_bw supported_bw;
+    u8 num_rx_chains_supported;
 } NanCapabilities;
 
 /*
@@ -747,6 +750,12 @@ typedef struct {
     u32 distance_ingress_mm;
     /* Egress distance in millmilliimeters (optional) */
     u32 distance_egress_mm;
+    /* Number of FTM frames per burst */
+    u32 rtt_burst_size;
+    /* RTT Measurement Preamble */
+    wifi_rtt_preamble preamble;
+    /* Channel information */
+    wifi_channel_info channel_info;
 } NanRangingCfg;
 
 /* NAN Ranging request's response */

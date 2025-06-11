@@ -22,6 +22,7 @@ package android.hardware.radio.network;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable NrIndicators {
     /**
      * Indicates that if E-UTRA-NR Dual Connectivity (EN-DC) is supported by the primary serving

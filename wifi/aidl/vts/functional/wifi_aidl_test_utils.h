@@ -43,6 +43,8 @@ std::shared_ptr<IWifiApIface> getWifiApIface(const char* instance_name);
 std::shared_ptr<IWifiApIface> getWifiApIface(std::shared_ptr<IWifiChip> wifi_chip);
 std::shared_ptr<IWifiApIface> getBridgedWifiApIface(const char* instance_name);
 std::shared_ptr<IWifiApIface> getBridgedWifiApIface(std::shared_ptr<IWifiChip> wifi_chip);
+std::shared_ptr<IWifiApIface> getWifiApOrBridgedApIface(std::shared_ptr<IWifiChip> wifi_chip,
+                                                        IWifiChip::ApIfaceParams params);
 // Configure the chip in a mode to support the creation of the provided iface type.
 bool configureChipToSupportConcurrencyType(const std::shared_ptr<IWifiChip>& wifi_chip,
                                            IfaceConcurrencyType type, int* configured_mode_id);
@@ -57,3 +59,7 @@ bool isAidlServiceAvailable(const char* instance_name);
 // Generate test vendor data.
 std::vector<OuiKeyedData> generateOuiKeyedDataList(int size);
 std::optional<std::vector<std::optional<OuiKeyedData>>> generateOuiKeyedDataListOptional(int size);
+
+// Generate test ApIfaceParams
+IWifiChip::ApIfaceParams generateApIfaceParams(IfaceConcurrencyType type, bool uses_mlo,
+                                               int oui_size);

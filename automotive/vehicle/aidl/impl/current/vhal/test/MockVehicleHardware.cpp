@@ -26,10 +26,12 @@ namespace vehicle {
 
 using ::aidl::android::hardware::automotive::vehicle::GetValueRequest;
 using ::aidl::android::hardware::automotive::vehicle::GetValueResult;
+using ::aidl::android::hardware::automotive::vehicle::MinMaxSupportedValueResult;
 using ::aidl::android::hardware::automotive::vehicle::SetValueRequest;
 using ::aidl::android::hardware::automotive::vehicle::SetValueResult;
 using ::aidl::android::hardware::automotive::vehicle::StatusCode;
 using ::aidl::android::hardware::automotive::vehicle::SubscribeOptions;
+using ::aidl::android::hardware::automotive::vehicle::SupportedValuesListResult;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropValue;
 
@@ -200,6 +202,20 @@ std::set<std::pair<int32_t, int32_t>> MockVehicleHardware::getSubscribedContinuo
     return propIdAreaIds;
 }
 
+std::vector<SupportedValuesListResult> MockVehicleHardware::getSupportedValuesLists(
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    mSupportedValuesListRequest = propIdAreaIds;
+    return mSupportedValuesListResponse;
+}
+
+std::vector<MinMaxSupportedValueResult> MockVehicleHardware::getMinMaxSupportedValues(
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    mMinMaxSupportedValueRequest = propIdAreaIds;
+    return mMinMaxSupportedValueResponse;
+}
+
 void MockVehicleHardware::registerOnPropertyChangeEvent(
         std::unique_ptr<const PropertyChangeCallback> callback) {
     std::scoped_lock<std::mutex> lockGuard(mLock);
@@ -210,6 +226,12 @@ void MockVehicleHardware::registerOnPropertySetErrorEvent(
         std::unique_ptr<const PropertySetErrorCallback> callback) {
     std::scoped_lock<std::mutex> lockGuard(mLock);
     mPropertySetErrorCallback = std::move(callback);
+}
+
+void MockVehicleHardware::registerSupportedValueChangeCallback(
+        std::unique_ptr<const SupportedValueChangeCallback> callback) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    mSupportedValueChangeCallback = std::move(callback);
 }
 
 void MockVehicleHardware::setPropertyConfigs(const std::vector<VehiclePropConfig>& configs) {
@@ -267,9 +289,65 @@ void MockVehicleHardware::setPropertyOnChangeEventBatchingWindow(std::chrono::na
     mEventBatchingWindow = window;
 }
 
+void MockVehicleHardware::setSupportedValuesListResponse(
+        const std::vector<SupportedValuesListResult>& response) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    mSupportedValuesListResponse = response;
+}
+
+void MockVehicleHardware::setMinMaxSupportedValueResponse(
+        const std::vector<MinMaxSupportedValueResult>& response) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    mMinMaxSupportedValueResponse = response;
+}
+
+std::vector<PropIdAreaId> MockVehicleHardware::getSupportedValuesListRequest() {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    return mSupportedValuesListRequest;
+}
+
+std::vector<PropIdAreaId> MockVehicleHardware::getMinMaxSupportedValueRequest() {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    return mMinMaxSupportedValueRequest;
+}
+
 std::chrono::nanoseconds MockVehicleHardware::getPropertyOnChangeEventBatchingWindow() {
     std::scoped_lock<std::mutex> lockGuard(mLock);
     return mEventBatchingWindow;
+}
+
+StatusCode MockVehicleHardware::subscribeSupportedValueChange(
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    if (auto it = mStatusByFunctions.find(__func__); it != mStatusByFunctions.end()) {
+        if (StatusCode status = it->second; status != StatusCode::OK) {
+            return status;
+        }
+    }
+    for (const auto& propIdAreaId : propIdAreaIds) {
+        mSubscribedSupportedValueChangePropIdAreaIds.insert(propIdAreaId);
+    }
+    return StatusCode::OK;
+}
+
+StatusCode MockVehicleHardware::unsubscribeSupportedValueChange(
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    if (auto it = mStatusByFunctions.find(__func__); it != mStatusByFunctions.end()) {
+        if (StatusCode status = it->second; status != StatusCode::OK) {
+            return status;
+        }
+    }
+    for (const auto& propIdAreaId : propIdAreaIds) {
+        mSubscribedSupportedValueChangePropIdAreaIds.erase(propIdAreaId);
+    }
+    return StatusCode::OK;
+}
+
+std::unordered_set<PropIdAreaId, PropIdAreaIdHash>
+MockVehicleHardware::getSubscribedSupportedValueChangePropIdAreaIds() {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    return mSubscribedSupportedValueChangePropIdAreaIds;
 }
 
 template <class ResultType>
@@ -345,6 +423,12 @@ void MockVehicleHardware::sendOnPropertySetErrorEvent(
         const std::vector<SetValueErrorEvent>& errorEvents) {
     std::scoped_lock<std::mutex> lockGuard(mLock);
     (*mPropertySetErrorCallback)(errorEvents);
+}
+
+void MockVehicleHardware::sendSupportedValueChangeEvent(
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    (*mSupportedValueChangeCallback)(propIdAreaIds);
 }
 
 bool MockVehicleHardware::getAllPropertyConfigsCalled() {

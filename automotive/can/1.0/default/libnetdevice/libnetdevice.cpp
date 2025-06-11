@@ -126,6 +126,10 @@ bool addAddr4(std::string_view ifname, std::string_view addr, uint8_t prefixlen)
     req->ifa_prefixlen = prefixlen;
     req->ifa_flags = IFA_F_SECONDARY;
     req->ifa_index = nametoindex(ifname);
+    if (req->ifa_index == 0) {
+        LOG(ERROR) << "Interface " << ifname << " doesn't exist";
+        return false;
+    }
 
     auto addrn = inetAddr(addr);
     req.add(IFLA_ADDRESS, addrn);
@@ -141,7 +145,7 @@ bool add(std::string_view dev, std::string_view type) {
 
     {
         auto linkinfo = req.addNested(IFLA_LINKINFO);
-        req.addBuffer(IFLA_INFO_KIND, type);
+        req.add(IFLA_INFO_KIND, type);
     }
 
     nl::Socket sock(NETLINK_ROUTE);
@@ -151,6 +155,22 @@ bool add(std::string_view dev, std::string_view type) {
 bool del(std::string_view dev) {
     nl::MessageFactory<ifinfomsg> req(RTM_DELLINK);
     req.add(IFLA_IFNAME, dev);
+
+    nl::Socket sock(NETLINK_ROUTE);
+    return sock.send(req) && sock.receiveAck(req);
+}
+
+bool rename(std::string_view from, std::string_view to) {
+    if (!down(from)) return false;
+
+    nl::MessageFactory<ifinfomsg> req(RTM_SETLINK);
+    req.add(IFLA_IFNAME, to);
+
+    req->ifi_index = nametoindex(from);
+    if (req->ifi_index == 0) {
+        LOG(ERROR) << "Interface " << from << " doesn't exist";
+        return false;
+    }
 
     nl::Socket sock(NETLINK_ROUTE);
     return sock.send(req) && sock.receiveAck(req);

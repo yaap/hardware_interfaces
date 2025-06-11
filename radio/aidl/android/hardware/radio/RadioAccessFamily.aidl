@@ -52,11 +52,7 @@ enum RadioAccessFamily {
     /** @deprecated use LTE instead. */
     LTE_CA = 1 << RadioTechnology.LTE_CA,
     /**
-     * 5G NR. This is only use in 5G Standalone mode.
+     * 5G NR. This is only used in 5G Standalone mode.
      */
     NR = 1 << RadioTechnology.NR,
-    /**
-     * 3GPP NB-IOT (Narrowband Internet of Things) over Non-Terrestrial-Networks technology.
-     */
-    NB_IOT_NTN = 1 << RadioTechnology.NB_IOT_NTN,
 }

@@ -33,7 +33,7 @@
 
 package android.hardware.radio.voice;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable LastCallFailCauseInfo {
   android.hardware.radio.voice.LastCallFailCause causeCode = android.hardware.radio.voice.LastCallFailCause.INVALID;
   String vendorCause;

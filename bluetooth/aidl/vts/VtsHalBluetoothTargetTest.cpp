@@ -397,12 +397,18 @@ void BluetoothAidlTest::handle_no_ops() {
   while (!event_queue.empty()) {
     std::vector<uint8_t> event;
     event_queue.front(event);
-    auto complete_view = ::bluetooth::hci::CommandCompleteView::Create(
+
+    auto event_view =
         ::bluetooth::hci::EventView::Create(::bluetooth::hci::PacketView<true>(
-            std::make_shared<std::vector<uint8_t>>(event))));
-    auto status_view = ::bluetooth::hci::CommandCompleteView::Create(
-        ::bluetooth::hci::EventView::Create(::bluetooth::hci::PacketView<true>(
-            std::make_shared<std::vector<uint8_t>>(event))));
+            std::make_shared<std::vector<uint8_t>>(event)));
+    if (!event_view.IsValid()) {
+      break;
+    }
+
+    auto status_view = ::bluetooth::hci::CommandStatusView::Create(event_view);
+    auto complete_view =
+        ::bluetooth::hci::CommandCompleteView::Create(event_view);
+
     bool is_complete_no_op =
         complete_view.IsValid() &&
         complete_view.GetCommandOpCode() == ::bluetooth::hci::OpCode::NONE;

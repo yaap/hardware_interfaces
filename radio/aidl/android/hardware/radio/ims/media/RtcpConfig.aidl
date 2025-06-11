@@ -19,6 +19,7 @@ package android.hardware.radio.ims.media;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable RtcpConfig {
     /** Canonical name that will be sent to all session participants */
     String canonicalName;

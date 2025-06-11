@@ -19,8 +19,10 @@
 #include <VtsCoreUtil.h>
 #include <aidl/Gtest.h>
 #include <aidl/Vintf.h>
+#include <aidl/android/hardware/wifi/Akm.h>
 #include <aidl/android/hardware/wifi/BnWifi.h>
 #include <aidl/android/hardware/wifi/BnWifiRttControllerEventCallback.h>
+#include <aidl/android/hardware/wifi/RttSecureConfig.h>
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_status.h>
@@ -29,15 +31,19 @@
 
 #include "wifi_aidl_test_utils.h"
 
+using aidl::android::hardware::wifi::Akm;
 using aidl::android::hardware::wifi::BnWifiRttControllerEventCallback;
 using aidl::android::hardware::wifi::IWifiRttController;
 using aidl::android::hardware::wifi::RttBw;
 using aidl::android::hardware::wifi::RttCapabilities;
 using aidl::android::hardware::wifi::RttConfig;
+using aidl::android::hardware::wifi::RttLciInformation;
+using aidl::android::hardware::wifi::RttLcrInformation;
 using aidl::android::hardware::wifi::RttPeerType;
 using aidl::android::hardware::wifi::RttPreamble;
 using aidl::android::hardware::wifi::RttResponder;
 using aidl::android::hardware::wifi::RttResult;
+using aidl::android::hardware::wifi::RttSecureConfig;
 using aidl::android::hardware::wifi::RttType;
 using aidl::android::hardware::wifi::WifiChannelInfo;
 using aidl::android::hardware::wifi::WifiChannelWidthInMhz;
@@ -85,6 +91,15 @@ class WifiRttControllerAidlTest : public testing::TestWithParam<std::string> {
         RttCapabilities caps = {};
         EXPECT_TRUE(wifi_rtt_controller_->getCapabilities(&caps).isOk());
         return caps;
+    }
+
+    int getMostSignificantSetBitMask(int n) {
+        if (n == 0) return 0;
+        int pos = std::numeric_limits<int>::digits - 1;
+        while ((n & (1 << pos)) == 0) {
+            pos--;
+        }
+        return 1 << pos;
     }
 
     std::shared_ptr<IWifiRttController> wifi_rtt_controller_;
@@ -158,6 +173,67 @@ TEST_P(WifiRttControllerAidlTest, EnableResponder) {
     RttResponder responder = {};
     EXPECT_TRUE(wifi_rtt_controller_->getResponderInfo(&responder).isOk());
     EXPECT_TRUE(wifi_rtt_controller_->enableResponder(cmdId, channelInfo, 10, responder).isOk());
+    EXPECT_TRUE(wifi_rtt_controller_->disableResponder(cmdId).isOk());
+}
+
+/*
+ * Request80211azNtbSecureRangeMeasurement
+ * Tests the two sided 11az non-trigger based secure ranging - 802.11az NTB FTM protocol.
+ */
+TEST_P(WifiRttControllerAidlTest, Request80211azNtbSecureRangeMeasurement) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "Request80211azNtbRangeMeasurement is available as of RttController V3";
+    }
+
+    RttCapabilities caps = getCapabilities();
+    if (!caps.ntbInitiatorSupported) {
+        GTEST_SKIP() << "Skipping 11az NTB RTT since driver/fw does not support";
+    }
+    if (!caps.secureHeLtfSupported && !caps.rangingFrameProtectionSupported) {
+        GTEST_SKIP() << "Skipping 11az NTB secure RTT since driver/fw does not support";
+    }
+    if (!(caps.akmsSupported & Akm::PASN)) {
+        GTEST_SKIP() << "Skipping 11az NTB secure RTT since driver/fw does not support PASN";
+    }
+    if (!caps.cipherSuitesSupported) {
+        GTEST_SKIP()
+                << "Skipping 11az NTB secure RTT since driver/fw does not support Cipher Suites";
+    }
+
+    RttConfig config;
+    config.addr = {{0x00, 0x01, 0x02, 0x03, 0x04, 0x05}};
+    config.type = RttType::TWO_SIDED_11AZ_NTB_SECURE;
+    config.peer = RttPeerType::AP;
+    config.channel.width = WifiChannelWidthInMhz::WIDTH_80;
+    config.channel.centerFreq = 5180;
+    config.channel.centerFreq0 = 5210;
+    config.channel.centerFreq1 = 0;
+    config.bw = RttBw::BW_20MHZ;
+    config.preamble = RttPreamble::HT;
+    config.mustRequestLci = false;
+    config.mustRequestLcr = false;
+    config.numFramesPerBurst = 8;
+    config.numRetriesPerRttFrame = 0;
+    config.numRetriesPerFtmr = 0;
+    // 11az non-trigger based minimum measurement time in units of 100 microseconds.
+    config.ntbMinMeasurementTime = 2500;
+    // 11az non-trigger based maximum measurement time in units of 10 milliseconds.
+    config.ntbMaxMeasurementTime = 1500;
+    RttSecureConfig secureConfig;
+    // PASN is a must to test secure config; which does not need any password.
+    secureConfig.pasnConfig.baseAkm = Akm::PASN;
+    // Get the best Cipher suite supported by the chip.
+    secureConfig.pasnConfig.cipherSuite = getMostSignificantSetBitMask(caps.cipherSuitesSupported);
+    secureConfig.enableSecureHeLtf = caps.secureHeLtfSupported;
+    secureConfig.enableRangingFrameProtection = caps.rangingFrameProtectionSupported;
+    config.secureConfig = secureConfig;
+
+    int cmdId = 55;
+    std::vector<RttConfig> configs = {config};
+    EXPECT_TRUE(wifi_rtt_controller_->rangeRequest(cmdId, configs).isOk());
+
+    // Sleep for 2 seconds to wait for driver/firmware to complete RTT.
+    sleep(2);
 }
 
 /*
@@ -286,6 +362,31 @@ TEST_P(WifiRttControllerAidlTest, RangeRequest) {
 
     // Sleep for 2 seconds to wait for driver/firmware to complete RTT.
     sleep(2);
+}
+
+/*
+ * GetBoundIface
+ */
+TEST_P(WifiRttControllerAidlTest, GetBoundIface) {
+    std::shared_ptr<IWifiStaIface> boundIface;
+    EXPECT_TRUE(wifi_rtt_controller_->getBoundIface(&boundIface).isOk());
+    EXPECT_NE(boundIface, nullptr);
+}
+
+/*
+ * Set LCI and LCR
+ */
+TEST_P(WifiRttControllerAidlTest, SetLciAndLcr) {
+    RttCapabilities caps = getCapabilities();
+    if (!caps.responderSupported) {
+        GTEST_SKIP() << "Skipping because responder is not supported";
+    }
+
+    int cmdId = 55;
+    RttLciInformation lci = {};
+    RttLcrInformation lcr = {};
+    EXPECT_TRUE(wifi_rtt_controller_->setLci(cmdId, lci).isOk());
+    EXPECT_TRUE(wifi_rtt_controller_->setLcr(cmdId, lcr).isOk());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WifiRttControllerAidlTest);

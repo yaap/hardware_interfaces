@@ -58,7 +58,8 @@ ndk::ScopedAStatus BluetoothChannelSounding::openSession(
 
 ndk::ScopedAStatus BluetoothChannelSounding::getSupportedCsSecurityLevels(
     std::vector<CsSecurityLevel>* _aidl_return) {
-  std::vector<CsSecurityLevel> supported_security_levels = {};
+  std::vector<CsSecurityLevel> supported_security_levels = {
+      CsSecurityLevel::NOT_SUPPORTED};
   *_aidl_return = supported_security_levels;
   return ::ndk::ScopedAStatus::ok();
 }

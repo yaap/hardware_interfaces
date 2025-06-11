@@ -33,7 +33,7 @@
 
 package android.hardware.radio.sim;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable CardStatus {
   int cardState;
   android.hardware.radio.sim.PinState universalPinState = android.hardware.radio.sim.PinState.UNKNOWN;

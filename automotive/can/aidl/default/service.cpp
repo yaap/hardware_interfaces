@@ -20,12 +20,11 @@
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
 
-namespace android::hardware::automotive::can {
-
 using namespace std::string_literals;
+using namespace android;
 using ::aidl::android::hardware::automotive::can::CanController;
 
-extern "C" int main() {
+int main() {
     base::SetDefaultTag("CanController");
     base::SetMinimumLogSeverity(base::VERBOSE);
 
@@ -40,4 +39,3 @@ extern "C" int main() {
     LOG(FATAL) << "CanController exited unexpectedly!";
     return EXIT_FAILURE;
 }
-}  // namespace android::hardware::automotive::can

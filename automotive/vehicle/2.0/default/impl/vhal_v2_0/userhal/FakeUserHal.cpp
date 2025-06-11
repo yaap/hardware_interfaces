@@ -15,6 +15,8 @@
  */
 #define LOG_TAG "FakeUserHal"
 
+#include <format>
+
 #include <cutils/log.h>
 #include <utils/SystemClock.h>
 
@@ -312,34 +314,34 @@ Result<std::unique_ptr<VehiclePropValue>> FakeUserHal::sendUserHalResponse(
 }
 
 std::string FakeUserHal::showDumpHelp() {
-    return fmt::format("{}: dumps state used for user management\n", kUserHalDumpOption);
+    return std::format("{}: dumps state used for user management\n", kUserHalDumpOption);
 }
 
 std::string FakeUserHal::dump(std::string indent) {
     std::string info;
     if (mInitialUserResponseFromCmd != nullptr) {
-        info += fmt::format("{}InitialUserInfo response: {}\n", indent.c_str(),
+        info += std::format("{}InitialUserInfo response: {}\n", indent.c_str(),
                             toString(*mInitialUserResponseFromCmd).c_str());
     } else {
-        info += fmt::format("{}No InitialUserInfo response\n", indent.c_str());
+        info += std::format("{}No InitialUserInfo response\n", indent.c_str());
     }
     if (mSwitchUserResponseFromCmd != nullptr) {
-        info += fmt::format("{}SwitchUser response: {}\n", indent.c_str(),
+        info += std::format("{}SwitchUser response: {}\n", indent.c_str(),
                             toString(*mSwitchUserResponseFromCmd).c_str());
     } else {
-        info += fmt::format("{}No SwitchUser response\n", indent.c_str());
+        info += std::format("{}No SwitchUser response\n", indent.c_str());
     }
     if (mCreateUserResponseFromCmd != nullptr) {
-        info += fmt::format("{}CreateUser response: {}\n", indent.c_str(),
+        info += std::format("{}CreateUser response: {}\n", indent.c_str(),
                             toString(*mCreateUserResponseFromCmd).c_str());
     } else {
-        info += fmt::format("{}No CreateUser response\n", indent.c_str());
+        info += std::format("{}No CreateUser response\n", indent.c_str());
     }
     if (mSetUserIdentificationAssociationResponseFromCmd != nullptr) {
-        info += fmt::format("{}SetUserIdentificationAssociation response: {}\n", indent.c_str(),
+        info += std::format("{}SetUserIdentificationAssociation response: {}\n", indent.c_str(),
                             toString(*mSetUserIdentificationAssociationResponseFromCmd).c_str());
     } else {
-        info += fmt::format("{}No SetUserIdentificationAssociation response\n", indent.c_str());
+        info += std::format("{}No SetUserIdentificationAssociation response\n", indent.c_str());
     }
     return info;
 }

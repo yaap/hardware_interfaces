@@ -19,6 +19,7 @@ package android.hardware.radio.sim;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SelectUiccSub {
     const int SUBSCRIPTION_TYPE_1 = 0;
     const int SUBSCRIPTION_TYPE_2 = 1;

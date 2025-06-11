@@ -100,6 +100,9 @@ class FakeVehicleHardware : public IVehicleHardware {
     void registerOnPropertySetErrorEvent(
             std::unique_ptr<const PropertySetErrorCallback> callback) override;
 
+    void registerSupportedValueChangeCallback(
+            std::unique_ptr<const SupportedValueChangeCallback> callback) override;
+
     // Subscribe to a new [propId, areaId] or change the update rate.
     aidl::android::hardware::automotive::vehicle::StatusCode subscribe(
             aidl::android::hardware::automotive::vehicle::SubscribeOptions options) override;
@@ -107,6 +110,12 @@ class FakeVehicleHardware : public IVehicleHardware {
     // Unsubscribe to a [propId, areaId].
     aidl::android::hardware::automotive::vehicle::StatusCode unsubscribe(int32_t propId,
                                                                          int32_t areaId) override;
+
+    std::vector<aidlvhal::MinMaxSupportedValueResult> getMinMaxSupportedValues(
+            const std::vector<PropIdAreaId>& propIdAreaIds) override;
+
+    std::vector<aidlvhal::SupportedValuesListResult> getSupportedValuesLists(
+            const std::vector<PropIdAreaId>& propIdAreaIds) override;
 
   protected:
     // mValuePool is also used in mServerSidePropStore.
@@ -161,6 +170,13 @@ class FakeVehicleHardware : public IVehicleHardware {
         std::shared_ptr<RecurrentTimer::Callback> recurrentAction;
     };
 
+    struct DumpOptionPropIdAreaIdInfo {
+        int32_t propId;
+        int32_t areaId;
+        std::string propIdStr;
+        std::string areaIdStr;
+    };
+
     const std::unique_ptr<obd2frame::FakeObd2Frame> mFakeObd2Frame;
     const std::unique_ptr<FakeUserHal> mFakeUserHal;
     // RecurrentTimer is thread-safe.
@@ -171,6 +187,7 @@ class FakeVehicleHardware : public IVehicleHardware {
     // Only allowed to set once.
     std::unique_ptr<const PropertyChangeCallback> mOnPropertyChangeCallback;
     std::unique_ptr<const PropertySetErrorCallback> mOnPropertySetErrorCallback;
+    std::unique_ptr<const SupportedValueChangeCallback> mOnSupportedValueChangeCallback;
 
     std::mutex mLock;
     std::unordered_map<PropIdAreaId, RefreshInfo, PropIdAreaIdHash> mRefreshInfoByPropIdAreaId
@@ -179,6 +196,18 @@ class FakeVehicleHardware : public IVehicleHardware {
     std::unordered_map<PropIdAreaId, VehiclePropValuePool::RecyclableType, PropIdAreaIdHash>
             mSavedProps GUARDED_BY(mLock);
     std::unordered_set<PropIdAreaId, PropIdAreaIdHash> mSubOnChangePropIdAreaIds GUARDED_BY(mLock);
+
+    std::unordered_map<PropIdAreaId, aidl::android::hardware::automotive::vehicle::RawPropValues,
+                       PropIdAreaIdHash>
+            mMinSupportedValueByPropIdAreaId GUARDED_BY(mLock);
+    std::unordered_map<PropIdAreaId, aidl::android::hardware::automotive::vehicle::RawPropValues,
+                       PropIdAreaIdHash>
+            mMaxSupportedValueByPropIdAreaId GUARDED_BY(mLock);
+    std::unordered_map<PropIdAreaId,
+                       std::vector<aidl::android::hardware::automotive::vehicle::RawPropValues>,
+                       PropIdAreaIdHash>
+            mSupportedValuesByPropIdAreaId GUARDED_BY(mLock);
+
     // PendingRequestHandler is thread-safe.
     mutable PendingRequestHandler<GetValuesCallback,
                                   aidl::android::hardware::automotive::vehicle::GetValueRequest>
@@ -275,6 +304,8 @@ class FakeVehicleHardware : public IVehicleHardware {
     std::string dumpRestoreProperty(const std::vector<std::string>& options);
     std::string dumpInjectEvent(const std::vector<std::string>& options);
     std::string dumpSubscriptions();
+    std::string dumpSetSupportedValues(const std::vector<std::string>& options);
+    std::string dumpSetMinMaxValue(const std::vector<std::string>& options);
 
     std::vector<std::string> getOptionValues(const std::vector<std::string>& options,
                                              size_t* index);
@@ -304,6 +335,17 @@ class FakeVehicleHardware : public IVehicleHardware {
                                float sampleRateHz) REQUIRES(mLock);
     void unregisterRefreshLocked(PropIdAreaId propIdAreaId) REQUIRES(mLock);
     void refreshTimestampForInterval(int64_t intervalInNanos) EXCLUDES(mLock);
+    void triggerSupportedValueChange(int32_t propId, int32_t areaId) EXCLUDES(mLock);
+    template <class T>
+    void setMinSupportedValueLocked(int32_t propId, int32_t areaId, T minValue) REQUIRES(mLock);
+    template <class T>
+    void setMaxSupportedValueLocked(int32_t propId, int32_t areaId, T maxValue) REQUIRES(mLock);
+    template <class T>
+    android::base::Result<void> parseAndSetMinMaxValue(int32_t propId, int32_t areaId,
+                                                       const std::vector<std::string>& options,
+                                                       size_t index) EXCLUDES(mLock);
+    android::base::Result<DumpOptionPropIdAreaIdInfo> parseDumpOptionPropIdAreaId(
+            const std::vector<std::string>& options, size_t& index);
 
     static aidl::android::hardware::automotive::vehicle::VehiclePropValue createHwInputKeyProp(
             aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction action,
@@ -336,6 +378,14 @@ class FakeVehicleHardware : public IVehicleHardware {
                                                       size_t index);
     static android::base::Result<int32_t> parseAreaId(const std::vector<std::string>& options,
                                                       size_t index, int32_t propId);
+    template <class T>
+    static android::base::Result<std::vector<T>> parseOptionValues(
+            const std::vector<std::string>& options, size_t index, size_t count);
+
+    template <class T>
+    static android::base::Result<
+            std::vector<aidl::android::hardware::automotive::vehicle::RawPropValues>>
+    parseOptionsToSupportedValuesList(const std::vector<std::string>& options, size_t index);
 };
 
 }  // namespace fake

@@ -40,7 +40,7 @@ parcelable GnssAlmanac {
      * This is defined Galileo-OS-SIS-ICD-v2.1 section 5.1.10.
      * This is unused for GPS/QZSS/Baidou.
      */
-    int iod;
+    int ioda;
 
     /**
      * Almanac reference week number.
@@ -55,6 +55,12 @@ parcelable GnssAlmanac {
     int toaSeconds;
 
     /**
+     * Flag to indicate if the satelliteAlmanacs contains complete GNSS
+     * constellation indicated by svid.
+     **/
+    boolean isCompleteAlmanacProvided;
+
+    /**
      * Contains almanac parameters for GPS, QZSS, Galileo, Beidou.
      *
      * For Beidou, this is defined in BDS-SIS-ICD-B1I-3.0 section 5.2.4.15.
@@ -64,7 +70,7 @@ parcelable GnssAlmanac {
      */
     @VintfStability
     parcelable GnssSatelliteAlmanac {
-        /** The PRN number of the GNSS satellite. */
+        /** PRN or satellite ID number for the satellite. */
         int svid;
 
         /**
@@ -124,5 +130,5 @@ parcelable GnssAlmanac {
     }
 
     /** Array of GnssSatelliteAlmanac. */
-    GnssSatelliteAlmanac[] satelliteAlmanac;
+    GnssSatelliteAlmanac[] satelliteAlmanacs;
 }

@@ -33,7 +33,7 @@
 
 package android.hardware.radio.data;
 /* @hide */
-@JavaDerive(toString=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @SuppressWarnings(value={"redundant-name"}) @VintfStability
 parcelable SetupDataCallResult {
   android.hardware.radio.data.DataCallFailCause cause = android.hardware.radio.data.DataCallFailCause.NONE;
   long suggestedRetryTime;

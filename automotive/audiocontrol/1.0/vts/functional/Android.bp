@@ -26,6 +26,7 @@ package {
 
 cc_test {
     name: "VtsHalAudioControlV1_0TargetTest",
+    team: "trendy_team_aaos_audio_triage",
     srcs: [
         "VtsHalAudioControlV1_0TargetTest.cpp",
     ],

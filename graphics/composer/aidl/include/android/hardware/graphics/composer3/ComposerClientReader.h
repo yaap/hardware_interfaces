@@ -269,9 +269,7 @@ class ComposerClientReader {
         auto& data = mReturnData[displayLuts.display];
         for (auto& [layerId, luts] : displayLuts.layerLuts) {
             if (luts.pfd.get() >= 0) {
-                data.layerLuts.push_back(
-                        {layerId, Luts{ndk::ScopedFileDescriptor(luts.pfd.release()), luts.offsets,
-                                       luts.lutProperties}});
+                data.layerLuts.push_back({layerId, std::move(luts)});
             }
         }
     }

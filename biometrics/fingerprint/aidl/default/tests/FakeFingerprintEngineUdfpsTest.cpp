@@ -112,30 +112,52 @@ bool isDefaultLocation(SensorLocation& sc) {
             sc.sensorRadius == FakeFingerprintEngineUdfps::defaultSensorRadius && sc.display == "");
 }
 
-TEST_F(FakeFingerprintEngineUdfpsTest, getSensorLocationOk) {
+TEST_F(FakeFingerprintEngineUdfpsTest, getSensorLocationOkSimple) {
     auto loc = "100:200:30";
     Fingerprint::cfg().set<std::string>("sensor_location", loc);
-    SensorLocation sc = mEngine.getSensorLocation();
-    ASSERT_TRUE(sc.sensorLocationX == 100);
-    ASSERT_TRUE(sc.sensorLocationY == 200);
-    ASSERT_TRUE(sc.sensorRadius == 30);
+    std::vector<SensorLocation> sc;
+    mEngine.getSensorLocation(sc);
+    ASSERT_TRUE(sc[0].sensorLocationX == 100);
+    ASSERT_TRUE(sc[0].sensorLocationY == 200);
+    ASSERT_TRUE(sc[0].sensorRadius == 30);
+}
 
-    loc = "100:200:30:screen1";
+TEST_F(FakeFingerprintEngineUdfpsTest, getSensorLocationOkWithOneDisplay) {
+    auto loc = "100:200:30:screen1";
     Fingerprint::cfg().set<std::string>("sensor_location", loc);
-    sc = mEngine.getSensorLocation();
-    ASSERT_TRUE(sc.sensorLocationX == 100);
-    ASSERT_TRUE(sc.sensorLocationY == 200);
-    ASSERT_TRUE(sc.sensorRadius == 30);
-    ASSERT_TRUE(sc.display == "screen1");
+    std::vector<SensorLocation> sc;
+    mEngine.getSensorLocation(sc);
+    ASSERT_TRUE(sc[0].sensorLocationX == 100);
+    ASSERT_TRUE(sc[0].sensorLocationY == 200);
+    ASSERT_TRUE(sc[0].sensorRadius == 30);
+    ASSERT_TRUE(sc[0].display == "screen1");
+}
+
+TEST_F(FakeFingerprintEngineUdfpsTest, getSensorLocationOkWithMultipleDisplays) {
+    auto loc = "100:200:30:screen1,200:400:60:screen2";
+    Fingerprint::cfg().set<std::string>("sensor_location", loc);
+    std::vector<SensorLocation> sc;
+    mEngine.getSensorLocation(sc);
+    ASSERT_TRUE(sc.size() == 2);
+    ASSERT_TRUE(sc[0].sensorLocationX == 100);
+    ASSERT_TRUE(sc[0].sensorLocationY == 200);
+    ASSERT_TRUE(sc[0].sensorRadius == 30);
+    ASSERT_TRUE(sc[0].display == "screen1");
+    ASSERT_TRUE(sc[1].sensorLocationX == 200);
+    ASSERT_TRUE(sc[1].sensorLocationY == 400);
+    ASSERT_TRUE(sc[1].sensorRadius == 60);
+    ASSERT_TRUE(sc[1].display == "screen2");
 }
 
 TEST_F(FakeFingerprintEngineUdfpsTest, getSensorLocationBad) {
-    const std::vector<std::string> badStr{"", "100", "10:20", "10,20,5", "a:b:c"};
-    SensorLocation sc;
+    const std::vector<std::string> badStr{
+            "", "100", "10:20", "10,20,5", "a:b:c", "10:20:30:d1,40", "10:20:30:d1,40:50"};
+    std::vector<SensorLocation> sc;
     for (const auto& s : badStr) {
         Fingerprint::cfg().set<std::string>("sensor_location", s);
-        sc = mEngine.getSensorLocation();
-        ASSERT_TRUE(isDefaultLocation(sc));
+        sc.clear();
+        mEngine.getSensorLocation(sc);
+        ASSERT_TRUE(isDefaultLocation(sc[0]));
     }
 }
 

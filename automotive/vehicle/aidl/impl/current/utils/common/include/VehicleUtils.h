@@ -310,12 +310,23 @@ ndk::ScopedAStatus toScopedAStatus(const VhalResult<T>& result,
     return toScopedAStatus(result, getErrorCode(result), additionalErrorMsg);
 }
 
+// This is for debug purpose only.
+inline std::string propIdToString(int32_t propId) {
+    return toString(
+            static_cast<aidl::android::hardware::automotive::vehicle::VehicleProperty>(propId));
+}
+
 struct PropIdAreaId {
     int32_t propId;
     int32_t areaId;
 
     inline bool operator==(const PropIdAreaId& other) const {
         return areaId == other.areaId && propId == other.propId;
+    }
+
+    // This is for debug purpose only.
+    inline std::string toString() const {
+        return fmt::format("{{propId: {}, areaId: {}}}", propIdToString(propId), areaId);
     }
 };
 
@@ -327,12 +338,6 @@ struct PropIdAreaIdHash {
         return res;
     }
 };
-
-// This is for debug purpose only.
-inline std::string propIdToString(int32_t propId) {
-    return toString(
-            static_cast<aidl::android::hardware::automotive::vehicle::VehicleProperty>(propId));
-}
 
 // This is for debug purpose only.
 android::base::Result<int32_t> stringToPropId(const std::string& propName);
@@ -361,5 +366,22 @@ inline void sanitizeByResolution(aidl::android::hardware::automotive::vehicle::R
 }  // namespace automotive
 }  // namespace hardware
 }  // namespace android
+
+// Formatter must not be defined inside our namespace.
+template <>
+struct fmt::formatter<android::hardware::automotive::vehicle::PropIdAreaId> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const android::hardware::automotive::vehicle::PropIdAreaId& p,
+                FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "{{propId: {}, areaId: {}}}",
+                              android::hardware::automotive::vehicle::propIdToString(p.propId),
+                              p.areaId);
+    }
+};
 
 #endif  // android_hardware_automotive_vehicle_aidl_impl_utils_common_include_VehicleUtils_H_

@@ -29,7 +29,8 @@ use dice_policy_builder::{
     WILDCARD_FULL_ARRAY,
 };
 
-use secretkeeper_client::{dice::OwnedDiceArtifactsWithExplicitKey, SkSession};
+use explicitkeydice::OwnedDiceArtifactsWithExplicitKey;
+use secretkeeper_client::SkSession;
 use secretkeeper_comm::data_types::{
     error::SecretkeeperError,
     packet::{ResponsePacket, ResponseType},

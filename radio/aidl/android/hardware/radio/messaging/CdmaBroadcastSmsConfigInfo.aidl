@@ -19,6 +19,7 @@ package android.hardware.radio.messaging;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CdmaBroadcastSmsConfigInfo {
     /**
      * Defines a broadcast message identifier whose value is 0x0000 - 0xFFFF as defined in

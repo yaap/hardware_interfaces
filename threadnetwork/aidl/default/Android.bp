@@ -45,6 +45,41 @@ cc_binary {
     ],
 }
 
+cc_library_static {
+    name: "android.hardware.threadnetwork.lib",
+
+    vendor: true,
+    export_include_dirs: ["."],
+
+    defaults: ["android.hardware.threadnetwork-service.defaults"],
+
+    srcs: [
+        "service.cpp",
+        "thread_chip.cpp",
+        "utils.cpp",
+    ],
+
+    shared_libs: [
+        "libbinder_ndk",
+        "liblog",
+    ],
+
+    static_libs: [
+        "android.hardware.threadnetwork-V1-ndk",
+        "libbase",
+        "libcutils",
+        "libutils",
+        "openthread-common",
+        "openthread-hdlc",
+        "openthread-platform",
+        "openthread-posix",
+        "openthread-spi",
+        "openthread-url",
+    ],
+
+    stl: "c++_static",
+}
+
 cc_defaults {
     name: "android.hardware.threadnetwork-service.defaults",
     product_variables: {

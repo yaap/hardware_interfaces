@@ -21,6 +21,7 @@ import android.hardware.radio.ims.media.CodecMode;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable AnbrMode {
     /**
      * Codec mode converted from bitrate received for uplink

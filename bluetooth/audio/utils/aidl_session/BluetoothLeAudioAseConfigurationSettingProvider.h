@@ -50,7 +50,7 @@ enum class CodecLocation {
 
 class AudioSetConfigurationProviderJson {
  public:
-  static std::vector<LeAudioAseConfigurationSetting>
+  static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
   GetLeAudioAseConfigurationSettings();
 
  private:
@@ -73,9 +73,10 @@ class AudioSetConfigurationProviderJson {
           flat_codec_specific_params);
 
   static void populateAseConfiguration(
-      const std::string& name, LeAudioAseConfiguration& ase,
+      LeAudioAseConfiguration& ase,
       const le_audio::AudioSetSubConfiguration* flat_subconfig,
-      const le_audio::QosConfiguration* qos_cfg);
+      const le_audio::QosConfiguration* qos_cfg,
+      ConfigurationFlags& configurationFlags);
 
   static void populateAseQosConfiguration(
       LeAudioAseQosConfiguration& qos,
@@ -83,17 +84,16 @@ class AudioSetConfigurationProviderJson {
       uint8_t ase_channel_cnt);
 
   static AseDirectionConfiguration SetConfigurationFromFlatSubconfig(
-      const std::string& name,
       const le_audio::AudioSetSubConfiguration* flat_subconfig,
-      const le_audio::QosConfiguration* qos_cfg, CodecLocation location);
+      const le_audio::QosConfiguration* qos_cfg, CodecLocation location,
+      ConfigurationFlags& configurationFlags);
 
   static void processSubconfig(
-      const std::string& name,
       const le_audio::AudioSetSubConfiguration* subconfig,
       const le_audio::QosConfiguration* qos_cfg,
       std::vector<std::optional<AseDirectionConfiguration>>&
           directionAseConfiguration,
-      CodecLocation location);
+      CodecLocation location, ConfigurationFlags& configurationFlags);
 
   static void PopulateAseConfigurationFromFlat(
       const le_audio::AudioSetConfiguration* flat_cfg,

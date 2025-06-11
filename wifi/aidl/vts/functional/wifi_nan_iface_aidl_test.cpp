@@ -56,6 +56,8 @@ using aidl::android::hardware::wifi::NanPublishType;
 using aidl::android::hardware::wifi::NanRespondToDataPathIndicationRequest;
 using aidl::android::hardware::wifi::NanStatus;
 using aidl::android::hardware::wifi::NanStatusCode;
+using aidl::android::hardware::wifi::NanSubscribeRequest;
+using aidl::android::hardware::wifi::NanSubscribeType;
 using aidl::android::hardware::wifi::NanSuspensionModeChangeInd;
 using aidl::android::hardware::wifi::NanTxType;
 using aidl::android::hardware::wifi::RttResult;
@@ -418,7 +420,7 @@ class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
     int interface_version_;
     uint64_t callback_event_bitmap_;
     uint16_t id_;
-    uint8_t session_id_;
+    int8_t session_id_;
     uint32_t ndp_instance_id_;
     uint32_t pairing_instance_id_;
     uint32_t bootstrappping_instance_id_;
@@ -436,6 +438,78 @@ class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
     NanBootstrappingRequestInd nan_bootstrapping_request_ind_;
     NanBootstrappingConfirmInd nan_bootstrapping_confirm_ind_;
     NanSuspensionModeChangeInd nan_suspension_mode_change_ind_;
+
+    static NanEnableRequest createNanConfigRequest() {
+        NanBandSpecificConfig config24 = {};
+        config24.rssiClose = 60;
+        config24.rssiMiddle = 70;
+        config24.rssiCloseProximity = 60;
+        config24.dwellTimeMs = 200;
+        config24.scanPeriodSec = 20;
+        config24.validDiscoveryWindowIntervalVal = false;
+        config24.discoveryWindowIntervalVal = 0;
+
+        NanBandSpecificConfig config5 = {};
+        config5.rssiClose = 60;
+        config5.rssiMiddle = 75;
+        config5.rssiCloseProximity = 60;
+        config5.dwellTimeMs = 200;
+        config5.scanPeriodSec = 20;
+        config5.validDiscoveryWindowIntervalVal = false;
+        config5.discoveryWindowIntervalVal = 0;
+
+        NanEnableRequest req = {};
+        req.operateInBand[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = true;
+        req.operateInBand[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] = false;
+        req.hopCountMax = 2;
+        req.configParams.masterPref = 0;
+        req.configParams.disableDiscoveryAddressChangeIndication = true;
+        req.configParams.disableStartedClusterIndication = true;
+        req.configParams.disableJoinedClusterIndication = true;
+        req.configParams.includePublishServiceIdsInBeacon = true;
+        req.configParams.numberOfPublishServiceIdsInBeacon = 0;
+        req.configParams.includeSubscribeServiceIdsInBeacon = true;
+        req.configParams.numberOfSubscribeServiceIdsInBeacon = 0;
+        req.configParams.rssiWindowSize = 8;
+        req.configParams.macAddressRandomizationIntervalSec = 1800;
+        req.configParams.bandSpecificConfig[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] =
+                config24;
+        req.configParams.bandSpecificConfig[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] =
+                config5;
+
+        req.debugConfigs.validClusterIdVals = true;
+        req.debugConfigs.clusterIdTopRangeVal = 65535;
+        req.debugConfigs.clusterIdBottomRangeVal = 0;
+        req.debugConfigs.validIntfAddrVal = false;
+        req.debugConfigs.validOuiVal = false;
+        req.debugConfigs.ouiVal = 0;
+        req.debugConfigs.validRandomFactorForceVal = false;
+        req.debugConfigs.randomFactorForceVal = 0;
+        req.debugConfigs.validHopCountForceVal = false;
+        req.debugConfigs.hopCountForceVal = 0;
+        req.debugConfigs.validDiscoveryChannelVal = false;
+        req.debugConfigs
+                .discoveryChannelMhzVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = 0;
+        req.debugConfigs.discoveryChannelMhzVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] =
+                0;
+        req.debugConfigs.validUseBeaconsInBandVal = false;
+        req.debugConfigs.useBeaconsInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] =
+                true;
+        req.debugConfigs.useBeaconsInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] =
+                true;
+        req.debugConfigs.validUseSdfInBandVal = false;
+        req.debugConfigs.useSdfInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = true;
+        req.debugConfigs.useSdfInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] = true;
+        return req;
+    }
+
+    NanConfigRequestSupplemental createNanConfigRequestSupplemental() {
+        NanConfigRequestSupplemental nanConfigRequestSupp = {};
+        nanConfigRequestSupp.discoveryBeaconIntervalMs = 20;
+        nanConfigRequestSupp.numberOfSpatialStreamsInDiscovery = 0;
+        nanConfigRequestSupp.enableDiscoveryWindowEarlyTermination = false;
+        return nanConfigRequestSupp;
+    }
 
     const char* getInstanceName() { return GetParam().c_str(); }
 
@@ -566,67 +640,8 @@ TEST_P(WifiNanIfaceAidlTest, NotifyCapabilitiesResponse) {
  */
 TEST_P(WifiNanIfaceAidlTest, StartPublishRequest) {
     uint16_t inputCmdId = 10;
-    NanBandSpecificConfig config24 = {};
-    config24.rssiClose = 60;
-    config24.rssiMiddle = 70;
-    config24.rssiCloseProximity = 60;
-    config24.dwellTimeMs = 200;
-    config24.scanPeriodSec = 20;
-    config24.validDiscoveryWindowIntervalVal = false;
-    config24.discoveryWindowIntervalVal = 0;
-
-    NanBandSpecificConfig config5 = {};
-    config5.rssiClose = 60;
-    config5.rssiMiddle = 75;
-    config5.rssiCloseProximity = 60;
-    config5.dwellTimeMs = 200;
-    config5.scanPeriodSec = 20;
-    config5.validDiscoveryWindowIntervalVal = false;
-    config5.discoveryWindowIntervalVal = 0;
-
-    NanEnableRequest req = {};
-    req.operateInBand[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = true;
-    req.operateInBand[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] = false;
-    req.hopCountMax = 2;
-    req.configParams.masterPref = 0;
-    req.configParams.disableDiscoveryAddressChangeIndication = true;
-    req.configParams.disableStartedClusterIndication = true;
-    req.configParams.disableJoinedClusterIndication = true;
-    req.configParams.includePublishServiceIdsInBeacon = true;
-    req.configParams.numberOfPublishServiceIdsInBeacon = 0;
-    req.configParams.includeSubscribeServiceIdsInBeacon = true;
-    req.configParams.numberOfSubscribeServiceIdsInBeacon = 0;
-    req.configParams.rssiWindowSize = 8;
-    req.configParams.macAddressRandomizationIntervalSec = 1800;
-    req.configParams.bandSpecificConfig[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] =
-            config24;
-    req.configParams.bandSpecificConfig[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] =
-            config5;
-
-    req.debugConfigs.validClusterIdVals = true;
-    req.debugConfigs.clusterIdTopRangeVal = 65535;
-    req.debugConfigs.clusterIdBottomRangeVal = 0;
-    req.debugConfigs.validIntfAddrVal = false;
-    req.debugConfigs.validOuiVal = false;
-    req.debugConfigs.ouiVal = 0;
-    req.debugConfigs.validRandomFactorForceVal = false;
-    req.debugConfigs.randomFactorForceVal = 0;
-    req.debugConfigs.validHopCountForceVal = false;
-    req.debugConfigs.hopCountForceVal = 0;
-    req.debugConfigs.validDiscoveryChannelVal = false;
-    req.debugConfigs.discoveryChannelMhzVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = 0;
-    req.debugConfigs.discoveryChannelMhzVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] = 0;
-    req.debugConfigs.validUseBeaconsInBandVal = false;
-    req.debugConfigs.useBeaconsInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = true;
-    req.debugConfigs.useBeaconsInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] = true;
-    req.debugConfigs.validUseSdfInBandVal = false;
-    req.debugConfigs.useSdfInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_24GHZ)] = true;
-    req.debugConfigs.useSdfInBandVal[static_cast<int32_t>(NanBandIndex::NAN_BAND_5GHZ)] = true;
-
-    NanConfigRequestSupplemental nanConfigRequestSupp = {};
-    nanConfigRequestSupp.discoveryBeaconIntervalMs = 20;
-    nanConfigRequestSupp.numberOfSpatialStreamsInDiscovery = 0;
-    nanConfigRequestSupp.enableDiscoveryWindowEarlyTermination = false;
+    NanEnableRequest req = createNanConfigRequest();
+    NanConfigRequestSupplemental nanConfigRequestSupp = createNanConfigRequestSupplemental();
 
     callback_event_bitmap_ = 0;
     auto status = wifi_nan_iface_->enableRequest(inputCmdId, req, nanConfigRequestSupp);
@@ -670,6 +685,96 @@ TEST_P(WifiNanIfaceAidlTest, StartPublishRequest) {
         ASSERT_EQ(id_, inputCmdId + 1);
         ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
     }
+    status = wifi_nan_iface_->stopPublishRequest(inputCmdId + 2, session_id_);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_STOP_PUBLISH_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_STOP_PUBLISH_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 2);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+    status = wifi_nan_iface_->disableRequest(inputCmdId + 3);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_DISABLE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_DISABLE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 3);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+}
+
+/*
+ * StartSubscribeRequest
+ */
+TEST_P(WifiNanIfaceAidlTest, StartSubscribeRequest) {
+    uint16_t inputCmdId = 10;
+    NanEnableRequest req = createNanConfigRequest();
+    NanConfigRequestSupplemental nanConfigRequestSupp = createNanConfigRequestSupplemental();
+
+    callback_event_bitmap_ = 0;
+    auto status = wifi_nan_iface_->enableRequest(inputCmdId, req, nanConfigRequestSupp);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+
+    NanSubscribeRequest nanSubscribeRequest = {};
+    nanSubscribeRequest.baseConfigs.sessionId = 0;
+    nanSubscribeRequest.baseConfigs.ttlSec = 0;
+    nanSubscribeRequest.baseConfigs.discoveryWindowPeriod = 1;
+    nanSubscribeRequest.baseConfigs.discoveryCount = 0;
+    nanSubscribeRequest.baseConfigs.serviceName = {97};
+    nanSubscribeRequest.baseConfigs.discoveryMatchIndicator = NanMatchAlg::MATCH_NEVER;
+    nanSubscribeRequest.baseConfigs.useRssiThreshold = false;
+    nanSubscribeRequest.baseConfigs.disableDiscoveryTerminationIndication = false;
+    nanSubscribeRequest.baseConfigs.disableMatchExpirationIndication = true;
+    nanSubscribeRequest.baseConfigs.disableFollowupReceivedIndication = false;
+    nanSubscribeRequest.baseConfigs.securityConfig.securityType = NanDataPathSecurityType::OPEN;
+    nanSubscribeRequest.subscribeType = NanSubscribeType::PASSIVE;
+    if (interface_version_ >= 2) {
+        LOG(INFO) << "Including vendor data in Publish request";
+        nanSubscribeRequest.vendorData = kTestVendorDataOptional;
+    }
+
+    status = wifi_nan_iface_->startSubscribeRequest(inputCmdId + 1, nanSubscribeRequest);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_START_SUBSCRIBE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_START_SUBSCRIBE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 1);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+    status = wifi_nan_iface_->stopSubscribeRequest(inputCmdId + 2, session_id_);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_STOP_SUBSCRIBE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_STOP_SUBSCRIBE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 2);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+    status = wifi_nan_iface_->disableRequest(inputCmdId + 3);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_DISABLE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_DISABLE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 3);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
 }
 
 /*
@@ -702,6 +807,160 @@ TEST_P(WifiNanIfaceAidlTest, InitiateDataPathRequest_InvalidArgs) {
     if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
         ASSERT_EQ(status.getServiceSpecificError(),
                   static_cast<int32_t>(WifiStatusCode::ERROR_INVALID_ARGS));
+    }
+}
+
+/*
+ * Test suspend/resume on publish
+ */
+TEST_P(WifiNanIfaceAidlTest, StartSuspendResumeOnPublishRequest) {
+    uint16_t inputCmdId = 10;
+
+    EXPECT_TRUE(wifi_nan_iface_->getCapabilitiesRequest(inputCmdId).isOk());
+    ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_CAPABILITIES_RESPONSE));
+    if (!capabilities_.supportsSuspension) {
+        return;
+    }
+
+    NanEnableRequest req = createNanConfigRequest();
+    NanConfigRequestSupplemental nanConfigRequestSupp = createNanConfigRequestSupplemental();
+
+    callback_event_bitmap_ = 0;
+    auto status = wifi_nan_iface_->enableRequest(inputCmdId + 1, req, nanConfigRequestSupp);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 1);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+
+    NanPublishRequest nanPublishRequest = {};
+    nanPublishRequest.baseConfigs.sessionId = 0;
+    nanPublishRequest.baseConfigs.ttlSec = 0;
+    nanPublishRequest.baseConfigs.discoveryWindowPeriod = 1;
+    nanPublishRequest.baseConfigs.discoveryCount = 0;
+    nanPublishRequest.baseConfigs.serviceName = {97};
+    nanPublishRequest.baseConfigs.discoveryMatchIndicator = NanMatchAlg::MATCH_NEVER;
+    nanPublishRequest.baseConfigs.useRssiThreshold = false;
+    nanPublishRequest.baseConfigs.disableDiscoveryTerminationIndication = false;
+    nanPublishRequest.baseConfigs.disableMatchExpirationIndication = true;
+    nanPublishRequest.baseConfigs.disableFollowupReceivedIndication = false;
+    nanPublishRequest.baseConfigs.securityConfig.securityType = NanDataPathSecurityType::OPEN;
+    nanPublishRequest.baseConfigs.enableSessionSuspendability = true;
+    nanPublishRequest.autoAcceptDataPathRequests = false;
+    nanPublishRequest.publishType = NanPublishType::UNSOLICITED;
+    nanPublishRequest.txType = NanTxType::BROADCAST;
+
+    status = wifi_nan_iface_->startPublishRequest(inputCmdId + 2, nanPublishRequest);
+    ASSERT_TRUE(status.isOk());
+    // Wait for a callback.
+    ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_START_PUBLISH_RESPONSE));
+    ASSERT_TRUE(receivedCallback(NOTIFY_START_PUBLISH_RESPONSE));
+    ASSERT_EQ(id_, inputCmdId + 2);
+    ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    // Without NDP, suspend and resume should fail.
+    status = wifi_nan_iface_->suspendRequest(inputCmdId + 3, session_id_);
+    ASSERT_FALSE(status.isOk());
+    status = wifi_nan_iface_->resumeRequest(inputCmdId + 4, session_id_);
+    ASSERT_FALSE(status.isOk());
+}
+
+/*
+ * Test suspend/resume on Subscribe
+ */
+TEST_P(WifiNanIfaceAidlTest, StartSuspendResumeOnSubscribeRequest) {
+    uint16_t inputCmdId = 10;
+
+    EXPECT_TRUE(wifi_nan_iface_->getCapabilitiesRequest(inputCmdId).isOk());
+    ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_CAPABILITIES_RESPONSE));
+    if (!capabilities_.supportsSuspension) {
+        return;
+    }
+    NanEnableRequest req = createNanConfigRequest();
+    NanConfigRequestSupplemental nanConfigRequestSupp = createNanConfigRequestSupplemental();
+    callback_event_bitmap_ = 0;
+    auto status = wifi_nan_iface_->enableRequest(inputCmdId + 1, req, nanConfigRequestSupp);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 1);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+
+    NanSubscribeRequest nanSubscribeRequest = {};
+    nanSubscribeRequest.baseConfigs.sessionId = 0;
+    nanSubscribeRequest.baseConfigs.ttlSec = 0;
+    nanSubscribeRequest.baseConfigs.discoveryWindowPeriod = 1;
+    nanSubscribeRequest.baseConfigs.discoveryCount = 0;
+    nanSubscribeRequest.baseConfigs.serviceName = {97};
+    nanSubscribeRequest.baseConfigs.discoveryMatchIndicator = NanMatchAlg::MATCH_NEVER;
+    nanSubscribeRequest.baseConfigs.useRssiThreshold = false;
+    nanSubscribeRequest.baseConfigs.disableDiscoveryTerminationIndication = false;
+    nanSubscribeRequest.baseConfigs.disableMatchExpirationIndication = true;
+    nanSubscribeRequest.baseConfigs.disableFollowupReceivedIndication = false;
+    nanSubscribeRequest.baseConfigs.securityConfig.securityType = NanDataPathSecurityType::OPEN;
+    nanSubscribeRequest.baseConfigs.enableSessionSuspendability = true;
+    nanSubscribeRequest.subscribeType = NanSubscribeType::ACTIVE;
+
+    status = wifi_nan_iface_->startSubscribeRequest(inputCmdId + 2, nanSubscribeRequest);
+    ASSERT_TRUE(status.isOk());
+    // Wait for a callback.
+    ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_START_SUBSCRIBE_RESPONSE));
+    ASSERT_TRUE(receivedCallback(NOTIFY_START_SUBSCRIBE_RESPONSE));
+    ASSERT_EQ(id_, inputCmdId + 2);
+    ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    // Without NDP, suspend and resume should fail.
+    status = wifi_nan_iface_->suspendRequest(inputCmdId + 3, session_id_);
+    ASSERT_FALSE(status.isOk());
+    status = wifi_nan_iface_->resumeRequest(inputCmdId + 4, session_id_);
+    ASSERT_FALSE(status.isOk());
+}
+
+/*
+ * Test create/delete Aware data interfaces
+ */
+TEST_P(WifiNanIfaceAidlTest, CreateDeleteDataInterfaces) {
+    uint16_t inputCmdId = 10;
+    NanEnableRequest req = createNanConfigRequest();
+
+    NanConfigRequestSupplemental nanConfigRequestSupp = createNanConfigRequestSupplemental();
+
+    callback_event_bitmap_ = 0;
+    auto status = wifi_nan_iface_->enableRequest(inputCmdId, req, nanConfigRequestSupp);
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_ENABLE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+    status = wifi_nan_iface_->createDataInterfaceRequest(inputCmdId + 1, "aware_data0");
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_CREATE_DATA_INTERFACE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_CREATE_DATA_INTERFACE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 1);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+    }
+    status = wifi_nan_iface_->deleteDataInterfaceRequest(inputCmdId + 2, "aware_data0");
+    if (!checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        ASSERT_TRUE(status.isOk());
+
+        // Wait for a callback.
+        ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_DELETE_DATA_INTERFACE_RESPONSE));
+        ASSERT_TRUE(receivedCallback(NOTIFY_DELETE_DATA_INTERFACE_RESPONSE));
+        ASSERT_EQ(id_, inputCmdId + 2);
+        ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
     }
 }
 

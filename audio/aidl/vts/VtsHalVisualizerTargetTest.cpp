@@ -68,9 +68,14 @@ class VisualizerTestHelper : public EffectHelper {
         ASSERT_NE(nullptr, mFactory);
         ASSERT_NO_FATAL_FAILURE(create(mFactory, mEffect, mDescriptor));
 
+        AudioChannelLayout inputLayout = AudioChannelLayout::make<AudioChannelLayout::layoutMask>(
+                AudioChannelLayout::LAYOUT_MONO);
+        AudioChannelLayout outputLayout = inputLayout;
+
         Parameter::Common common = createParamCommon(
-                0 /* session */, 1 /* ioHandle */, 44100 /* iSampleRate */, 44100 /* oSampleRate */,
-                kInputFrameCount /* iFrameCount */, kOutputFrameCount /* oFrameCount */);
+                0 /* session */, 1 /* ioHandle */, mBufferSizeInFrames /* iSampleRate */,
+                mBufferSizeInFrames /* oSampleRate */, kInputFrameCount /* iFrameCount */,
+                kOutputFrameCount /* oFrameCount */, inputLayout, outputLayout);
         ASSERT_NO_FATAL_FAILURE(open(mEffect, common, std::nullopt, &mOpenEffectReturn, EX_NONE));
         ASSERT_NE(nullptr, mEffect);
         mVersion = EffectFactoryHelper::getHalVersion(mFactory);
@@ -178,7 +183,7 @@ class VisualizerParamTest : public ::testing::TestWithParam<VisualizerTestParam>
         generateInputBuffer(mInputBuffer, 0, true, mChannelCount, kMaxAudioSampleValue);
     }
 
-    void SetUp() override { SetUpVisualizer(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpVisualizer()); }
 
     void TearDown() override { TearDownVisualizer(); }
 
@@ -189,22 +194,22 @@ class VisualizerParamTest : public ::testing::TestWithParam<VisualizerTestParam>
 };
 
 TEST_P(VisualizerParamTest, SetAndGetCaptureSize) {
-    ASSERT_NO_FATAL_FAILURE(addCaptureSizeParam(mCaptureSize));
+    addCaptureSizeParam(mCaptureSize);
     ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(VisualizerParamTest, SetAndGetScalingMode) {
-    ASSERT_NO_FATAL_FAILURE(addScalingModeParam(mScalingMode));
+    addScalingModeParam(mScalingMode);
     ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(VisualizerParamTest, SetAndGetMeasurementMode) {
-    ASSERT_NO_FATAL_FAILURE(addMeasurementModeParam(mMeasurementMode));
+    addMeasurementModeParam(mMeasurementMode);
     ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
 TEST_P(VisualizerParamTest, SetAndGetLatency) {
-    ASSERT_NO_FATAL_FAILURE(addLatencyParam(mLatency));
+    addLatencyParam(mLatency);
     ASSERT_NO_FATAL_FAILURE(SetAndGetParameters());
 }
 
@@ -212,10 +217,10 @@ TEST_P(VisualizerParamTest, testCaptureSampleBufferSizeAndOutput) {
     SKIP_TEST_IF_DATA_UNSUPPORTED(mDescriptor.common.flags);
 
     bool allParamsValid = true;
-    ASSERT_NO_FATAL_FAILURE(addCaptureSizeParam(mCaptureSize));
-    ASSERT_NO_FATAL_FAILURE(addScalingModeParam(mScalingMode));
-    ASSERT_NO_FATAL_FAILURE(addMeasurementModeParam(mMeasurementMode));
-    ASSERT_NO_FATAL_FAILURE(addLatencyParam(mLatency));
+    addCaptureSizeParam(mCaptureSize);
+    addScalingModeParam(mScalingMode);
+    addMeasurementModeParam(mMeasurementMode);
+    addLatencyParam(mLatency);
     ASSERT_NO_FATAL_FAILURE(SetAndGetParameters(&allParamsValid));
 
     Parameter getParam;
@@ -247,7 +252,7 @@ class VisualizerDataTest : public ::testing::TestWithParam<VisualizerTestParam>,
                                std::get<PARAM_SCALING_MODE>(GetParam()),
                                std::get<PARAM_MEASUREMENT_MODE>(GetParam())) {}
 
-    void SetUp() override { SetUpVisualizer(); }
+    void SetUp() override { ASSERT_NO_FATAL_FAILURE(SetUpVisualizer()); }
 
     void TearDown() override { TearDownVisualizer(); }
 };
@@ -261,7 +266,8 @@ TEST_P(VisualizerDataTest, testScalingModeParameters) {
 
     constexpr float kPowerToleranceDb = 0.5;
 
-    generateSineWave(std::vector<int>{1000}, mInputBuffer, 1.0, mBufferSizeInFrames);
+    ASSERT_NO_FATAL_FAILURE(generateSineWave(1000, mInputBuffer, 1.0, mBufferSizeInFrames,
+                                             AudioChannelLayout::LAYOUT_MONO));
     const float expectedPowerNormalized = audio_utils_compute_power_mono(
             mInputBuffer.data(), AUDIO_FORMAT_PCM_FLOAT, mInputBuffer.size());
 
@@ -276,13 +282,14 @@ TEST_P(VisualizerDataTest, testScalingModeParameters) {
 
     for (float maxAudioSampleValue : testMaxAudioSampleValueList) {
         bool allParamsValid = true;
-        ASSERT_NO_FATAL_FAILURE(addCaptureSizeParam(mCaptureSize));
-        ASSERT_NO_FATAL_FAILURE(addScalingModeParam(mScalingMode));
-        ASSERT_NO_FATAL_FAILURE(addLatencyParam(mLatency));
+        addCaptureSizeParam(mCaptureSize);
+        addScalingModeParam(mScalingMode);
+        addLatencyParam(mLatency);
         ASSERT_NO_FATAL_FAILURE(SetAndGetParameters(&allParamsValid));
 
-        generateSineWave(std::vector<int>{1000}, mInputBuffer, maxAudioSampleValue,
-                         mBufferSizeInFrames);
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(std::vector<int>{1000}, mInputBuffer,
+                                                 maxAudioSampleValue, mBufferSizeInFrames,
+                                                 AudioChannelLayout::LAYOUT_MONO));
 
         // The stop and reset calls to the effect are made towards the end in order to fetch the
         // captureSampleBuffer values

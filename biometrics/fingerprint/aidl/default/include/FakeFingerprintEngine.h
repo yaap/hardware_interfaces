@@ -53,7 +53,7 @@ class FakeFingerprintEngine {
     void getAuthenticatorIdImpl(ISessionCallback* cb);
     void invalidateAuthenticatorIdImpl(ISessionCallback* cb);
     void resetLockoutImpl(ISessionCallback* cb, const keymaster::HardwareAuthToken& /*hat*/);
-    bool getSensorLocationConfig(SensorLocation& out);
+    bool getSensorLocationConfig(std::vector<SensorLocation>& out);
 
     virtual ndk::ScopedAStatus onPointerDownImpl(int32_t pointerId, int32_t x, int32_t y,
                                                  float minor, float major);
@@ -62,9 +62,9 @@ class FakeFingerprintEngine {
 
     virtual ndk::ScopedAStatus onUiReadyImpl();
 
-    virtual SensorLocation getSensorLocation();
+    virtual void getSensorLocation(std::vector<SensorLocation>& loc);
 
-    virtual SensorLocation defaultSensorLocation();
+    virtual void getDefaultSensorLocation(std::vector<SensorLocation>&) {}
 
     virtual void fingerDownAction();
 

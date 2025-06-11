@@ -63,13 +63,16 @@ class VirtualHal : public BnVirtualHal {
     ::ndk::ScopedAStatus setSensorLocation(
             const ::aidl::android::hardware::biometrics::fingerprint::SensorLocation& in_loc)
             override;
-    ::ndk::ScopedAStatus setNavigationGuesture(bool in_v) override;
+    ::ndk::ScopedAStatus setNavigationGesture(bool in_v) override;
     ::ndk::ScopedAStatus setDetectInteraction(bool in_v) override;
     ::ndk::ScopedAStatus setDisplayTouch(bool in_v) override;
     ::ndk::ScopedAStatus setControlIllumination(bool in_v) override;
     ::ndk::ScopedAStatus getFingerprintHal(
             std::shared_ptr<::aidl::android::hardware::biometrics::fingerprint::IFingerprint>*
                     _aidl_return);
+    binder_status_t dump(int fd, const char** args, uint32_t nargs);
+    binder_status_t handleShellCommand(int in, int out, int err, const char** args,
+                                       uint32_t numArgs);
 
   private:
     OptIntVec intVec2OptIntVec(const std::vector<int32_t>& intVec);

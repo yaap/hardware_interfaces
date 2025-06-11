@@ -22,6 +22,7 @@ import android.hardware.tv.mediaquality.DownmixMode;
 import android.hardware.tv.mediaquality.DtsVirtualX;
 import android.hardware.tv.mediaquality.EqualizerDetail;
 import android.hardware.tv.mediaquality.QualityLevel;
+import android.hardware.tv.mediaquality.SoundStyle;
 
 /**
  * The parameters for Sound Profile.
@@ -92,4 +93,16 @@ union SoundParameter {
 
     /* Digital output delay in ms. */
     int digitalOutputDelayMs;
+
+    /**
+     * Determines whether the current profile is actively in use or not.
+     */
+    boolean activeProfile;
+
+    /*
+     * Sound style of the profile.
+     *
+     * The default value is user customized profile.
+     */
+    SoundStyle soundStyle;
 }

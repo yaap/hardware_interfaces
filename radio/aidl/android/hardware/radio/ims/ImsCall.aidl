@@ -21,6 +21,7 @@ import android.hardware.radio.AccessNetwork;
 /** @hide */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable ImsCall {
     @Backing(type="int")
     enum CallType {

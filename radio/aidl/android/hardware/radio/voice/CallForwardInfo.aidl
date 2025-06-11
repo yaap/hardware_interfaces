@@ -22,6 +22,7 @@ package android.hardware.radio.voice;
  */
 @VintfStability
 @JavaDerive(toString=true)
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable CallForwardInfo {
     const int STATUS_DISABLE = 0;
     const int STATUS_ENABLE = 1;

@@ -26,12 +26,17 @@
 using namespace ::android::fingerprint::virt;
 
 namespace aidl::android::hardware::biometrics::fingerprint {
+SensorLocation FakeFingerprintEngineSide::defaultLocation[] = {
+        // default to CF display
+        {.sensorLocationX = 0, 200, 90, "local:4619827353912518656"}};
 
 FakeFingerprintEngineSide::FakeFingerprintEngineSide() : FakeFingerprintEngine() {}
 
-SensorLocation FakeFingerprintEngineSide::defaultSensorLocation() {
-    return SensorLocation{.sensorLocationX = defaultSensorLocationX,
-                          .sensorLocationY = defaultSensorLocationY,
-                          .sensorRadius = defaultSensorRadius};
+void FakeFingerprintEngineSide::getDefaultSensorLocation(
+        std::vector<SensorLocation>& sensorLocation) {
+    for (int i = 0; i < (sizeof(defaultLocation) / sizeof(defaultLocation[0])); i++) {
+        sensorLocation.push_back(defaultLocation[i]);
+    }
 }
+
 }  // namespace aidl::android::hardware::biometrics::fingerprint

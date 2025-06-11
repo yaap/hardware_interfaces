@@ -9,7 +9,7 @@ prop {
     type: String
     scope: Public
     access: ReadWrite
-    enum_values: "default|rear|udfps|side"
+    enum_values: "default|rear|udfps|udfps-us|side"
     api_name: "type"
 }
 
@@ -149,7 +149,8 @@ prop {
 }
 
 # sensor location
-#    <x>:<y>:<radius> in pixel
+#    <display1>[,display2] ...
+#       display format: <x>:<y>:<radius>[:displayString]
 prop {
     prop_name: "persist.vendor.fingerprint.virtual.sensor_location"
     type: String
@@ -218,13 +219,13 @@ prop {
     api_name: "max_enrollments"
 }
 
-# whether support navigation guestures (default: false)
+# whether support navigation gestures (default: false)
 prop {
-    prop_name: "persist.vendor.fingerprint.virtual.navigation_guesture"
+    prop_name: "persist.vendor.fingerprint.virtual.navigation_gesture"
     type: Boolean
     scope: Public
     access: ReadWrite
-    api_name: "navigation_guesture"
+    api_name: "navigation_gesture"
 }
 
 # whether support detect interaction (default: false)

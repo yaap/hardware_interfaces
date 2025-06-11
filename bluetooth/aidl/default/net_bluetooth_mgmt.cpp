@@ -259,8 +259,8 @@ int NetBluetoothMgmt::rfkill(int block) {
 int NetBluetoothMgmt::openHci(int hci_interface) {
   ALOGI("opening hci interface %d", hci_interface);
 
-  // Block Bluetooth.
-  rfkill(1);
+  // Unblock Bluetooth.
+  rfkill(0);
 
   // Wait for the HCI interface to complete initialization or to come online.
   int hci = waitHciDev(hci_interface);
@@ -300,8 +300,8 @@ void NetBluetoothMgmt::closeHci() {
     bt_fd_ = -1;
   }
 
-  // Unblock Bluetooth.
-  rfkill(0);
+  // Block Bluetooth.
+  rfkill(1);
 }
 
 }  // namespace aidl::android::hardware::bluetooth::impl

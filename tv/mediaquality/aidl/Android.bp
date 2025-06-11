@@ -10,7 +10,6 @@ package {
 aidl_interface {
     name: "android.hardware.tv.mediaquality",
     vendor_available: true,
-    owner: "haofanw",
     srcs: [
         "android/hardware/tv/mediaquality/*.aidl",
     ],
@@ -35,5 +34,12 @@ aidl_interface {
             enabled: false,
         },
     },
-    frozen: false,
+    frozen: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: ["android.hardware.graphics.common-V5"],
+        },
+    ],
+
 }

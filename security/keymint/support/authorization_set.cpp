@@ -22,6 +22,8 @@
 #include <aidl/android/hardware/security/keymint/KeyParameter.h>
 #include <aidl/android/hardware/security/keymint/KeyPurpose.h>
 
+#include <algorithm>
+
 namespace aidl::android::hardware::security::keymint {
 
 void AuthorizationSet::Sort() {

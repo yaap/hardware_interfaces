@@ -202,8 +202,26 @@ TEST_P(UwbAidl, ChipGetName) {
 }
 
 TEST_P(UwbAidl, ChipSendUciMessage_GetDeviceInfo) {
-    const auto iuwb_chip = getAnyChipAndOpen();
+    std::promise<void> open_cb_promise;
+    std::future<void> open_cb_future{open_cb_promise.get_future()};
+    std::promise<void> init_cb_promise;
+    std::future<void> init_cb_future{init_cb_promise.get_future()};
+    std::shared_ptr<UwbClientCallback> callback = ndk::SharedRefBase::make<UwbClientCallback>(
+            [](auto /* data */) {},
+            [&init_cb_promise, &open_cb_promise](auto event, auto /* status */) {
+                if (event == UwbEvent::OPEN_CPLT) {
+                    open_cb_promise.set_value();
+                }
+                if (event == UwbEvent::POST_INIT_CPLT) {
+                    init_cb_promise.set_value();
+                }
+            });
+    std::chrono::milliseconds timeout{1000};
+    const auto iuwb_chip = getAnyChip();
+    EXPECT_TRUE(iuwb_chip->open(callback).isOk());
+    EXPECT_EQ(open_cb_future.wait_for(timeout), std::future_status::ready);
     EXPECT_TRUE(iuwb_chip->coreInit().isOk());
+    EXPECT_EQ(init_cb_future.wait_for(timeout), std::future_status::ready);
 
     std::vector<uint8_t> uciMessage = {0x20, 0x02, 0x00, 0x00}; /** CoreGetDeviceInfo */
     int32_t* return_status = new int32_t;

@@ -33,7 +33,7 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @VintfStability
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable EmergencyNetworkScanTrigger {
   android.hardware.radio.AccessNetwork[] accessNetwork;
   android.hardware.radio.network.EmergencyScanType scanType = android.hardware.radio.network.EmergencyScanType.NO_PREFERENCE;

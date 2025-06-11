@@ -89,5 +89,6 @@ apex {
     prebuilts: [
         "android.hardware.contexthub-service.example.rc",
         "contexthub-default.xml",
+        "android.hardware.context_hub.prebuilt.xml",
     ],
 }

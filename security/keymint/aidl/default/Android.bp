@@ -192,7 +192,6 @@ apex {
     ],
     prebuilts: [
         "keymint_aidl_nonsecure_init_rc",
-        "keymint_aidl_nonsecure_vintf",
         "android.hardware.hardware_keystore.xml", // permissions
     ],
 }
@@ -209,15 +208,4 @@ genrule {
     srcs: ["android.hardware.security.keymint-service.nonsecure.rc"],
     out: ["android.hardware.security.keymint-service.nonsecure.apex.rc"],
     cmd: "sed -E 's%/vendor/bin/%/apex/com.android.hardware.keymint/bin/%' $(in) > $(out)",
-}
-
-prebuilt_etc {
-    name: "keymint_aidl_nonsecure_vintf",
-    sub_dir: "vintf",
-    vendor: true,
-    srcs: [
-        "android.hardware.security.keymint-service.xml",
-        "android.hardware.security.sharedsecret-service.xml",
-        "android.hardware.security.secureclock-service.xml",
-    ],
 }

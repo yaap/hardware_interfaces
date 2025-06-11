@@ -56,7 +56,7 @@ enum RegState {
      */
     NOT_REG_MT_NOT_SEARCHING_OP_EM = 10,
     /**
-     * Same as NOT_REG_MT_SEARCHING_OP but indicatees that emergency calls are enabled
+     * Same as NOT_REG_MT_SEARCHING_OP but indicates that emergency calls are enabled
      */
     NOT_REG_MT_SEARCHING_OP_EM = 12,
     /**

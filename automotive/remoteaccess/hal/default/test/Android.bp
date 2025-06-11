@@ -19,6 +19,7 @@ package {
 
 cc_test {
     name: "RemoteAccessServiceUnitTest",
+    team: "trendy_team_aaos_power_triage",
     vendor: true,
     srcs: ["*.cpp"],
     whole_static_libs: [

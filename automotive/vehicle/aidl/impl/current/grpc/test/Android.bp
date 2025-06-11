@@ -19,6 +19,7 @@ package {
 
 cc_test {
     name: "GRPCVehicleHardwareUnitTest",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     srcs: ["GRPCVehicleHardwareUnitTest.cpp"],
     whole_static_libs: [
@@ -48,6 +49,7 @@ cc_test {
 
 cc_test {
     name: "GRPCVehicleProxyServerUnitTest",
+    team: "trendy_team_aaos_carframework_triage",
     vendor: true,
     srcs: ["GRPCVehicleProxyServerUnitTest.cpp"],
     header_libs: [

@@ -102,7 +102,7 @@ enum {
   kBlockLength16
 };
 
-enum { kSubbands8 = kSubbands.first, kSubbands4 };
+enum { kSubbands4 = kSubbands.first, kSubbands8 };
 
 enum {
   kAllocationMethodSnr = kAllocationMethod.first,
@@ -486,7 +486,7 @@ bool A2dpOffloadCodecSbc::BuildConfiguration(
   }
 
   min_bitpool = std::max(min_bitpool, uint8_t(lcaps.get(kMinimumBitpool)));
-  max_bitpool = std::max(max_bitpool, uint8_t(lcaps.get(kMaximumBitpool)));
+  max_bitpool = std::min(max_bitpool, uint8_t(lcaps.get(kMaximumBitpool)));
 
   if (hint) {
     min_bitpool =

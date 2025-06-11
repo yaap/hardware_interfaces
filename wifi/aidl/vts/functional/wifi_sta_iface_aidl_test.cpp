@@ -21,6 +21,7 @@
 #include <aidl/Gtest.h>
 #include <aidl/Vintf.h>
 #include <aidl/android/hardware/wifi/BnWifi.h>
+#include <aidl/android/hardware/wifi/BnWifiStaIfaceEventCallback.h>
 #include <android/binder_manager.h>
 #include <android/binder_status.h>
 #include <binder/IServiceManager.h>
@@ -29,6 +30,7 @@
 
 #include "wifi_aidl_test_utils.h"
 
+using aidl::android::hardware::wifi::BnWifiStaIfaceEventCallback;
 using aidl::android::hardware::wifi::CachedScanData;
 using aidl::android::hardware::wifi::IWifi;
 using aidl::android::hardware::wifi::IWifiStaIface;
@@ -36,6 +38,7 @@ using aidl::android::hardware::wifi::MacAddress;
 using aidl::android::hardware::wifi::Ssid;
 using aidl::android::hardware::wifi::StaApfPacketFilterCapabilities;
 using aidl::android::hardware::wifi::StaBackgroundScanCapabilities;
+using aidl::android::hardware::wifi::StaBackgroundScanParameters;
 using aidl::android::hardware::wifi::StaLinkLayerStats;
 using aidl::android::hardware::wifi::StaRoamingCapabilities;
 using aidl::android::hardware::wifi::StaRoamingConfig;
@@ -46,6 +49,12 @@ using aidl::android::hardware::wifi::WifiBand;
 using aidl::android::hardware::wifi::WifiDebugRxPacketFateReport;
 using aidl::android::hardware::wifi::WifiDebugTxPacketFateReport;
 using aidl::android::hardware::wifi::WifiStatusCode;
+
+namespace {
+const int kTestCmdId = 123;
+const std::array<uint8_t, 6> kTestMacAddr1 = {0x1a, 0x2b, 0x3c, 0x4d, 0x5e, 0x6f};
+const std::array<uint8_t, 6> kTestMacAddr2 = {0x4a, 0x5b, 0x6c, 0x7d, 0x8e, 0x9f};
+}  // namespace
 
 class WifiStaIfaceAidlTest : public testing::TestWithParam<std::string> {
   public:
@@ -63,6 +72,12 @@ class WifiStaIfaceAidlTest : public testing::TestWithParam<std::string> {
         int32_t features = 0;
         EXPECT_TRUE(wifi_sta_iface_->getFeatureSet(&features).isOk());
         return features & static_cast<int32_t>(expected);
+    }
+
+    bool isTwtSupported() {
+        TwtCapabilities twt_capabilities = {};
+        auto status = wifi_sta_iface_->twtGetCapabilities(&twt_capabilities);
+        return status.isOk() && twt_capabilities.isTwtRequesterSupported;
     }
 
     ndk::ScopedAStatus createStaIface(std::shared_ptr<IWifiStaIface>* sta_iface) {
@@ -379,6 +394,69 @@ TEST_P(WifiStaIfaceAidlTest, CachedScanData) {
     }
 }
 
+class WifiStaIfaceEventCallback : public BnWifiStaIfaceEventCallback {
+  public:
+    WifiStaIfaceEventCallback() = default;
+
+    ::ndk::ScopedAStatus onBackgroundFullScanResult(
+            int32_t /* in_cmdId */, int32_t /* in_bucketsScanned */,
+            const ::aidl::android::hardware::wifi::StaScanResult& /* in_result */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onBackgroundScanFailure(int32_t /* in_cmdId */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onBackgroundScanResults(
+            int32_t /* in_cmdId */,
+            const std::vector<::aidl::android::hardware::wifi::StaScanData>& /* in_scanDatas */)
+            override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onRssiThresholdBreached(int32_t /* in_cmdId */,
+                                                 const std::array<uint8_t, 6>& /* in_currBssid */,
+                                                 int32_t /* in_currRssi */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtFailure(int32_t /*in_cmdId*/,
+                                      ::aidl::android::hardware::wifi::IWifiStaIfaceEventCallback::
+                                              TwtErrorCode /* in_error */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtSessionCreate(
+            int32_t /* in_cmdId */,
+            const ::aidl::android::hardware::wifi::TwtSession& /* in_twtSession */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtSessionUpdate(
+            int32_t /* in_cmdId */,
+            const ::aidl::android::hardware::wifi::TwtSession& /* in_twtSession */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtSessionTeardown(
+            int32_t /* in_cmdId */, int32_t /* in_twtSessionId */,
+            ::aidl::android::hardware::wifi::IWifiStaIfaceEventCallback::
+                    TwtTeardownReasonCode /* in_reasonCode */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtSessionStats(
+            int32_t /* in_cmdId */, int32_t /* in_twtSessionId */,
+            const ::aidl::android::hardware::wifi::TwtSessionStats& /* in_twtSessionStats */)
+            override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtSessionSuspend(int32_t /* in_cmdId */,
+                                             int32_t /* in_twtSessionId */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus onTwtSessionResume(int32_t /* in_cmdId */,
+                                            int32_t /* in_twtSessionId */) override {
+        return ndk::ScopedAStatus::ok();
+    }
+};
+
+/**
+ * TwtGetCapabilities
+ */
 TEST_P(WifiStaIfaceAidlTest, TwtGetCapabilities) {
     if (interface_version_ < 2) {
         GTEST_SKIP() << "TwtGetCapabilities is available as of sta_iface V2";
@@ -400,6 +478,9 @@ TEST_P(WifiStaIfaceAidlTest, TwtGetCapabilities) {
     EXPECT_GT(twt_capabilities.maxWakeIntervalUs, 0);
 }
 
+/**
+ * TwtSessionSetup
+ */
 TEST_P(WifiStaIfaceAidlTest, TwtSessionSetup) {
     if (interface_version_ < 2) {
         GTEST_SKIP() << "TwtSessionSetup is available as of sta_iface V2";
@@ -414,6 +495,10 @@ TEST_P(WifiStaIfaceAidlTest, TwtSessionSetup) {
     if (!twt_capabilities.isTwtRequesterSupported) {
         GTEST_SKIP() << "TWT is not supported";
     }
+    const std::shared_ptr<WifiStaIfaceEventCallback> callback =
+            ndk::SharedRefBase::make<WifiStaIfaceEventCallback>();
+    ASSERT_NE(callback, nullptr);
+    EXPECT_TRUE(wifi_sta_iface_->registerEventCallback(callback).isOk());
 
     TwtRequest twtRequest;
     twtRequest.mloLinkId = 0;
@@ -424,18 +509,14 @@ TEST_P(WifiStaIfaceAidlTest, TwtSessionSetup) {
     EXPECT_TRUE(wifi_sta_iface_->twtSessionSetup(1, twtRequest).isOk());
 }
 
+/**
+ * TwtSessionGetStats
+ */
 TEST_P(WifiStaIfaceAidlTest, TwtSessionGetStats) {
     if (interface_version_ < 2) {
         GTEST_SKIP() << "TwtSessionGetStats is available as of sta_iface V2";
     }
-
-    TwtCapabilities twt_capabilities = {};
-    auto status = wifi_sta_iface_->twtGetCapabilities(&twt_capabilities);
-    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
-        GTEST_SKIP() << "twtGetCapabilities() is not supported by the vendor";
-    }
-    EXPECT_TRUE(status.isOk());
-    if (!twt_capabilities.isTwtRequesterSupported) {
+    if (!isTwtSupported()) {
         GTEST_SKIP() << "TWT is not supported";
     }
 
@@ -444,24 +525,135 @@ TEST_P(WifiStaIfaceAidlTest, TwtSessionGetStats) {
     EXPECT_TRUE(wifi_sta_iface_->twtSessionGetStats(1, 10).isOk());
 }
 
+/**
+ * TwtSessionTeardown
+ */
 TEST_P(WifiStaIfaceAidlTest, TwtSessionTeardown) {
     if (interface_version_ < 2) {
-        GTEST_SKIP() << "TwtSessionTeardown is available as of sta_iface V3";
+        GTEST_SKIP() << "TwtSessionTeardown is available as of sta_iface V2";
     }
-
-    TwtCapabilities twt_capabilities = {};
-    auto status = wifi_sta_iface_->twtGetCapabilities(&twt_capabilities);
-    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
-        GTEST_SKIP() << "twtGetCapabilities() is not supported by the vendor";
-    }
-    EXPECT_TRUE(status.isOk());
-    if (!twt_capabilities.isTwtRequesterSupported) {
+    if (!isTwtSupported()) {
         GTEST_SKIP() << "TWT is not supported";
     }
 
     // Expecting a IWifiStaIfaceEventCallback.onTwtFailure() with INVALID_PARAMS
-    // as  the error code.
+    // as the error code.
     EXPECT_TRUE(wifi_sta_iface_->twtSessionTeardown(1, 10).isOk());
+}
+
+/**
+ * TwtSessionUpdate
+ */
+TEST_P(WifiStaIfaceAidlTest, TwtSessionUpdate) {
+    if (interface_version_ < 2) {
+        GTEST_SKIP() << "TwtSessionUpdate is available as of sta_iface V2";
+    }
+    if (!isTwtSupported()) {
+        GTEST_SKIP() << "TWT is not supported";
+    }
+
+    TwtRequest twtRequest;
+    twtRequest.mloLinkId = 0;
+    twtRequest.minWakeDurationUs = 1000;
+    twtRequest.maxWakeDurationUs = 10000;
+    twtRequest.minWakeIntervalUs = 10000;
+    twtRequest.maxWakeIntervalUs = 100000;
+
+    auto status = wifi_sta_iface_->twtSessionUpdate(1, 10, twtRequest);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "TwtSessionUpdate is not supported";
+    }
+    // Expecting a IWifiStaIfaceEventCallback.onTwtFailure() with INVALID_PARAMS
+    // as the error code.
+    EXPECT_TRUE(status.isOk());
+}
+
+/**
+ * TwtSessionSuspend
+ */
+TEST_P(WifiStaIfaceAidlTest, TwtSessionSuspend) {
+    if (interface_version_ < 2) {
+        GTEST_SKIP() << "TwtSessionSuspend is available as of sta_iface V2";
+    }
+    if (!isTwtSupported()) {
+        GTEST_SKIP() << "TWT is not supported";
+    }
+
+    auto status = wifi_sta_iface_->twtSessionSuspend(1, 10);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "TwtSessionSuspend is not supported";
+    }
+    // Expecting a IWifiStaIfaceEventCallback.onTwtFailure() with INVALID_PARAMS
+    // as the error code.
+    EXPECT_TRUE(status.isOk());
+}
+
+/**
+ * TwtSessionResume
+ */
+TEST_P(WifiStaIfaceAidlTest, TwtSessionResume) {
+    if (interface_version_ < 2) {
+        GTEST_SKIP() << "TwtSessionResume is available as of sta_iface V2";
+    }
+    if (!isTwtSupported()) {
+        GTEST_SKIP() << "TWT is not supported";
+    }
+
+    auto status = wifi_sta_iface_->twtSessionResume(1, 10);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "TwtSessionResume is not supported";
+    }
+    // Expecting a IWifiStaIfaceEventCallback.onTwtFailure() with INVALID_PARAMS
+    // as the error code.
+    EXPECT_TRUE(status.isOk());
+}
+
+/*
+ * SetDtimMultiplier
+ */
+TEST_P(WifiStaIfaceAidlTest, SetDtimMultiplier) {
+    // Multiplied value
+    auto status = wifi_sta_iface_->setDtimMultiplier(2);
+    if (checkStatusCode(&status, WifiStatusCode::ERROR_NOT_SUPPORTED)) {
+        GTEST_SKIP() << "SetDtimMultiplier is not supported";
+    }
+    EXPECT_TRUE(status.isOk());
+
+    // Driver default value
+    EXPECT_TRUE(wifi_sta_iface_->setDtimMultiplier(0).isOk());
+}
+
+/*
+ * Start/Stop Background Scan
+ */
+TEST_P(WifiStaIfaceAidlTest, StartAndStopBackgroundScan) {
+    if (!isFeatureSupported(IWifiStaIface::FeatureSetMask::BACKGROUND_SCAN)) {
+        GTEST_SKIP() << "Background scan is not supported";
+    }
+    StaBackgroundScanParameters scanParams;
+    EXPECT_TRUE(wifi_sta_iface_->startBackgroundScan(kTestCmdId, scanParams).isOk());
+    EXPECT_TRUE(wifi_sta_iface_->stopBackgroundScan(kTestCmdId).isOk());
+}
+
+/*
+ * Start/Stop Sending Keep-Alive Packets
+ */
+TEST_P(WifiStaIfaceAidlTest, StartAndStopSendingKeepAlivePackets) {
+    std::vector<uint8_t> ipPacketData(20);
+    uint16_t etherType = 0x0800;  // IPv4
+    uint32_t periodInMs = 1000;   // 1 sec
+
+    auto status = wifi_sta_iface_->startSendingKeepAlivePackets(
+            kTestCmdId, ipPacketData, etherType, kTestMacAddr1, kTestMacAddr2, periodInMs);
+    if (!status.isOk()) {
+        // The device may not support this operation or the specific test values
+        GTEST_SKIP() << "StartAndStopSendingKeepAlivePackets is not supported"
+                     << ", status=" << status.getServiceSpecificError();
+    }
+    EXPECT_TRUE(status.isOk());
+
+    // If start was successful, then stop should also work
+    EXPECT_TRUE(wifi_sta_iface_->stopSendingKeepAlivePackets(kTestCmdId).isOk());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WifiStaIfaceAidlTest);

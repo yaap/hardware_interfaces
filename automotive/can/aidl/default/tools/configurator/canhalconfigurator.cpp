@@ -98,7 +98,11 @@ static bool configuratorStart(const std::string& filepath) {
     return true;
 }
 
-extern "C" int main(int argc, char* argv[]) {
+}  // namespace android::hardware::automotive::can
+
+int main(int argc, char* argv[]) {
+    using namespace android::hardware::automotive::can;
+
     std::string configFilepath = static_cast<std::string>(kDefaultConfigPath);
 
     // allow for CLI specification of a config file.
@@ -114,5 +118,3 @@ extern "C" int main(int argc, char* argv[]) {
     }
     return 0;
 }
-
-}  // namespace android::hardware::automotive::can

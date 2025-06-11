@@ -39,8 +39,6 @@ int main(int argc, char** argv) {
         if (strcmp(argv[1], "default") == 0) {
             const std::string instance = std::string(Fingerprint::descriptor) + "/default";
             auto binder = hal->asBinder();
-            auto binder_ext = hal_vhal->asBinder();
-            CHECK(STATUS_OK == AIBinder_setExtension(binder.get(), binder_ext.get()));
             binder_status_t status =
                     AServiceManager_registerLazyService(binder.get(), instance.c_str());
             CHECK_EQ(status, STATUS_OK);

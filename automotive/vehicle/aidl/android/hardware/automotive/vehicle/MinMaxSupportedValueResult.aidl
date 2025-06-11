@@ -43,6 +43,8 @@ parcelable MinMaxSupportedValueResult {
      *
      * If the [propId, areaId] does not specify a max supported value, this
      * is {@code null}.
+     *
+     * This must be ignored if status is not {@code StatusCode.OK}.
      */
     @nullable RawPropValues maxSupportedValue;
 }

@@ -39,7 +39,7 @@ import android.hardware.radio.network.UsageSetting;
 oneway interface IRadioNetworkResponse {
     /**
      * Acknowledge the receipt of radio request sent to the vendor. This must be sent only for
-     * radio request which take long time to respond. For more details, refer
+     * radio requests which take a long time to respond. For more details, refer
      * https://source.android.com/devices/tech/connect/ril.html
      *
      * @param serial Serial no. of the request whose acknowledgement is sent.
@@ -80,6 +80,8 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:MODEM_ERR
      *   RadioError:NO_RESOURCES
      *   RadioError:CANCELLED
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void getAvailableBandModesResponse(in RadioResponseInfo info, in RadioBandMode[] bandModes);
 
@@ -332,6 +334,8 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:MODEM_ERR
      *   RadioError:NO_RESOURCES
      *   RadioError:CANCELLED
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setBandModeResponse(in RadioResponseInfo info);
 
@@ -437,6 +441,8 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:NO_RESOURCES
      *   RadioError:CANCELLED
      *   RadioError:SIM_ABSENT
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setLocationUpdatesResponse(in RadioResponseInfo info);
 
@@ -528,6 +534,8 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:NO_RESOURCES
      *   RadioError:CANCELLED
      *   RadioError:SIM_ABSENT
+     *
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void setSuppServiceNotificationsResponse(in RadioResponseInfo info);
 

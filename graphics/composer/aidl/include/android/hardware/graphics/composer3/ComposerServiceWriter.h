@@ -116,6 +116,13 @@ class ComposerServiceWriter {
         mCommandsResults.emplace_back(std::move(clientTargetPropertyWithBrightness));
     }
 
+    void setDisplayLuts(int64_t display, std::vector<DisplayLuts::LayerLut> layerLuts) {
+        DisplayLuts displayLuts;
+        displayLuts.display = display;
+        displayLuts.layerLuts = std::move(layerLuts);
+        mCommandsResults.emplace_back(std::move(displayLuts));
+    }
+
     std::vector<CommandResultPayload> getPendingCommandResults() {
         return std::move(mCommandsResults);
     }

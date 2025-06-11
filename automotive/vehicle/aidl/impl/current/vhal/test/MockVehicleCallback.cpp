@@ -92,9 +92,14 @@ ScopedAStatus MockVehicleCallback::onPropertySetError(const VehiclePropErrors& r
     return result;
 }
 
-ScopedAStatus MockVehicleCallback::onSupportedValueChange(const std::vector<PropIdAreaId>&) {
-    // TODO(b/381020465): Add relevant implementation.
-    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+ScopedAStatus MockVehicleCallback::onSupportedValueChange(
+        const std::vector<PropIdAreaId>& propIdAreaIds) {
+    {
+        std::scoped_lock<std::mutex> lockGuard(mLock);
+        mOnSupportedValueChangePropIdAreaIds = propIdAreaIds;
+    }
+    mCond.notify_all();
+    return ScopedAStatus::ok();
 }
 
 std::optional<GetValueResults> MockVehicleCallback::nextGetValueResults() {
@@ -149,6 +154,19 @@ bool MockVehicleCallback::waitForOnPropertyEventResults(size_t size, size_t time
         ScopedLockAssertion lockAssertion(mLock);
         return mOnPropertyEventResults.size() >= size;
     });
+}
+
+bool MockVehicleCallback::waitForOnSupportedValueChange(size_t size, size_t timeoutInNano) {
+    std::unique_lock lk(mLock);
+    return mCond.wait_for(lk, std::chrono::nanoseconds(timeoutInNano), [this, size] {
+        ScopedLockAssertion lockAssertion(mLock);
+        return mOnSupportedValueChangePropIdAreaIds.size() >= size;
+    });
+}
+
+std::vector<PropIdAreaId> MockVehicleCallback::getOnSupportedValueChangePropIdAreaIds() {
+    std::scoped_lock<std::mutex> lockGuard(mLock);
+    return mOnSupportedValueChangePropIdAreaIds;
 }
 
 }  // namespace vehicle

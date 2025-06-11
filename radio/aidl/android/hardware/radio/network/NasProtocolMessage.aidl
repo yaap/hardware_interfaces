@@ -21,6 +21,9 @@ package android.hardware.radio.network;
  * generation is noted for each message type. Sample spec references are provided, but generally
  * only reference one network generation's spec.
  *
+ * The exceptions to this rule are THREAT_IDENTIFIER_FALSE and THREAT_IDENTIIFER_TRUE, which are
+ * included to accommodate threat ranking of disclosures based on modem logic.
+ *
  * @hide
  */
 @VintfStability
@@ -64,5 +67,11 @@ enum NasProtocolMessage {
     CM_SERVICE_REQUEST = 10,
     // Reference: 3GPP TS 24.008 9.2.14
     // Applies to 2g and 3g networks. Used for circuit-switched detach.
-    IMSI_DETACH_INDICATION = 11
+    IMSI_DETACH_INDICATION = 11,
+    // Vendor-specific enumeration to identify a disclosure as potentially benign.
+    // Enables vendors to semantically define disclosures based on their own classification logic.
+    THREAT_IDENTIFIER_FALSE = 12,
+    // Vendor-specific enumeration to identify a disclosure as potentially harmful.
+    // Enables vendors to semantically define disclosures based on their own classification logic.
+    THREAT_IDENTIFIER_TRUE = 13
 }

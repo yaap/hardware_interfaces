@@ -94,7 +94,6 @@ class VirtualizerHelper : public EffectHelper {
         }
     }
 
-    static constexpr int kDefaultChannelLayout = AudioChannelLayout::LAYOUT_STEREO;
     static constexpr int kDurationMilliSec = 720;
     static constexpr int kBufferSize = kSamplingFrequency * kDurationMilliSec / 1000;
     int kChannelCount = getChannelCount(
@@ -159,14 +158,6 @@ class VirtualizerProcessTest : public ::testing::TestWithParam<VirtualizerProces
         ASSERT_NO_FATAL_FAILURE(TearDownVirtualizer());
     }
 
-    void generateInput(std::vector<float>& buffer) {
-        if (mZeroInput) {
-            std::fill(buffer.begin(), buffer.end(), 0);
-        } else {
-            generateSineWave(1000 /*Input Frequency*/, buffer);
-        }
-    }
-
     static constexpr float kAbsError = 0.00001;
     bool mZeroInput;
 };
@@ -176,7 +167,11 @@ TEST_P(VirtualizerProcessTest, IncreasingStrength) {
     std::vector<float> output(kBufferSize);
     std::vector<int> strengths = {250, 500, 750, 1000};
 
-    generateInput(input);
+    if (mZeroInput) {
+        std::fill(input.begin(), input.end(), 0);
+    } else {
+        ASSERT_NO_FATAL_FAILURE(generateSineWave(1000 /*Input Frequency*/, input));
+    }
 
     const float inputRmse =
             audio_utils_compute_energy_mono(input.data(), AUDIO_FORMAT_PCM_FLOAT, input.size());

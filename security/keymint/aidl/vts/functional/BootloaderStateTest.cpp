@@ -27,6 +27,7 @@
 #include <libavb/libavb.h>
 #include <libavb_user/avb_ops_user.h>
 #include <remote_prov/remote_prov_utils.h>
+#include <vendorsupport/api_level.h>
 
 #include "KeyMintAidlTestBase.h"
 
@@ -98,7 +99,7 @@ TEST_P(BootloaderStateTest, VbStateIsUnverified) {
 // Check that the attested Verified Boot key is 32 bytes of zeroes since the bootloader is unlocked.
 TEST_P(BootloaderStateTest, VerifiedBootKeyAllZeroes) {
     // Gate this test to avoid waiver issues.
-    if (get_vsr_api_level() <= __ANDROID_API_V__) {
+    if (get_vendor_api_level() <= AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         return;
     }
 
@@ -141,13 +142,13 @@ TEST_P(BootloaderStateTest, VbmetaDigest) {
     avb_slot_verify_data_calculate_vbmeta_digest(avbSlotData, AVB_DIGEST_TYPE_SHA256,
                                                  sha256Digest.data());
 
-    if (get_vsr_api_level() >= __ANDROID_API_V__) {
+    if (get_vendor_api_level() >= AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
         ASSERT_TRUE(attestedVbmetaDigest_ == sha256Digest)
                 << "Attested VBMeta digest (" << bin2hex(attestedVbmetaDigest_)
                 << ") does not match the expected SHA-256 digest (" << bin2hex(sha256Digest)
                 << ").";
     } else {
-        // Prior to VSR-V, there was no MUST requirement for the algorithm used by the bootloader
+        // Prior to VSR-15, there was no MUST requirement for the algorithm used by the bootloader
         // to calculate the VBMeta digest. However, the only two supported options are SHA-256 and
         // SHA-512, so we expect the attested VBMeta digest to match one of these.
         vector<uint8_t> sha512Digest(AVB_SHA512_DIGEST_SIZE);
