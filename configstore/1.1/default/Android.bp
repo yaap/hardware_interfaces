@@ -135,7 +135,6 @@ prebuilt_etc {
 // disable configstore
 cc_binary {
     name: "disable_configstore",
-    installable: false,
     srcs: ["disable_configstore.cpp"],
     overrides: ["android.hardware.configstore@1.1-service"],
     vendor: true,
