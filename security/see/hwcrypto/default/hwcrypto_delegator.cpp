@@ -19,47 +19,17 @@
 #include <android/binder_process.h>
 #include <getopt.h>
 #include <string>
+#include "delegatorhelpers.h"
 #include "hwcryptokeyimpl.h"
+#ifdef ENABLE_SHARED_SECRET_HAL
+#include "hwcryptosharedsecretimpl.h"
+#endif
 
-static void showUsageAndExit(int code) {
-    LOG(ERROR) << "usage: android.hardware.trusty.hwcryptohal-service -d <trusty_dev>";
-    exit(code);
-}
-
-static void parseDeviceName(int argc, char* argv[], char*& device_name) {
-    static const char* _sopts = "h:d:";
-    static const struct option _lopts[] = {{"help", no_argument, nullptr, 'h'},
-                                           {"trusty_dev", required_argument, nullptr, 'd'},
-                                           {0, 0, 0, 0}};
-    int opt;
-    int oidx = 0;
-
-    while ((opt = getopt_long(argc, argv, _sopts, _lopts, &oidx)) != -1) {
-        switch (opt) {
-            case 'd':
-                device_name = strdup(optarg);
-                break;
-            case 'h':
-                showUsageAndExit(EXIT_SUCCESS);
-                break;
-            default:
-                LOG(ERROR) << "unrecognized option: " << opt;
-                showUsageAndExit(EXIT_FAILURE);
-        }
-    }
-
-    if (device_name == nullptr) {
-        LOG(ERROR) << "missing required argument(s)";
-        showUsageAndExit(EXIT_FAILURE);
-    }
-
-    LOG(INFO) << "starting android.hardware.trusty.hwcryptohal-service";
-    LOG(INFO) << "trusty dev: " << device_name;
-}
+const char* APP_NAME = "android.hardware.trusty.hwcryptohal-service";
 
 int main(int argc, char* argv[]) {
     char* device_name;
-    parseDeviceName(argc, argv, device_name);
+    parseDeviceName(argc, argv, device_name, APP_NAME);
 
     auto hwCryptoServer = android::trusty::hwcryptohalservice::HwCryptoKey::Create(device_name);
     if (hwCryptoServer == nullptr) {
@@ -75,6 +45,24 @@ int main(int argc, char* argv[]) {
         LOG(ERROR) << "couldn't register hwcrypto service";
     }
     CHECK_EQ(status, STATUS_OK);
+
+#ifdef ENABLE_SHARED_SECRET_HAL
+    auto sharedSecretServer =
+            android::trusty::hwcryptohalservice::HwCryptoSharedSecret::Create(device_name);
+    if (sharedSecretServer == nullptr) {
+        LOG(ERROR) << "couldn't create hwcrypto shared secret service";
+        exit(EXIT_FAILURE);
+    }
+    const std::string sharedSecretInstance =
+            std::string() + ndk_sharedsecret::ISharedSecret::descriptor + "/hwcrypto";
+    status = AServiceManager_addService(sharedSecretServer->asBinder().get(),
+                                        sharedSecretInstance.c_str());
+    if (status != STATUS_OK) {
+        LOG(ERROR) << "couldn't register hwcrypto shared secret service";
+    }
+    CHECK_EQ(status, STATUS_OK);
+#endif
+
     ABinderProcess_joinThreadPool();
 
     return 0;
