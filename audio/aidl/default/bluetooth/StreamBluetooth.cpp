@@ -156,6 +156,12 @@ StreamBluetooth::~StreamBluetooth() {
 ::android::status_t StreamBluetooth::transfer(void* buffer, size_t frameCount,
                                               size_t* actualFrameCount, int32_t* latencyMs) {
     std::lock_guard guard(mLock);
+    if (!mEnabled) {
+        *actualFrameCount = frameCount;
+        *latencyMs = kBluetoothDefaultRemoteDelayMs;
+        usleep((float)(frameCount * 1000000) / (float)getContext().getSampleRate());
+        return ::android::OK;
+    }
     *actualFrameCount = 0;
     *latencyMs = StreamDescriptor::LATENCY_UNKNOWN;
     if (mBtDeviceProxy == nullptr || !mBtDeviceProxy->start()) {
@@ -228,6 +234,9 @@ ndk::ScopedAStatus StreamBluetooth::prepareToClose() {
 
 ::android::status_t StreamBluetooth::start() {
     std::lock_guard guard(mLock);
+    if (!mEnabled) {
+        return ::android::OK;
+    }
     if (mBtDeviceProxy != nullptr) mBtDeviceProxy->start();
     return ::android::OK;
 }
@@ -280,6 +289,9 @@ ndk::ScopedAStatus StreamBluetooth::bluetoothParametersUpdated() {
             LOG(DEBUG) << __func__ << ": applyParam failed";
             return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
         }
+        mEnabled = (mBtDeviceProxy->isA2dp() && enableA2dp) ||
+                   (mBtDeviceProxy->isLeAudio() && enableLe);
+        LOG(INFO) << __func__ << ": mEnabled: " << mEnabled;
     }
     return ndk::ScopedAStatus::ok();
 }

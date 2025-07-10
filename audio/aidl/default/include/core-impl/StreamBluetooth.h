@@ -92,6 +92,7 @@ class StreamBluetooth : public StreamCommonImpl {
     // The lock is also used to serialize calls to the proxy.
     std::shared_ptr<::android::bluetooth::audio::aidl::BluetoothAudioPortAidl> mBtDeviceProxy
             GUARDED_BY(mLock);  // proxy may be null if the stream is not connected to a device
+    bool mEnabled GUARDED_BY(mLock) = true;
 };
 
 class StreamInBluetooth final : public StreamIn, public StreamBluetooth {
