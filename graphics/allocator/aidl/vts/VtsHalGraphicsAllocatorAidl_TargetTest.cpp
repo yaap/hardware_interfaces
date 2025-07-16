@@ -314,7 +314,7 @@ TEST_P(GraphicsAllocatorAidlTests, CanAllocate) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
             .reservedSize = 0,
     });
@@ -342,7 +342,7 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownUsages) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
             .reservedSize = 0,
     };
@@ -368,7 +368,7 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownOptions) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
             .reservedSize = 0,
     };
@@ -384,7 +384,7 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsZeroLayerCount) {
             .width = 64,
             .height = 64,
             .layerCount = 0,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
             .reservedSize = 0,
     };
@@ -399,7 +399,7 @@ TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToCpu) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::GPU_RENDER_TARGET | BufferUsage::CPU_READ_OFTEN |
                      BufferUsage::FRONT_BUFFER,
             .reservedSize = 0,
@@ -441,7 +441,7 @@ TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToGpu) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::GPU_RENDER_TARGET | BufferUsage::GPU_TEXTURE |
                      BufferUsage::FRONT_BUFFER,
             .reservedSize = 0,
