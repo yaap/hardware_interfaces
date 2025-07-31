@@ -17,11 +17,11 @@
 package android.hardware.security.factory_reset_protection;
 
 /**
- * IFactoryResetProtection is the interface to a trusted application (TA), running in an
- * isolated environment that is secure from arbitrary compromise of the Android system and
- * kernel. The purpose of this trusted application is to render devices that were reset to a
- * factory-clean state by an unauthorized user useless, to reduce the value of stolen Android
- * devices while preserving the ability of authorized parties to reset devices.
+ * IFactoryResetProtection is the interface to a trusted application (TA), running in an isolated
+ * environment that is secure from arbitrary compromise of the Android system and kernel. The
+ * purpose of this trusted application is to render devices that were reset to a factory-clean state
+ * by an unauthorized user useless, to reduce the value of stolen Android devices while preserving
+ * the ability of authorized parties to reset devices.
  *
  * Factory Reset Protection (FRP) is in one of two states at any given time: active or inactive, and
  * the current state is held in isolated environment RAM.  While FRP is in the active state, various
@@ -40,9 +40,9 @@ package android.hardware.security.factory_reset_protection;
  * ================
  *
  * Deactivation is done by calling the `deactivate()` method, and passing the correct FRP "secret",
- * which is a 32-byte value.  The secret can be set when the TA is in the inactive state by calling
- * the `setFrpSecret()` method.  If the `setFrpSecret()` method has never been called, the FRP
- * secret defaults to all zeros.
+ * which is a 32-byte value.  The secret can be set when FRP is in the inactive state by calling the
+ * `setFrpSecret()` method.  If the `setFrpSecret()` method has never been called, the FRP secret
+ * must default to all zeros.
  *
  * The IFactoryResetProtection client must arrange to have the secret available for presentation in
  * various contexts.  For example, a plaintext copy may be stored in /data in a location accessible
@@ -77,6 +77,16 @@ package android.hardware.security.factory_reset_protection;
  *
  * It is strongly recommended that the IFactoryResetProtection implementation run in the same
  * isolated environment as the default IKeyMintDevice implementation.
+ *
+ * Optional FRP bypass
+ * ===================
+ *
+ * Because device manufacturers and their authorized agents sometimes need to be able to restore an
+ * FRP-active device to the factory state without access to the FRP secret, it is recommended that
+ * implementations provide a secure mechanism for resetting the FRP secret to the default,
+ * all-zeros, value.  One option is to set the FRP secret to default if the bootloader is unlocked,
+ * using the bootloader lockstate value from the KeyMint Root of Trust data.  In order for that
+ * approach to be secure, bootloader unlocking must be secure.
  */
 @VintfStability
 interface IFactoryResetProtection {

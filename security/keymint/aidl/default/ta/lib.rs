@@ -35,6 +35,7 @@ use log::info;
 
 pub mod attest;
 pub mod clock;
+pub mod frp;
 pub mod rpc;
 pub mod soft;
 
@@ -99,6 +100,8 @@ pub fn build_ta() -> kmr_ta::KeyMintTa {
         // No support for converting previous implementation's keyblobs.
         legacy_key: None,
         rpc,
+        frp_secret_storage: Some(Box::new(frp::InMemorySecretStorage::new())),
+        frp_data_storage: Some(Box::new(frp::InMemoryDataStorage::new())),
     };
     KeyMintTa::new(
         hw_info,
