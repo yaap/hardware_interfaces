@@ -19,6 +19,19 @@
 #include <android/binder_auto_utils.h>
 #include <gtest/gtest.h>
 
+namespace aidl::android::hardware::vibrator::testing {
+
+using namespace ::std::chrono_literals;
+
+// Timeout to wait for vibration callback completion.
+static const std::chrono::milliseconds VIBRATION_CALLBACK_TIMEOUT =
+        300ms * ::android::base::HwTimeoutMultiplier();
+
+static const int64_t FMQ_TIMEOUT_NANOS =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(VIBRATION_CALLBACK_TIMEOUT).count();
+
+}  // namespace aidl::android::hardware::vibrator::testing
+
 #if !defined(EXPECT_OK)
 #define EXPECT_OK(expression)                                                \
     GTEST_AMBIGUOUS_ELSE_BLOCKER_                                            \

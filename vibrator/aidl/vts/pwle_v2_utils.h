@@ -21,10 +21,6 @@
 #include <algorithm>
 #include "test_utils.h"
 
-using aidl::android::hardware::vibrator::FrequencyAccelerationMapEntry;
-using aidl::android::hardware::vibrator::IVibrator;
-using aidl::android::hardware::vibrator::PwleV2Primitive;
-
 namespace aidl {
 namespace android {
 namespace hardware {

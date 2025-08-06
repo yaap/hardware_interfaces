@@ -42,6 +42,7 @@ interface IVibratorManager {
   void cancelSynced();
   android.hardware.vibrator.IVibrationSession startSession(in int[] vibratorIds, in android.hardware.vibrator.VibrationSessionConfig config, in @nullable android.hardware.vibrator.IVibratorCallback callback);
   void clearSessions();
+  android.hardware.vibrator.HapticGeneratorSession startHapticGeneratorSession(in int[] vibratorIds, in android.hardware.vibrator.HapticGeneratorConfig config, in @nullable android.hardware.vibrator.IVibratorCallback callback);
   const int CAP_SYNC = (1 << 0) /* 1 */;
   const int CAP_PREPARE_ON = (1 << 1) /* 2 */;
   const int CAP_PREPARE_PERFORM = (1 << 2) /* 4 */;
@@ -51,4 +52,5 @@ interface IVibratorManager {
   const int CAP_MIXED_TRIGGER_COMPOSE = (1 << 6) /* 64 */;
   const int CAP_TRIGGER_CALLBACK = (1 << 7) /* 128 */;
   const int CAP_START_SESSIONS = (1 << 8) /* 256 */;
+  const int CAP_HAPTIC_GENERATOR = (1 << 9) /* 512 */;
 }

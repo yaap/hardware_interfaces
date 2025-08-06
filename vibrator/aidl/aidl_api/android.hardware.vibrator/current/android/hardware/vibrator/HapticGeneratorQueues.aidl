@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,11 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.vibrator;
-@FixedSize @VintfStability
-parcelable CompositeEffect {
-  int delayMs;
-  android.hardware.vibrator.CompositePrimitive primitive = android.hardware.vibrator.CompositePrimitive.NOOP;
-  float scale;
+@VintfStability
+parcelable HapticGeneratorQueues {
+  int vibratorId;
+  android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.HapticGeneratorCommand,android.hardware.common.fmq.SynchronizedReadWrite> command;
+  android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.VibrationEffect,android.hardware.common.fmq.SynchronizedReadWrite> effect;
+  android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.HapticGeneratorReply,android.hardware.common.fmq.SynchronizedReadWrite> reply;
+  android.hardware.common.fmq.MQDescriptor<byte,android.hardware.common.fmq.SynchronizedReadWrite> pcm;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,10 @@
 
 package android.hardware.vibrator;
 @FixedSize @VintfStability
-parcelable CompositeEffect {
-  int delayMs;
-  android.hardware.vibrator.CompositePrimitive primitive = android.hardware.vibrator.CompositePrimitive.NOOP;
-  float scale;
+union VibrationEffect {
+  long[20] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  android.hardware.vibrator.CompositeEffect composite;
+  android.hardware.vibrator.OneShotPrimitive oneShotPrimitive;
+  android.hardware.vibrator.PredefinedEffect predefined;
+  android.hardware.vibrator.PwleV2Primitive pwleV2Primitive;
 }
