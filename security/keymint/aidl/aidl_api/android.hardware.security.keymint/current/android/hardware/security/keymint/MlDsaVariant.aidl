@@ -34,11 +34,7 @@
 package android.hardware.security.keymint;
 /* @hide */
 @Backing(type="int") @VintfStability
-enum Algorithm {
-  RSA = 1,
-  EC = 3,
-  ML_DSA = 4,
-  AES = 32,
-  TRIPLE_DES = 33,
-  HMAC = 128,
+enum MlDsaVariant {
+  ML_DSA_65 = 1,
+  ML_DSA_87 = 2,
 }

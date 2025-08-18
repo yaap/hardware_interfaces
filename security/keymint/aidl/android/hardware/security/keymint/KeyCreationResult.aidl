@@ -127,12 +127,12 @@ parcelable KeyCreationResult {
      * straightforward translation of the KeyMint tag/value parameter lists to ASN.1.
      *
      * KeyDescription ::= SEQUENCE {
-     *     -- attestationVersion must be 400.
+     *     -- attestationVersion must be 500.
      *     attestationVersion         INTEGER,
      *     -- attestationSecurityLevel is the SecurityLevel of the location where the attested
      *     -- key is stored. Must match keymintSecurityLevel.
      *     attestationSecurityLevel   SecurityLevel,
-     *     -- keyMintVersion must be 400.
+     *     -- keyMintVersion must be 500.
      *     keyMintVersion             INTEGER,
      *     -- keyMintSecurityLevel is the SecurityLevel of the IKeyMintDevice. Must match
      *     -- attestationSecurityLevel.
@@ -203,6 +203,7 @@ parcelable KeyCreationResult {
      *     callerNonce                [7] EXPLICIT NULL OPTIONAL, -- Symmetric keys only
      *     minMacLength               [8] EXPLICIT INTEGER OPTIONAL, -- Symmetric keys only
      *     ecCurve                    [10] EXPLICIT INTEGER OPTIONAL,
+     *     mlDsaVariant               [11] EXPLICIT INTEGER OPTIONAL,
      *     rsaPublicExponent          [200] EXPLICIT INTEGER OPTIONAL,
      *     mgfDigest                  [203] EXPLICIT SET OF INTEGER OPTIONAL,
      *     rollbackResistance         [303] EXPLICIT NULL OPTIONAL,
