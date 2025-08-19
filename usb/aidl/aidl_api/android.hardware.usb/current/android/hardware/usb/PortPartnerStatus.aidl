@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,27 +33,6 @@
 
 package android.hardware.usb;
 @VintfStability
-parcelable PortStatus {
-  String portName;
-  android.hardware.usb.PortDataRole currentDataRole = android.hardware.usb.PortDataRole.NONE;
-  android.hardware.usb.PortPowerRole currentPowerRole = android.hardware.usb.PortPowerRole.NONE;
-  android.hardware.usb.PortMode currentMode = android.hardware.usb.PortMode.NONE;
-  boolean canChangeMode;
-  boolean canChangeDataRole;
-  boolean canChangePowerRole;
-  android.hardware.usb.PortMode[] supportedModes;
-  android.hardware.usb.ContaminantProtectionMode[] supportedContaminantProtectionModes;
-  boolean supportsEnableContaminantPresenceProtection;
-  android.hardware.usb.ContaminantProtectionStatus contaminantProtectionStatus = android.hardware.usb.ContaminantProtectionStatus.NONE;
-  boolean supportsEnableContaminantPresenceDetection;
-  android.hardware.usb.ContaminantDetectionStatus contaminantDetectionStatus = android.hardware.usb.ContaminantDetectionStatus.NOT_SUPPORTED;
-  android.hardware.usb.UsbDataStatus[] usbDataStatus;
-  boolean powerTransferLimited;
-  android.hardware.usb.PowerBrickStatus powerBrickStatus;
-  boolean supportsComplianceWarnings = false;
-  android.hardware.usb.ComplianceWarning[] complianceWarnings = {};
-  android.hardware.usb.PlugOrientation plugOrientation = android.hardware.usb.PlugOrientation.UNKNOWN;
-  android.hardware.usb.AltModeData[] supportedAltModes = {};
-  @nullable android.hardware.usb.PortPartnerStatus partnerStatus;
-  boolean supportsPartnerBc12Type = false;
+parcelable PortPartnerStatus {
+  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
 }

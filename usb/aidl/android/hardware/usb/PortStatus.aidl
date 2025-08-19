@@ -24,6 +24,7 @@ import android.hardware.usb.ContaminantProtectionStatus;
 import android.hardware.usb.PlugOrientation;
 import android.hardware.usb.PortDataRole;
 import android.hardware.usb.PortMode;
+import android.hardware.usb.PortPartnerStatus;
 import android.hardware.usb.PortPowerRole;
 import android.hardware.usb.PowerBrickStatus;
 import android.hardware.usb.UsbDataStatus;
@@ -140,4 +141,13 @@ parcelable PortStatus {
      * current information.
      */
     AltModeData[] supportedAltModes = {};
+    /**
+     * Current status of the connected USB port partner (i.e. the USB charger, accessory, host) to
+     * which the local USB port is connected to.
+     */
+    @nullable PortPartnerStatus partnerStatus;
+    /**
+     * Indicates whether or not the port supports partner BC 1.2 type reporting
+     */
+    boolean supportsPartnerBc12Type = false;
 }
