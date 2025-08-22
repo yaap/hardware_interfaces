@@ -44,9 +44,12 @@
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
+#include "com_android_bluetooth_bluetooth_hal_flags.h"
 
 namespace bluetooth_hal {
 namespace hci {
+
+namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
 
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::chip::AsyncChipProvisioner;
@@ -252,17 +255,17 @@ class TxHandler {
       HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
       return false;
     }
-
-    VndSnoopLogger::GetLogger().Capture(packet,
-                                        VndSnoopLogger::Direction::kOutgoing);
-    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-        MonitorMode::kIntercept) {
+    if (!hal_flags::handle_recursive_packets_from_router_clients() &&
+        HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+            MonitorMode::kIntercept) {
       // TODO: b/417582927 - Should force the client to provide an event if a
       // command is intercepted.
       HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
                      << packet.ToString();
       return true;
     }
+    VndSnoopLogger::GetLogger().Capture(packet,
+                                        VndSnoopLogger::Direction::kOutgoing);
 
     return TransportInterface::GetTransport().Send(packet);
   }
@@ -502,6 +505,14 @@ bool HciRouterImpl::Send(const HalPacket& packet) {
         packet,
         std::bind_front(&HciRouterCallback::OnCommandCallback, hci_callback_));
   }
+
+  if (hal_flags::handle_recursive_packets_from_router_clients() &&
+      HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+          MonitorMode::kIntercept) {
+    HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
+                   << packet.ToString();
+    return true;
+  }
   tx_handler_->Post(TxTask::SendToTransport(packet));
   return true;
 }
@@ -513,7 +524,14 @@ bool HciRouterImpl::SendCommand(const HalPacket& packet,
       static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo)) {
     // Skip HCI queue for Google Debug Info command, as it is designed to ignore
     // the HCI command credit.
-    SendCommandNoAck(packet);
+    return SendCommandNoAck(packet);
+  }
+
+  if (hal_flags::handle_recursive_packets_from_router_clients() &&
+      HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+          MonitorMode::kIntercept) {
+    HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
+                   << packet.ToString();
     return true;
   }
   tx_handler_->Post(TxTask::SendOrQueueCommand(
@@ -523,6 +541,13 @@ bool HciRouterImpl::SendCommand(const HalPacket& packet,
 
 bool HciRouterImpl::SendCommandNoAck(const HalPacket& packet) {
   packet.SetDestination(PacketDestination::kController);
+  if (hal_flags::handle_recursive_packets_from_router_clients() &&
+      HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+          MonitorMode::kIntercept) {
+    HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
+                   << packet.ToString();
+    return true;
+  }
   tx_handler_->Post(TxTask::SendToTransport(packet));
   return true;
 }
@@ -633,22 +658,58 @@ void HciRouterImpl::HandleReceivedPacket(const HalPacket& packet) {
 void HciRouterImpl::HandleCommandCompleteOrCommandStatusEvent(
     const HalPacket& event) {
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
-  std::promise<std::shared_ptr<HalPacketCallback>> promise;
-  std::future<std::shared_ptr<HalPacketCallback>> future = promise.get_future();
-  tx_handler_->Post(TxTask::GetCommandCallback(event, std::move(promise)));
 
-  std::shared_ptr<HalPacketCallback> callback = future.get();
-  if (callback == nullptr || (*callback) == nullptr) {
-    LOG(ERROR) << "Command callback is null!";
-    if (hci_callback_ != nullptr) {
-      hci_callback_->OnPacketCallback(event);
+  if (hal_flags::handle_recursive_packets_from_router_clients()) {
+    auto state =
+        HciRouterClientAgent::GetAgent().DispatchPacketToClients(event);
+    switch (state) {
+      case MonitorMode::kNone:
+      case MonitorMode::kMonitor: {
+        std::promise<std::shared_ptr<HalPacketCallback>> promise;
+        std::future<std::shared_ptr<HalPacketCallback>> future =
+            promise.get_future();
+        tx_handler_->Post(
+            TxTask::GetCommandCallback(event, std::move(promise)));
+        std::shared_ptr<HalPacketCallback> callback = future.get();
+
+        if (callback == nullptr || (*callback) == nullptr) {
+          LOG(ERROR) << "Command callback is null!";
+          if (hci_callback_ != nullptr) {
+            hci_callback_->OnPacketCallback(event);
+          }
+          return;
+        }
+
+        (*callback)(event);
+        break;
+      }
+      case MonitorMode::kIntercept:
+        break;
+      case MonitorMode::kBypass:
+        if (hci_callback_ != nullptr) {
+          hci_callback_->OnPacketCallback(event);
+        }
+        return;
     }
-    return;
-  }
+  } else {
+    std::promise<std::shared_ptr<HalPacketCallback>> promise;
+    std::future<std::shared_ptr<HalPacketCallback>> future =
+        promise.get_future();
+    tx_handler_->Post(TxTask::GetCommandCallback(event, std::move(promise)));
 
-  if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(event) !=
-      MonitorMode::kIntercept) {
-    (*callback)(event);
+    std::shared_ptr<HalPacketCallback> callback = future.get();
+    if (callback == nullptr || (*callback) == nullptr) {
+      LOG(ERROR) << "Command callback is null!";
+      if (hci_callback_ != nullptr) {
+        hci_callback_->OnPacketCallback(event);
+      }
+      return;
+    }
+
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(event) !=
+        MonitorMode::kIntercept) {
+      (*callback)(event);
+    }
   }
 
   tx_handler_->Post(TxTask::OnCommandCallbackCompleted());
@@ -659,6 +720,7 @@ void HciRouterImpl::OnTransportPacketReady(const HalPacket& packet) {
   SCOPED_ANCHOR(AnchorType::kRxTask, __func__);
   HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
   packet.SetDestination(PacketDestination::kHost);
+  packet.SetSource(PacketSource::kController);
 
   if (is_cleaning_up_.load()) {
     HAL_LOG(WARNING) << "Ignore RX packet when cleaning up. "

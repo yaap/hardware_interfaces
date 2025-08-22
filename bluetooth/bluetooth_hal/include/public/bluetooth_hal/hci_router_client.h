@@ -196,6 +196,14 @@ class HciRouterClient : public HciRouterClientCallback {
    */
   bool SendData(const HalPacket& packet);
 
+  /**
+   * @brief Sends data to the stack.
+   *
+   * @param packet The HAL packet containing the data.
+   *
+   */
+  void SendPacketToStack(const HalPacket& packet);
+
  private:
   std::map<HciMonitor, MonitorMode> monitors_;
   std::recursive_mutex mutex_;

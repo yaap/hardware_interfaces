@@ -384,6 +384,26 @@ TEST(HalPacketTest, GetInvalidBluetoothAddressFromPacket) {
             expected_address_in_full_string);
 }
 
+TEST(HalPacketTest, HandlePacketDestination) {
+  HalPacket packet({0x01, 0x02, 0x03, 0x04});
+  for (int i = static_cast<int>(PacketDestination::kNone);
+       i < static_cast<int>(PacketDestination::kMax); ++i) {
+    auto dest_to_test = static_cast<PacketDestination>(i);
+    packet.SetDestination(dest_to_test);
+    EXPECT_EQ(packet.GetDestination(), dest_to_test);
+  }
+}
+
+TEST(HalPacketTest, HandlePacketSource) {
+  HalPacket packet({0x01, 0x02, 0x03, 0x04});
+  for (int i = static_cast<int>(PacketSource::kNone);
+       i < static_cast<int>(PacketSource::kMax); ++i) {
+    auto source_to_test = static_cast<PacketSource>(i);
+    packet.SetSource(source_to_test);
+    EXPECT_EQ(packet.GetSource(), source_to_test);
+  }
+}
+
 }  // namespace
 }  // namespace hci
 }  // namespace bluetooth_hal

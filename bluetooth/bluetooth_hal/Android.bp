@@ -349,6 +349,10 @@ cc_defaults {
     test_suites: ["general-tests"],
     local_include_dirs: ["include/public"],
     cflags: ["-DUNIT_TEST"],
+    static_libs: [
+        "libaconfig_storage_read_api_cc",
+        "libbluetooth_hal_flags_c_lib_for_test",
+    ],
     host_supported: true,
 }
 
@@ -383,6 +387,7 @@ cc_test {
     ],
     shared_libs: [
         "libbase",
+        "liblog",
     ],
 }
 
@@ -407,6 +412,7 @@ cc_test {
     ],
     shared_libs: [
         "libbase",
+        "liblog",
     ],
 }
 
@@ -704,12 +710,10 @@ cc_test {
     static_libs: [
         "libgmock",
         "hal_proto_lib",
-        "libbluetooth_hal_flags_c_lib_for_test",
     ],
     shared_libs: [
         "libbase",
         "libprotobuf-cpp-full",
-        "libaconfig_storage_read_api_cc",
         "liblog",
     ],
 }
@@ -737,12 +741,10 @@ cc_test {
     static_libs: [
         "libgmock",
         "hal_proto_lib",
-        "libbluetooth_hal_flags_c_lib_for_test",
     ],
     shared_libs: [
         "libbase",
         "libprotobuf-cpp-full",
-        "libaconfig_storage_read_api_cc",
         "liblog",
     ],
 }
@@ -764,11 +766,9 @@ cc_test {
     ],
     static_libs: [
         "libgmock",
-        "libbluetooth_hal_flags_c_lib_for_test",
     ],
     shared_libs: [
         "libbase",
-        "libaconfig_storage_read_api_cc",
         "liblog",
     ],
 }

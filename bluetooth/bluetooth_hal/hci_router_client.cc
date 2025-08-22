@@ -97,6 +97,8 @@ bool HciRouterClient::SendCommand(const HalPacket& packet) {
   if (packet.GetType() != HciPacketType::kCommand) {
     return false;
   }
+  packet.SetSource(PacketSource::kClient);
+  packet.SetDestination(PacketDestination::kController);
   return HciRouter::GetRouter().SendCommand(
       packet, std::bind_front(&HciRouterClient::OnCommandCallback, this));
 }
@@ -105,7 +107,15 @@ bool HciRouterClient::SendData(const HalPacket& packet) {
   if (packet.GetType() == HciPacketType::kCommand) {
     return false;
   }
+  packet.SetSource(PacketSource::kClient);
+  packet.SetDestination(PacketDestination::kController);
   return HciRouter::GetRouter().Send(packet);
+}
+
+void HciRouterClient::SendPacketToStack(const HalPacket& packet) {
+  packet.SetSource(PacketSource::kClient);
+  packet.SetDestination(PacketDestination::kHost);
+  return HciRouter::GetRouter().SendPacketToStack(packet);
 }
 
 }  // namespace hci

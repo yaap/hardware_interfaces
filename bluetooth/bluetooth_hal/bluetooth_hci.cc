@@ -48,6 +48,7 @@ using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::hci::HciRouter;
 using ::bluetooth_hal::hci::HciRouterCallback;
 using ::bluetooth_hal::hci::MonitorMode;
+using ::bluetooth_hal::hci::PacketSource;
 using ::bluetooth_hal::util::power::ScopedWakelock;
 using ::bluetooth_hal::util::power::WakeSource;
 
@@ -215,6 +216,7 @@ bool BluetoothHci::Dump(int fd) {
 }
 
 void BluetoothHci::SendDataToController(const HalPacket& packet) {
+  packet.SetSource(PacketSource::kStack);
   HciRouter::GetRouter().Send(packet);
 }
 
