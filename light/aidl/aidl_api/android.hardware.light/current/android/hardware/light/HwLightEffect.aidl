@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,13 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.light;
-@RustDerive(Clone=true, Copy=true) @VintfStability
-parcelable HwLight {
-  int id;
-  int ordinal;
-  android.hardware.light.LightType type;
-  float maxUpdateHz;
+@RustDerive(Clone=true) @VintfStability
+parcelable HwLightEffect {
+  int lightId;
+  int[] frames;
+  int[] colors;
+  int iterations;
+  boolean preemptive;
+  float frameRateHz;
+  android.hardware.light.InterpolationType interpolationType;
 }
