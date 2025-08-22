@@ -57,6 +57,8 @@ class ChipProvisioner : public ChipProvisionerInterface,
       : config_loader_(
             ::bluetooth_hal::config::FirmwareConfigLoader::GetLoader()) {}
 
+  virtual ~ChipProvisioner() = default;
+
   /**
    * Initializes the HAL state update mechanism.
    *
