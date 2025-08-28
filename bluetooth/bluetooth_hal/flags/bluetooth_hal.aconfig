@@ -14,3 +14,10 @@ flag {
     description: "Flag for the unimplemented packet type coredump fix"
     bug: "440031741"
 }
+
+flag {
+    name: "coredump_bt_activities"
+    namespace: "pixel_bluetooth"
+    description: "Flag for adopting debug client to dump bt activities"
+    bug: "432614127"
+}

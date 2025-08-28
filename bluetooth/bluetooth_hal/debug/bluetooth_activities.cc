@@ -37,10 +37,13 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 #include "bluetooth_hal/util/logging.h"
+#include "com_android_bluetooth_bluetooth_hal_flags.h"
 
 namespace bluetooth_hal {
 namespace debug {
 namespace {
+
+namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
 
 using ::bluetooth_hal::hci::BleMetaEventSubCode;
 using ::bluetooth_hal::hci::BluetoothAddress;
@@ -98,6 +101,10 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
   void OnBluetoothChipClosed() override;
   void OnBluetoothEnabled() override {};
   void OnBluetoothDisabled() override {};
+
+#ifndef UNIT_TEST
+  std::vector<Coredump> Dump() override;
+#endif
 
  private:
   struct ConnectionActivity {
@@ -275,6 +282,30 @@ void BluetoothActivitiesImpl::UpdateConnectionHistory(
   }
   connection_history_.emplace_back(device);
 }
+
+#ifndef UNIT_TEST
+std::vector<Coredump> BluetoothActivitiesImpl::Dump() {
+  if (!hal_flags::coredump_bt_activities()) {
+    return std::vector<Coredump>();
+  }
+
+  std::string connection_history_dump_;
+  for (const ConnectionActivity& activity : connection_history_) {
+    connection_history_dump_ +=
+        activity.timestamp + ": " + activity.event + ", connection handle: " +
+        ToHexString(activity.connection_handle, kUint16HexStringDigit) +
+        ", BD address: " + activity.bd_address.ToString() +
+        ", status: " + activity.status + "\n";
+  }
+
+  std::vector<Coredump> bluetooth_activities_coredumps;
+  bluetooth_activities_coredumps.emplace_back(
+      kBluetoothActivitiesDebuggingTitle.data(), connection_history_dump_,
+      CoredumpPosition::kEnd);
+
+  return bluetooth_activities_coredumps;
+}
+#endif
 
 }  // namespace debug
 }  // namespace bluetooth_hal
