@@ -35,4 +35,8 @@ enum BatteryChargingPolicy {
      * @see BatteryChargingState.ADAPTIVE
      */
     ADAPTIVE = 3,
+    /**
+     * bypass charge limit
+     */
+    FORCE_FULL_CHARGE = 4,
 }

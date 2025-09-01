@@ -38,4 +38,5 @@ enum BatteryChargingPolicy {
   DEFAULT = 1,
   LONG_LIFE = 2,
   ADAPTIVE = 3,
+  FORCE_FULL_CHARGE = 4,
 }
