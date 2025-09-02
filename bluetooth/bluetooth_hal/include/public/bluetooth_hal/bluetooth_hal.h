@@ -37,6 +37,7 @@ class BluetoothHal {
   void StartOffloadHal();
 
  private:
+  void StartHalClients();
   void StartExtensions();
 };
 

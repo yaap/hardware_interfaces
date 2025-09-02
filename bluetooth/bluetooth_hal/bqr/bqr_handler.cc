@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <unordered_map>
 
 #include "android-base/logging.h"
@@ -62,10 +63,21 @@ BqrHandler::BqrHandler()
       vendor_capability_monitor_(HciCommandCompleteEventMonitor(
           static_cast<uint16_t>(CommandOpCode::kGoogleVendorCapability))) {}
 
-BqrHandler& BqrHandler::GetHandler() {
-  static BqrHandler handler;
-  return handler;
+bool BqrHandler::RegisterBqrHandler(FactoryFn factory) {
+  if (!factory) {
+    return false;
+  }
+  VendorFactory::RegisterProviderFactory(std::move(factory));
+  return true;
 }
+
+void BqrHandler::Start() {
+  if (handler_ptr_ == nullptr) {
+    handler_ptr_ = VendorFactory::Create();
+  }
+}
+
+void BqrHandler::Stop() { handler_ptr_.reset(); }
 
 void BqrHandler::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
                                          const HalPacket& packet) {
@@ -147,6 +159,10 @@ void BqrHandler::HandleLinkQualityEvent(const BqrEvent& bqr_event) {
     default:
       break;
   }
+}
+
+BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {
+  return local_supported_bqr_version_;
 }
 
 void BqrHandler::OnBluetoothEnabled() {

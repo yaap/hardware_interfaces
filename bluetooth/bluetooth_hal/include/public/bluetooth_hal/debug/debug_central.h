@@ -28,7 +28,6 @@
 #include <vector>
 
 #include "android-base/logging.h"
-#include "bluetooth_hal/bqr/bqr_handler.h"
 #include "bluetooth_hal/bqr/bqr_root_inflammation_event.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/debug/debug_client.h"

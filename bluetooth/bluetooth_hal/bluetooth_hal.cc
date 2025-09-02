@@ -26,6 +26,7 @@
 #include "android/binder_manager.h"
 #include "android/binder_process.h"
 #include "android/binder_status.h"
+#include "bluetooth_hal/bqr/bqr_handler.h"
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
@@ -38,6 +39,7 @@ namespace bluetooth_hal {
 
 using ::aidl::android::hardware::bluetooth::hal::IBluetoothHci_addService;
 using ::bluetooth_hal::HciProxyAidl;
+using ::bluetooth_hal::bqr::BqrHandler;
 using ::bluetooth_hal::chip::ChipProvisionerInterface;
 using ::bluetooth_hal::extensions::cs::BluetoothChannelSounding;
 using ::bluetooth_hal::extensions::cs::
@@ -70,7 +72,7 @@ void BluetoothHal::RegisterVendorChannelSoundingDistanceEstimator(
 }
 
 void BluetoothHal::Start() {
-  StartExtensions();
+  StartHalClients();
 
   std::string instance = std::string() + HciProxyAidl::descriptor + "/default";
   std::shared_ptr<HciProxyAidl> hci_proxy = SharedRefBase::make<HciProxyAidl>();
@@ -84,10 +86,16 @@ void BluetoothHal::Start() {
 }
 
 void BluetoothHal::StartOffloadHal() {
-  StartExtensions();
+  StartHalClients();
+
   static HciProxyFfi ffi;
   IBluetoothHci_addService(&ffi);
   ABinderProcess_joinThreadPool();
+}
+
+void BluetoothHal::StartHalClients() {
+  StartExtensions();
+  BqrHandler::Start();
 }
 
 void BluetoothHal::StartExtensions() {
