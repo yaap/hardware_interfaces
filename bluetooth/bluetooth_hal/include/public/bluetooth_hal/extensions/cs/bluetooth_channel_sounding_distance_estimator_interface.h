@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
+#include <any>
+
 #include "bluetooth_hal/util/provider_factory.h"
 
 namespace bluetooth_hal {
@@ -59,12 +60,16 @@ class ChannelSoundingDistanceEstimatorInterface
   /**
    * @brief Estimates the distance based on the provided raw data.
    *
-   * @param raw_data The raw data from the channel sounding procedure.
+   * This template function uses type erasure to provide a virtual dispatch
+   * mechanism.
+   *
+   * @param data The data from the channel sounding procedure.
    * @return The estimated distance.
    */
-  virtual double EstimateDistance(
-      const ::aidl::android::hardware::bluetooth::ranging::
-          ChannelSoudingRawData& raw_data) = 0;
+  template <typename T>
+  double EstimateDistance(const T& data) {
+    return EstimateDistanceImpl(std::any(data));
+  }
 
   /**
    * @brief Gets the confidence level of the last estimation.
@@ -72,6 +77,9 @@ class ChannelSoundingDistanceEstimatorInterface
    * @return The confidence level.
    */
   virtual double GetConfidenceLevel() = 0;
+
+ protected:
+  virtual double EstimateDistanceImpl(const std::any& data) = 0;
 };
 
 }  // namespace cs
