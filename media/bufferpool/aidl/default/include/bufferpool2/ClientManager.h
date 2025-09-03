@@ -178,6 +178,7 @@ private:
     class Impl;
     const std::unique_ptr<Impl> mImpl;
 
+    friend class Impl;
     friend class ::ndk::SharedRefBase;
 
     ClientManager();
