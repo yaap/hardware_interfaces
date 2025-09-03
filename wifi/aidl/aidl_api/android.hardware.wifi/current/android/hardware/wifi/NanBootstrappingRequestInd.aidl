@@ -39,4 +39,5 @@ parcelable NanBootstrappingRequestInd {
   byte[6] peerDiscMacAddr;
   int bootstrappingInstanceId;
   android.hardware.wifi.NanBootstrappingMethod requestBootstrappingMethod;
+  @nullable byte[] serviceSpecificInfo;
 }
