@@ -28,16 +28,18 @@
 #include "aidl/android/hardware/bluetooth/ranging/VendorSpecificData.h"
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_interface.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
 
-class BluetoothChannelSoundingSession
-    : public ::aidl::android::hardware::bluetooth::ranging::
+class BluetoothChannelSoundingSessionV1
+    : public BluetoothChannelSoundingSessionInterface,
+      public ::aidl::android::hardware::bluetooth::ranging::
           BnBluetoothChannelSoundingSession {
  public:
-  explicit BluetoothChannelSoundingSession(
+  explicit BluetoothChannelSoundingSessionV1(
       std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
                           IBluetoothChannelSoundingSessionCallback>
           callback,
@@ -60,9 +62,9 @@ class BluetoothChannelSoundingSession
   void HandleVendorSpecificData(
       const std::optional<std::vector<std::optional<
           ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
-          vendor_specific_data);
-  bool ShouldEnableFakeNotification();
-  bool ShouldEnableMode0ChannelMap();
+          vendor_specific_data) override;
+  bool ShouldEnableFakeNotification() override;
+  bool ShouldEnableMode0ChannelMap() override;
 
  private:
   std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::

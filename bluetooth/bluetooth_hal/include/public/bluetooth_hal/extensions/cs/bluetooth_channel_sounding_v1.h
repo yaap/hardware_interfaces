@@ -34,11 +34,11 @@ namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
 
-class BluetoothChannelSounding : public ::aidl::android::hardware::bluetooth::
-                                     ranging::BnBluetoothChannelSounding {
+class BluetoothChannelSoundingV1 : public ::aidl::android::hardware::bluetooth::
+                                       ranging::BnBluetoothChannelSounding {
  public:
-  BluetoothChannelSounding() = default;
-  ~BluetoothChannelSounding() = default;
+  BluetoothChannelSoundingV1() = default;
+  ~BluetoothChannelSoundingV1() override = default;
 
   ::ndk::ScopedAStatus getVendorSpecificData(
       std::optional<std::vector<std::optional<
