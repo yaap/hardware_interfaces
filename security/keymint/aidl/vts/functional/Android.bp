@@ -75,7 +75,13 @@ cc_test {
         "SecureElementProvisioningTest.cpp",
     ],
     static_libs: [
+        "libkeymaster_portable",
         "libkeymint_vts_test_utils",
+        "libkeymint_wrapped_key_support",
+        "lib_android_keymaster_keymint_utils_fake_latest",
+    ],
+    shared_libs: [
+        "libkeymaster_messages",
     ],
     test_suites: [
         "general-tests",
