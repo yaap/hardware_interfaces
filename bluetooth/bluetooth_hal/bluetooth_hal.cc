@@ -28,8 +28,8 @@
 #include "android/binder_status.h"
 #include "bluetooth_hal/bqr/bqr_handler.h"
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v1.h"
 #include "bluetooth_hal/extensions/finder/bluetooth_finder.h"
 #include "bluetooth_hal/hci_proxy_aidl.h"
 #include "bluetooth_hal/hci_proxy_ffi.h"
@@ -41,7 +41,7 @@ using ::aidl::android::hardware::bluetooth::hal::IBluetoothHci_addService;
 using ::bluetooth_hal::HciProxyAidl;
 using ::bluetooth_hal::bqr::BqrHandler;
 using ::bluetooth_hal::chip::ChipProvisionerInterface;
-using ::bluetooth_hal::extensions::cs::BluetoothChannelSounding;
+using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingV1;
 using ::bluetooth_hal::extensions::cs::
     ChannelSoundingDistanceEstimatorInterface;
 using ::bluetooth_hal::extensions::finder::BluetoothFinder;
@@ -102,9 +102,10 @@ void BluetoothHal::StartExtensions() {
   std::string instance;
   int status;
 
-  instance = std::string() + BluetoothChannelSounding::descriptor + "/default";
-  std::shared_ptr<BluetoothChannelSounding> bluetooth_channel_sounding =
-      SharedRefBase::make<BluetoothChannelSounding>();
+  instance =
+      std::string() + BluetoothChannelSoundingV1::descriptor + "/default";
+  std::shared_ptr<BluetoothChannelSoundingV1> bluetooth_channel_sounding =
+      SharedRefBase::make<BluetoothChannelSoundingV1>();
   status = AServiceManager_addService(
       bluetooth_channel_sounding->asBinder().get(), instance.c_str());
   if (status != STATUS_OK) {

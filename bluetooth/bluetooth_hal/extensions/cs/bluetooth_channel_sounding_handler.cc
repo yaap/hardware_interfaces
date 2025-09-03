@@ -34,7 +34,8 @@
 #include "android-base/logging.h"
 #include "android/binder_interface_utils.h"
 #include "bluetooth_hal/config/cs_config_loader.h"
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_interface.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v1.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_util.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
@@ -73,6 +74,19 @@ using ::bluetooth_hal::hci::MonitorType;
 using ::bluetooth_hal::util::AndroidBaseWrapper;
 
 using ::ndk::SharedRefBase;
+
+// Factory function to create a session object based on the version.
+std::shared_ptr<BluetoothChannelSoundingSessionInterface> CreateSession(
+    [[maybe_unused]] std::shared_ptr<IBluetoothChannelSoundingSessionCallback>
+        callback,
+    [[maybe_unused]] Reason reason) {
+#ifdef USE_RANGING_V1
+  return SharedRefBase::make<BluetoothChannelSoundingSessionV1>(callback,
+                                                                reason);
+#else
+  return nullptr;
+#endif
+}
 
 void SendFakeRasNotification(
     const BluetoothChannelSoundingParameters& parameters,
@@ -151,9 +165,11 @@ bool BluetoothChannelSoundingHandler::OpenSession(
     return true;
   }
 
-  std::shared_ptr<BluetoothChannelSoundingSession> session =
-      SharedRefBase::make<BluetoothChannelSoundingSession>(
-          in_callback, Reason::LOCAL_STACK_REQUEST);
+  auto session = CreateSession(in_callback, Reason::LOCAL_STACK_REQUEST);
+  if (!session) {
+    return false;
+  }
+
   session->HandleVendorSpecificData(in_params.vendorSpecificData);
   SessionTracker tracker{.parameters = in_params};
 
@@ -171,7 +187,10 @@ bool BluetoothChannelSoundingHandler::OpenSession(
     SendCommand(command);
   }
 
-  *return_value = session;
+#ifdef USE_RANGING_V1
+  *return_value =
+      std::static_pointer_cast<BluetoothChannelSoundingSessionV1>(session);
+#endif
   in_callback->onOpened(Reason::LOCAL_STACK_REQUEST);
 
   return true;
