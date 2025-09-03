@@ -51,6 +51,7 @@ union Range {
   android.hardware.audio.effect.Range.VisualizerRange[] visualizer;
   android.hardware.audio.effect.Range.VolumeRange[] volume;
   android.hardware.audio.effect.Range.SpatializerRange[] spatializer;
+  android.hardware.audio.effect.Range.EraserRange[] eraser;
   @VintfStability
   parcelable AcousticEchoCancelerRange {
     android.hardware.audio.effect.AcousticEchoCanceler min;
@@ -90,6 +91,11 @@ union Range {
   parcelable EqualizerRange {
     android.hardware.audio.effect.Equalizer min;
     android.hardware.audio.effect.Equalizer max;
+  }
+  @VintfStability
+  parcelable EraserRange {
+    android.hardware.audio.effect.Eraser min;
+    android.hardware.audio.effect.Eraser max;
   }
   @VintfStability
   parcelable HapticGeneratorRange {
