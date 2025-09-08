@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#ifdef USE_RANGING_V2
+
 #pragma once
 
 #include <memory>
@@ -76,3 +78,5 @@ class BluetoothChannelSoundingV2 : public ::aidl::android::hardware::bluetooth::
 }  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal
+
+#endif

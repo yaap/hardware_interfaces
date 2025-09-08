@@ -38,7 +38,6 @@ cc_defaults {
     whole_static_libs: [
         "hal_proto_lib",
         "libbluetooth_hal_flags_c_lib",
-        "libbluetooth_hal_ranging-V1",
     ],
     static_libs: [
         "libbluetooth_offload_hal",
@@ -433,13 +432,10 @@ cc_test {
 cc_test {
     name: "bluetooth_hal_channel_sounding_test",
     defaults: ["bluetooth_hal_test_defaults"],
+    host_supported: false,
     srcs: [
         "hci_router_client.cc",
-        "extensions/cs/bluetooth_channel_sounding_session_v1.cc",
-        "extensions/cs/bluetooth_channel_sounding_util.cc",
-        "extensions/cs/bluetooth_channel_sounding_handler.cc",
         "extensions/cs/bluetooth_channel_sounding_handler_test.cc",
-        "extensions/cs/bluetooth_channel_sounding_distance_estimator.cc",
         ":test_mock_router_srcs",
         ":test_mock_util_srcs",
         ":test_mock_cs_config_srcs",
@@ -448,6 +444,7 @@ cc_test {
         "libeigen",
     ],
     static_libs: [
+        "libbluetooth_hal_ranging-V1",
         "android.hardware.bluetooth-V1-ndk",
         "android.hardware.bluetooth.ranging-V1-ndk",
         "libgmock",

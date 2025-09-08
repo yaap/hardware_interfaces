@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#ifdef USE_RANGING_V2
+
 #define LOG_TAG "bluetooth_hal.extensions.cs.v2"
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v2.h"
@@ -107,3 +109,5 @@ ScopedAStatus BluetoothChannelSoundingV2::getSupportedCsSecurityLevels(
 }  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal
+
+#endif

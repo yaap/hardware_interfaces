@@ -35,13 +35,18 @@
 #include "android/binder_interface_utils.h"
 #include "bluetooth_hal/config/cs_config_loader.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_interface.h"
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v1.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_util.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router.h"
 #include "bluetooth_hal/util/android_base_wrapper.h"
+
+#ifdef USE_RANGING_V1
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v1.h"
+#elif USE_RANGING_V2
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v2.h"
+#endif
 
 namespace bluetooth_hal {
 namespace extensions {
@@ -82,6 +87,9 @@ std::shared_ptr<BluetoothChannelSoundingSessionInterface> CreateSession(
     [[maybe_unused]] Reason reason) {
 #ifdef USE_RANGING_V1
   return SharedRefBase::make<BluetoothChannelSoundingSessionV1>(callback,
+                                                                reason);
+#elif USE_RANGING_V2
+  return SharedRefBase::make<BluetoothChannelSoundingSessionV2>(callback,
                                                                 reason);
 #else
   return nullptr;
@@ -150,7 +158,8 @@ bool BluetoothChannelSoundingHandler::OpenSession(
     const BluetoothChannelSoundingParameters& in_params,
     const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&
         in_callback,
-    std::shared_ptr<IBluetoothChannelSoundingSession>* return_value) {
+    [[maybe_unused]] std::shared_ptr<IBluetoothChannelSoundingSession>*
+        return_value) {
   if (in_params.vendorSpecificData.has_value()) {
     for (auto& data : in_params.vendorSpecificData.value()) {
       LOG(INFO) << "vendorSpecificData uuid:" << ToHex(data->characteristicUuid)
@@ -190,6 +199,9 @@ bool BluetoothChannelSoundingHandler::OpenSession(
 #ifdef USE_RANGING_V1
   *return_value =
       std::static_pointer_cast<BluetoothChannelSoundingSessionV1>(session);
+#elif USE_RANGING_V2
+  *return_value =
+      std::static_pointer_cast<BluetoothChannelSoundingSessionV2>(session);
 #endif
   in_callback->onOpened(Reason::LOCAL_STACK_REQUEST);
 
