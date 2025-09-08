@@ -30,6 +30,7 @@
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v1.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v2.h"
 #include "bluetooth_hal/extensions/finder/bluetooth_finder.h"
 #include "bluetooth_hal/hci_proxy_aidl.h"
 #include "bluetooth_hal/hci_proxy_ffi.h"
@@ -41,14 +42,18 @@ using ::aidl::android::hardware::bluetooth::hal::IBluetoothHci_addService;
 using ::bluetooth_hal::HciProxyAidl;
 using ::bluetooth_hal::bqr::BqrHandler;
 using ::bluetooth_hal::chip::ChipProvisionerInterface;
-using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingV1;
 using ::bluetooth_hal::extensions::cs::
     ChannelSoundingDistanceEstimatorInterface;
 using ::bluetooth_hal::extensions::finder::BluetoothFinder;
 using ::bluetooth_hal::transport::TransportInterface;
 using ::bluetooth_hal::transport::TransportType;
-
 using ::ndk::SharedRefBase;
+
+#if defined(USE_RANGING_V1)
+using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingV1;
+#elif defined(USE_RANGING_V2)
+using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingV2;
+#endif
 
 BluetoothHal& BluetoothHal::GetHal() {
   static BluetoothHal hal;
@@ -99,27 +104,26 @@ void BluetoothHal::StartHalClients() {
 }
 
 void BluetoothHal::StartExtensions() {
-  std::string instance;
-  int status;
+  auto register_service = [](const std::shared_ptr<::ndk::ICInterface>& service,
+                             const char* name) {
+    std::string instance = std::string() + name + "/default";
+    binder_status_t status =
+        AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (status != STATUS_OK) {
+      LOG(ERROR) << "Could not register " << name << " as a service!";
+    }
+  };
 
-  instance =
-      std::string() + BluetoothChannelSoundingV1::descriptor + "/default";
-  std::shared_ptr<BluetoothChannelSoundingV1> bluetooth_channel_sounding =
-      SharedRefBase::make<BluetoothChannelSoundingV1>();
-  status = AServiceManager_addService(
-      bluetooth_channel_sounding->asBinder().get(), instance.c_str());
-  if (status != STATUS_OK) {
-    LOG(ERROR) << "Could not register BluetoothChannelSounding as a service!";
-  }
+#if defined(USE_RANGING_V1)
+  register_service(SharedRefBase::make<BluetoothChannelSoundingV1>(),
+                   BluetoothChannelSoundingV1::descriptor);
+#elif defined(USE_RANGING_V2)
+  register_service(SharedRefBase::make<BluetoothChannelSoundingV2>(),
+                   BluetoothChannelSoundingV2::descriptor);
+#endif
 
-  instance = std::string() + BluetoothFinder::descriptor + "/default";
-  std::shared_ptr<BluetoothFinder> bluetooth_finder =
-      SharedRefBase::make<BluetoothFinder>();
-  status = AServiceManager_addService(bluetooth_finder->asBinder().get(),
-                                      instance.c_str());
-  if (status != STATUS_OK) {
-    LOG(ERROR) << "Could not register BluetoothFinder as a service!";
-  }
+  register_service(SharedRefBase::make<BluetoothFinder>(),
+                   BluetoothFinder::descriptor);
 }
 
 }  // namespace bluetooth_hal
