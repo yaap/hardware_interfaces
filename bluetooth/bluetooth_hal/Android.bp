@@ -165,6 +165,14 @@ filegroup {
 }
 
 filegroup {
+    name: "hal_ranging_v2_srcs",
+    srcs: [
+        "extensions/cs/bluetooth_channel_sounding_v2.cc",
+        "extensions/cs/bluetooth_channel_sounding_session_v2.cc",
+    ],
+}
+
+filegroup {
     name: "hal_hwinit_srcs",
     srcs: [
         "chip/chip_provisioner.cc",
@@ -274,6 +282,22 @@ cc_library_static {
         "android.hardware.bluetooth.ranging-V1-ndk",
     ],
     export_shared_lib_headers: ["android.hardware.bluetooth.ranging-V1-ndk"],
+    export_include_dirs: ["include/public"],
+}
+
+cc_library_static {
+    name: "libbluetooth_hal_ranging-V2",
+    vendor_available: true,
+    defaults: ["libbluetooth_hal_extension_defaults"],
+    srcs: [
+        ":hal_ranging_common_srcs",
+        ":hal_ranging_v2_srcs",
+    ],
+    cflags: ["-DUSE_RANGING_V2"],
+    shared_libs: [
+        "android.hardware.bluetooth.ranging-V2-ndk",
+    ],
+    export_shared_lib_headers: ["android.hardware.bluetooth.ranging-V2-ndk"],
     export_include_dirs: ["include/public"],
 }
 
