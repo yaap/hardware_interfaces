@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define LOG_TAG "bluetooth_hal.extensions.cs.v2"
+
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v2.h"
 
 #include <memory>
@@ -26,8 +28,11 @@
 #include "aidl/android/hardware/bluetooth/ranging/IBluetoothChannelSoundingSessionCallback.h"
 #include "aidl/android/hardware/bluetooth/ranging/SessionType.h"
 #include "aidl/android/hardware/bluetooth/ranging/VendorSpecificData.h"
+#include "android-base/logging.h"
 #include "android/binder_auto_utils.h"
+#include "android/binder_interface_utils.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
+#include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 namespace extensions {
@@ -46,31 +51,54 @@ using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 using ::aidl::android::hardware::bluetooth::ranging::
     IBluetoothChannelSoundingSessionCallback;
 
+using ::ndk::ScopedAStatus;
+using ::ndk::SharedRefBase;
+
 ScopedAStatus BluetoothChannelSoundingV2::getVendorSpecificData(
-    [[maybe_unused]] std::optional<
-        std::vector<std::optional<VendorSpecificData>>>* _aidl_return) {
-  return ScopedAStatus::ok();
+    std::optional<std::vector<std::optional<VendorSpecificData>>>*
+        _aidl_return) {
+  bool status =
+      bluetooth_channel_sounding_handler_.GetVendorSpecificData(_aidl_return);
+  return status ? ScopedAStatus::ok()
+                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothChannelSoundingV2::getSupportedSessionTypes(
-    [[maybe_unused]] std::optional<std::vector<SessionType>>* _aidl_return) {
-  return ScopedAStatus::ok();
+    std::optional<std::vector<SessionType>>* _aidl_return) {
+  bool status = bluetooth_channel_sounding_handler_.GetSupportedSessionTypes(
+      _aidl_return);
+  return status ? ScopedAStatus::ok()
+                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothChannelSoundingV2::getMaxSupportedCsSecurityLevel(
     [[maybe_unused]] CsSecurityLevel* _aidl_return) {
-  return ScopedAStatus::ok();
+  bool status =
+      bluetooth_channel_sounding_handler_.GetMaxSupportedCsSecurityLevel(
+          _aidl_return);
+  return status ? ScopedAStatus::ok()
+                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 };
 
 ScopedAStatus BluetoothChannelSoundingV2::openSession(
     [[maybe_unused]] const BluetoothChannelSoundingParameters& in_params,
     [[maybe_unused]] const std::shared_ptr<
-
         IBluetoothChannelSoundingSessionCallback>& in_callback,
     [[maybe_unused]] std::shared_ptr<IBluetoothChannelSoundingSession>*
         _aidl_return) {
-  return ScopedAStatus::ok();
+  LOG(INFO) << __func__;
+
+  if (in_callback.get() == nullptr) {
+    return ScopedAStatus::fromExceptionCodeWithMessage(
+        EX_ILLEGAL_ARGUMENT, "Invalid nullptr callback");
+  }
+
+  bool status = bluetooth_channel_sounding_handler_.OpenSession(
+      in_params, in_callback, _aidl_return);
+  return status ? ScopedAStatus::ok()
+                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
+
 ScopedAStatus BluetoothChannelSoundingV2::getSupportedCsSecurityLevels(
     [[maybe_unused]] std::vector<CsSecurityLevel>* _aidl_return) {
   return ScopedAStatus::ok();

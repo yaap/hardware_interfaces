@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "bluetooth_hal.extensions.cs"
+#define LOG_TAG "bluetooth_hal.extensions.cs.v1"
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v1.h"
 
