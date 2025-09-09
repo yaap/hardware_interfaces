@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "bluetooth_hal.extensions.cs"
+#define LOG_TAG "bluetooth_hal.extensions.cs.v1"
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v1.h"
 
@@ -65,8 +65,6 @@ ScopedAStatus BluetoothChannelSoundingV1::getVendorSpecificData(
 
 ScopedAStatus BluetoothChannelSoundingV1::getSupportedSessionTypes(
     std::optional<std::vector<SessionType>>* _aidl_return) {
-  std::vector<SessionType> supported_session_types = {
-      SessionType::SOFTWARE_STACK_DATA_PARSING};
   bool status = bluetooth_channel_sounding_handler_.GetSupportedSessionTypes(
       _aidl_return);
   return status ? ScopedAStatus::ok()
