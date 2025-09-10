@@ -721,4 +721,10 @@ std::pair<ScopedAStatus, std::vector<Luts>> ComposerClientWrapper::getLuts(
     return {mComposerClient->getLuts(display, buffers, &outLuts), std::move(outLuts)};
 }
 
+std::pair<ScopedAStatus, VsyncSample> ComposerClientWrapper::getDisplayKnownVsyncSample(
+        int64_t display) {
+    VsyncSample outVsyncSample;
+    return {mComposerClient->getDisplayKnownVsyncSample(display, &outVsyncSample), outVsyncSample};
+}
+
 }  // namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test

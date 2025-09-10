@@ -1483,6 +1483,39 @@ TEST_P(GraphicsComposerAidlV3Test, GetDisplayConfigsIsSubsetOfGetDisplayConfigur
     }
 }
 
+class GraphicsComposerAidlV5Test : public GraphicsComposerAidlTest {
+  protected:
+    void SetUp() override {
+        GraphicsComposerAidlTest::SetUp();
+        if (getInterfaceVersion() < 5) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 5";
+        }
+    }
+};
+
+TEST_P(GraphicsComposerAidlV5Test, GetDisplayKnownVsyncSample) {
+    for (const auto& display : mDisplays) {
+        const auto& [status, vsyncSample] =
+                mComposerClient->getDisplayKnownVsyncSample(display.getDisplayId());
+
+        // Handle case where the API is not supported by the hardware composer.
+        // This is an optional API.
+        if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+            status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+            GTEST_SUCCEED() << "getDisplayKnownVsyncSample is not supported on this display.";
+            continue;
+        }
+
+        // Any other error is a test failure.
+        ASSERT_TRUE(status.isOk()) << "Failed to get vsync sample: " << status.getDescription();
+
+        // Validate the contents of the VsyncSample struct.
+        EXPECT_GE(vsyncSample.timestampNs, 0) << "Timestamp should be non-negative.";
+        EXPECT_GT(vsyncSample.vsyncPeriodNs, 0)
+                << "Vsync period should be positive. Got: " << vsyncSample.vsyncPeriodNs;
+    }
+}
+
 // Tests for Command.
 class GraphicsComposerAidlCommandTest : public GraphicsComposerAidlTest {
   protected:
@@ -3670,6 +3703,11 @@ INSTANTIATE_TEST_SUITE_P(
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV3Test);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlV3Test,
+        testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
+        ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV5Test);
+INSTANTIATE_TEST_SUITE_P(
+        PerInstance, GraphicsComposerAidlV5Test,
         testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
         ::android::PrintInstanceNameToString);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandV2Test);
