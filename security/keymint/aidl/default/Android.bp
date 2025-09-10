@@ -89,6 +89,7 @@ rust_binary {
     srcs: [
         "main.rs",
     ],
+    prefer_rlib: true,
     rustlibs: [
         "libandroid_logger",
         "libbinder_rs",
