@@ -17,6 +17,7 @@
 package android.hardware.wifi.supplicant;
 
 import android.hardware.wifi.common.OuiKeyedData;
+import android.hardware.wifi.supplicant.ConnectionCapabilities;
 import android.hardware.wifi.supplicant.P2pClientEapolIpAddressInfo;
 
 /**
@@ -76,4 +77,10 @@ parcelable P2pGroupStartedEventParams {
      * This is a bitmask of |KeyMgmtMask| values.
      */
     int keyMgmtMask;
+
+    /**
+     * Connection capabilities of the current P2P link between this client
+     * and the group owner. Valid only when this device is a P2P client.
+     */
+    @nullable ConnectionCapabilities p2pClientConnectionCapabilities;
 }

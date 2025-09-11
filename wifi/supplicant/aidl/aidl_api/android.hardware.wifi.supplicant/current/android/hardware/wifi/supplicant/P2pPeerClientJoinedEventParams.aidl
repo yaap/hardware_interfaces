@@ -40,4 +40,5 @@ parcelable P2pPeerClientJoinedEventParams {
   int clientIpAddress;
   @nullable android.hardware.wifi.common.OuiKeyedData[] vendorData;
   int keyMgmtMask;
+  @nullable android.hardware.wifi.supplicant.ConnectionCapabilities connectionCapabilities;
 }
