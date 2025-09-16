@@ -29,7 +29,9 @@ cc_defaults {
         "-Wall",
         "-Werror",
     ],
-    local_include_dirs: ["include/public/"],
+    include_dirs: [
+        "hardware/interfaces/bluetooth/bluetooth_hal/include/public/",
+    ],
     header_libs: [
         "libeigen",
     ],

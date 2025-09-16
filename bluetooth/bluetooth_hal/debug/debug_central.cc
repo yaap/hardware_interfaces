@@ -41,7 +41,6 @@
 
 #include "android-base/logging.h"
 #include "android-base/properties.h"
-#include "bluetooth_hal/bqr/bqr_handler.h"
 #include "bluetooth_hal/bqr/bqr_root_inflammation_event.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
@@ -152,7 +151,6 @@ class DebugCentralImpl : public DebugCentral {
   std::map<AnchorType, std::pair<std::string, std::string>> anchor_log_;
   ::bluetooth_hal::util::Timer debug_info_command_timer_;
   DebugMonitor debug_monitor_;
-  ::bluetooth_hal::bqr::BqrHandler bqr_handler_;
   std::unordered_set<DebugClient*> debug_clients_;
   bool is_coredump_generated_;
 
