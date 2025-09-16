@@ -24,6 +24,7 @@
 #include <unordered_map>
 
 #include "android-base/logging.h"
+#include "bluetooth_hal/bqr/bqr_advance_rf_stats_event.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
@@ -101,6 +102,9 @@ void BqrHandler::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
       case BqrEventType::kLinkQuality:
         HandleLinkQualityEvent(bqr_event);
         break;
+      case BqrEventType::kAdvancedRfStat:
+        HandleAdvancedRfStatEvent(bqr_event);
+        break;
       default:
         break;
     }
@@ -159,6 +163,11 @@ void BqrHandler::HandleLinkQualityEvent(const BqrEvent& bqr_event) {
     default:
       break;
   }
+}
+
+void BqrHandler::HandleAdvancedRfStatEvent(const BqrEvent& bqr_event) {
+  BqrAdvanceRfStatsEvent advance_rf_states_event(bqr_event);
+  LOG(INFO) << advance_rf_states_event.ToString();
 }
 
 BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {

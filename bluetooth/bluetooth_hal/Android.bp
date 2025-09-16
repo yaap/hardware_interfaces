@@ -126,6 +126,7 @@ filegroup {
         "bqr/bqr_link_quality_event_v6.cc",
         "bqr/bqr_link_quality_event_v7.cc",
         "bqr/bqr_root_inflammation_event.cc",
+        "bqr/bqr_advance_rf_stats_event.cc",
     ],
 }
 
@@ -776,6 +777,8 @@ cc_test {
         "bqr/bqr_link_quality_event_test.cc",
         "bqr/bqr_root_inflammation_event.cc",
         "bqr/bqr_root_inflammation_event_test.cc",
+        "bqr/bqr_advance_rf_stats_event.cc",
+        "bqr/bqr_advance_rf_stats_event_test.cc",
     ],
     shared_libs: [
         "libbase",
