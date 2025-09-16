@@ -347,6 +347,8 @@ class BluetoothAudioProviderFactoryAidl
                     AudioCapabilities::pcmCapabilities);
         }
       } break;
+      case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH:
+      case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH:
       default: {
         ASSERT_TRUE(temp_provider_capabilities_.empty());
       }
@@ -383,7 +385,11 @@ class BluetoothAudioProviderFactoryAidl
           session_type == SessionType::A2DP_SOFTWARE_DECODING_DATAPATH ||
           session_type == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH ||
           session_type == SessionType::HFP_SOFTWARE_DECODING_DATAPATH ||
-          session_type == SessionType::HFP_SOFTWARE_ENCODING_DATAPATH);
+          session_type == SessionType::HFP_SOFTWARE_ENCODING_DATAPATH ||
+          session_type ==
+              SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH ||
+          session_type ==
+              SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH);
       ASSERT_EQ(audio_provider_, nullptr);
     }
   }
@@ -669,6 +675,11 @@ class BluetoothAudioProviderFactoryAidl
       SessionType::HFP_SOFTWARE_DECODING_DATAPATH,
   };
 
+  static constexpr SessionType kAndroidVISessionType[] = {
+      SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH,
+      SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH,
+  };
+
   BluetoothAudioHalVersion GetProviderFactoryInterfaceVersion() {
     int32_t aidl_version = 0;
     if (provider_factory_ == nullptr) {
@@ -723,6 +734,18 @@ TEST_P(BluetoothAudioProviderFactoryAidl,
       BluetoothAudioHalVersion::VERSION_AIDL_V4) {
     for (auto session_type : kAndroidVSessionType) {
       GetProviderCapabilitiesHelper(session_type);
+      OpenProviderHelper(session_type);
+      EXPECT_TRUE(temp_provider_capabilities_.empty() ||
+                  audio_provider_ != nullptr);
+    }
+  }
+  if (GetProviderFactoryInterfaceVersion() >=
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    for (auto session_type : kAndroidVISessionType) {
+      // getProviderCapability is not supported by peripheral sessions
+      auto aidl_retval = provider_factory_->getProviderCapabilities(
+          session_type, &temp_provider_capabilities_);
+      ASSERT_EQ(aidl_retval.getExceptionCode(), EX_UNSUPPORTED_OPERATION);
       OpenProviderHelper(session_type);
       EXPECT_TRUE(temp_provider_capabilities_.empty() ||
                   audio_provider_ != nullptr);
@@ -827,6 +850,8 @@ TEST_P(BluetoothAudioProviderFactoryAidl, getProviderInfo_leAudioSessionTypes) {
       SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
       SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
       SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
+      SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH,
+      SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH,
   };
 
   for (auto session_type : kLeAudioSessionTypes) {
@@ -5099,6 +5124,82 @@ TEST_P(BluetoothAudioProviderA2dpDecodingHardwareAidl,
   }
 }
 
+/**
+ * openProvider LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH
+ */
+class BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl
+    : public BluetoothAudioProviderFactoryAidl {
+ public:
+  virtual void SetUp() override {
+    BluetoothAudioProviderFactoryAidl::SetUp();
+
+    // getProviderCapability is not supported by peripheral sessions
+    auto aidl_retval = provider_factory_->getProviderCapabilities(
+        SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH,
+        &temp_provider_capabilities_);
+    ASSERT_EQ(aidl_retval.getExceptionCode(), EX_UNSUPPORTED_OPERATION);
+
+    GetProviderInfoHelper(
+        SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH);
+    OpenProviderHelper(
+        SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH);
+    ASSERT_TRUE(temp_provider_capabilities_.empty() |
+                !temp_provider_info_.has_value() | audio_provider_ != nullptr);
+  }
+
+  virtual void TearDown() override {
+    audio_port_ = nullptr;
+    audio_provider_ = nullptr;
+    BluetoothAudioProviderFactoryAidl::TearDown();
+  }
+};
+
+/**
+ * Test whether each provider of type
+ * SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH can be started
+ * and stopped
+ */
+TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
+       OpenLeAudioProviderOutputOffloadProvider) {}
+
+/**
+ * openProvider LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH
+ */
+class BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl
+    : public BluetoothAudioProviderFactoryAidl {
+ public:
+  virtual void SetUp() override {
+    BluetoothAudioProviderFactoryAidl::SetUp();
+
+    // getProviderCapability is not supported by peripheral sessions
+    auto aidl_retval = provider_factory_->getProviderCapabilities(
+        SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH,
+        &temp_provider_capabilities_);
+    ASSERT_EQ(aidl_retval.getExceptionCode(), EX_UNSUPPORTED_OPERATION);
+
+    GetProviderInfoHelper(
+        SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH);
+    OpenProviderHelper(
+        SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH);
+    ASSERT_TRUE(temp_provider_capabilities_.empty() |
+                !temp_provider_info_.has_value() | audio_provider_ != nullptr);
+  }
+
+  virtual void TearDown() override {
+    audio_port_ = nullptr;
+    audio_provider_ = nullptr;
+    BluetoothAudioProviderFactoryAidl::TearDown();
+  }
+};
+
+/**
+ * Test whether each provider of type
+ * SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH can be started
+ * and stopped
+ */
+TEST_P(BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl,
+       OpenLeAudioProviderInputOffloadProvider) {}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
     BluetoothAudioProviderFactoryAidl);
 INSTANTIATE_TEST_SUITE_P(PerInstance, BluetoothAudioProviderFactoryAidl,
@@ -5222,6 +5323,22 @@ INSTANTIATE_TEST_SUITE_P(PerInstance,
                          testing::ValuesIn(android::getAidlHalInstanceNames(
                              IBluetoothAudioProviderFactory::descriptor)),
                          android::PrintInstanceNameToString);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl);
+INSTANTIATE_TEST_SUITE_P(
+    PerInstance, BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
+    testing::ValuesIn(android::getAidlHalInstanceNames(
+        IBluetoothAudioProviderFactory::descriptor)),
+    android::PrintInstanceNameToString);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl);
+INSTANTIATE_TEST_SUITE_P(
+    PerInstance, BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl,
+    testing::ValuesIn(android::getAidlHalInstanceNames(
+        IBluetoothAudioProviderFactory::descriptor)),
+    android::PrintInstanceNameToString);
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
