@@ -25,6 +25,7 @@
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/bqr/bqr_advance_rf_stats_event.h"
+#include "bluetooth_hal/bqr/bqr_advance_rf_stats_event_v7.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
@@ -166,8 +167,18 @@ void BqrHandler::HandleLinkQualityEvent(const BqrEvent& bqr_event) {
 }
 
 void BqrHandler::HandleAdvancedRfStatEvent(const BqrEvent& bqr_event) {
-  BqrAdvanceRfStatsEvent advance_rf_states_event(bqr_event);
-  LOG(INFO) << advance_rf_states_event.ToString();
+  switch (local_supported_bqr_version_) {
+    case BqrVersion::kV6: {
+      BqrAdvanceRfStatsEvent advance_rf_states_event(bqr_event);
+      LOG(INFO) << advance_rf_states_event.ToString();
+    } break;
+    case BqrVersion::kV7: {
+      BqrAdvanceRfStatsEventV7 advance_rf_states_event(bqr_event);
+      LOG(INFO) << advance_rf_states_event.ToString();
+    } break;
+    default:
+      break;
+  }
 }
 
 BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {
