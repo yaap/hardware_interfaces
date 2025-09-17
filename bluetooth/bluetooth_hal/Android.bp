@@ -128,6 +128,7 @@ filegroup {
         "bqr/bqr_root_inflammation_event.cc",
         "bqr/bqr_advance_rf_stats_event.cc",
         "bqr/bqr_advance_rf_stats_event_v7.cc",
+        "bqr/bqr_energy_monitoring_event.cc",
     ],
 }
 
@@ -781,6 +782,8 @@ cc_test {
         "bqr/bqr_advance_rf_stats_event.cc",
         "bqr/bqr_advance_rf_stats_event_v7.cc",
         "bqr/bqr_advance_rf_stats_event_test.cc",
+        "bqr/bqr_energy_monitoring_event.cc",
+        "bqr/bqr_energy_monitoring_event_test.cc",
     ],
     shared_libs: [
         "libbase",

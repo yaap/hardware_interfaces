@@ -26,6 +26,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/bqr/bqr_advance_rf_stats_event.h"
 #include "bluetooth_hal/bqr/bqr_advance_rf_stats_event_v7.h"
+#include "bluetooth_hal/bqr/bqr_energy_monitoring_event.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
@@ -106,6 +107,9 @@ void BqrHandler::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
       case BqrEventType::kAdvancedRfStat:
         HandleAdvancedRfStatEvent(bqr_event);
         break;
+      case BqrEventType::kEnergyMonitoring:
+        HandleEnergyMonitoringEvent(bqr_event);
+        break;
       default:
         break;
     }
@@ -179,6 +183,11 @@ void BqrHandler::HandleAdvancedRfStatEvent(const BqrEvent& bqr_event) {
     default:
       break;
   }
+}
+
+void BqrHandler::HandleEnergyMonitoringEvent(const BqrEvent& bqr_event) {
+  BqrEnergyMonitoringEvent energy_event(bqr_event);
+  LOG(INFO) << energy_event.ToString();
 }
 
 BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {

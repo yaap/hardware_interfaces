@@ -60,6 +60,7 @@ class BqrHandler : public ::bluetooth_hal::hci::HciRouterClient {
   virtual void HandleRootInflammationEvent(const BqrEvent& event);
   virtual void HandleLinkQualityEvent(const BqrEvent& bqr_event);
   virtual void HandleAdvancedRfStatEvent(const BqrEvent& bqr_event);
+  virtual void HandleEnergyMonitoringEvent(const BqrEvent& bqr_event);
 
   BqrVersion local_supported_bqr_version_;
   ::bluetooth_hal::hci::HciCommandCompleteEventMonitor
