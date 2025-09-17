@@ -209,9 +209,8 @@ void BluetoothCccHandler::OnMonitorPacketCallback(
     LOG(WARNING) << __func__ << ": Invalid system time, drop the report.";
     return;
   }
-  CccTimestamp timestamp(static_cast<long>(system_time),
-                         static_cast<long>(time_sync_event.GetTimestamp()));
 
+  CccTimestamp timestamp(system_time, time_sync_event.GetTimestamp());
   auto address = time_sync_event.GetAddress();
   auto address_type = time_sync_event.GetAddressType();
   auto direction = time_sync_event.GetDirection();
