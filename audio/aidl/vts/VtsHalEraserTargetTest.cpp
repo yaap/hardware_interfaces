@@ -57,20 +57,23 @@ using aidl::android::hardware::audio::effect::Parameter;
 using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::PcmType;
 using aidl::android::media::audio::eraser::BnEraserCallback;
+using aidl::android::media::audio::eraser::ClassificationConfig;
 using aidl::android::media::audio::eraser::ClassificationMetadata;
 using aidl::android::media::audio::eraser::ClassificationMetadataList;
+using aidl::android::media::audio::eraser::Configuration;
+using aidl::android::media::audio::eraser::IEraserCallback;
 using aidl::android::media::audio::eraser::Mode;
 using aidl::android::media::audio::eraser::SoundClassification;
 using ::android::audio::utils::toString;
 using android::hardware::audio::common::testing::detail::TestExecutionTracer;
 
-class EraserCallback : public BnEraserCallback {
+class MyEraserCallback : public BnEraserCallback {
   public:
-    ndk::ScopedAStatus onClassifierUpdate(int,
+    ndk::ScopedAStatus onClassifierUpdate(int soundId,
                                           const ClassificationMetadataList& metadataList) override {
         audio_utils::unique_lock lock(mMutex);
         mResults.push_back(metadataList);
-        LOG(DEBUG) << " received metadata list " << metadataList.toString();
+        LOG(DEBUG) << " soundId " << soundId << " received " << metadataList.toString();
         mCv.notify_one();
         return ndk::ScopedAStatus::ok();
     }
@@ -117,11 +120,15 @@ class EraserTestHelper : public EffectHelper {
         return std::find(cap.modes.begin(), cap.modes.end(), mode) != cap.modes.end();
     }
 
-    bool setEraserMode(Mode mode) {
+    bool configEraser(Mode mode, std::vector<ClassificationConfig> configs = {},
+                      int maxMetadataNum = 5) {
         if (!mEffect) return false;
 
-        using EraserConfiguration = aidl::android::media::audio::eraser::Configuration;
-        Eraser eraser = Eraser::make<Eraser::configuration>(EraserConfiguration({.mode = mode}));
+        Eraser eraser = Eraser::make<Eraser::configuration>(
+                Configuration({.mode = mode,
+                               .classificationConfigs = std::move(configs),
+                               .maxClassificationMetadata = maxMetadataNum,
+                               .callback = mCallback}));
         Parameter::Specific specific =
                 Parameter::Specific::make<Parameter::Specific::eraser>(eraser);
         Parameter param = Parameter::make<Parameter::specific>(specific);
@@ -156,6 +163,7 @@ class EraserTestHelper : public EffectHelper {
     static constexpr AudioChannelLayout kMonoChannel = AudioChannelLayout(
             std::in_place_index<static_cast<size_t>(AudioChannelLayout::layoutMask)>,
             AudioChannelLayout::LAYOUT_MONO);
+    std::shared_ptr<MyEraserCallback> mCallback = ndk::SharedRefBase::make<MyEraserCallback>();
 
   private:
     std::vector<std::pair<Eraser::Tag, Eraser>> mTags;
@@ -213,7 +221,7 @@ TEST_P(EraserParamTest, SetClassifierMode) {
 
     // eraser effect must support CLASSIFIER mode
     ASSERT_TRUE(isModeSupported(Mode::CLASSIFIER));
-    ASSERT_TRUE(setEraserMode(Mode::CLASSIFIER));
+    ASSERT_TRUE(configEraser(Mode::CLASSIFIER));
 
     ASSERT_NO_FATAL_FAILURE(close(mEffect));
 }
@@ -224,7 +232,7 @@ TEST_P(EraserParamTest, SetEraserModeIfSupported) {
     ASSERT_NE(nullptr, mEffect);
 
     if (isModeSupported(Mode::ERASER)) {
-        ASSERT_TRUE(setEraserMode(Mode::ERASER));
+        ASSERT_TRUE(configEraser(Mode::ERASER));
     } else {
         GTEST_SKIP() << "Eraser mode not supported, skipping test";
     }
@@ -268,6 +276,28 @@ class EraserDataTest : public ::testing::TestWithParam<EraserDataTestParam>,
         ASSERT_NE(nullptr, mEffect);
     }
 
+    // very loose check, make sure the classifier report at least one expected sound category
+    bool expectedSoundExist() {
+        // very loose check, make sure the classifier report at least one expected sound category
+        const auto results = mCallback->getResults();
+        if (results.empty()) {
+            return false;
+        }
+
+        // check the expected sound exist in the last result
+        if (std::find_if(results.begin(), results.end(), [&](const auto& result) {
+                return std::find_if(result.metadatas.begin(), result.metadatas.end(),
+                                    [&](const auto& metadata) {
+                                        return metadata.classification.classification ==
+                                               mExpectedClassification;
+                                    }) != result.metadatas.end();
+            }) != results.end()) {
+            return true;
+        }
+
+        return false;
+    }
+
     void TearDown() override {
         ASSERT_NO_FATAL_FAILURE(close(mEffect));
         ASSERT_NO_FATAL_FAILURE(TearDownEraser());
@@ -280,10 +310,8 @@ TEST_P(EraserDataTest, ClassifySounds) {
     // eraser effect must support CLASSIFIER mode
     ASSERT_TRUE(isModeSupported(Mode::CLASSIFIER));
 
-    auto callback = ndk::SharedRefBase::make<EraserCallback>();
-    using EraserConfiguration = aidl::android::media::audio::eraser::Configuration;
     Eraser eraser = Eraser::make<Eraser::configuration>(
-            EraserConfiguration({.mode = Mode::CLASSIFIER, .callback = callback}));
+            Configuration({.mode = Mode::CLASSIFIER, .callback = mCallback}));
     Parameter::Specific specific = Parameter::Specific::make<Parameter::Specific::eraser>(eraser);
     Parameter param = Parameter::make<Parameter::specific>(specific);
     EXPECT_IS_OK(mEffect->setParameter(param));
@@ -296,25 +324,26 @@ TEST_P(EraserDataTest, ClassifySounds) {
     std::vector<float> out(kOutputFrameCount * channelCount, 0);
 
     ASSERT_NO_FATAL_FAILURE(processInputAndWriteToOutput(wavData, out, mEffect, mOpenEffectReturn));
+    ASSERT_TRUE(expectedSoundExist());
+}
 
-    // very loose check, make sure the classifier report at least one expected sound category
-    auto results = callback->getResults();
-    ASSERT_TRUE(results.size() >= 0);
-    bool foundExpectedSound = false;
-    // check the expected sound exist in the last result
-    for (const auto& result : results) {
-        for (const auto& metadata : result.metadatas) {
-            // verify the sound category and confidence score with loose expectation
-            if (metadata.classification.classification == mExpectedClassification) {
-                foundExpectedSound = true;
-                break;
-            }
-        }
-        if (foundExpectedSound) {
-            break;
-        }
+TEST_P(EraserDataTest, ProcessInEraserMode) {
+    if (!isModeSupported(Mode::ERASER)) {
+        GTEST_SKIP() << "Separator mode not supported, skipping test";
     }
-    ASSERT_TRUE(foundExpectedSound);
+    ASSERT_TRUE(configEraser(Mode::ERASER));
+
+    std::vector<float> wavData;
+    ASSERT_TRUE(readWavFile(mAudioFile, &wavData));
+
+    const auto inputChannelCount = getChannelCount(kMonoChannel);
+    const auto outputChannelCount = 8;
+    const size_t outputFrames = wavData.size() / inputChannelCount;
+    std::vector<float> out(outputFrames * outputChannelCount, 0);
+
+    ASSERT_NO_FATAL_FAILURE(processInputAndWriteToOutput(wavData, out, mEffect, mOpenEffectReturn));
+
+    ASSERT_TRUE(expectedSoundExist());
 }
 
 [[clang::no_destroy]] static const std::vector<std::pair<std::string, SoundClassification>>
