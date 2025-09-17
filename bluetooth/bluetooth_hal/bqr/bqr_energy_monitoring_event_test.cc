@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v6.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "gtest/gtest.h"
@@ -53,6 +54,33 @@ HalPacket CreateEnergyMonitoringEvent() {
       0xFC,                    // LE Tx Average Power Level (-4)
       0x58, 0x02, 0x00, 0x00,  // LE Rx Total Time (600)
       0x06, 0x00, 0x00, 0x00,  // LE Rx State Enter Count (6)
+  };
+  return HalPacket(data);
+}
+
+HalPacket CreateEnergyMonitoringEventV6() {
+  std::vector<uint8_t> data = {
+      0x04,  // H4 Type: HCI Event
+      0xff,  // Event Code: Vendor Specific Event (0xFF)
+      0x51,  // Parameter Total Length
+      0x58,  // Sub Event: BQR event (0x58)
+      0x06,  // Report ID: Energy Monitoring (0x06)
+
+      // Base Payload
+      0x64, 0x00, 0xE8, 0x03, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0xF4, 0x01,
+      0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0xC8, 0x00, 0x00, 0x00, 0x02, 0x00,
+      0x00, 0x00, 0xFB, 0x90, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x2C,
+      0x01, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0xFC, 0x58, 0x02, 0x00, 0x00,
+      0x06, 0x00, 0x00, 0x00,
+
+      // V6 Payload
+      0x10, 0x27, 0x00, 0x00,  // Report Time Duration (10000)
+      0x88, 0x13, 0x00, 0x00,  // RX Active One Chain Time (5000)
+      0x50, 0x04, 0x00, 0x00,  // RX Active Two Chain Time (1104)
+      0xA0, 0x0F, 0x00, 0x00,  // TX iPA Active One Chain Time (4000)
+      0x90, 0x01, 0x00, 0x00,  // TX iPA Active Two Chain Time (400)
+      0xD0, 0x07, 0x00, 0x00,  // TX xPA Active One Chain Time (2000)
+      0xC8, 0x00, 0x00, 0x00,  // TX xPA Active Two Chain Time (200)
   };
   return HalPacket(data);
 }
@@ -97,6 +125,18 @@ void VerifyDefaultValues(const BqrEnergyMonitoringEvent& packet) {
   ASSERT_EQ(packet.GetLeRxStateEnterCount(), 0);
 }
 
+void VerifyDefaultValuesV6(const BqrEnergyMonitoringEventV6& packet) {
+  VerifyDefaultValues(packet);
+  ASSERT_FALSE(packet.IsValid());
+  ASSERT_EQ(packet.GetReportTimeDuration(), 0);
+  ASSERT_EQ(packet.GetRxActiveOneChainTime(), 0);
+  ASSERT_EQ(packet.GetRxActiveTwoChainTime(), 0);
+  ASSERT_EQ(packet.GetTxIpaActiveOneChainTime(), 0);
+  ASSERT_EQ(packet.GetTxIpaActiveTwoChainTime(), 0);
+  ASSERT_EQ(packet.GetTxXpaActiveOneChainTime(), 0);
+  ASSERT_EQ(packet.GetTxXpaActiveTwoChainTime(), 0);
+}
+
 TEST(BqrEnergyMonitoringEventTest, ValidPacketParsing) {
   auto packet = BqrEnergyMonitoringEvent(CreateEnergyMonitoringEvent());
   ASSERT_TRUE(packet.IsValid());
@@ -120,19 +160,46 @@ TEST(BqrEnergyMonitoringEventTest, ValidPacketParsing) {
   ASSERT_EQ(packet.GetLeRxStateEnterCount(), 6);
 }
 
+TEST(BqrEnergyMonitoringEventTest, ValidV6PacketParsing) {
+  auto packet = BqrEnergyMonitoringEventV6(CreateEnergyMonitoringEventV6());
+  ASSERT_TRUE(packet.IsValid());
+  ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kEnergyMonitoring);
+  ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kEnergyMonitoring);
+
+  // Base fields
+  ASSERT_EQ(packet.GetAverageCurrentConsumption(), 100);
+  ASSERT_EQ(packet.GetIdleTotalTime(), 1000);
+  ASSERT_EQ(packet.GetLeRxStateEnterCount(), 6);
+
+  // V6 fields
+  ASSERT_EQ(packet.GetReportTimeDuration(), 10000);
+  ASSERT_EQ(packet.GetRxActiveOneChainTime(), 5000);
+  ASSERT_EQ(packet.GetRxActiveTwoChainTime(), 1104);
+  ASSERT_EQ(packet.GetTxIpaActiveOneChainTime(), 4000);
+  ASSERT_EQ(packet.GetTxIpaActiveTwoChainTime(), 400);
+  ASSERT_EQ(packet.GetTxXpaActiveOneChainTime(), 2000);
+  ASSERT_EQ(packet.GetTxXpaActiveTwoChainTime(), 200);
+}
+
 TEST(BqrEnergyMonitoringEventTest, InvalidPacketParsingIncorrectFormat) {
   auto packet = BqrEnergyMonitoringEvent(CreateIncorrectBqrHalPacket());
   VerifyDefaultValues(packet);
+  auto packet_v6 = BqrEnergyMonitoringEventV6(CreateIncorrectBqrHalPacket());
+  VerifyDefaultValuesV6(packet_v6);
 }
 
 TEST(BqrEnergyMonitoringEventTest, InvalidPacketParsingPacketTooShort) {
   auto packet = BqrEnergyMonitoringEvent(CreateShortBqrPacket());
   VerifyDefaultValues(packet);
+  auto packet_v6 = BqrEnergyMonitoringEventV6(CreateShortBqrPacket());
+  VerifyDefaultValuesV6(packet_v6);
 }
 
 TEST(BqrEnergyMonitoringEventTest, InvalidPacketParsingWrongReportId) {
   auto packet = BqrEnergyMonitoringEvent(CreateWrongReportIdPacket());
   VerifyDefaultValues(packet);
+  auto packet_v6 = BqrEnergyMonitoringEventV6(CreateWrongReportIdPacket());
+  VerifyDefaultValuesV6(packet_v6);
 }
 
 }  // namespace

@@ -27,6 +27,7 @@
 #include "bluetooth_hal/bqr/bqr_advance_rf_stats_event.h"
 #include "bluetooth_hal/bqr/bqr_advance_rf_stats_event_v7.h"
 #include "bluetooth_hal/bqr/bqr_energy_monitoring_event.h"
+#include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v6.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
@@ -186,8 +187,20 @@ void BqrHandler::HandleAdvancedRfStatEvent(const BqrEvent& bqr_event) {
 }
 
 void BqrHandler::HandleEnergyMonitoringEvent(const BqrEvent& bqr_event) {
-  BqrEnergyMonitoringEvent energy_event(bqr_event);
-  LOG(INFO) << energy_event.ToString();
+  switch (local_supported_bqr_version_) {
+    case BqrVersion::kV1ToV3:
+    case BqrVersion::kV4:
+    case BqrVersion::kV5: {
+      BqrEnergyMonitoringEvent energy_event(bqr_event);
+      LOG(INFO) << energy_event.ToString();
+    } break;
+    case BqrVersion::kV6: {
+      BqrEnergyMonitoringEventV6 energy_event(bqr_event);
+      LOG(INFO) << energy_event.ToString();
+    } break;
+    default:
+      break;
+  }
 }
 
 BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {
