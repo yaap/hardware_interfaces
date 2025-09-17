@@ -107,13 +107,28 @@ private:
         std::mutex mMutex;
         std::map<ConnectionId, const std::shared_ptr<BufferPoolClient>>
                 mClients;
+        std::map<uint32_t, ConnectionId> mConIds;
+        uint32_t mCurConIdKey = 0;
     } mActive;
 
     std::shared_ptr<Observer> mObserver;
+
+    ::ndk::ScopedAIBinder_DeathRecipient mAccessorDeathRecipient;
+
+    void removeClient(uint32_t key);
+    static void onAccessorDied(void *cookie);
 };
 
 ClientManager::Impl::Impl()
-    : mObserver(::ndk::SharedRefBase::make<Observer>()) {}
+        : mObserver(::ndk::SharedRefBase::make<Observer>()) {
+    mAccessorDeathRecipient = ::ndk::ScopedAIBinder_DeathRecipient(
+            AIBinder_DeathRecipient_new(&ClientManager::Impl::onAccessorDied));
+}
+
+void ClientManager::Impl::onAccessorDied(void *cookie) {
+    uint64_t key = reinterpret_cast<uint64_t>(cookie);
+    ClientManager::getInstance()->mImpl->removeClient(key);
+}
 
 BufferPoolStatus ClientManager::Impl::registerSender(
         const std::shared_ptr<IAccessor> &accessor, Registration *pRegistration) {
@@ -142,6 +157,8 @@ BufferPoolStatus ClientManager::Impl::registerSender(
         }
         if (!mCache.mConnecting) {
             mCache.mConnecting = true;
+            bool added = false;
+            uint32_t key = 0;
             lock.unlock();
             BufferPoolStatus result = ResultStatus::OK;
             const std::shared_ptr<BufferPoolClient> client =
@@ -154,14 +171,18 @@ BufferPoolStatus ClientManager::Impl::registerSender(
             }
             if (result == ResultStatus::OK) {
                 // TODO: handle insert fail. (malloc fail)
+                added = true;
                 const std::weak_ptr<BufferPoolClient> wclient = client;
                 mCache.mClients.push_back(std::make_pair(accessor, wclient));
                 ConnectionId conId = client->getConnectionId();
                 mObserver->addClient(conId, wclient);
                 {
                     std::lock_guard<std::mutex> lock(mActive.mMutex);
+                    key = mActive.mCurConIdKey++;
                     mActive.mClients.insert(std::make_pair(conId, client));
+                    mActive.mConIds.insert(std::make_pair(key, conId));
                 }
+                client->setKey(conId);
                 pRegistration->connectionId = conId;
                 pRegistration->isNew = true;
                 ALOGV("register new connection %lld", (long long)conId);
@@ -169,6 +190,10 @@ BufferPoolStatus ClientManager::Impl::registerSender(
             mCache.mConnecting = false;
             lock.unlock();
             mCache.mConnectCv.notify_all();
+            if (added) {
+                AIBinder_linkToDeath(accessor->asBinder().get(),
+                        mAccessorDeathRecipient.get(), reinterpret_cast<void *>(key));
+            }
             return result;
         }
         mCache.mConnectCv.wait_for(lock, kRegisterTimeoutMs*1ms);
@@ -237,11 +262,15 @@ BufferPoolStatus ClientManager::Impl::create(
         const std::weak_ptr<BufferPoolClient> wclient = client;
         mCache.mClients.push_back(std::make_pair(accessor, wclient));
         ConnectionId conId = client->getConnectionId();
+        uint32_t key;
         mObserver->addClient(conId, wclient);
         {
             std::lock_guard<std::mutex> lock(mActive.mMutex);
+            key = mActive.mCurConIdKey++;
             mActive.mClients.insert(std::make_pair(conId, client));
+            mActive.mConIds.insert(std::make_pair(key, conId));
         }
+        client->setKey(key);
         *pConnectionId = conId;
         ALOGV("create new connection %lld", (long long)*pConnectionId);
     }
@@ -257,6 +286,7 @@ BufferPoolStatus ClientManager::Impl::close(ConnectionId connectionId) {
         it->second->getAccessor(&accessor);
         std::shared_ptr<BufferPoolClient> closing = it->second;
         mActive.mClients.erase(connectionId);
+        mActive.mConIds.erase(closing->getKey());
         for (auto cit = mCache.mClients.begin(); cit != mCache.mClients.end();) {
             // clean up dead client caches
             std::shared_ptr<IAccessor> cAccessor = cit->first.lock();
@@ -387,8 +417,10 @@ void ClientManager::Impl::cleanUp(bool clearCache) {
         for (auto it = mActive.mClients.begin(); it != mActive.mClients.end();) {
             if (!it->second->isActive(&lastTransactionMs, clearCache)) {
                 if (lastTransactionMs + kClientTimeoutMs < now) {
-                  std::shared_ptr<IAccessor> accessor;
+                    std::shared_ptr<IAccessor> accessor;
                     it->second->getAccessor(&accessor);
+                    uint32_t key = it->second->getKey();
+                    mActive.mConIds.erase(key);
                     it = mActive.mClients.erase(it);
                     ++cleaned;
                     continue;
@@ -407,6 +439,16 @@ void ClientManager::Impl::cleanUp(bool clearCache) {
         }
         ALOGV("# of cleaned connections: %d", cleaned);
         mCache.mLastCleanUpMs = now;
+    }
+}
+
+void ClientManager::Impl::removeClient(uint32_t key) {
+    std::lock_guard<std::mutex> lock(mActive.mMutex);
+    auto it = mActive.mConIds.find(key);
+    if (it != mActive.mConIds.end()) {
+        ConnectionId id = it->second;
+        mActive.mClients.erase(id);
+        mActive.mConIds.erase(it);
     }
 }
 
