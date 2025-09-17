@@ -406,11 +406,11 @@ aidl_interface {
         },
 
     ],
-    frozen: true,
+    frozen: false,
 
 }
 
-latest_android_hardware_audio_effect = "android.hardware.audio.effect-V3"
+latest_android_hardware_audio_effect = "android.hardware.audio.effect-V4"
 
 cc_defaults {
     name: "latest_android_hardware_audio_effect_ndk_shared",
@@ -430,5 +430,12 @@ aidl_interface_defaults {
     name: "latest_android_hardware_audio_effect_import_interface",
     imports: [
         latest_android_hardware_audio_effect,
+    ],
+}
+
+rust_defaults {
+    name: "latest_android_hardware_audio_effect_rust",
+    rustlibs: [
+        latest_android_hardware_audio_effect + "-rust",
     ],
 }
