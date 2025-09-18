@@ -16,6 +16,7 @@
 
 package android.hardware.graphics.composer3;
 
+import android.hardware.graphics.composer3.ActiveConfigCommand;
 import android.hardware.graphics.composer3.Buffer;
 import android.hardware.graphics.composer3.ClientTarget;
 import android.hardware.graphics.composer3.ClockMonotonicTimestamp;
@@ -202,4 +203,9 @@ parcelable DisplayCommand {
      * @see DisplayCommand.pictureProfileId
      */
     long pictureProfileId;
+
+    /**
+     * Sets the active config for the display.
+     */
+    @nullable ActiveConfigCommand activeConfig;
 }

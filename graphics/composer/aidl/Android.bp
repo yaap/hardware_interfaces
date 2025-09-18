@@ -29,7 +29,7 @@ aidl_interface {
     host_supported: true,
     vendor_available: true,
     double_loadable: true,
-    frozen: true,
+    frozen: false,
     srcs: [
         "android/hardware/graphics/composer3/*.aidl",
     ],
@@ -92,10 +92,34 @@ aidl_interface {
 
 cc_library_headers {
     name: "android.hardware.graphics.composer3-command-buffer",
-    defaults: ["android.hardware.graphics.composer3-ndk_shared"],
+    // This version of composer3 command buffer depends on composer3 v4.
+    // TODO(b/445511672): clean up command-buffer versioning.
     vendor_available: true,
     shared_libs: [
         "android.hardware.common-V2-ndk",
+        "android.hardware.drm.common-V1-ndk",
+        "android.hardware.graphics.composer3-V4-ndk",
+        "libbase",
+        "libfmq",
+        "libsync",
+    ],
+    static_libs: [
+        "libaidlcommonsupport",
+    ],
+    export_shared_lib_headers: [
+        "libfmq",
+        "libsync",
+    ],
+    export_include_dirs: ["include"],
+}
+
+cc_library_headers {
+    name: "android.hardware.graphics.composer3-command-buffer-V5",
+    vendor_available: true,
+    shared_libs: [
+        "android.hardware.common-V2-ndk",
+        "android.hardware.drm.common-V1-ndk",
+        "android.hardware.graphics.composer3-V5-ndk",
         "libbase",
         "libfmq",
         "libsync",
@@ -112,8 +136,8 @@ cc_library_headers {
 
 cc_test {
     name: "android.hardware.graphics.composer3-hidl2aidl-asserts",
-    defaults: ["android.hardware.graphics.composer3-ndk_shared"],
     vendor_available: true,
+    defaults: ["android.hardware.graphics.composer3-ndk_shared"],
     srcs: ["android/hardware/graphics/composer3/Hidl2AidlAsserts.cpp"],
     shared_libs: [
         "libbinder_ndk",
