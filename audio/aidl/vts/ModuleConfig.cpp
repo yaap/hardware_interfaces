@@ -525,7 +525,7 @@ std::optional<AudioPortConfig> ModuleConfig::generateMismatchedConfigForPorts(
             if (isDynamicProfile(profile)) continue;
             std::vector<AudioPortConfig> configs;
             combineAudioConfigs(port, profile, &configs);
-            for (const auto config : configs) {
+            for (const auto& config : configs) {
                 if (config.format != audioConfig.format ||
                     config.channelMask != audioConfig.channelMask ||
                     config.sampleRate != audioConfig.sampleRate) {

@@ -1698,7 +1698,7 @@ class GraphicsTransformCompositionTest : public GraphicsCompositionTest {
 };
 
 TEST_P(GraphicsTransformCompositionTest, FLIP_H) {
-    for (const DisplayWrapper display : mAllDisplays) {
+    for (const DisplayWrapper& display : mAllDisplays) {
         for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
             auto status = mComposerClient->setColorMode(display.getDisplayId(), mode,
                                                         RenderIntent::COLORIMETRIC);
