@@ -18,15 +18,16 @@
 
 #include "bluetooth_hal/util/timer_manager.h"
 
-#include <errno.h>
-#include <string.h>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <atomic>
+#include <cerrno>
 #include <chrono>
+#include <cstdint>
+#include <cstring>
+#include <ctime>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -44,13 +45,15 @@ constexpr clockid_t GetAlarmClock() {
 #endif
 }
 
-constexpr long kMillisecondsPerSecond = 1000;
-constexpr long kNanosecondsPerMillisecond = 1000000;
-constexpr long kTearDownTimerInMillisecond = 10;
-constexpr long kDisarmTimerInMillisecond = 0;
-
 namespace bluetooth_hal {
 namespace util {
+namespace {
+
+constexpr std::chrono::milliseconds kTearDownTimer =
+    std::chrono::milliseconds(10);
+constexpr std::chrono::milliseconds kDisarmTimer = std::chrono::milliseconds(0);
+
+}  // namespace
 
 class TimerManagerImpl : public TimerManager {
  public:
@@ -151,7 +154,7 @@ TimerManagerImpl::~TimerManagerImpl() {
   // TODO: b/419117083 - Fix this tricky SetTimer.
   // Manually set a timer here to unblock the epoll_wait, so that EpollWaitTimer
   // can proceed and exit.
-  SetTimer(std::chrono::milliseconds(kTearDownTimerInMillisecond));
+  SetTimer(kTearDownTimer);
   timer_thread_.reset();
   task_thread_.reset();
   close(timer_fd_);
@@ -202,7 +205,7 @@ inline int TimerManagerImpl::RunSyscallUntilNoIntr(std::function<int()> fn) {
 
 bool TimerManagerImpl::RescheduleTimer() {
   if (ordered_timer_events_.empty()) {
-    SetTimer(std::chrono::milliseconds(kDisarmTimerInMillisecond));
+    SetTimer(kDisarmTimer);
     return true;
   }
   auto next_timer_event = ordered_timer_events_.begin();
@@ -217,12 +220,12 @@ bool TimerManagerImpl::RescheduleTimer() {
 }
 
 bool TimerManagerImpl::SetTimer(std::chrono::milliseconds delay) {
+  std::chrono::seconds seconds = duration_cast<std::chrono::seconds>(delay);
+  std::chrono::nanoseconds nanoseconds =
+      duration_cast<std::chrono::nanoseconds>(delay - seconds);
   itimerspec timer_spec{
-      .it_value = {
-          .tv_sec = static_cast<time_t>(delay.count() / kMillisecondsPerSecond),
-          .tv_nsec =
-              static_cast<long>((delay.count() % kMillisecondsPerSecond) *
-                                kNanosecondsPerMillisecond)}};
+      .it_value = {.tv_sec = static_cast<time_t>(seconds.count()),
+                   .tv_nsec = static_cast<long>(nanoseconds.count())}};
   if (timerfd_settime(timer_fd_, 0, &timer_spec, nullptr) < 0) {
     LOG(ERROR) << "Failed to set timerfd: " << strerror(errno);
     return false;
