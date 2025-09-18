@@ -1763,7 +1763,7 @@ TEST_P(GraphicsTransformCompositionTest, FLIP_H) {
 }
 
 TEST_P(GraphicsTransformCompositionTest, FLIP_V) {
-    for (const DisplayWrapper display : mAllDisplays) {
+    for (const DisplayWrapper& display : mAllDisplays) {
         for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
             EXPECT_TRUE(
                     mComposerClient
@@ -1822,7 +1822,7 @@ TEST_P(GraphicsTransformCompositionTest, FLIP_V) {
 }
 
 TEST_P(GraphicsTransformCompositionTest, ROT_180) {
-    for (const DisplayWrapper display : mAllDisplays) {
+    for (const DisplayWrapper& display : mAllDisplays) {
         for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
             EXPECT_TRUE(
                     mComposerClient
@@ -1941,7 +1941,7 @@ class GraphicsColorManagementCompositionTest
 
 // @VsrTest = 4.4-015
 TEST_P(GraphicsColorManagementCompositionTest, ColorConversion) {
-    for (const DisplayWrapper display : mAllDisplays) {
+    for (const DisplayWrapper& display : mAllDisplays) {
         for (ColorMode mode : mDisplayProperties.at(display.getDisplayId()).testColorModes) {
             EXPECT_TRUE(
                     mComposerClient
