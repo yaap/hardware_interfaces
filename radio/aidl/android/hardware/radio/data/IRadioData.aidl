@@ -120,7 +120,7 @@ oneway interface IRadioData {
      *
      * Response function is IRadioDataResponse.releasePduSessionIdResponse()
      *
-     * This is available when android.hardware.telephony.ims is defined.
+     * This is available when android.hardware.telephony.data is defined.
      */
     void releasePduSessionId(in int serial, in int id);
 
