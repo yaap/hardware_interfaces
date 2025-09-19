@@ -33,8 +33,14 @@
 
 package android.hardware.usb;
 @VintfStability
-parcelable PortPartnerStatus {
-  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
-  android.hardware.usb.PowerProfile[] sinkPowerProfiles = {};
-  android.hardware.usb.PowerProfile[] sourcePowerProfiles = {};
+union PowerProfile {
+  android.hardware.usb.TypecDefault typecDefaultProfile;
+  boolean typec15AProfile;
+  boolean typec30AProfile;
+  android.hardware.usb.UsbPdFixed fixedProfile;
+  android.hardware.usb.UsbPdVariable variableProfile;
+  android.hardware.usb.UsbPdBattery batteryProfile;
+  android.hardware.usb.UsbPdSprPps sprPpsProfile;
+  android.hardware.usb.UsbPdSprAvs sprAvsProfile;
+  android.hardware.usb.PowerProfileVendor vendorProfile;
 }

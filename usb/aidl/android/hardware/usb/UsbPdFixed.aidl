@@ -16,25 +16,26 @@
 
 package android.hardware.usb;
 
-import android.hardware.usb.Bc12Type;
-import android.hardware.usb.PowerProfile;
-
 /**
- * Indicates the status of the USB port partner (i.e. the USB charger, accessory, host) to which
- * the local USB port is connected to.
+ * Defines a PowerProfile for a Fixed Supply PDO as defined by the USB Power Delivery
+ * Specification
  */
 @VintfStability
-parcelable PortPartnerStatus {
+parcelable UsbPdFixed {
     /**
-     * Indicates the current BC 1.2 type of the port partner
+     * Describes the fixed voltage level allowed by the power profile in millivolts.
+     * This field must be exactly the value of the "Voltage" field in the
+     * Fixed Supply PDO.
+     *
+     * The value is expected to be 0 or greater.
      */
-    Bc12Type bc12Type = Bc12Type.UNKNOWN;
+    int voltageMv;
     /**
-     * Lists the port partner's sink power profiles
+     * Describes the maximum current allowed by the power profile in milliamps.
+     * This field must be exactly the value of the "Maximum Current" field in the
+     * Fixed Supply PDO.
+     *
+     * The value is expected to be 0 or greater.
      */
-    PowerProfile[] sinkPowerProfiles = {};
-    /**
-     * Lists the port partner's source power profiles
-     */
-    PowerProfile[] sourcePowerProfiles = {};
+    int maxCurrentMa;
 }

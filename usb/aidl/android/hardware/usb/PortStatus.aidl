@@ -27,6 +27,8 @@ import android.hardware.usb.PortMode;
 import android.hardware.usb.PortPartnerStatus;
 import android.hardware.usb.PortPowerRole;
 import android.hardware.usb.PowerBrickStatus;
+import android.hardware.usb.PowerProfile;
+import android.hardware.usb.PowerProfileMatchResult;
 import android.hardware.usb.UsbDataStatus;
 
 @VintfStability
@@ -150,4 +152,30 @@ parcelable PortStatus {
      * Indicates whether or not the port supports partner BC 1.2 type reporting
      */
     boolean supportsPartnerBc12Type = false;
+    /**
+     * Indicates whether or not the local port supports reporting USB power profiles and identifying
+     * partner power profiles. A local port that supports the feature is expected to populate
+     * {@code sinkPowerProfiles}, {@code sourcePowerProfiles}, {@code sinkMatchResults},
+     * and {@code sourceMatchResults} within PortStatus, as well as {@code sinkPowerProfiles}
+     * and {@code sourcePowerProfiles} within PortPartnerStatus.
+     */
+    boolean supportsPowerProfiles = false;
+    /**
+     * Lists the local port's sink power profiles
+     */
+    PowerProfile[] sinkPowerProfiles = {};
+    /**
+     * Lists the local port's source power profiles
+     */
+    PowerProfile[] sourcePowerProfiles = {};
+    /**
+     * Contains the match results of local port sink power profiles against partner port source
+     * power profiles.
+     */
+    PowerProfileMatchResult[] sinkMatchResults = {};
+    /**
+     * Contains the match results of local port source power profiles against partner port sink
+     * power profiles.
+     */
+    PowerProfileMatchResult[] sourceMatchResults = {};
 }

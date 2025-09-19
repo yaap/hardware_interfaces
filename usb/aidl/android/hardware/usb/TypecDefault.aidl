@@ -16,25 +16,15 @@
 
 package android.hardware.usb;
 
-import android.hardware.usb.Bc12Type;
-import android.hardware.usb.PowerProfile;
-
 /**
- * Indicates the status of the USB port partner (i.e. the USB charger, accessory, host) to which
- * the local USB port is connected to.
+ * Default USB Power as defined by the USB Type-C Cable and Connector Specification
  */
 @VintfStability
-parcelable PortPartnerStatus {
+parcelable TypecDefault {
     /**
-     * Indicates the current BC 1.2 type of the port partner
+     * Describes the maximum current allowed by the power profile in milliamps.
+     *
+     * The value is expected to be 0 or greater.
      */
-    Bc12Type bc12Type = Bc12Type.UNKNOWN;
-    /**
-     * Lists the port partner's sink power profiles
-     */
-    PowerProfile[] sinkPowerProfiles = {};
-    /**
-     * Lists the port partner's source power profiles
-     */
-    PowerProfile[] sourcePowerProfiles = {};
+    int maxCurrentMa;
 }
