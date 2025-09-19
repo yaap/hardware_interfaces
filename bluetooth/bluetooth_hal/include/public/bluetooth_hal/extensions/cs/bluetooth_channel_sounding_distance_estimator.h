@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <any>
-
+#include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
+
 namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
@@ -28,10 +28,10 @@ class ChannelSoundingDistanceEstimator
  public:
   void ResetVariables() override;
 
-  double GetConfidenceLevel() override;
+  double EstimateDistance(const ::aidl::android::hardware::bluetooth::ranging::
+                              ChannelSoudingRawData& raw_data) override;
 
- protected:
-  double EstimateDistanceImpl(const std::any& data) override;
+  double GetConfidenceLevel() override;
 };
 }  // namespace cs
 }  // namespace extensions

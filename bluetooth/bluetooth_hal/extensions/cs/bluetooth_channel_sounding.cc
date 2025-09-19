@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#ifdef USE_RANGING_V2
+#define LOG_TAG "bluetooth_hal.extensions.cs"
 
-#define LOG_TAG "bluetooth_hal.extensions.cs.v2"
-
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v2.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding.h"
 
 #include <memory>
 #include <optional>
 #include <vector>
 
+#include "Eigen/Dense"
 #include "aidl/android/hardware/bluetooth/ranging/BluetoothChannelSoundingParameters.h"
 #include "aidl/android/hardware/bluetooth/ranging/CsSecurityLevel.h"
 #include "aidl/android/hardware/bluetooth/ranging/IBluetoothChannelSoundingSession.h"
@@ -31,60 +30,32 @@
 #include "aidl/android/hardware/bluetooth/ranging/SessionType.h"
 #include "aidl/android/hardware/bluetooth/ranging/VendorSpecificData.h"
 #include "android-base/logging.h"
+#include "android-base/properties.h"
 #include "android/binder_auto_utils.h"
 #include "android/binder_interface_utils.h"
-#include "android/binder_manager.h"
-#include "android/binder_status.h"
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
-#include "bluetooth_hal/hal_extension_points.h"
 #include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
-namespace {
-
-using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
 
 using ::aidl::android::hardware::bluetooth::ranging::
     BluetoothChannelSoundingParameters;
 using ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel;
 using ::aidl::android::hardware::bluetooth::ranging::
     IBluetoothChannelSoundingSession;
+using ::aidl::android::hardware::bluetooth::ranging::
+    IBluetoothChannelSoundingSessionCallback;
 using ::aidl::android::hardware::bluetooth::ranging::SessionType;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 
-using ::aidl::android::hardware::bluetooth::ranging::
-    IBluetoothChannelSoundingSessionCallback;
+using ::android::base::GetProperty;
+using ::bluetooth_hal::Property;
 
-using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
-void RangingV2Initializer() {
-  auto register_service = [](const std::shared_ptr<ICInterface>& service,
-                             const char* name) {
-    std::string instance = std::string() + name + "/default";
-    binder_status_t status =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (status != STATUS_OK) {
-      LOG(ERROR) << "Could not register " << name << " as a service!";
-    }
-  };
-
-  register_service(SharedRefBase::make<BluetoothChannelSoundingV2>(),
-                   BluetoothChannelSoundingV2::descriptor);
-}
-
-}  // namespace
-
-struct RangingV2Registrar {
-  RangingV2Registrar() { BluetoothHalRegisterExtension(RangingV2Initializer); }
-};
-
-RangingV2Registrar g_ranging_v2_registrar;
-
-ScopedAStatus BluetoothChannelSoundingV2::getVendorSpecificData(
+ScopedAStatus BluetoothChannelSounding::getVendorSpecificData(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*
         _aidl_return) {
   bool status =
@@ -93,29 +64,30 @@ ScopedAStatus BluetoothChannelSoundingV2::getVendorSpecificData(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothChannelSoundingV2::getSupportedSessionTypes(
+ScopedAStatus BluetoothChannelSounding::getSupportedSessionTypes(
     std::optional<std::vector<SessionType>>* _aidl_return) {
+  std::vector<SessionType> supported_session_types = {
+      SessionType::SOFTWARE_STACK_DATA_PARSING};
   bool status = bluetooth_channel_sounding_handler_.GetSupportedSessionTypes(
       _aidl_return);
   return status ? ScopedAStatus::ok()
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothChannelSoundingV2::getMaxSupportedCsSecurityLevel(
-    [[maybe_unused]] CsSecurityLevel* _aidl_return) {
+ScopedAStatus BluetoothChannelSounding::getMaxSupportedCsSecurityLevel(
+    CsSecurityLevel* _aidl_return) {
   bool status =
       bluetooth_channel_sounding_handler_.GetMaxSupportedCsSecurityLevel(
           _aidl_return);
   return status ? ScopedAStatus::ok()
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
-};
+}
 
-ScopedAStatus BluetoothChannelSoundingV2::openSession(
-    [[maybe_unused]] const BluetoothChannelSoundingParameters& in_params,
-    [[maybe_unused]] const std::shared_ptr<
-        IBluetoothChannelSoundingSessionCallback>& in_callback,
-    [[maybe_unused]] std::shared_ptr<IBluetoothChannelSoundingSession>*
-        _aidl_return) {
+ScopedAStatus BluetoothChannelSounding::openSession(
+    const BluetoothChannelSoundingParameters& in_params,
+    const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&
+        in_callback,
+    std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) {
   LOG(INFO) << __func__;
 
   if (in_callback.get() == nullptr) {
@@ -129,13 +101,6 @@ ScopedAStatus BluetoothChannelSoundingV2::openSession(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothChannelSoundingV2::getSupportedCsSecurityLevels(
-    [[maybe_unused]] std::vector<CsSecurityLevel>* _aidl_return) {
-  return ScopedAStatus::ok();
-};
-
 }  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal
-
-#endif
