@@ -16,8 +16,6 @@
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator.h"
 
-#include <any>
-
 #include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
 
 namespace bluetooth_hal {
@@ -28,12 +26,9 @@ using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
 
 void ChannelSoundingDistanceEstimator::ResetVariables() {};
 
-double ChannelSoundingDistanceEstimator::EstimateDistanceImpl(
-    const std::any& data) {
-  if (std::any_cast<ChannelSoudingRawData>(&data)) {
-    return 0;
-  }
-  return -1;
+double ChannelSoundingDistanceEstimator::EstimateDistance(
+    [[maybe_unused]] const ChannelSoudingRawData& raw_data) {
+  return 0;
 }
 
 double ChannelSoundingDistanceEstimator::GetConfidenceLevel() { return 0; }
