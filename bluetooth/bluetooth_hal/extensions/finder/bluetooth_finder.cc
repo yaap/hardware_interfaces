@@ -14,61 +14,21 @@
  * limitations under the License.
  */
 
-#ifdef USE_FINDER_V1
-
-#define LOG_TAG "bluetooth_hal.extensions.finder"
-
 #include "bluetooth_hal/extensions/finder/bluetooth_finder.h"
 
-#include <memory>
-#include <optional>
-#include <string>
 #include <vector>
 
 #include "aidl/android/hardware/bluetooth/finder/Eid.h"
-#include "android-base/logging.h"
 #include "android/binder_auto_utils.h"
-#include "android/binder_interface_utils.h"
-#include "android/binder_manager.h"
-#include "android/binder_status.h"
 #include "bluetooth_hal/extensions/finder/bluetooth_finder_handler.h"
-#include "bluetooth_hal/hal_extension_points.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace finder {
-namespace {
 
 using ::aidl::android::hardware::bluetooth::finder::Eid;
 
-using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
-
-using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
-using ::ndk::SharedRefBase;
-
-void FinderInitializer() {
-  auto register_service = [](const std::shared_ptr<ICInterface>& service,
-                             const char* name) {
-    std::string instance = std::string() + name + "/default";
-    binder_status_t status =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (status != STATUS_OK) {
-      LOG(ERROR) << "Could not register " << name << " as a service!";
-    }
-  };
-
-  register_service(SharedRefBase::make<BluetoothFinder>(),
-                   BluetoothFinder::descriptor);
-}
-
-}  // namespace
-
-struct FinderRegistrar {
-  FinderRegistrar() { BluetoothHalRegisterExtension(FinderInitializer); }
-};
-
-FinderRegistrar g_finder_registrar;
 
 BluetoothFinder::BluetoothFinder()
     : handler_(BluetoothFinderHandler::GetHandler()) {}
@@ -94,5 +54,3 @@ ScopedAStatus BluetoothFinder::getPoweredOffFinderMode(bool* _aidl_return) {
 }  // namespace finder
 }  // namespace extensions
 }  // namespace bluetooth_hal
-
-#endif

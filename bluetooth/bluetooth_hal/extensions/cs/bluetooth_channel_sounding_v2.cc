@@ -33,18 +33,14 @@
 #include "android-base/logging.h"
 #include "android/binder_auto_utils.h"
 #include "android/binder_interface_utils.h"
-#include "android/binder_manager.h"
-#include "android/binder_status.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
-#include "bluetooth_hal/hal_extension_points.h"
 #include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
-namespace {
 
-using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
+using ::ndk::ScopedAStatus;
 
 using ::aidl::android::hardware::bluetooth::ranging::
     BluetoothChannelSoundingParameters;
@@ -57,32 +53,8 @@ using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 using ::aidl::android::hardware::bluetooth::ranging::
     IBluetoothChannelSoundingSessionCallback;
 
-using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
-
-void RangingV2Initializer() {
-  auto register_service = [](const std::shared_ptr<ICInterface>& service,
-                             const char* name) {
-    std::string instance = std::string() + name + "/default";
-    binder_status_t status =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (status != STATUS_OK) {
-      LOG(ERROR) << "Could not register " << name << " as a service!";
-    }
-  };
-
-  register_service(SharedRefBase::make<BluetoothChannelSoundingV2>(),
-                   BluetoothChannelSoundingV2::descriptor);
-}
-
-}  // namespace
-
-struct RangingV2Registrar {
-  RangingV2Registrar() { BluetoothHalRegisterExtension(RangingV2Initializer); }
-};
-
-RangingV2Registrar g_ranging_v2_registrar;
 
 ScopedAStatus BluetoothChannelSoundingV2::getVendorSpecificData(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*

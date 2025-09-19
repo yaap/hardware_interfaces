@@ -134,6 +134,7 @@ filegroup {
     srcs: [
         "extensions/channel_avoidance/bluetooth_channel_avoidance_handler.cc",
         "extensions/ext/bluetooth_ext_handler.cc",
+        "extensions/finder/bluetooth_finder.cc",
         "extensions/finder/bluetooth_finder_handler.cc",
         "extensions/sar/bluetooth_sar_handler.cc",
         "extensions/thread/socket_processor.cc",
@@ -212,20 +213,6 @@ cc_library_static {
     name: "libbluetooth_hal",
     vendor_available: true,
     defaults: ["libbluetooth_hal_defaults"],
-    export_include_dirs: ["include/public"],
-}
-
-cc_library_static {
-    name: "libbluetooth_hal_finder",
-    vendor_available: true,
-    defaults: ["libbluetooth_hal_extension_defaults"],
-    srcs: [
-        "extensions/finder/bluetooth_finder.cc",
-    ],
-    shared_libs: [
-        "android.hardware.bluetooth.finder-V1-ndk",
-    ],
-    cflags: ["-DUSE_FINDER_V1"],
     export_include_dirs: ["include/public"],
 }
 

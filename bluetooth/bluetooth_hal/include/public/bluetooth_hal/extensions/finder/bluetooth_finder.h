@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_FINDER_V1
-
 #pragma once
 
 #include <vector>
@@ -49,5 +47,3 @@ class BluetoothFinder
 }  // namespace finder
 }  // namespace extensions
 }  // namespace bluetooth_hal
-
-#endif
