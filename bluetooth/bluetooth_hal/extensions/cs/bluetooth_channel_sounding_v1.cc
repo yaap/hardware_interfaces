@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifdef USE_RANGING_V1
 
 #define LOG_TAG "bluetooth_hal.extensions.cs.v1"
@@ -22,6 +21,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "aidl/android/hardware/bluetooth/ranging/BluetoothChannelSoundingParameters.h"
@@ -34,11 +34,15 @@
 #include "android-base/properties.h"
 #include "android/binder_auto_utils.h"
 #include "android/binder_interface_utils.h"
+#include "android/binder_manager.h"
+#include "android/binder_status.h"
+#include "bluetooth_hal/hal_extension_points.h"
 #include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
+namespace {
 
 using ::aidl::android::hardware::bluetooth::ranging::
     BluetoothChannelSoundingParameters;
@@ -52,9 +56,34 @@ using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 
 using ::android::base::GetProperty;
 using ::bluetooth_hal::Property;
+using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
 
+using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
+
+void RangingV1Initializer() {
+  auto register_service = [](const std::shared_ptr<ICInterface>& service,
+                             const char* name) {
+    std::string instance = std::string() + name + "/default";
+    binder_status_t status =
+        AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (status != STATUS_OK) {
+      LOG(ERROR) << "Could not register " << name << " as a service!";
+    }
+  };
+
+  register_service(SharedRefBase::make<BluetoothChannelSoundingV1>(),
+                   BluetoothChannelSoundingV1::descriptor);
+}
+
+}  // namespace
+
+struct RangingV1Registrar {
+  RangingV1Registrar() { BluetoothHalRegisterExtension(RangingV1Initializer); }
+};
+
+RangingV1Registrar g_ranging_v1_registrar;
 
 ScopedAStatus BluetoothChannelSoundingV1::getVendorSpecificData(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*
