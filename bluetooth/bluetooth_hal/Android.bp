@@ -38,7 +38,6 @@ cc_defaults {
     whole_static_libs: [
         "hal_proto_lib",
         "libbluetooth_hal_flags_c_lib",
-        "libbluetooth_hal_ranging-V1",
     ],
     static_libs: [
         "libbluetooth_offload_hal",
@@ -55,6 +54,7 @@ cc_defaults {
         "liblog",
         "android.hardware.bluetooth-V1-ndk",
         "android.hardware.bluetooth.finder-V1-ndk",
+        "android.hardware.bluetooth.ranging-V1-ndk",
     ],
     conlyflags: [
         "-std=c99",
@@ -133,6 +133,11 @@ filegroup {
 filegroup {
     name: "hal_extension_srcs",
     srcs: [
+        "extensions/cs/bluetooth_channel_sounding.cc",
+        "extensions/cs/bluetooth_channel_sounding_handler.cc",
+        "extensions/cs/bluetooth_channel_sounding_session.cc",
+        "extensions/cs/bluetooth_channel_sounding_util.cc",
+        "extensions/cs/bluetooth_channel_sounding_distance_estimator.cc",
         "extensions/channel_avoidance/bluetooth_channel_avoidance_handler.cc",
         "extensions/ext/bluetooth_ext_handler.cc",
         "extensions/finder/bluetooth_finder.cc",
@@ -144,23 +149,6 @@ filegroup {
         "extensions/ccc/bluetooth_ccc_handler.cc",
         "extensions/ccc/bluetooth_ccc_timesync_event.cc",
         "extensions/ccc/bluetooth_ccc_timesync_command.cc",
-    ],
-}
-
-filegroup {
-    name: "hal_ranging_common_srcs",
-    srcs: [
-        "extensions/cs/bluetooth_channel_sounding_handler.cc",
-        "extensions/cs/bluetooth_channel_sounding_util.cc",
-        "extensions/cs/bluetooth_channel_sounding_distance_estimator.cc",
-    ],
-}
-
-filegroup {
-    name: "hal_ranging_v1_srcs",
-    srcs: [
-        "extensions/cs/bluetooth_channel_sounding_v1.cc",
-        "extensions/cs/bluetooth_channel_sounding_session_v1.cc",
     ],
 }
 
@@ -258,22 +246,6 @@ cc_library_static {
     static_libs: [
         "//hardware/google/interfaces:hardware.google.bluetooth.bt_channel_avoidance-V1-ndk",
     ],
-    export_include_dirs: ["include/public"],
-}
-
-cc_library_static {
-    name: "libbluetooth_hal_ranging-V1",
-    vendor_available: true,
-    defaults: ["libbluetooth_hal_extension_defaults"],
-    srcs: [
-        ":hal_ranging_common_srcs",
-        ":hal_ranging_v1_srcs",
-    ],
-    cflags: ["-DUSE_RANGING_V1"],
-    shared_libs: [
-        "android.hardware.bluetooth.ranging-V1-ndk",
-    ],
-    export_shared_lib_headers: ["android.hardware.bluetooth.ranging-V1-ndk"],
     export_include_dirs: ["include/public"],
 }
 
@@ -411,7 +383,7 @@ cc_test {
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
         "hci_router_client.cc",
-        "extensions/cs/bluetooth_channel_sounding_session_v1.cc",
+        "extensions/cs/bluetooth_channel_sounding_session.cc",
         "extensions/cs/bluetooth_channel_sounding_util.cc",
         "extensions/cs/bluetooth_channel_sounding_handler.cc",
         "extensions/cs/bluetooth_channel_sounding_handler_test.cc",

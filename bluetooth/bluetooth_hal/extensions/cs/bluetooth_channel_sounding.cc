@@ -16,12 +16,13 @@
 
 #define LOG_TAG "bluetooth_hal.extensions.cs"
 
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_v1.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding.h"
 
 #include <memory>
 #include <optional>
 #include <vector>
 
+#include "Eigen/Dense"
 #include "aidl/android/hardware/bluetooth/ranging/BluetoothChannelSoundingParameters.h"
 #include "aidl/android/hardware/bluetooth/ranging/CsSecurityLevel.h"
 #include "aidl/android/hardware/bluetooth/ranging/IBluetoothChannelSoundingSession.h"
@@ -54,7 +55,7 @@ using ::bluetooth_hal::Property;
 using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
-ScopedAStatus BluetoothChannelSoundingV1::getVendorSpecificData(
+ScopedAStatus BluetoothChannelSounding::getVendorSpecificData(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*
         _aidl_return) {
   bool status =
@@ -63,7 +64,7 @@ ScopedAStatus BluetoothChannelSoundingV1::getVendorSpecificData(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothChannelSoundingV1::getSupportedSessionTypes(
+ScopedAStatus BluetoothChannelSounding::getSupportedSessionTypes(
     std::optional<std::vector<SessionType>>* _aidl_return) {
   std::vector<SessionType> supported_session_types = {
       SessionType::SOFTWARE_STACK_DATA_PARSING};
@@ -73,7 +74,7 @@ ScopedAStatus BluetoothChannelSoundingV1::getSupportedSessionTypes(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothChannelSoundingV1::getMaxSupportedCsSecurityLevel(
+ScopedAStatus BluetoothChannelSounding::getMaxSupportedCsSecurityLevel(
     CsSecurityLevel* _aidl_return) {
   bool status =
       bluetooth_channel_sounding_handler_.GetMaxSupportedCsSecurityLevel(
@@ -82,7 +83,7 @@ ScopedAStatus BluetoothChannelSoundingV1::getMaxSupportedCsSecurityLevel(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothChannelSoundingV1::openSession(
+ScopedAStatus BluetoothChannelSounding::openSession(
     const BluetoothChannelSoundingParameters& in_params,
     const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&
         in_callback,

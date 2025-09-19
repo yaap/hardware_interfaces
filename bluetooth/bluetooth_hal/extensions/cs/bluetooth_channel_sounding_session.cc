@@ -16,7 +16,7 @@
 
 #define LOG_TAG "bluetooth_hal.extensions.cs"
 
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v1.h"
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session.h"
 
 #include <cstdint>
 #include <memory>
@@ -55,14 +55,14 @@ using ::bluetooth_hal::Property;
 
 using ::ndk::ScopedAStatus;
 
-BluetoothChannelSoundingSessionV1::BluetoothChannelSoundingSessionV1(
+BluetoothChannelSoundingSession::BluetoothChannelSoundingSession(
     std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback,
     Reason /* reason */)
     : distance_estimator_(ChannelSoundingDistanceEstimatorInterface::Create()) {
   callback_ = callback;
 }
 
-ScopedAStatus BluetoothChannelSoundingSessionV1::getVendorSpecificReplies(
+ScopedAStatus BluetoothChannelSoundingSession::getVendorSpecificReplies(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*
         _aidl_return) {
   LOG(INFO) << __func__;
@@ -109,20 +109,20 @@ ScopedAStatus BluetoothChannelSoundingSessionV1::getVendorSpecificReplies(
   return ScopedAStatus::ok();
 }
 
-ScopedAStatus BluetoothChannelSoundingSessionV1::getSupportedResultTypes(
+ScopedAStatus BluetoothChannelSoundingSession::getSupportedResultTypes(
     std::vector<ResultType>* _aidl_return) {
   std::vector<ResultType> supported_result_types = {ResultType::RESULT_METERS};
   *_aidl_return = supported_result_types;
   return ScopedAStatus::ok();
 }
 
-ScopedAStatus BluetoothChannelSoundingSessionV1::isAbortedProcedureRequired(
+ScopedAStatus BluetoothChannelSoundingSession::isAbortedProcedureRequired(
     bool* _aidl_return) {
   *_aidl_return = false;
   return ScopedAStatus::ok();
 }
 
-ScopedAStatus BluetoothChannelSoundingSessionV1::writeRawData(
+ScopedAStatus BluetoothChannelSoundingSession::writeRawData(
     const ChannelSoudingRawData& in_rawData) {
   if (in_rawData.stepChannels.empty()) {
     LOG(WARNING) << __func__ << " in_rawData.stepChannels is empty, skip";
@@ -139,12 +139,12 @@ ScopedAStatus BluetoothChannelSoundingSessionV1::writeRawData(
   return ScopedAStatus::ok();
 }
 
-ScopedAStatus BluetoothChannelSoundingSessionV1::close(Reason in_reason) {
+ScopedAStatus BluetoothChannelSoundingSession::close(Reason in_reason) {
   callback_->onClose(in_reason);
   return ScopedAStatus::ok();
 }
 
-void BluetoothChannelSoundingSessionV1::HandleVendorSpecificData(
+void BluetoothChannelSoundingSession::HandleVendorSpecificData(
     const std::optional<std::vector<std::optional<VendorSpecificData>>>
         vendor_specific_data) {
   uuid_matched_ = IsUuidMatched(vendor_specific_data);
@@ -177,11 +177,11 @@ void BluetoothChannelSoundingSessionV1::HandleVendorSpecificData(
   }
 }
 
-bool BluetoothChannelSoundingSessionV1::ShouldEnableFakeNotification() {
+bool BluetoothChannelSoundingSession::ShouldEnableFakeNotification() {
   return enable_fake_notification_;
 }
 
-bool BluetoothChannelSoundingSessionV1::ShouldEnableMode0ChannelMap() {
+bool BluetoothChannelSoundingSession::ShouldEnableMode0ChannelMap() {
   return enable_mode_0_channel_map_;
 }
 
