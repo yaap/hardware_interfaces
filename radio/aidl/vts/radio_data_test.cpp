@@ -21,6 +21,8 @@
 
 #include "radio_data_utils.h"
 
+using aidl::android::hardware::radio::data::TrafficDescriptor;
+
 #define ASSERT_OK(ret) ASSERT_TRUE(ret.isOk())
 
 void RadioDataTest::SetUp() {
@@ -229,6 +231,90 @@ TEST_P(RadioDataTest, setupDataCall_osAppId) {
         }
         EXPECT_EQ(trafficDescriptor.osAppId.value().osAppId,
                   radioRsp_data->setupDataCallResult.trafficDescriptors[0].osAppId.value().osAppId);
+    }
+}
+
+/*
+ * Test IRadioData.setupDataCall() with a valid connectionCapability.
+ */
+TEST_P(RadioDataTest, setupDataCall_trafficDescriptorConnectionCapability) {
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_DATA)) {
+        GTEST_SKIP() << "Skipping setupDataCall_connectionCapability "
+                        "due to undefined FEATURE_TELEPHONY_DATA";
+    }
+
+    serial = GetRandomSerialNumber();
+
+    AccessNetwork accessNetwork = AccessNetwork::EUTRAN;
+
+    TrafficDescriptor trafficDescriptor;
+    // Set a valid Connection Capability, e.g., IMS
+    // These values should match the ones in TrafficDescriptor.aidl
+    // const byte CONNECTION_CAPABILITY_IMS = 1;
+    trafficDescriptor.connectionCapability = TrafficDescriptor::ConnectionCapability::IMS;
+
+    DataProfileInfo dataProfileInfo;
+    memset(&dataProfileInfo, 0, sizeof(dataProfileInfo));
+    dataProfileInfo.profileId = DataProfileInfo::ID_DEFAULT;
+    dataProfileInfo.apn = std::string("ims");
+    dataProfileInfo.protocol = PdpProtocolType::IPV4V6;
+    dataProfileInfo.roamingProtocol = PdpProtocolType::IPV4V6;
+    dataProfileInfo.authType = ApnAuthType::NO_PAP_NO_CHAP;
+    dataProfileInfo.user = std::string("");
+    dataProfileInfo.password = std::string("");
+    dataProfileInfo.type = DataProfileInfo::TYPE_3GPP;
+    dataProfileInfo.maxConnsTime = 300;
+    dataProfileInfo.maxConns = 20;
+    dataProfileInfo.waitTime = 0;
+    dataProfileInfo.enabled = true;
+    dataProfileInfo.supportedApnTypesBitmap = static_cast<int32_t>(ApnTypes::IMS);
+    dataProfileInfo.bearerBitmap = static_cast<int32_t>(RadioAccessFamily::LTE) |
+                                   static_cast<int32_t>(RadioAccessFamily::NR);
+    dataProfileInfo.mtuV4 = 0;
+    dataProfileInfo.mtuV6 = 0;
+    dataProfileInfo.preferred = true;
+    dataProfileInfo.persistent = false;
+    dataProfileInfo.trafficDescriptor = trafficDescriptor;
+
+    bool roamingAllowed = false;
+    std::vector<LinkAddress> addresses = {};
+    std::vector<std::string> dnses = {};
+    DataRequestReason reason = DataRequestReason::NORMAL;
+    SliceInfo sliceInfo;
+    bool matchAllRuleAllowed = true;
+
+    ndk::ScopedAStatus res =
+            radio_data->setupDataCall(serial, accessNetwork, dataProfileInfo, roamingAllowed,
+                                      reason, addresses, dnses, -1, sliceInfo, matchAllRuleAllowed);
+    ASSERT_OK(res);
+
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_data->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_data->rspInfo.serial);
+
+    if (cardStatus.cardState == CardStatus::STATE_PRESENT) {
+        ASSERT_TRUE(CheckAnyOfErrors(
+                radioRsp_data->rspInfo.error,
+                {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                 RadioError::OP_NOT_ALLOWED_BEFORE_REG_TO_NW, RadioError::REQUEST_NOT_SUPPORTED,
+                 RadioError::INTERNAL_ERR, RadioError::MODEM_ERR, RadioError::INVALID_ARGUMENTS}));
+        // Optionally, check if the returned TrafficDescriptor in setupDataCallResult
+        // contains the connectionCapability if the modem echoes it back.
+        if (radioRsp_data->rspInfo.error == RadioError::NONE &&
+            radioRsp_data->setupDataCallResult.trafficDescriptors.size() > 0) {
+            bool foundTd = false;
+            for (const auto& td : radioRsp_data->setupDataCallResult.trafficDescriptors) {
+                if (td.connectionCapability == trafficDescriptor.connectionCapability) {
+                    foundTd = true;
+                    break;
+                }
+            }
+            EXPECT_TRUE(foundTd);
+        }
+    } else {
+        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_data->rspInfo.error,
+                                     {RadioError::SIM_ABSENT, RadioError::RADIO_NOT_AVAILABLE,
+                                      RadioError::OP_NOT_ALLOWED_BEFORE_REG_TO_NW}));
     }
 }
 

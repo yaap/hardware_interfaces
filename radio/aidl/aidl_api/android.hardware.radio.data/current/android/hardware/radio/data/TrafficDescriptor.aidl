@@ -37,4 +37,25 @@ package android.hardware.radio.data;
 parcelable TrafficDescriptor {
   @nullable String dnn;
   @nullable android.hardware.radio.data.OsAppId osAppId;
+  android.hardware.radio.data.TrafficDescriptor.ConnectionCapability connectionCapability = android.hardware.radio.data.TrafficDescriptor.ConnectionCapability.UNKNOWN;
+  @Backing(type="byte")
+  enum ConnectionCapability {
+    UNKNOWN = 0x00u8,
+    IMS = 0x01u8,
+    MMS = 0x02u8,
+    SUPL = 0x04u8,
+    INTERNET = 0x08u8,
+    LCS_USER_PLANE_POSITIONING = 0x10u8,
+    IOT_DELAY_TOLERANT = 0xA1u8,
+    IOT_NON_DELAY_TOLERANT = 0xA2u8,
+    DOWNLINK_STREAMING = 0xA3u8,
+    UPLINK_STREAMING = 0xA4u8,
+    VEHICULAR_COMMUNICATIONS = 0xA5u8,
+    REAL_TIME_INTERACTIVE = 0xA6u8,
+    UNIFIED_COMMUNICATIONS = 0xA7u8,
+    BACKGROUND = 0xA8u8,
+    MISSION_CRITICAL_COMMUNICATIONS = 0xA9u8,
+    TIME_CRITICAL_COMMUNICATIONS = 0xAAu8,
+    LOW_LATENCY_LOSS_TOLERANT_UNACK = 0xABu8,
+  }
 }
