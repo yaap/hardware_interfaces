@@ -339,23 +339,29 @@ TEST_P(VibratorAidl, ValidateEffectWithCallback) {
         for (EffectStrength strength : kEffectStrengths) {
             auto callback = ndk::SharedRefBase::make<CompletionCallback>();
             int lengthMs = 0;
+            auto start = high_resolution_clock::now();
             ndk::ScopedAStatus status = vibrator->perform(effect, strength, callback, &lengthMs);
+            const std::string message =
+                    "\n  For effect: " + toString(effect) + " " + toString(strength);
 
             if (isEffectSupported) {
-                EXPECT_OK(std::move(status))
-                        << "\n  For effect: " << toString(effect) << " " << toString(strength);
-                EXPECT_GT(lengthMs, 0);
+                EXPECT_OK(std::move(status)) << message;
+                EXPECT_GT(lengthMs, 0) << message;
             } else {
-                EXPECT_UNKNOWN_OR_UNSUPPORTED(std::move(status))
-                        << "\n  For effect: " << toString(effect) << " " << toString(strength);
+                EXPECT_UNKNOWN_OR_UNSUPPORTED(std::move(status)) << message;
             }
 
             if (lengthMs <= 0) continue;
 
-            auto timeout = std::chrono::milliseconds(lengthMs) + VIBRATION_CALLBACK_TIMEOUT;
-            EXPECT_EQ(callback->wait_for(timeout), std::future_status::ready);
 
-            EXPECT_OK(vibrator->off());
+            auto expectedDuration = std::chrono::milliseconds(lengthMs);
+            auto timeout = expectedDuration + VIBRATION_CALLBACK_TIMEOUT;
+            EXPECT_EQ(callback->wait_for(timeout), std::future_status::ready) << message;
+            auto end = high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+            EXPECT_GE(elapsed.count(), expectedDuration.count()) << message;
+            EXPECT_OK(vibrator->off()) << message;
         }
     }
 }
