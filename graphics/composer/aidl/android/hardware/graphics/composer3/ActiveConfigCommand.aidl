@@ -27,7 +27,8 @@ parcelable ActiveConfigCommand {
     int configId;
 
     /**
-     * Whether the command needs to be executed seamlessly.
+     * Whether the command needs to be executed seamlessly, without a
+     * noticeable visual artifact.
      * If a transition cannot be done seamlessly and seamless is required
      * the command will fail and the command result error will indicate
      * that seamless is not possible.
