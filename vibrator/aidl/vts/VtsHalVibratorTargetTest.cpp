@@ -285,9 +285,17 @@ TEST_P(VibratorAidl, OnWithCallback) {
 
     auto callback = ndk::SharedRefBase::make<CompletionCallback>();
     uint32_t durationMs = 250;
-    auto timeout = std::chrono::milliseconds(durationMs) + VIBRATION_CALLBACK_TIMEOUT;
+    auto expectedDuration = std::chrono::milliseconds(durationMs);
+    auto timeout = expectedDuration + VIBRATION_CALLBACK_TIMEOUT;
+
+    auto start = high_resolution_clock::now();
     EXPECT_OK(vibrator->on(durationMs, callback));
     EXPECT_EQ(callback->wait_for(timeout), std::future_status::ready);
+    auto end = high_resolution_clock::now();
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    EXPECT_GE(elapsed.count(), expectedDuration.count());
+
     EXPECT_OK(vibrator->off());
 }
 
