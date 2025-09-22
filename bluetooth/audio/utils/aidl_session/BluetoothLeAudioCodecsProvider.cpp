@@ -410,19 +410,28 @@ BluetoothLeAudioCodecsProvider::ComposeLeAudioCodecCapabilities(
     const std::vector<setting::Scenario>& supported_scenarios) {
   std::vector<LeAudioCodecCapabilitiesSetting> le_audio_codec_capabilities;
   for (const auto& scenario : supported_scenarios) {
-    UnicastCapability unicast_encode_capability =
-        GetUnicastCapability(scenario.getEncode());
-    LOG(INFO) << __func__ << ": Unicast capability encode = "
-              << unicast_encode_capability.toString();
-    UnicastCapability unicast_decode_capability =
-        GetUnicastCapability(scenario.getDecode());
-    LOG(INFO) << __func__ << ": Unicast capability decode = "
-              << unicast_decode_capability.toString();
+    UnicastCapability unicast_encode_capability = {.codecType =
+                                                       CodecType::UNKNOWN};
+    if (scenario.hasEncode()) {
+      unicast_encode_capability = GetUnicastCapability(scenario.getEncode());
+      LOG(INFO) << __func__ << ": Unicast capability encode = "
+                << unicast_encode_capability.toString();
+    }
+
+    UnicastCapability unicast_decode_capability = {.codecType =
+                                                       CodecType::UNKNOWN};
+    if (scenario.hasDecode()) {
+      unicast_decode_capability = GetUnicastCapability(scenario.getDecode());
+      LOG(INFO) << __func__ << ": Unicast capability decode = "
+                << unicast_decode_capability.toString();
+    }
+
     BroadcastCapability broadcast_capability = {.codecType =
                                                     CodecType::UNKNOWN};
-
     if (scenario.hasBroadcast()) {
       broadcast_capability = GetBroadcastCapability(scenario.getBroadcast());
+      LOG(INFO) << __func__ << ": Broadcast capability = "
+                << broadcast_capability.toString();
     }
 
     // At least one capability should be valid
