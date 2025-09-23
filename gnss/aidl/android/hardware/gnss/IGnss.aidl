@@ -84,6 +84,8 @@ interface IGnss {
     @VintfStability
     @Backing(type="int")
     enum GnssAidingData {
+        // Delete the real-time precise ephemeris such as SUPL, but keep the
+        // long-term predicted ephemeris undeleted.
         EPHEMERIS = 0x0001,
         ALMANAC = 0x0002,
         POSITION = 0x0004,
@@ -96,6 +98,8 @@ interface IGnss {
         SADATA = 0x0200,
         RTI = 0x0400,
         CELLDB_INFO = 0x8000,
+        // Delete all aiding data, including the aiding data not deletable by
+        // the above flags, for example, the long-term predicted ephemeris.
         ALL = 0xFFFF
     }
 
