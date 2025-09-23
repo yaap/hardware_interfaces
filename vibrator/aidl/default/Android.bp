@@ -15,7 +15,13 @@ cc_library_static {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libfmq",
+        "libutils",
+        "libcutils",
         "android.hardware.vibrator-V4-ndk",
+        "android.hardware.common-V2-ndk",
+        "android.hardware.common.fmq-V1-ndk",
+        "android.media.audio.common.types-V1-ndk",
     ],
     export_include_dirs: ["include"],
     srcs: [
@@ -50,7 +56,13 @@ cc_binary {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libfmq",
+        "libutils",
+        "libcutils",
         "android.hardware.vibrator-V4-ndk",
+        "android.hardware.common-V2-ndk",
+        "android.hardware.common.fmq-V1-ndk",
+        "android.media.audio.common.types-V1-ndk",
     ],
     static_libs: [
         "libvibratorexampleimpl",
@@ -62,9 +74,17 @@ cc_fuzz {
     name: "android.hardware.vibrator-service.example_fuzzer",
     host_supported: true,
     defaults: ["service_fuzzer_defaults"],
-    static_libs: [
-        "android.hardware.vibrator-V4-ndk",
+    shared_libs: [
         "liblog",
+        "libfmq",
+        "libutils",
+        "libcutils",
+        "android.hardware.vibrator-V4-ndk",
+        "android.hardware.common-V2-ndk",
+        "android.hardware.common.fmq-V1-ndk",
+        "android.media.audio.common.types-V1-ndk",
+    ],
+    static_libs: [
         "libvibratorexampleimpl",
     ],
     srcs: ["fuzzer.cpp"],

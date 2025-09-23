@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,22 @@
 
 package android.hardware.vibrator;
 
-import android.hardware.vibrator.CompositePrimitive;
-
 @VintfStability
 @FixedSize
-parcelable CompositeEffect {
-    /* Period of silence preceding primitive. */
-    int delayMs;
-    CompositePrimitive primitive = CompositePrimitive.NOOP;
-    /*
-     * 0.0 (inclusive) - 1.0 (inclusive),
-     * where 0.0 is minimum "feelable" amplitude.
+parcelable OneShotPrimitive {
+    /**
+     * Input amplitude ranges from 0.0 (inclusive) to 1.0 (inclusive), representing the relative
+     * input value.
+     *
+     * <p>Input amplitude linearly maps to output acceleration (e.g., 0.5 amplitude yields half the
+     * max acceleration for that frequency).
+     *
+     * 0.0 represents no output acceleration amplitude
+     * 1.0 represents the maximum achievable strength
      */
-    float scale;
+    float amplitude;
+    /**
+     * The duration to sustain the vibration at the specified amplitude, in milliseconds.
+     */
+    int timeMillis;
 }

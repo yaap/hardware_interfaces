@@ -16,6 +16,8 @@
 
 package android.hardware.vibrator;
 
+import android.hardware.vibrator.HapticGeneratorConfig;
+import android.hardware.vibrator.HapticGeneratorSession;
 import android.hardware.vibrator.IVibrationSession;
 import android.hardware.vibrator.IVibrator;
 import android.hardware.vibrator.IVibratorCallback;
@@ -61,6 +63,11 @@ interface IVibratorManager {
      * Whether vibration sessions are supported.
      */
     const int CAP_START_SESSIONS = 1 << 8;
+
+    /**
+     * Whether haptic generator is supported.
+     */
+    const int CAP_HAPTIC_GENERATOR = 1 << 9;
 
     /**
      * Determine capabilities of the vibrator manager HAL (CAP_* mask)
@@ -138,10 +145,47 @@ interface IVibratorManager {
             in @nullable IVibratorCallback callback);
 
     /**
-     * Abort and clear all ongoing vibration sessions.
+     * Aborts and clears all ongoing vibration and haptic generator sessions.
      *
-     * This can be used to reset the vibrator manager and some individual vibrators to an idle
-     * state.
+     * <p>This can be used to reset the vibrator manager and its vibrators to an
+     * idle state. Any active {@link IVibrationSession} or {@link HapticGeneratorSession} will
+     * be terminated, and their respective {@link IVibratorCallback#onComplete} callbacks
+     * will be triggered.
      */
     void clearSessions();
+
+    /**
+     * Starts a new haptic generator session that converts effects to haptic PCM data.
+     *
+     * <p>A haptic generator session can be used to convert a {@link VibrationEffect} into a haptic
+     * PCM data stream. The session operates independently and can run concurrently with
+     * vibrations being played via {@link IVibrator}, ensuring that PCM generation does not
+     * block other haptic functionality. The same vibrator can have multiple generator sessions
+     * running in parallel.
+     *
+     * <p>Communication is managed through a set of Fast Message Queues (FMQs) which are returned in
+     * the {@link HapticGeneratorSession} object. The framework uses these queues to:
+     * <ol>
+     * <li> Send commands (e.g., burst command, close session). </li>
+     * <li> Stream the {@link VibrationEffect} data to the HAL. </li>
+     * <li> Receive status replies from the HAL.</li>
+     * <li> Read the generated haptic PCM data from the HAL.</li>
+     * </ol>
+     *
+     * <p>The provided callback will be triggered when the session ends for any reason, such as
+     * being terminated by a call to `IVibratorManager.clearSessions()`, a `close` command, or an
+     * error within the HAL.
+     *
+     * <p>This may not be supported, which is reflected in getCapabilities() (CAP_HAPTIC_GENERATOR).
+     *
+     * @param vibratorIds ids of the vibrators in the session.
+     * @param config Configuration parameters for the PCM generation.
+     * @param callback A callback used to inform Frameworks of state changes.
+     * @return A {@link HapticGeneratorSession} containing the communication queues.
+     * @throws :
+     *         - EX_UNSUPPORTED_OPERATION if unsupported, as reflected by getCapabilities.
+     *         - EX_ILLEGAL_ARGUMENT for invalid vibrator IDs or invalid config data.
+     */
+    HapticGeneratorSession startHapticGeneratorSession(in int[] vibratorIds,
+            in HapticGeneratorConfig config, in @nullable IVibratorCallback callback);
 }

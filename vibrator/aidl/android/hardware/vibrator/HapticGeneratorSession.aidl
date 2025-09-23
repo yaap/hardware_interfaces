@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,15 @@
 
 package android.hardware.vibrator;
 
-import android.hardware.vibrator.CompositePrimitive;
+import android.hardware.vibrator.HapticGeneratorQueues;
 
+/**
+ * Represents an active haptic-to-pcm conversion session.
+ */
 @VintfStability
-@FixedSize
-parcelable CompositeEffect {
-    /* Period of silence preceding primitive. */
-    int delayMs;
-    CompositePrimitive primitive = CompositePrimitive.NOOP;
-    /*
-     * 0.0 (inclusive) - 1.0 (inclusive),
-     * where 0.0 is minimum "feelable" amplitude.
+parcelable HapticGeneratorSession {
+    /**
+     * The message queues for communicating with the haptic generator.
      */
-    float scale;
+    List<HapticGeneratorQueues> queues;
 }
