@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "android-base/logging.h"
 #include "android/binder_interface_utils.h"
@@ -28,27 +29,43 @@
 #include "android/binder_status.h"
 #include "bluetooth_hal/bqr/bqr_handler.h"
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
 #include "bluetooth_hal/extensions/finder/bluetooth_finder.h"
+#include "bluetooth_hal/hal_extension_points.h"
 #include "bluetooth_hal/hci_proxy_aidl.h"
 #include "bluetooth_hal/hci_proxy_ffi.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 
 namespace bluetooth_hal {
+namespace {
 
 using ::aidl::android::hardware::bluetooth::hal::IBluetoothHci_addService;
 using ::bluetooth_hal::HciProxyAidl;
 using ::bluetooth_hal::bqr::BqrHandler;
 using ::bluetooth_hal::chip::ChipProvisionerInterface;
-using ::bluetooth_hal::extensions::cs::BluetoothChannelSounding;
+using ::bluetooth_hal::extensions::BluetoothHalExtensionInitializer;
+
 using ::bluetooth_hal::extensions::cs::
     ChannelSoundingDistanceEstimatorInterface;
-using ::bluetooth_hal::extensions::finder::BluetoothFinder;
+
 using ::bluetooth_hal::transport::TransportInterface;
 using ::bluetooth_hal::transport::TransportType;
-
 using ::ndk::SharedRefBase;
+
+std::vector<BluetoothHalExtensionInitializer>& GetExtensionInitializers() {
+  static std::vector<BluetoothHalExtensionInitializer> initializers;
+  return initializers;
+}
+
+}  // namespace
+
+namespace extensions {
+
+void BluetoothHalRegisterExtension(BluetoothHalExtensionInitializer init_func) {
+  GetExtensionInitializers().push_back(std::move(init_func));
+}
+
+}  // namespace extensions
 
 BluetoothHal& BluetoothHal::GetHal() {
   static BluetoothHal hal;
@@ -99,25 +116,8 @@ void BluetoothHal::StartHalClients() {
 }
 
 void BluetoothHal::StartExtensions() {
-  std::string instance;
-  int status;
-
-  instance = std::string() + BluetoothChannelSounding::descriptor + "/default";
-  std::shared_ptr<BluetoothChannelSounding> bluetooth_channel_sounding =
-      SharedRefBase::make<BluetoothChannelSounding>();
-  status = AServiceManager_addService(
-      bluetooth_channel_sounding->asBinder().get(), instance.c_str());
-  if (status != STATUS_OK) {
-    LOG(ERROR) << "Could not register BluetoothChannelSounding as a service!";
-  }
-
-  instance = std::string() + BluetoothFinder::descriptor + "/default";
-  std::shared_ptr<BluetoothFinder> bluetooth_finder =
-      SharedRefBase::make<BluetoothFinder>();
-  status = AServiceManager_addService(bluetooth_finder->asBinder().get(),
-                                      instance.c_str());
-  if (status != STATUS_OK) {
-    LOG(ERROR) << "Could not register BluetoothFinder as a service!";
+  for (const auto& initializer : GetExtensionInitializers()) {
+    initializer();
   }
 }
 

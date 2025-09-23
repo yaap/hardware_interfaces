@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifdef USE_RANGING_V2
 
 #pragma once
 
@@ -34,23 +36,26 @@ namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
 
-class BluetoothChannelSounding : public ::aidl::android::hardware::bluetooth::
-                                     ranging::BnBluetoothChannelSounding {
+class BluetoothChannelSoundingV2 : public ::aidl::android::hardware::bluetooth::
+                                       ranging::BnBluetoothChannelSounding {
  public:
-  BluetoothChannelSounding() = default;
-  ~BluetoothChannelSounding() = default;
+  BluetoothChannelSoundingV2() = default;
+  ~BluetoothChannelSoundingV2() override = default;
 
   ::ndk::ScopedAStatus getVendorSpecificData(
       std::optional<std::vector<std::optional<
           ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
           _aidl_return) override;
+
   ::ndk::ScopedAStatus getSupportedSessionTypes(
       std::optional<std::vector<
           ::aidl::android::hardware::bluetooth::ranging::SessionType>>*
           _aidl_return) override;
+
   ::ndk::ScopedAStatus getMaxSupportedCsSecurityLevel(
       ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel*
           _aidl_return) override;
+
   ::ndk::ScopedAStatus openSession(
       const ::aidl::android::hardware::bluetooth::ranging::
           BluetoothChannelSoundingParameters& in_params,
@@ -61,6 +66,11 @@ class BluetoothChannelSounding : public ::aidl::android::hardware::bluetooth::
                           IBluetoothChannelSoundingSession>* _aidl_return)
       override;
 
+  ::ndk::ScopedAStatus getSupportedCsSecurityLevels(
+      std::vector<
+          ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel>*
+          _aidl_return) override;
+
  private:
   BluetoothChannelSoundingHandler bluetooth_channel_sounding_handler_;
 };
@@ -68,3 +78,5 @@ class BluetoothChannelSounding : public ::aidl::android::hardware::bluetooth::
 }  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal
+
+#endif

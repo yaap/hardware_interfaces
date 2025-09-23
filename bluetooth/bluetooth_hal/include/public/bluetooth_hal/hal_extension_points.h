@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,17 @@
 
 #pragma once
 
-#include <any>
+#include <functional>
 
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
 namespace bluetooth_hal {
 namespace extensions {
-namespace cs {
 
-class ChannelSoundingDistanceEstimator
-    : public ChannelSoundingDistanceEstimatorInterface {
- public:
-  void ResetVariables() override;
+// An initializer function for a HAL extension.
+using BluetoothHalExtensionInitializer = std::function<void()>;
 
-  double GetConfidenceLevel() override;
+// Each extension should call this function, typically from a static
+// constructor, to register its initialization logic with the core HAL.
+void BluetoothHalRegisterExtension(BluetoothHalExtensionInitializer init_func);
 
- protected:
-  double EstimateDistanceImpl(const std::any& data) override;
-};
-}  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal

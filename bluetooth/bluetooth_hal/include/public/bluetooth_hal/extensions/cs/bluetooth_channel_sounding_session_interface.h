@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,27 @@
 
 #pragma once
 
-#include <any>
+#include <optional>
+#include <vector>
 
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
+#include "aidl/android/hardware/bluetooth/ranging/VendorSpecificData.h"
+
 namespace bluetooth_hal {
 namespace extensions {
 namespace cs {
 
-class ChannelSoundingDistanceEstimator
-    : public ChannelSoundingDistanceEstimatorInterface {
+class BluetoothChannelSoundingSessionInterface {
  public:
-  void ResetVariables() override;
+  virtual ~BluetoothChannelSoundingSessionInterface() = default;
 
-  double GetConfidenceLevel() override;
-
- protected:
-  double EstimateDistanceImpl(const std::any& data) override;
+  virtual void HandleVendorSpecificData(
+      const std::optional<std::vector<std::optional<
+          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+          vendor_specific_data) = 0;
+  virtual bool ShouldEnableFakeNotification() = 0;
+  virtual bool ShouldEnableMode0ChannelMap() = 0;
 };
+
 }  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal
