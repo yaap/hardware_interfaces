@@ -20,6 +20,7 @@
 #include <aidl/android/hardware/vibrator/BnVibratorCallback.h>
 
 #include <android-base/logging.h>
+#include <chrono>
 #include <thread>
 
 namespace aidl {
@@ -36,7 +37,7 @@ class VibratorCallback : public BnVibratorCallback {
         : mDelayMs(delayMs), mSession(std::move(session)), mManager(std::move(manager)) {}
     ndk::ScopedAStatus onComplete() override {
         LOG(VERBOSE) << "Closing session after vibrator became idle";
-        usleep(mDelayMs * 1000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(mDelayMs));
         if (mManager) {
             mManager->clearSession(mSession);
         }
