@@ -65,6 +65,40 @@ TEST_F(TimerManagerTest, ScheduleTask) {
             future.wait_for(std::chrono::milliseconds(100)));
 }
 
+TEST_F(TimerManagerTest, ScheduleTaskWithOneSecondDelay) {
+  // Verifies that a task scheduled with exactly 1 second delay is handled
+  // correctly by the duration_cast logic.
+  Timer timer;
+  auto [promise, future] = GetPromiseFuturePair();
+  // Schedule a task with a delay of 1 second.
+  ASSERT_TRUE(timer.Schedule([&promise]() { promise->set_value(); },
+                             std::chrono::seconds(1)));
+  // The task should not be executed before the delay.
+  ASSERT_NE(std::future_status::ready,
+            future.wait_for(std::chrono::milliseconds(900)));
+  // The task should be executed after 1000ms, set a timeout of 200ms more
+  // to account for scheduling delays.
+  ASSERT_EQ(std::future_status::ready,
+            future.wait_for(std::chrono::milliseconds(200)));
+}
+
+TEST_F(TimerManagerTest, ScheduleTaskWithDelayGreaterThanOneSecond) {
+  // Verifies that a task scheduled with a delay > 1 second is handled
+  // correctly by the new duration_cast logic.
+  Timer timer;
+  auto [promise, future] = GetPromiseFuturePair();
+  // Schedule a task with a delay of 1.5 seconds.
+  ASSERT_TRUE(timer.Schedule([&promise]() { promise->set_value(); },
+                             std::chrono::milliseconds(1500)));
+  // The task should not be executed before the delay.
+  ASSERT_NE(std::future_status::ready,
+            future.wait_for(std::chrono::milliseconds(1400)));
+  // The task should be executed after 1500ms, set a timeout of 200ms more
+  // to account for scheduling delays.
+  ASSERT_EQ(std::future_status::ready,
+            future.wait_for(std::chrono::milliseconds(200)));
+}
+
 TEST_F(TimerManagerTest, CancelTask) {
   Timer timer;
   auto [promise, future] = GetPromiseFuturePair();
