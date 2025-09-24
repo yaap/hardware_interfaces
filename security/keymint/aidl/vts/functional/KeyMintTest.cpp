@@ -8823,10 +8823,20 @@ using DestroyAttestationIdsTest = KeyMintAidlTestBase;
 
 // This is a problematic test, as it can render the device under test permanently unusable.
 // Re-enable and run at your own risk.
+// The test could theoretically be enabled by default for KeyMint versions >= 5 since the
+// IKeyMintDevice method "destroyAttestationIds" should be a no-op and return
+// ErrorCode::UNIMPLEMENTED. However, out of an abundance of caution, it is still disabled
+// to avoid damaging test devices (for example, in cases where tests are run before all
+// changes needed to fully implement KeyMint v5 are made).
 TEST_P(DestroyAttestationIdsTest, DISABLED_DestroyTest) {
     auto result = DestroyAttestationIds();
-    EXPECT_TRUE(result == ErrorCode::OK || result == ErrorCode::UNIMPLEMENTED)
-            << "unexpected result " << result;
+    if (AidlVersion() >= 5) {
+        EXPECT_TRUE(result == ErrorCode::UNIMPLEMENTED)
+                << "Expected UNIMPLEMENTED for KeyMint HAL version >= 5 but got: " << result;
+    } else {
+        EXPECT_TRUE(result == ErrorCode::OK || result == ErrorCode::UNIMPLEMENTED)
+                << "Expected OK or UNIMPLEMENTED for KeyMint HAL version < 5 but got: " << result;
+    }
 }
 
 INSTANTIATE_KEYMINT_AIDL_TEST(DestroyAttestationIdsTest);

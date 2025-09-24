@@ -562,15 +562,14 @@ interface IKeyMintDevice {
     void deleteAllKeys();
 
     /**
-     * Destroys knowledge of the device's ids.  This prevents all device id attestation in the
-     * future.  The destruction must be permanent so that not even a factory reset will restore the
-     * device ids.
+     * This method is deprecated. Implementations must return ErrorCode::UNIMPLEMENTED.
      *
-     * Device id attestation may be provided only if this method is fully implemented, allowing the
-     * user to permanently disable device id attestation.  If this cannot be guaranteed, the device
-     * must never attest any device ids.
+     * This method was originally intended to permanently wipe knowledge of the device's provisioned
+     * device IDs, even after a factory reset. Calling this method would cause all subsequent device
+     * ID attestation attempts to fail.
      *
-     * This is a NOP if device id attestation is not supported.
+     * This method is not useful since there is no entrypoint in the Android framework for invoking
+     * it, so it is deprecated and must return ErrorCode::UNIMPLEMENTED.
      */
     void destroyAttestationIds();
 
