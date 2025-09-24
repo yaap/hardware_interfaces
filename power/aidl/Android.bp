@@ -44,6 +44,9 @@ aidl_interface {
             enabled: true,
             platform_apis: true,
         },
+        rust: {
+            enabled: true,
+        },
     },
     versions_with_info: [
         {
@@ -79,6 +82,7 @@ aidl_interface {
 
     ],
     frozen: true,
+    host_supported: true,
 }
 
 power_version = "android.hardware.power-V6"
