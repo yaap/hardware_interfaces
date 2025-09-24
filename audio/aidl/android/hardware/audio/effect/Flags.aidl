@@ -158,4 +158,13 @@ parcelable Flags {
      * is a change in sourceMetadata.
      */
     boolean sourceMetadataIndication;
+
+    /**
+     * If true, the effect instance requires continuous audio data processing, even when the
+     * output mix is paused. The audio framework will not send a `CommandId.STOP` command to
+     * effects with this flag set.
+     * This is typically used for effects where suspension would be noticeable (e.g., auxiliary
+     * effects) or where a fast response is critical (e.g., visualizers).
+     */
+    boolean notEligibleForSuspend;
 }
