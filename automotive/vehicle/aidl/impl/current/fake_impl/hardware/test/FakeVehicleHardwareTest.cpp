@@ -2740,6 +2740,29 @@ TEST_F(FakeVehicleHardwareTest, testDumpInjectEvent) {
     ASSERT_EQ(event.value.int32Values, std::vector<int32_t>({1234}));
 }
 
+TEST_F(FakeVehicleHardwareTest, testDumpInjectEventStatusCode) {
+    int32_t prop = toInt(VehicleProperty::ENGINE_OIL_LEVEL);
+    std::string propIdStr = std::to_string(prop);
+
+    subscribe(prop, /*areaId*/ 0, /*sampleRateHz*/ 0);
+
+    int64_t timestamp = elapsedRealtimeNano();
+    DumpResult result = getHardware()->dump(
+            {"--inject-event", propIdStr, "-p",
+             std::to_string(toInt(VehiclePropertyStatus::NOT_AVAILABLE_DISABLED)), "-t",
+             std::to_string(timestamp)});
+
+    ASSERT_FALSE(result.callerShouldDumpState);
+    ASSERT_THAT(result.buffer, ContainsRegex("Event for property: ENGINE_OIL_LEVEL injected"));
+    ASSERT_TRUE(waitForChangedProperties(prop, 0, /*count=*/1, milliseconds(1000)))
+            << "No changed event received for injected event from vehicle bus";
+    auto events = getChangedProperties();
+    ASSERT_EQ(events.size(), 1u);
+    auto event = events[0];
+    ASSERT_EQ(event.timestamp, timestamp);
+    ASSERT_EQ(event.status, VehiclePropertyStatus::NOT_AVAILABLE_DISABLED);
+}
+
 TEST_F(FakeVehicleHardwareTest, testDumpInvalidOptions) {
     std::vector<std::string> options;
     options.push_back("--invalid");
