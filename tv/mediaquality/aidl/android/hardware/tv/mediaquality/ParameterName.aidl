@@ -121,4 +121,5 @@ enum ParameterName {
     DIGITAL_OUTPUT,
     DIGITAL_OUTPUT_DELAY_MS,
     SOUND_STYLE,
+    STREAM_STATUS,
 }
