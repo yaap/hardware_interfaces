@@ -40,4 +40,5 @@ parcelable NanBootstrappingRequest {
   byte[] cookie;
   boolean isComeback;
   byte discoverySessionId;
+  @nullable byte[] serviceSpecificInfo;
 }

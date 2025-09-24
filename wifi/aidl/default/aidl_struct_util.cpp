@@ -3652,10 +3652,20 @@ bool convertAidlNanBootstrappingInitiatorRequestToLegacy(
     legacy_request->request_bootstrapping_method =
             convertAidlBootstrappingMethodToLegacy(aidl_request.requestBootstrappingMethod);
     legacy_request->cookie_length = aidl_request.cookie.size();
-
     memcpy(legacy_request->cookie, aidl_request.cookie.data(), legacy_request->cookie_length);
     legacy_request->publish_subscribe_id = static_cast<uint8_t>(aidl_request.discoverySessionId);
     legacy_request->comeback = aidl_request.isComeback ? 0x1 : 0x0;
+    if (aidl_request.serviceSpecificInfo.has_value()) {
+        legacy_request->sdea_service_specific_info_len = aidl_request.serviceSpecificInfo->size();
+        if (legacy_request->sdea_service_specific_info_len >
+            NAN_MAX_SDEA_SERVICE_SPECIFIC_INFO_LEN) {
+            LOG(ERROR) << "convertAidlNanBootstrappingInitiatorRequestToLegacy: "
+                          "sdea_service_specific_info_len too large";
+            return false;
+        }
+        memcpy(legacy_request->sdea_service_specific_info, aidl_request.serviceSpecificInfo->data(),
+               legacy_request->sdea_service_specific_info_len);
+    }
 
     return true;
 }
@@ -3741,6 +3751,12 @@ bool convertLegacyNanBootstrappingRequestIndToAidl(
     aidl_ind->bootstrappingInstanceId = legacy_ind.bootstrapping_instance_id;
     aidl_ind->requestBootstrappingMethod =
             convertLegacyBootstrappingMethodToAidl(legacy_ind.request_bootstrapping_method);
+    if (legacy_ind.sdea_service_specific_info_len > 0 &&
+        legacy_ind.sdea_service_specific_info_len <= NAN_MAX_SDEA_SERVICE_SPECIFIC_INFO_LEN) {
+        aidl_ind->serviceSpecificInfo = std::vector<uint8_t>(
+                legacy_ind.sdea_service_specific_info,
+                legacy_ind.sdea_service_specific_info + legacy_ind.sdea_service_specific_info_len);
+    }
     return true;
 }
 

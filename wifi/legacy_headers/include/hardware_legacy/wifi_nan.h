@@ -3052,6 +3052,13 @@ typedef struct {
     /* Proposed bootstrapping method from peer*/
     u16 request_bootstrapping_method;
 
+    /*
+      Sequence of values indicating the service specific info in SDEA
+      Used for service managed bootstrapping method
+    */
+    u16 sdea_service_specific_info_len;
+    u8 sdea_service_specific_info[NAN_MAX_SDEA_SERVICE_SPECIFIC_INFO_LEN];
+
 } NanBootstrappingRequestInd;
 
 /*
