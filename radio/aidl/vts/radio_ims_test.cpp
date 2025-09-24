@@ -248,6 +248,14 @@ TEST_P(RadioImsTest, updateImsCallStatus) {
  * Test IRadioIms.updateAllowedServices() for the response returned.
  */
 TEST_P(RadioImsTest, updateAllowedServices) {
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_ims->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 4) {
+        ALOGI("Skipped the test since"
+              " updateAllowedServices is not supported on version < 4");
+        GTEST_SKIP();
+    }
     if (!deviceSupportsFeature(FEATURE_TELEPHONY_IMS)) {
         ALOGI("Skipping updateAllowedServices because ims is not supported in device");
         return;
