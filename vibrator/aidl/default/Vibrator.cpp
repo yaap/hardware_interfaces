@@ -17,6 +17,7 @@
 #include "vibrator-impl/Vibrator.h"
 
 #include <android-base/logging.h>
+#include <chrono>
 #include <thread>
 
 namespace aidl {
@@ -60,7 +61,7 @@ void Vibrator::dispatchVibrate(int32_t timeoutMs,
     // which may be asynchronously destructed.
     std::thread([timeoutMs, callback, sharedThis = this->ref<Vibrator>()] {
         LOG(VERBOSE) << "Starting delayed callback on another thread";
-        usleep(timeoutMs * 1000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeoutMs));
 
         if (sharedThis) {
             std::shared_ptr<IVibratorCallback> vibrationCallback, globalCallback;

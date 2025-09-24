@@ -24,6 +24,7 @@
 #include <aidl/android/media/audio/common/AudioFormatType.h>
 #include <aidl/android/media/audio/common/PcmType.h>
 #include <android-base/logging.h>
+#include <chrono>
 #include <thread>
 
 using namespace ::std::chrono_literals;
@@ -58,7 +59,7 @@ class VibratorCallback : public BnVibratorCallback {
         : mDelayMs(delayMs), mSession(std::move(session)), mManager(std::move(manager)) {}
     ndk::ScopedAStatus onComplete() override {
         LOG(VERBOSE) << "Closing session after vibrator became idle";
-        usleep(mDelayMs * 1000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(mDelayMs));
         if (mManager) {
             mManager->clearSession(mSession);
         }
