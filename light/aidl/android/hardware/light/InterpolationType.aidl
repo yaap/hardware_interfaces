@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,24 +15,15 @@
  */
 package android.hardware.light;
 
-/**
- * These light IDs correspond to logical lights, not physical.
- * So for example, if your INDICATOR light is in line with your
- * BUTTONS, it might make sense to also light the INDICATOR
- * light to a reasonable color when the BUTTONS are lit.
- */
 @VintfStability
-enum LightType {
-    BACKLIGHT = 0,
-    KEYBOARD = 1,
-    BUTTONS = 2,
-    BATTERY = 3,
-    NOTIFICATIONS = 4,
-    ATTENTION = 5,
-    BLUETOOTH = 6,
-    WIFI = 7,
-    MICROPHONE = 8,
-    CAMERA = 9,
-    APPLICATION = 10,
-    PRIORITY_NOTIFICATIONS = 11,
+enum InterpolationType {
+    /**
+     * No interpolation. The state will change to the new state after the specified delay.
+     */
+    NONE = 0,
+
+    /**
+     * Linear interpolation.
+     */
+    LINEAR = 1,
 }

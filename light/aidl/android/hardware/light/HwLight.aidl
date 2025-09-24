@@ -22,7 +22,8 @@ import android.hardware.light.LightType;
  * A description of a single light. Multiple lights can map to the same physical
  * LED. Separate physical LEDs are always represented by separate instances.
  */
-@RustDerive(Clone=true, Copy=true) @VintfStability
+@RustDerive(Clone=true, Copy=true)
+@VintfStability
 parcelable HwLight {
     /**
      * Integer ID used for controlling this light
@@ -39,4 +40,14 @@ parcelable HwLight {
      * Logical type use of this light.
      */
     LightType type;
+
+    /**
+     * Maximum frequency supported for updates.
+     *
+     * A value of 0 indicates UNKNOWN and hints clients of the API that fast transitions are not
+     * supported by the HAL.
+     *
+     * LightEffects MUST never specify an FPS higher than the maximum update frequency.
+     */
+    float maxUpdateHz;
 }

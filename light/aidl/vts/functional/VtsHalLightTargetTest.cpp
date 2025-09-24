@@ -40,8 +40,10 @@ using android::hardware::Void;
 using android::hardware::light::BrightnessMode;
 using android::hardware::light::FlashMode;
 using android::hardware::light::HwLight;
+using android::hardware::light::HwLightEffect;
 using android::hardware::light::HwLightState;
 using android::hardware::light::ILights;
+using android::hardware::light::InterpolationType;
 using android::hardware::light::LightType;
 
 #define ASSERT_OK(ret) ASSERT_TRUE(ret.isOk())
@@ -80,6 +82,19 @@ class LightsAidl : public testing::TestWithParam<std::string> {
                 EXPECT_TRUE(lights->setLightState(light.id, backlightOn).isOk());
             }
         }
+    }
+
+    HwLightEffect buildEffect(int32_t lightId) {
+        HwLightEffect effect;
+        effect.lightId = lightId;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        return effect;
     }
 };
 
@@ -157,6 +172,289 @@ TEST_P(LightsAidl, TestInvalidLightIdUnsupported) {
 
     Status status = lights->setLightState(maxId + 1, HwLightState());
     EXPECT_TRUE(status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION);
+}
+
+/**
+ * Ensure a valid light effect is handled if supported, or the hal returns EX_UNSUPPORTED_OPERATION.
+ */
+TEST_P(LightsAidl, TestLightEffects) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        Status status = lights->setLightEffects({effect});
+
+        if (light.maxUpdateHz > 0) {
+            EXPECT_TRUE(status.isOk());
+        } else {
+            EXPECT_EQ(Status::EX_UNSUPPORTED_OPERATION, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure infinite effects are supported.
+ */
+TEST_P(LightsAidl, TestEffectsInfiniteIterations) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 0;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_TRUE(status.isOk());
+        }
+    }
+}
+
+/**
+ * Ensure EX_UNSUPPORTED_OPERATION is returned setting an effect for an invalid light id.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidLightIdUnsupported) {
+    int maxId = INT_MIN;
+    for (const HwLight& light : supportedLights) {
+        maxId = std::max(maxId, light.id);
+    }
+
+    HwLightEffect effect;
+    effect.lightId = maxId + 1;
+    effect.frames = {5};
+    effect.colors = {(int32_t)0xFFFFFFFF};
+    effect.iterations = 1;
+    effect.preemptive = false;
+    effect.frameRateHz = 30;
+    effect.interpolationType = InterpolationType::LINEAR;
+
+    Status status = lights->setLightEffects({effect});
+
+    EXPECT_EQ(Status::EX_UNSUPPORTED_OPERATION, status.exceptionCode());
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when no frames are specified for the effect.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_emptyFrames) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when no colors have been specified for the effect.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_emptyColors) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when the number of frames and colors does not match.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_unevenArrays) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5, 10};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when the number of iterations is negative.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_negativeIterations) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = -1;
+        effect.preemptive = false;
+        effect.frameRateHz = 30;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when the framerate is set to 0.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_ZeroFrameRate) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = 0;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when the frame rate is negative.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_NegativeFrameRate) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = -10;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure EX_ILLEGAL_ARGUMENT is returned when the requested frame rate exceeds the max frame rate
+ * specified by the light.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_ExcessiveFrameRate) {
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.iterations = 1;
+        effect.preemptive = false;
+        effect.frameRateHz = light.maxUpdateHz + 1;
+        effect.interpolationType = InterpolationType::LINEAR;
+
+        if (light.maxUpdateHz > 0) {
+            Status status = lights->setLightEffects({effect});
+            EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+        }
+    }
+}
+
+/**
+ * Ensure an error is returned when multiple effects are specified and one is invalid.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_OneInvalidEffectInList) {
+    std::vector<HwLightEffect> effects;
+
+    // Fill the vector only with lights that support effects.
+    for (const HwLight& light : supportedLights) {
+        if (light.maxUpdateHz == 0) {
+            continue;
+        }
+
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.preemptive = false;
+        effect.frameRateHz = light.maxUpdateHz;
+        effect.interpolationType = InterpolationType::LINEAR;
+        effect.iterations = 1;
+
+        // Make the second effect in the list invalid.
+        if (effects.size() == 1) {
+            effect.iterations = 0;
+        }
+
+        effects.push_back(effect);
+    }
+
+    if (effects.size() < 2) {
+        // Nothing to validate if there is only one light.
+        return;
+    }
+
+    Status status = lights->setLightEffects(effects);
+    EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
+}
+
+/**
+ * Ensure an error is returned when multiple effects are specified and one ligth doesn't support it.
+ */
+TEST_P(LightsAidl, TestEffectsInvalidEffect_OneInvalidLightInList) {
+    std::vector<HwLightEffect> effects;
+
+    // Fill the vector with effects for all lights.
+    for (const HwLight& light : supportedLights) {
+        HwLightEffect effect;
+        effect.lightId = light.id;
+        effect.frames = {5};
+        effect.colors = {(int32_t)0xFFFFFFFF};
+        effect.preemptive = false;
+        effect.frameRateHz = light.maxUpdateHz;
+        effect.interpolationType = InterpolationType::LINEAR;
+        effect.iterations = 1;
+
+        effects.push_back(effect);
+    }
+
+    if (supportedLights.size() == effects.size()) {
+        // Nothing to validate if all lights support effects
+        return;
+    }
+
+    Status status = lights->setLightEffects(effects);
+    EXPECT_EQ(Status::EX_UNSUPPORTED_OPERATION, status.exceptionCode());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LightsAidl);
