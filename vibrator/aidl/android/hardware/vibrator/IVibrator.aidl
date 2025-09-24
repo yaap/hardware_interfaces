@@ -92,6 +92,8 @@ interface IVibrator {
      *
      * Cancel a previously-started vibration, if any. If a previously-started vibration is
      * associated with a callback, then onComplete should still be called on that callback.
+     * This also clears any vibration amplitude set by `setAmplitude` and disables external
+     * control, if enabled.
      */
     void off();
 
@@ -140,10 +142,12 @@ interface IVibrator {
     /**
      * Sets the motor's vibrational amplitude.
      *
-     * Changes the force being produced by the underlying motor. This may not be supported and
-     * this support is reflected in getCapabilities (CAP_AMPLITUDE_CONTROL). When this device
-     * is under external control (via setExternalControl), amplitude control may not be supported
-     * even though it is supported normally. This can be checked with
+     * Changes the force being produced by the underlying motor. This amplitude applies to
+     * ongoing and future vibrations triggered by the `on()` function and does not affect
+     * other vibration types. This may not be supported and this support is reflected in
+     * getCapabilities (CAP_AMPLITUDE_CONTROL). When this device is under external
+     * control (via setExternalControl), amplitude control may not be supported even
+     * though it is supported normally. This can be checked with
      * CAP_EXTERNAL_AMPLITUDE_CONTROL.
      *
      * @param amplitude The unitless force setting. Note that this number must
