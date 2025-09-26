@@ -130,7 +130,14 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::isAbortedProcedureRequired(
 };
 
 ScopedAStatus BluetoothChannelSoundingSessionV2::writeProcedureData(
-    [[maybe_unused]] const ChannelSoundingProcedureData& in_procedureData) {
+    const ChannelSoundingProcedureData& in_procedureData) {
+  RangingResult ranging_result;
+  distance_estimator_->ResetVariables();
+  ranging_result.resultMeters =
+      distance_estimator_->EstimateDistance(in_procedureData);
+  ranging_result.confidenceLevel =
+      distance_estimator_->GetConfidenceLevel() * 100;
+  callback_->onResult(ranging_result);
   return ScopedAStatus::ok();
 };
 
