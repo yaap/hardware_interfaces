@@ -14,19 +14,57 @@
  * limitations under the License.
  */
 
+#ifdef USE_SAR_V1
+
+#define LOG_TAG "bluetooth_hal.extensions.sar"
+
 #include "bluetooth_hal/extensions/sar/bluetooth_sar.h"
 
 #include <array>
 #include <cstdint>
+#include <memory>
+#include <string>
 
+#include "android-base/logging.h"
 #include "android/binder_auto_utils.h"
+#include "android/binder_interface_utils.h"
+#include "android/binder_manager.h"
 #include "bluetooth_hal/extensions/sar/bluetooth_sar_handler.h"
+#include "bluetooth_hal/hal_extension_points.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace sar {
+namespace {
 
+using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
+
+using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
+using ::ndk::SharedRefBase;
+
+void SarInitializer() {
+  auto register_service = [](const std::shared_ptr<ICInterface>& service,
+                             const char* name) {
+    std::string instance = std::string() + name + "/default";
+    binder_status_t status =
+        AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (status != STATUS_OK) {
+      LOG(ERROR) << "Could not register " << name << " as a service!";
+    }
+  };
+
+  register_service(SharedRefBase::make<BluetoothSar>(),
+                   BluetoothSar::descriptor);
+}
+
+}  // namespace
+
+struct SarRegistrar {
+  SarRegistrar() { BluetoothHalRegisterExtension(SarInitializer); }
+};
+
+SarRegistrar g_sar_registrar;
 
 ScopedAStatus BluetoothSar::setBluetoothTxPowerCap(int8_t cap) {
   bool status = bluetooth_sar_handler_.SetBluetoothTxPowerCap(cap);
@@ -70,3 +108,5 @@ ScopedAStatus BluetoothSar::setBluetoothAreaCode(
 }  // namespace sar
 }  // namespace extensions
 }  // namespace bluetooth_hal
+
+#endif
