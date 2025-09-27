@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// ################################################################################
+// # Defaults
+// ################################################################################
 cc_defaults {
     name: "libbluetooth_hal_defaults",
     srcs: [
@@ -79,6 +82,9 @@ cc_defaults {
     ],
 }
 
+// ################################################################################
+// # FileGroups
+// ################################################################################
 filegroup {
     name: "hal_common_srcs",
     srcs: [
@@ -208,6 +214,10 @@ filegroup {
     ],
 }
 
+// ################################################################################
+// # Libraries
+// ################################################################################
+
 cc_library_static {
     name: "libbluetooth_hal",
     vendor_available: true,
@@ -319,6 +329,9 @@ cc_library_headers {
     proprietary: true,
 }
 
+// ################################################################################
+// # Tests
+// ################################################################################
 cc_defaults {
     name: "bluetooth_hal_test_defaults",
     team: "trendy_team_bluetooth",
