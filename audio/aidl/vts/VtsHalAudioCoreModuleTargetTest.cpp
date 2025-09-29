@@ -1872,6 +1872,57 @@ class WithAudioPatch {
     AudioPatch mPatch;
 };
 
+using DeviceKey = std::pair<AudioDevice, std::string /*encoding*/>;
+class AudioCoreModuleDeviceFormats : public ::testing::Test {
+  protected:
+    void SetUp() override { mModuleNames = getAidlHalInstanceNames(IModule::descriptor); }
+
+    AudioHalBinderServiceUtil mBinderUtil;
+    std::vector<std::string> mModuleNames;
+};
+
+TEST_F(AudioCoreModuleDeviceFormats, CheckDeviceFormatUniquenessAcrossModules) {
+    std::map<DeviceKey, std::string /*module name*/> deviceEncodings;
+
+    for (const auto& moduleName : mModuleNames) {
+        const std::shared_ptr<IModule>& module =
+                IModule::fromBinder(mBinderUtil.connectToService(moduleName));
+        std::vector<AudioPort> ports;
+        ASSERT_IS_OK(module->getAudioPorts(&ports));
+        for (const auto& port : ports) {
+            if (port.ext.getTag() != AudioPortExt::Tag::device) continue;
+            const AudioPortDeviceExt& deviceExt = port.ext.get<AudioPortExt::Tag::device>();
+            const AudioDevice& device = deviceExt.device;
+
+            // Skipping the check for IN_HEADSET type device port as its encodings are not specified
+            // because they are derived from corresponding OUT_HEADSET. CheckDevicePorts verifies
+            // that there is actually a matching OUT_HEADSET.
+            if (device.type.type == AudioDeviceType::IN_HEADSET) {
+                continue;
+            }
+
+            if (deviceExt.encodedFormats.empty()) {
+                // Ensure that there is at most one fallback port across all HAL modules for each
+                // DeviceKey.
+                DeviceKey key = std::make_pair(device, "");
+                auto [it, inserted] = deviceEncodings.insert({key, moduleName});
+                EXPECT_TRUE(inserted) << "Multiple fallback ports for device " << device.toString()
+                                      << " found in " << it->second << " and " << moduleName;
+            } else {
+                // Ensure that encoded formats are unique across all HAL modules
+                for (const auto& format : deviceExt.encodedFormats) {
+                    DeviceKey key = std::make_pair(device, format.encoding);
+                    auto [it, inserted] = deviceEncodings.insert({key, moduleName});
+                    EXPECT_TRUE(inserted)
+                            << "Duplicate encoding " << format.encoding << " for device "
+                            << device.toString() << " found in modules " << it->second << " and "
+                            << moduleName;
+                }
+            }
+        }
+    }
+}
+
 TEST_P(AudioCoreModule, Published) {
     // SetUp must complete with no failures.
 }
@@ -2005,6 +2056,16 @@ TEST_P(AudioCoreModule, CheckDevicePorts) {
             EXPECT_EQ(AudioChannelLayout::Tag::layoutMask, speakerLayoutTag)
                     << "If set, speaker layout must be layoutMask.  Received: "
                     << toString(speakerLayoutTag);
+        }
+    }
+
+    for (const auto& eachInputDevice : inputs) {
+        if (eachInputDevice.type.type == AudioDeviceType::IN_HEADSET) {
+            AudioDevice outputDevice = eachInputDevice;
+            outputDevice.type.type = AudioDeviceType::OUT_HEADSET;
+            EXPECT_EQ(1UL, outputs.count(outputDevice))
+                    << "For IN_HEADSET device " << eachInputDevice.toString()
+                    << " a matching OUT_HEADSET device not found.";
         }
     }
 }
