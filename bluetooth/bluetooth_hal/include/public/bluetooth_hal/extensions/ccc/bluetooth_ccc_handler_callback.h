@@ -47,7 +47,7 @@ class BluetoothCccHandlerCallback {
       const CccTimestamp& timestamp,
       const ::bluetooth_hal::hci::BluetoothAddress& address,
       CccDirection direction, CccLmpEventId lmp_event_id,
-      uint8_t event_counter) = 0;
+      uint16_t event_counter) = 0;
 
   virtual void OnRegistered(bool status) = 0;
 

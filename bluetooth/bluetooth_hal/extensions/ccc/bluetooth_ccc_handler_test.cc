@@ -79,7 +79,7 @@ class MockCallbackVerifier : public BluetoothCccHandlerCallback {
   MOCK_METHOD(void, OnEventGenerated,
               (const CccTimestamp& timestamp, const BluetoothAddress& address,
                CccDirection direction, CccLmpEventId lmp_event_id,
-               uint8_t event_counter),
+               uint16_t event_counter),
               (override));
   MOCK_METHOD(void, OnRegistered, (bool status), (override));
 };
@@ -96,7 +96,7 @@ class MockBluetoothCccHandlerCallback : public BluetoothCccHandlerCallback {
   void OnEventGenerated(const CccTimestamp& timestamp,
                         const BluetoothAddress& address, CccDirection direction,
                         CccLmpEventId lmp_event_id,
-                        uint8_t event_counter) override {
+                        uint16_t event_counter) override {
     verifier_->OnEventGenerated(timestamp, address, direction, lmp_event_id,
                                 event_counter);
   }
