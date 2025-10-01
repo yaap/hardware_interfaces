@@ -23,7 +23,8 @@ union HapticGeneratorCommand {
      * Reserved space for future additions to this union. This ensures
      * backward compatibility.
      */
-    long[16] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    byte[32] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0};
 
     /**
      * A set of commands that manage the state of a single vibration effect conversion.
@@ -34,11 +35,13 @@ union HapticGeneratorCommand {
          * Informs the HAL to prepare for a new vibration effect.
          *
          * <p>If this command is received while another effect is being processed,
-         * it acts as an implicit cancellation of the previous effect. The HAL
-         * MUST clear the HapticGeneratorQueues.pcm queue, discarding any buffered PCM
-         * data for a previous effect, and must get ready to receive new data into the
-         * HapticGeneratorQueues.effect queue. Any burstBytes command received after
-         * this one should only use the new effect.
+         * it acts as an implicit cancellation of the previous effect.
+         *
+         * <p>Upon receiving this command, the HAL MUST clear the
+         * HapticGeneratorQueues.effect queue and prepare to receive new data. Any
+         * subsequent `burstBytes` command must only use the new effect data. The
+         * client is responsible for clearing the HapticGeneratorQueues.pcm queue to
+         * discard any buffered PCM data from the previous effect.
          *
          * <p>The framework will not write to the 'effect' queue until a success
          * reply is received for this command.
@@ -59,13 +62,14 @@ union HapticGeneratorCommand {
         /**
          * Informs the HAL to immediately stop processing the currently active effect.
          *
-         * <p>The HAL MUST clear the HapticGeneratorQueues.pcm queue, discarding any
-         * buffered PCM data for the cancelled effect, and should be ready to accept
-         * a new `START` command. Any burstBytes command received before a new
-         * `START` command should be rejected.
+         * <p>Upon receiving this command, the HAL MUST clear the
+         * HapticGeneratorQueues.effect queue. The client is responsible for clearing
+         * the HapticGeneratorQueues.pcm queue to discard any buffered PCM data from
+         * the cancelled effect.
          *
-         * <p>If no effect is currently active, the HAL MUST reply with
-         * STATUS_INVALID_OPERATION.
+         * <p>Any `burstBytes` command received before a new `START` command
+         * should be rejected. If no effect is currently active, the HAL MUST reply
+         * with STATUS_INVALID_OPERATION.
          */
         CANCEL,
     }

@@ -29,7 +29,8 @@ union VibrationEffect {
      * Reserved space for future additions to this union. This ensures
      * backward compatibility.
      */
-    long[20] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    byte[32] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0};
     CompositeEffect composite;
     OneShotPrimitive oneShotPrimitive;
     PredefinedEffect predefined;
