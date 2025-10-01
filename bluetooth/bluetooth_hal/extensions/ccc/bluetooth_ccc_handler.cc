@@ -215,7 +215,7 @@ void BluetoothCccHandler::OnMonitorPacketCallback(
   auto address_type = time_sync_event.GetAddressType();
   auto direction = time_sync_event.GetDirection();
   auto lmp_event_id = time_sync_event.GetEventId();
-  uint8_t event_counter = time_sync_event.GetEventCount();
+  uint16_t event_counter = time_sync_event.GetEventCount();
 
   LOG(INFO) << "Recv address: " << address.ToString()
             << "Recv address_type:" << static_cast<int>(address_type)
