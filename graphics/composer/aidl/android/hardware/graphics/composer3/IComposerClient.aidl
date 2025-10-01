@@ -48,6 +48,7 @@ import android.hardware.graphics.composer3.RenderIntent;
 import android.hardware.graphics.composer3.VirtualDisplay;
 import android.hardware.graphics.composer3.VsyncPeriodChangeConstraints;
 import android.hardware.graphics.composer3.VsyncPeriodChangeTimeline;
+import android.hardware.graphics.composer3.VsyncSample;
 
 @VintfStability
 interface IComposerClient {
@@ -966,4 +967,25 @@ interface IComposerClient {
      * @param buffers is the buffer where the luts can be computed from
      */
     Luts[] getLuts(long display, in Buffer[] buffers);
+
+    /**
+     * Returns the most recently known vsync sample (timestamp and vsync period).
+     * This timestamp is expected to be close to the time this function was called.
+     * The client would call this function to get a recent vsync sample and to
+     * predict future vsync timestamps.
+     *
+     * WARNING: The returned vsync period may be unreliable during
+     * display mode transitions (e.g., refresh rate changes). It might not yet
+     * reflect the target mode's period until the switch is complete.
+     *
+     * Do NOT use this method's vsync period to confirm mode switch completion.
+     * Use vsync callbacks for reliable mode transition detection.
+     *
+     * @param display The display ID.
+     *
+     * @return is the most recently known vsync sample.
+     *
+     * @exception EX_UNSUPPORTED if the API is not implemented.
+     */
+    VsyncSample getDisplayKnownVsyncSample(long display);
 }

@@ -90,6 +90,7 @@ interface IComposerClient {
   int getMaxLayerPictureProfiles(long display);
   oneway void startHdcpNegotiation(long display, in android.hardware.drm.HdcpLevels levels);
   android.hardware.graphics.composer3.Luts[] getLuts(long display, in android.hardware.graphics.composer3.Buffer[] buffers);
+  android.hardware.graphics.composer3.VsyncSample getDisplayKnownVsyncSample(long display);
   const int EX_BAD_CONFIG = 1;
   const int EX_BAD_DISPLAY = 2;
   const int EX_BAD_LAYER = 3;
