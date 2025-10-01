@@ -17,6 +17,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -44,6 +45,7 @@ enum class BluetoothStreamState : uint8_t {
 
 std::ostream& operator<<(std::ostream& os, const BluetoothStreamState& state);
 
+class BluetoothSession;
 class BluetoothAudioPortCallbacks {
   public:
     virtual ~BluetoothAudioPortCallbacks() = default;
@@ -217,13 +219,13 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
   protected:
     uint16_t mCookie;
     BluetoothStreamState mState GUARDED_BY(mCvMutex);
-    ::aidl::android::hardware::bluetooth::audio::SessionType mSessionType;
     // WR to support Mono: True if fetching Stereo and mixing into Mono
     bool mIsStereoToMono = false;
     std::shared_ptr<BluetoothAudioPortCallbacks> mCallbacks GUARDED_BY(mCvMutex);
     std::optional<bool> mSupportsLowLatency GUARDED_BY(mCvMutex);
 
     bool inUse() const;
+    BluetoothSession* getSession() const EXCLUDES(mCvMutex);
 
     std::string debugMessage() const;
 
@@ -233,13 +235,16 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
     // conditional variable serves this purpose.
     mutable std::mutex mCvMutex;
     std::condition_variable mInternalCv GUARDED_BY(mCvMutex);
+    // do not call into BluetoothSession directly, use getSession() to ensure that 'mCvMutex'
+    // is not taken, to avoid deadlocks with callbacks.
+    std::unique_ptr<BluetoothSession> mSession;
 
     bool getRecommendedLatencyModes(
             std::vector<::aidl::android::hardware::bluetooth::audio::LatencyMode>* latency_modes,
             std::optional<bool>* supports_low_latency);
     // Check and initialize session type for |devices| If failed, this
     // BluetoothAudioPortAidl is not initialized and must be deleted.
-    bool initSessionType(
+    bool initSession(
             const ::aidl::android::media::audio::common::AudioDeviceDescription& description);
 
     bool condWaitState(std::unique_lock<std::mutex>* lock) REQUIRES(mCvMutex);
