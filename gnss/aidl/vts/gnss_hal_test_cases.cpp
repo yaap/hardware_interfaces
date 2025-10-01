@@ -54,6 +54,7 @@ using android::hardware::gnss::GnssData;
 using android::hardware::gnss::GnssLocation;
 using android::hardware::gnss::GnssMeasurement;
 using android::hardware::gnss::GnssPowerStats;
+using android::hardware::gnss::GnssSignalType;
 using android::hardware::gnss::IAGnss;
 using android::hardware::gnss::IAGnssRil;
 using android::hardware::gnss::IGnss;
@@ -280,7 +281,8 @@ TEST_P(GnssHalTest, InjectBestLocation) {
 
 /*
  * TestGnssSvInfoFields:
- * Gets 1 location and a (non-empty) GnssSvInfo, and verifies basebandCN0DbHz is valid.
+ * Gets 1 location and a (non-empty) GnssSvInfo, and verifies basebandCN0DbHz and signalType are
+ * valid.
  */
 TEST_P(GnssHalTest, TestGnssSvInfoFields) {
     if (aidl_gnss_hal_->getInterfaceVersion() <= 1) {
@@ -310,7 +312,7 @@ TEST_P(GnssHalTest, TestGnssSvInfoFields) {
     } while (!sv_info_lists.empty() && last_sv_info_list.size() == 0);
 
     bool nonZeroCn0Found = false;
-    for (auto sv_info : last_sv_info_list) {
+    for (const auto& sv_info : last_sv_info_list) {
         EXPECT_TRUE(sv_info.basebandCN0DbHz >= 0.0 && sv_info.basebandCN0DbHz <= 65.0);
         if (sv_info.basebandCN0DbHz > 0.0) {
             nonZeroCn0Found = true;
@@ -319,6 +321,22 @@ TEST_P(GnssHalTest, TestGnssSvInfoFields) {
     // Assert at least one value is non-zero. Zero is ok in status as it's possibly
     // reporting a searched but not found satellite.
     EXPECT_TRUE(nonZeroCn0Found);
+    // Version 7 is for 26Q2 release
+    if (aidl_gnss_hal_->getInterfaceVersion() >= 7) {
+        for (const auto& sv_info : last_sv_info_list) {
+            EXPECT_TRUE(sv_info.elapsedRealtime.has_value());
+            ElapsedRealtime elapsedRealtime = sv_info.elapsedRealtime.value();
+            EXPECT_TRUE(elapsedRealtime.flags & ElapsedRealtime::HAS_TIMESTAMP_NS);
+            EXPECT_TRUE(elapsedRealtime.flags & ElapsedRealtime::HAS_TIME_UNCERTAINTY_NS);
+            EXPECT_GT(elapsedRealtime.timestampNs, 0);
+            EXPECT_GE(elapsedRealtime.timeUncertaintyNs, 0);
+            EXPECT_TRUE(sv_info.signalType.has_value());
+            GnssSignalType signalType = sv_info.signalType.value();
+            EXPECT_GT(signalType.carrierFrequencyHz, 0);
+            EXPECT_GT(signalType.constellation, GnssConstellationType::UNKNOWN);
+            EXPECT_GT(signalType.codeType.length(), 0);
+        }
+    }
     StopAndClearLocations();
 }
 
@@ -1277,8 +1295,16 @@ TEST_P(GnssHalTest, GnssDebugValuesSanityTest) {
               sv_info.svid);
         bool foundDebugData = false;
         for (auto satelliteData : data.satelliteDataArray) {
-            if (satelliteData.constellation == sv_info.constellation &&
-                satelliteData.svid == sv_info.svid) {
+            bool constellationMatches = false;
+            if (aidl_gnss_hal_->getInterfaceVersion() >= 7) {
+                constellationMatches =
+                        sv_info.signalType.has_value() &&
+                        satelliteData.constellation == sv_info.signalType.value().constellation;
+            } else {
+                constellationMatches = (satelliteData.constellation == sv_info.constellation);
+            }
+            bool svidMatches = (satelliteData.svid == sv_info.svid);
+            if (constellationMatches && svidMatches) {
                 foundDebugData = true;
                 ALOGD("Found GnssDebug data for this sv.");
                 EXPECT_TRUE(satelliteData.serverPredictionIsAvailable ||

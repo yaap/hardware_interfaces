@@ -16,6 +16,7 @@
 
 package android.hardware.gnss;
 
+import android.hardware.gnss.ElapsedRealtime;
 import android.hardware.gnss.GnssConstellationType;
 import android.hardware.gnss.GnssLocation;
 import android.hardware.gnss.GnssSignalType;
@@ -150,6 +151,8 @@ interface IGnssCallback {
 
         /**
          * Defines the constellation of the given SV.
+         *
+         * @deprecated use signalType
          */
         GnssConstellationType constellation;
 
@@ -197,11 +200,31 @@ interface IGnssCallback {
          * L5 must be filled.
          *
          * If the data is available, svFlag must contain HAS_CARRIER_FREQUENCY.
+         *
+         * @deprecated use signalType
          */
         long carrierFrequencyHz;
 
         /** A bit field of the GnssSvFlags. */
         int svFlag;
+
+        /**
+         * Defines the signal type of the given SV.
+         *
+         * If the data is available, svFlag must contain HAS_CARRIER_FREQUENCY.
+         */
+        @nullable GnssSignalType signalType;
+
+        /**
+         * Timing information of the GnssSvInfo with SystemClock.elapsedRealtimeNanos()
+         * clock.
+         *
+         * This clock information can be obtained from SystemClock.elapsedRealtimeNanos(), when the
+         * GNSS is attached straight to the AP/SOC. When it is attached to a separate module the
+         * timestamp needs to be estimated by syncing the notion of time via PTP or some other
+         * mechanism.
+         */
+        @nullable ElapsedRealtime elapsedRealtime;
     }
 
     /**
