@@ -378,6 +378,21 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownOptions) {
     EXPECT_FALSE(allocate(info, false)) << "allocate succeeded for unknown-to-HAL option";
 }
 
+TEST_P(GraphicsAllocatorAidlTests, RejectsZeroLayerCount) {
+    BufferDescriptorInfo info{
+            .name = {"CPU_8888"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 0,
+            .format = PixelFormat::RGBA_8888,
+            .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
+            .reservedSize = 0,
+    };
+
+    EXPECT_FALSE(isSupported(info)) << "isSupported() returned true for layerCount=0";
+    EXPECT_FALSE(allocate(info, false)) << "allocate succeeded for layerCount=0";
+}
+
 TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToCpu) {
     BufferDescriptorInfo info{
             .name = {"CPU_8888"},
