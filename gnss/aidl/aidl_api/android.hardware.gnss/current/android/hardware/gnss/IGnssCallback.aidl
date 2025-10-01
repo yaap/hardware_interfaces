@@ -81,21 +81,13 @@ interface IGnssCallback {
   @VintfStability
   parcelable GnssSvInfo {
     int svid;
-    /**
-     * @deprecated use signalType
-     */
     android.hardware.gnss.GnssConstellationType constellation;
     float cN0Dbhz;
     float basebandCN0DbHz;
     float elevationDegrees;
     float azimuthDegrees;
-    /**
-     * @deprecated use signalType
-     */
     long carrierFrequencyHz;
     int svFlag;
-    @nullable android.hardware.gnss.GnssSignalType signalType;
-    @nullable android.hardware.gnss.ElapsedRealtime elapsedRealtime;
   }
   @VintfStability
   parcelable GnssSystemInfo {
