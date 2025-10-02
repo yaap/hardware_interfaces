@@ -98,6 +98,16 @@ class LightsAidl : public testing::TestWithParam<std::string> {
     }
 };
 
+class LightsAidlV3 : public LightsAidl {
+  public:
+    virtual void SetUp() override {
+        LightsAidl::SetUp();
+        if (lights->getInterfaceVersion() < 3) {
+            GTEST_SKIP() << "Skipping a v3 test on an older HAL.";
+        }
+    }
+};
+
 /**
  * Ensure all reported lights actually work.
  */
@@ -177,7 +187,7 @@ TEST_P(LightsAidl, TestInvalidLightIdUnsupported) {
 /**
  * Ensure a valid light effect is handled if supported, or the hal returns EX_UNSUPPORTED_OPERATION.
  */
-TEST_P(LightsAidl, TestLightEffects) {
+TEST_P(LightsAidlV3, TestLightEffects) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -201,7 +211,7 @@ TEST_P(LightsAidl, TestLightEffects) {
 /**
  * Ensure infinite effects are supported.
  */
-TEST_P(LightsAidl, TestEffectsInfiniteIterations) {
+TEST_P(LightsAidlV3, TestEffectsInfiniteIterations) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -222,7 +232,7 @@ TEST_P(LightsAidl, TestEffectsInfiniteIterations) {
 /**
  * Ensure EX_UNSUPPORTED_OPERATION is returned setting an effect for an invalid light id.
  */
-TEST_P(LightsAidl, TestEffectsInvalidLightIdUnsupported) {
+TEST_P(LightsAidlV3, TestEffectsInvalidLightIdUnsupported) {
     int maxId = INT_MIN;
     for (const HwLight& light : supportedLights) {
         maxId = std::max(maxId, light.id);
@@ -245,7 +255,7 @@ TEST_P(LightsAidl, TestEffectsInvalidLightIdUnsupported) {
 /**
  * Ensure EX_ILLEGAL_ARGUMENT is returned when no frames are specified for the effect.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_emptyFrames) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_emptyFrames) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -266,7 +276,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_emptyFrames) {
 /**
  * Ensure EX_ILLEGAL_ARGUMENT is returned when no colors have been specified for the effect.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_emptyColors) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_emptyColors) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -287,7 +297,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_emptyColors) {
 /**
  * Ensure EX_ILLEGAL_ARGUMENT is returned when the number of frames and colors does not match.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_unevenArrays) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_unevenArrays) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -308,7 +318,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_unevenArrays) {
 /**
  * Ensure EX_ILLEGAL_ARGUMENT is returned when the number of iterations is negative.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_negativeIterations) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_negativeIterations) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -329,7 +339,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_negativeIterations) {
 /**
  * Ensure EX_ILLEGAL_ARGUMENT is returned when the framerate is set to 0.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_ZeroFrameRate) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_ZeroFrameRate) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -350,7 +360,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_ZeroFrameRate) {
 /**
  * Ensure EX_ILLEGAL_ARGUMENT is returned when the frame rate is negative.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_NegativeFrameRate) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_NegativeFrameRate) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -372,7 +382,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_NegativeFrameRate) {
  * Ensure EX_ILLEGAL_ARGUMENT is returned when the requested frame rate exceeds the max frame rate
  * specified by the light.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_ExcessiveFrameRate) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_ExcessiveFrameRate) {
     for (const HwLight& light : supportedLights) {
         HwLightEffect effect;
         effect.lightId = light.id;
@@ -393,7 +403,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_ExcessiveFrameRate) {
 /**
  * Ensure an error is returned when multiple effects are specified and one is invalid.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_OneInvalidEffectInList) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_OneInvalidEffectInList) {
     std::vector<HwLightEffect> effects;
 
     // Fill the vector only with lights that support effects.
@@ -431,7 +441,7 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_OneInvalidEffectInList) {
 /**
  * Ensure an error is returned when multiple effects are specified and one ligth doesn't support it.
  */
-TEST_P(LightsAidl, TestEffectsInvalidEffect_OneInvalidLightInList) {
+TEST_P(LightsAidlV3, TestEffectsInvalidEffect_OneInvalidLightInList) {
     std::vector<HwLightEffect> effects;
 
     // Fill the vector with effects for all lights.
@@ -459,6 +469,11 @@ TEST_P(LightsAidl, TestEffectsInvalidEffect_OneInvalidLightInList) {
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LightsAidl);
 INSTANTIATE_TEST_SUITE_P(Lights, LightsAidl,
+                         testing::ValuesIn(android::getAidlHalInstanceNames(ILights::descriptor)),
+                         android::PrintInstanceNameToString);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LightsAidlV3);
+INSTANTIATE_TEST_SUITE_P(Lights, LightsAidlV3,
                          testing::ValuesIn(android::getAidlHalInstanceNames(ILights::descriptor)),
                          android::PrintInstanceNameToString);
 
