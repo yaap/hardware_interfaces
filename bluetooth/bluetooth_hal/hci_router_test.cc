@@ -23,6 +23,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -43,6 +44,7 @@ namespace hci {
 namespace {
 
 using ::testing::_;
+using ::testing::AtLeast;
 using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::Mock;
@@ -124,7 +126,8 @@ class HciRouterTest : public Test {
   }
 
   void CleanupHciRouter() {
-    EXPECT_CALL(mock_transport_interface_, CleanupTransport()).Times(1);
+    EXPECT_CALL(mock_transport_interface_, CleanupTransport())
+        .Times(AtLeast(1));
     router_->Cleanup();
     ASSERT_EQ(new_state_, HalState::kShutdown);
     ASSERT_EQ(router_->GetHalState(), HalState::kShutdown);
@@ -776,6 +779,37 @@ TEST_F(HciRouterTest, HandleUpdateHalState) {
   // Without accelerated BT enabled, once HAL changes to `kBtChipReady`, it
   // will automatically update to the `kRunning`.
   router_->UpdateHalState(HalState::kBtChipReady);
+}
+
+TEST_F(HciRouterTest, HandleCleanupAndRxAtTheSameTime) {
+  std::mutex m;
+  std::condition_variable cv;
+
+  // override CleanupTransport(), force it wait for the next RX to be completed.
+  ON_CALL(mock_transport_interface_, CleanupTransport())
+      .WillByDefault(Invoke([&m, &cv]() {
+        std::unique_lock<std::mutex> lock(m);
+        auto status = cv.wait_for(lock, std::chrono::seconds(3));
+        EXPECT_EQ(status, std::cv_status::no_timeout);
+      }));
+
+  // Start cleaning up the router.
+  auto cleanup_thread = std::thread([this]() { router_->Cleanup(); });
+  cleanup_thread.detach();
+
+  // Send a RX packet to the router during cleanup. OnTransportPacketReady
+  // should return immediately to prevent deadlock.
+  HalPacket packet({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
+  transport_interface_callback_->OnTransportPacketReady(packet);
+
+  // Unlock cleanup thread after RX, also wait for the thread to complete the
+  // task.
+  cv.notify_one();
+  std::unique_lock<std::mutex> lock(m);
+
+  // Reset CleanupTransport() for TearDown.
+  ON_CALL(mock_transport_interface_, CleanupTransport())
+      .WillByDefault(Invoke([]() {}));
 }
 
 }  // namespace

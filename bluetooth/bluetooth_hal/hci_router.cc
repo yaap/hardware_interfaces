@@ -340,6 +340,7 @@ class HciRouterImpl : virtual public HciRouter,
   HalState hal_state_ = HalState::kShutdown;
   std::unique_ptr<TxHandler> tx_handler_;
   std::recursive_mutex mutex_;
+  std::atomic<bool> is_cleaning_up_;
 
   static const std::unordered_map<HalState, std::unordered_set<HalState>>
       kHalStateMachine;
@@ -470,6 +471,8 @@ void HciRouterImpl::Close() {
 }
 
 void HciRouterImpl::Cleanup() {
+  is_cleaning_up_ = true;
+
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   HAL_LOG(INFO) << "Shutting down the HciRouter";
   if (tx_handler_) {
@@ -486,6 +489,7 @@ void HciRouterImpl::Cleanup() {
   // Set HAL state back to the default state (kShutdown).
   UpdateHalState(HalState::kShutdown);
   hci_callback_ = nullptr;
+  is_cleaning_up_ = false;
 }
 
 bool HciRouterImpl::Send(const HalPacket& packet) {
@@ -656,6 +660,11 @@ void HciRouterImpl::OnTransportPacketReady(const HalPacket& packet) {
   HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
   packet.SetDestination(PacketDestination::kHost);
 
+  if (is_cleaning_up_.load()) {
+    HAL_LOG(WARNING) << "Ignore RX packet when cleaning up. "
+                     << packet.ToString();
+    return;
+  }
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   if (hal_state_ == HalState::kShutdown) {
     LOG(WARNING) << __func__ << ": Hal is not ready to receive packets.";
