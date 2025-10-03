@@ -1381,18 +1381,19 @@ class StreamWriterLogic : public StreamCommonLogic {
             return Status::ABORT;
         }
         if (actualSize > 0) {
-            if (command.getTag() == StreamDescriptor::Command::burst) {
-                if (!isCompressOffload()) {
-                    fillData(mBurstIteration);
-                    if (mBurstIteration < std::numeric_limits<int8_t>::max()) {
-                        mBurstIteration++;
-                    } else {
-                        mBurstIteration = 0;
-                    }
+            // It's the 'burst' command.
+            if (!isCompressOffload()) {
+                fillData(mBurstIteration);
+                if (mBurstIteration < std::numeric_limits<int8_t>::max()) {
+                    mBurstIteration++;
                 } else {
-                    fillData(0);
-                    size_t size = std::min(static_cast<size_t>(actualSize),
-                                           mCompressedMediaSize - mCompressedMediaPos);
+                    mBurstIteration = 0;
+                }
+            } else {
+                fillData(0);
+                size_t size = std::min(static_cast<size_t>(actualSize),
+                                       mCompressedMediaSize - mCompressedMediaPos);
+                if (size > 0) {
                     loadData(mCompressedMedia, &size);
                     if (!mCompressedMedia.good()) {
                         LOG(ERROR) << __func__ << ": read failed";
@@ -1401,11 +1402,12 @@ class StreamWriterLogic : public StreamCommonLogic {
                     LOG(DEBUG) << __func__ << ": read from file " << size << " bytes";
                     mCompressedMediaPos += size;
                     if (mCompressedMediaPos >= mCompressedMediaSize) {
-                        mCompressedMedia.seekg(0, mCompressedMedia.beg);
-                        mCompressedMediaPos = 0;
-                        LOG(DEBUG) << __func__ << ": rewound to the beginning of the file";
+                        mCompressedMediaPos = mCompressedMediaSize;
                     }
+                } else {
+                    LOG(DEBUG) << __func__ << ": ran out of compressed data in the media file";
                 }
+                command.get<StreamDescriptor::Command::Tag::burst>() = size;
             }
             if (isMmapped() ? !writeDataToMmap() : !writeDataToMQ()) {
                 return Status::ABORT;
@@ -1415,6 +1417,13 @@ class StreamWriterLogic : public StreamCommonLogic {
                 command.get<StreamDescriptor::Command::Tag::burst>() = 0;
             }
             registerBurstNow();
+        }
+        if (isCompressOffload() && mCompressedMediaPos >= mCompressedMediaSize &&
+            (command.getTag() == StreamDescriptor::Command::Tag::flush ||
+             command.getTag() == StreamDescriptor::Command::Tag::drain)) {
+            mCompressedMedia.seekg(0, mCompressedMedia.beg);
+            mCompressedMediaPos = 0;
+            LOG(DEBUG) << __func__ << ": rewound to the beginning of the media file";
         }
         LOG(DEBUG) << "Writing command: " << command.toString();
         if (!getCommandMQ()->writeBlocking(&command, 1)) {
