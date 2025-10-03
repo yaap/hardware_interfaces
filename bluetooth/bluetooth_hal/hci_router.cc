@@ -184,8 +184,9 @@ class TxHandler {
 #ifndef UNIT_TEST
     // TODO: b/446698573 - A workaround for loopback mode test. Should be
     // replaced with a router client that handles loopback mode.
-    if (packet.GetCommandOpcode() ==
-        static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
+    if (!hal_flags::handle_recursive_packets_from_router_clients() &&
+        packet.GetCommandOpcode() ==
+            static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
       if (packet.At(kLoopbackModeEnableOffset) == kLoopbackModeEnableByte) {
         HAL_LOG(WARNING) << "Loopback mode is enabled, disabling HCI flow "
                             "control in the HAL.";

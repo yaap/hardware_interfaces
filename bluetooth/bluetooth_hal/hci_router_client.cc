@@ -103,6 +103,15 @@ bool HciRouterClient::SendCommand(const HalPacket& packet) {
       packet, std::bind_front(&HciRouterClient::OnCommandCallback, this));
 }
 
+bool HciRouterClient::SendCommandNoAck(const HalPacket& packet) {
+  if (packet.GetType() != HciPacketType::kCommand) {
+    return false;
+  }
+  packet.SetSource(PacketSource::kClient);
+  packet.SetDestination(PacketDestination::kController);
+  return HciRouter::GetRouter().SendCommandNoAck(packet);
+}
+
 bool HciRouterClient::SendData(const HalPacket& packet) {
   if (packet.GetType() == HciPacketType::kCommand) {
     return false;
