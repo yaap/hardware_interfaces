@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,30 +32,13 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.wifi;
-@VintfStability
-parcelable NanCapabilities {
-  int maxConcurrentClusters;
-  int maxPublishes;
-  int maxSubscribes;
-  int maxServiceNameLen;
-  int maxMatchFilterLen;
-  int maxTotalMatchFilterLen;
-  int maxServiceSpecificInfoLen;
-  int maxExtendedServiceSpecificInfoLen;
-  int maxNdiInterfaces;
-  int maxNdpSessions;
-  int maxAppInfoLen;
-  int maxQueuedTransmitFollowupMsgs;
-  int maxSubscribeInterfaceAddresses;
-  int supportedCipherSuites;
-  boolean instantCommunicationModeSupportFlag;
-  boolean supports6g;
-  boolean supportsHe;
-  boolean supportsPairing;
-  boolean supportsSetClusterId;
-  boolean supportsSuspension;
-  boolean supportsPeriodicRanging;
-  android.hardware.wifi.RttBw maxSupportedBandwidth;
-  int maxNumRxChainsSupported;
-  int supportedPeriodicRangingIntervals;
+@Backing(type="int") @VintfStability
+enum NanPeriodicRangingInterval {
+  INTERVAL_128TU = (1 << 0) /* 1 */,
+  INTERVAL_256TU = (1 << 1) /* 2 */,
+  INTERVAL_512TU = (1 << 2) /* 4 */,
+  INTERVAL_1024TU = (1 << 3) /* 8 */,
+  INTERVAL_2048TU = (1 << 4) /* 16 */,
+  INTERVAL_4096TU = (1 << 5) /* 32 */,
+  INTERVAL_8192TU = (1 << 6) /* 64 */,
 }

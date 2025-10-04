@@ -128,4 +128,9 @@ parcelable NanCapabilities {
      * Maximum number of supported receive chains.
      */
     int maxNumRxChainsSupported;
+    /**
+     * Bitmap of |NanPeriodicRangingInterval| values indicating the set of supported periodic
+     * ranging intervals. Only valid if |supportsPeriodicRanging| is true.
+     */
+    int supportedPeriodicRangingIntervals;
 }
