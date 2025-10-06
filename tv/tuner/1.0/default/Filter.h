@@ -19,7 +19,6 @@
 
 #include <android/hardware/tv/tuner/1.0/IFilter.h>
 #include <fmq/MessageQueue.h>
-#include <ion/ion.h>
 #include <math.h>
 #include <map>
 #include <mutex>

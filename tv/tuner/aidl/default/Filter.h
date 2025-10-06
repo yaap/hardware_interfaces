@@ -23,7 +23,6 @@
 
 #include <fmq/AidlMessageQueue.h>
 #include <inttypes.h>
-#include <ion/ion.h>
 #include <math.h>
 #include <sys/stat.h>
 #include <atomic>
