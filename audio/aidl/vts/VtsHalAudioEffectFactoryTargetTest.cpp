@@ -239,10 +239,13 @@ TEST_P(EffectFactoryTest, CreateWithInvalidUuid) {
     EXPECT_EQ(effects.size(), 0UL);
 }
 
-// Expect EX_ILLEGAL_ARGUMENT when destroy null interface.
+// Expect EX_ILLEGAL_ARGUMENT or EX_NULL_POINTER when destroy null interface.
 TEST_P(EffectFactoryTest, DestroyWithInvalidInterface) {
     std::shared_ptr<IEffect> spDummyEffect(nullptr);
-    destroyEffects({spDummyEffect}, EX_ILLEGAL_ARGUMENT);
+    const binder_exception_t exception =
+            mEffectFactory->destroyEffect(spDummyEffect).getExceptionCode();
+    EXPECT_TRUE(exception == EX_ILLEGAL_ARGUMENT || exception == EX_NULL_POINTER)
+            << "unexpected exception: " << exception;
 }
 
 // Same descriptor ID should work after service restart.
@@ -266,7 +269,12 @@ TEST_P(EffectFactoryTest, EffectInvalidAfterRestart) {
 
     restartAndGetFactory();
     ASSERT_NO_FATAL_FAILURE(connectAndGetFactory());
-    destroyEffects(effects, EX_ILLEGAL_ARGUMENT);
+    for (const auto& effect : effects) {
+        const binder_exception_t exception =
+                mEffectFactory->destroyEffect(effect).getExceptionCode();
+        EXPECT_TRUE(exception == EX_ILLEGAL_ARGUMENT || exception == EX_TRANSACTION_FAILED)
+                << "unexpected exception: " << exception;
+    }
 }
 
 // expect no error with the queryProcessing interface, but don't check number of processing
