@@ -31,12 +31,20 @@ namespace offload {
 struct DspSimulatorState {
     static constexpr int64_t kSkipBufferNotifyFrames = -1;
 
+    void eraseClips() REQUIRES(lock) { clipFramesLeft = nextClipFrames = 0; }
+    bool hasClips() const REQUIRES(lock) { return clipFramesLeft > 0 || nextClipFrames > 0; }
+    void switchToNextClip() REQUIRES(lock) {
+        clipFramesLeft = nextClipFrames;
+        nextClipFrames = 0;
+    }
+
     const std::string formatEncoding;
     const int sampleRate;
     const int64_t earlyNotifyFrames;
     DriverCallbackInterface* callback = nullptr;  // set before starting DSP worker
     std::mutex lock;
-    std::vector<int64_t> clipFramesLeft GUARDED_BY(lock);
+    int64_t clipFramesLeft GUARDED_BY(lock) = 0;
+    int64_t nextClipFrames GUARDED_BY(lock) = 0;
     int64_t bufferFramesLeft GUARDED_BY(lock) = 0;
     int64_t bufferNotifyFrames GUARDED_BY(lock) = kSkipBufferNotifyFrames;
 };
