@@ -21,7 +21,6 @@
 #include <android/hardware/tv/tuner/1.1/IFilterCallback.h>
 #include <fmq/MessageQueue.h>
 #include <inttypes.h>
-#include <ion/ion.h>
 #include <math.h>
 #include <sys/stat.h>
 #include <map>
