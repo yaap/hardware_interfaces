@@ -6208,7 +6208,7 @@ TEST_P(EncryptionOperationsTest, AesEcbPkcs7CiphertextTooShort) {
 
     string message = "a";
     string ciphertext = EncryptMessage(message, params);
-    EXPECT_EQ(16U, ciphertext.size());
+    ASSERT_EQ(16U, ciphertext.size());
     EXPECT_NE(ciphertext, message);
 
     // Shorten the ciphertext.
