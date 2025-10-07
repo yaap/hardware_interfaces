@@ -62,6 +62,8 @@ BluetoothFinderHandler& BluetoothFinderHandler::GetHandler() {
   return handler;
 }
 
+bool BluetoothFinderHandler::IsEnabled() { return is_pof_enabled_; }
+
 bool BluetoothFinderHandler::SendEids(const std::vector<Eid>& keys) {
   std::scoped_lock<std::mutex> lock(finder_mtx_);
 
