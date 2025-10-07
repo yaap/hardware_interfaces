@@ -144,6 +144,7 @@
         <interface>
             <name>IBluetoothSocket</name>
             <instance>default</instance>
+            <instance>lpp</instance>
         </interface>
     </hal>
     <hal format="aidl">

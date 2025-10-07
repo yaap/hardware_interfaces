@@ -3,10 +3,10 @@ package {
 }
 
 cc_binary {
-    name: "android.hardware.bluetooth.socket-service.default",
+    name: "android.hardware.bluetooth.socket-service.lpp",
     relative_install_path: "hw",
-    init_rc: ["bluetooth-socket-service-default.rc"],
-    vintf_fragments: [":manifest_android.hardware.bluetooth.socket-service.default.xml"],
+    init_rc: ["bluetooth-socket-service-lpp.rc"],
+    vintf_fragments: [":manifest_android.hardware.bluetooth.socket-service.lpp.xml"],
     vendor: true,
     srcs: [
         "service.cpp",
@@ -25,6 +25,6 @@ cc_binary {
 }
 
 filegroup {
-    name: "manifest_android.hardware.bluetooth.socket-service.default.xml",
-    srcs: ["bluetooth-socket-service-default.xml"],
+    name: "manifest_android.hardware.bluetooth.socket-service.lpp.xml",
+    srcs: ["bluetooth-socket-service-lpp.xml"],
 }
