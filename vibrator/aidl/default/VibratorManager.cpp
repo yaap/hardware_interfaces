@@ -360,9 +360,9 @@ void HapticGeneratorSessionState::handleStartEffect(HapticGeneratorReply* reply)
     mIsEffectStarted = true;
     mIsEffectComplete = false;
     mRemainingPcmBytes = 0;
-    // Clear any leftover data from a previous effect by draining the queue
-    int8_t dummy;
-    while (pcmQueue->read(&dummy, 1)) {
+    // Clear any leftover data from a previous effect by draining the effects input queue
+    VibrationEffect effect;
+    while (effectQueue->read(&effect)) {
         // Discard data
     }
     reply->status = 0;
@@ -391,16 +391,14 @@ void HapticGeneratorSessionState::handleBurstBytes(const HapticGeneratorCommand&
         if (!pcmQueue->write(pcmBuffer.data(), bytesToSend)) {
             LOG(ERROR) << "HapticGenerator: Failed to write to PCM queue.";
             reply->status = STATUS_INVALID_OPERATION;
-            bytesToSend = 0;
+            return;
         }
     }
 
-    // If we are sending 0 bytes, it's only a successful state (STATUS_OK) if the
-    // effect was marked as completed. Otherwise, we need more data.
-    if (bytesToSend == 0 && !mIsEffectComplete) {
-        reply->status = STATUS_NOT_ENOUGH_DATA;
-    } else {
-        reply->status = STATUS_OK;
+    if (bytesToSend == 0) {
+        // If we are sending 0 bytes, it's only a successful state (STATUS_OK) if the
+        // effect was marked as completed. Otherwise, we need more data.
+        reply->status = mIsEffectComplete ? STATUS_OK : STATUS_NOT_ENOUGH_DATA;
     }
 
     mRemainingPcmBytes -= bytesToSend;
@@ -428,9 +426,9 @@ void HapticGeneratorSessionState::handleCancelEffect(HapticGeneratorReply* reply
         mIsEffectComplete = false;
         mRemainingPcmBytes = 0;
         reply->status = 0;
-        // Clear any leftover data from a previous effect by draining the queue
-        int8_t dummy;
-        while (pcmQueue->read(&dummy, 1)) {
+        // Clear any leftover data from a previous effect by draining the effect input queue
+        VibrationEffect effect;
+        while (effectQueue->read(&effect)) {
             // Discard data
         }
     }

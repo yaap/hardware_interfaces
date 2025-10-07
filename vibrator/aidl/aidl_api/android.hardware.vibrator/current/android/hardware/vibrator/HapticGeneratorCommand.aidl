@@ -34,7 +34,7 @@
 package android.hardware.vibrator;
 @FixedSize @VintfStability
 union HapticGeneratorCommand {
-  long[16] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  byte[32] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   android.hardware.vibrator.HapticGeneratorCommand.Effect effect = android.hardware.vibrator.HapticGeneratorCommand.Effect.START;
   android.hardware.vibrator.HapticGeneratorCommand.Session session = android.hardware.vibrator.HapticGeneratorCommand.Session.CLOSE;
   int burstBytes;

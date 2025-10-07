@@ -21,7 +21,7 @@ cc_library_static {
         "android.hardware.vibrator-V4-ndk",
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
-        "android.media.audio.common.types-V1-ndk",
+        "android.media.audio.common.types-V5-ndk",
     ],
     export_include_dirs: ["include"],
     srcs: [
@@ -62,7 +62,7 @@ cc_binary {
         "android.hardware.vibrator-V4-ndk",
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
-        "android.media.audio.common.types-V1-ndk",
+        "android.media.audio.common.types-V5-ndk",
     ],
     static_libs: [
         "libvibratorexampleimpl",
@@ -82,7 +82,7 @@ cc_fuzz {
         "android.hardware.vibrator-V4-ndk",
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
-        "android.media.audio.common.types-V1-ndk",
+        "android.media.audio.common.types-V5-ndk",
     ],
     static_libs: [
         "libvibratorexampleimpl",

@@ -830,7 +830,9 @@ TEST_P(VibratorManagerAidl, HapticGeneratorEnqueueAllVibrationEffectTypes) {
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     VibrationEffect predefinedEffect;
     predefinedEffect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{
@@ -902,11 +904,14 @@ TEST_P(VibratorManagerAidl, HapticGeneratorBurstWithoutEffectShouldNotFail) {
     HapticGeneratorSession hgSession;
     HapticGeneratorUtils::startHapticGeneratorSession(manager, vibratorIds[0], nullptr, &hgSession);
     auto commandQueue = std::make_unique<CommandQueue>(hgSession.queues[0].command);
+    auto effectQueue = std::make_unique<EffectQueue>(hgSession.queues[0].effect);
     auto replyQueue = std::make_unique<ReplyQueue>(hgSession.queues[0].reply);
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     // Calling burstBytes command multiple times without an effect in queue should not fail.
     // The reply status should be STATUS_NOT_ENOUGH_DATA.
@@ -931,7 +936,9 @@ TEST_P(VibratorManagerAidl, HapticGeneratorStartEffectAndBurstFullEffect) {
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     VibrationEffect effect;
     effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
@@ -984,6 +991,9 @@ TEST_P(VibratorManagerAidl, HapticGeneratorStreamLongEffect) {
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     // Fill the effect queue completely with the first half of the effect
     VibrationEffect effect;
@@ -1038,7 +1048,9 @@ TEST_P(VibratorManagerAidl, HapticGeneratorRestartEffectMidConversion) {
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     VibrationEffect effect;
     effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
@@ -1051,7 +1063,12 @@ TEST_P(VibratorManagerAidl, HapticGeneratorRestartEffectMidConversion) {
 
     // Restart with a new effect
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // The HAL should no alter the PCM queue on the START command.
+    // Verify that stale data from the previous conversion still exists, then
+    // clear the queue as the client is responsible for doing.
+    EXPECT_NE(pcmQueue->availableToRead(), 0);
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
 
@@ -1077,8 +1094,9 @@ TEST_P(VibratorManagerAidl, HapticGeneratorCancelEffectMidConversion) {
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     VibrationEffect effect;
     effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
@@ -1090,7 +1108,7 @@ TEST_P(VibratorManagerAidl, HapticGeneratorCancelEffectMidConversion) {
                                               &status);
 
     HapticGeneratorUtils::sendCancelCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
 
     HapticGeneratorUtils::sendBurstCommandExpectStatusReply(commandQueue, replyQueue, 1024,
                                                             STATUS_INVALID_OPERATION);
@@ -1117,7 +1135,9 @@ TEST_P(VibratorManagerAidl, HapticGeneratorSessionCleared) {
     ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
-    EXPECT_EQ(pcmQueue->availableToRead(), 0);
+    EXPECT_EQ(effectQueue->availableToRead(), 0);
+    // Clear any stale data from the output PCM queue
+    HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     EXPECT_OK(manager->clearSessions());
     // Session callback triggered.

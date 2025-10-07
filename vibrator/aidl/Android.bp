@@ -19,7 +19,7 @@ aidl_interface {
     imports: [
         "android.hardware.common-V2",
         "android.hardware.common.fmq-V1",
-        "android.media.audio.common.types-V1",
+        "android.media.audio.common.types-V5",
     ],
     headers: [
         "PersistableBundle_aidl",

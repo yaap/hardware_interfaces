@@ -194,6 +194,13 @@ class HapticGeneratorUtils {
         return totalBytesReceived;
     }
 
+    static void clearPcmQueue(const std::unique_ptr<PcmQueue>& pcmQueue) {
+        std::vector<int8_t> pcmBuffer(pcmQueue->getQuantumSize());
+        while (pcmQueue->read(pcmBuffer.data(), pcmBuffer.size())) {
+            // Discard data
+        }
+    }
+
   private:
     static void sendBurstCommand(const std::unique_ptr<CommandQueue>& commandQueue,
                                  size_t burstSize) {

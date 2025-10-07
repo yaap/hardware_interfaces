@@ -26,9 +26,9 @@ import android.hardware.vibrator.VibrationEffect;
  * A collection of message queues for haptic PCM data generation.
  *
  * The following sequence of operations is used for generating haptic PCM data:
- *  1. The framework clears the 'effect' queue, if needed, writes a 'startEffect'
- *     command to the 'command' queue and waits for the reply.
- *  2. The HAL clears the 'pcm' queue, if needed, and prepares to generate PCM
+ *  1. The framework writes a 'startEffect' command to the 'command' queue and waits for the reply.
+ *     If needed, the framework will also clear the 'pcm' queue.
+ *  2. The HAL clears the 'effect' queue, if needed, and prepares to generate PCM
  *     data for a new effect.
  *  3. The HAL writes a reply into the 'reply' queue informing it's ready to
  *     start generation.
