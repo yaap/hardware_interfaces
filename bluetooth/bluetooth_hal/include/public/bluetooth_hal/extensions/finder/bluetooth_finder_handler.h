@@ -50,6 +50,7 @@ class BluetoothFinderHandler : public ::bluetooth_hal::hci::HciRouterClient {
   bool StartPoweredOffFinderMode();
 
   static BluetoothFinderHandler& GetHandler();
+  static bool IsEnabled();
 
  protected:
   BluetoothFinderHandler() = default;
@@ -78,7 +79,7 @@ class BluetoothFinderHandler : public ::bluetooth_hal::hci::HciRouterClient {
   bool SendCommandAndWait(const ::bluetooth_hal::hci::HalPacket& packet);
 
   std::vector<::aidl::android::hardware::bluetooth::finder::Eid> keys_;
-  bool is_pof_enabled_{false};
+  static inline bool is_pof_enabled_{false};
   std::atomic<State> state_{State::kIdle};
   size_t current_key_index_{0};
 
