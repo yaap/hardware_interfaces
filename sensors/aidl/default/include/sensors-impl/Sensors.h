@@ -56,6 +56,7 @@ class Sensors : public BnSensors, public ISensorsEventCallback {
         AddSensor<ProximitySensor>();
         AddSensor<RelativeHumiditySensor>();
         AddSensor<HingeAngleSensor>();
+        AddSensor<LowLatencyOffBodyDetectSensor>();
     }
 
     virtual ~Sensors() {
