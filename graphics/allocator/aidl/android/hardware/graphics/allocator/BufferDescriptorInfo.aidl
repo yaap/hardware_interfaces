@@ -50,6 +50,7 @@ parcelable BufferDescriptorInfo {
 
     /**
      * The number of image layers that must be in the allocated buffer.
+     * Must be >= 1, otherwise the allocation should fail with BAD_DESCRIPTOR.
      */
     int layerCount;
 
