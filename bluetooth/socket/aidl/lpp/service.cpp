@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "aidl.android.hardware.bluetooth.socket.service.default"
+#define LOG_TAG "aidl.android.hardware.bluetooth.socket.service.lpp"
 
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
@@ -33,8 +33,7 @@ int main(int /* argc */, char** /* argv */) {
 
   std::shared_ptr<BluetoothSocket> service =
       ndk::SharedRefBase::make<BluetoothSocket>();
-  std::string instance =
-      std::string() + BluetoothSocket::descriptor + "/default";
+  std::string instance = std::string() + BluetoothSocket::descriptor + "/lpp";
   auto result =
       AServiceManager_addService(service->asBinder().get(), instance.c_str());
   if (result == STATUS_OK) {
