@@ -18,7 +18,7 @@
 
 #include <vector>
 
-#include <android-base/logging.h>
+#include <Log.h>
 
 #include "Utils.h"
 #include "core-impl/ModuleAlsa.h"

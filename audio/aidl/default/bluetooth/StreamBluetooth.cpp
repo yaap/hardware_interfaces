@@ -18,8 +18,8 @@
 #include <algorithm>
 
 #define LOG_TAG "AHAL_StreamBluetooth"
+#include <Log.h>
 #include <Utils.h>
-#include <android-base/logging.h>
 #include <audio_utils/clock.h>
 
 #include "core-impl/StreamBluetooth.h"

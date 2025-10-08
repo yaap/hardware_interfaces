@@ -18,7 +18,7 @@
 #include <cstdlib>
 
 #define LOG_TAG "AHAL_MmapStream"
-#include <android-base/logging.h>
+#include <Log.h>
 #include <audio_utils/clock.h>
 #include <error/Result.h>
 #include <utils/SystemClock.h>

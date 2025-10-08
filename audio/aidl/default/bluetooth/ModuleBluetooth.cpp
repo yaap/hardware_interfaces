@@ -16,7 +16,7 @@
 
 #define LOG_TAG "AHAL_ModuleBluetooth"
 
-#include <android-base/logging.h>
+#include <Log.h>
 
 #include "BluetoothAudioSession.h"
 #include "core-impl/ModuleBluetooth.h"

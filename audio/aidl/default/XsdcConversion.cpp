@@ -19,7 +19,7 @@
 #include <unordered_set>
 
 #define LOG_TAG "AHAL_Config"
-#include <android-base/logging.h>
+#include <Log.h>
 #include <android-base/strings.h>
 #include <android/binder_enums.h>
 

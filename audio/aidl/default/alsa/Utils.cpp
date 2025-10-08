@@ -18,10 +18,10 @@
 #include <set>
 
 #define LOG_TAG "AHAL_AlsaUtils"
+#include <Log.h>
 #include <Utils.h>
 #include <aidl/android/media/audio/common/AudioFormatType.h>
 #include <aidl/android/media/audio/common/PcmType.h>
-#include <android-base/logging.h>
 #include <audio_utils/primitives.h>
 #include <cutils/compiler.h>
 

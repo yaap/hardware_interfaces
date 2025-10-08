@@ -18,7 +18,7 @@
 
 #include <cstdio>
 
-#include <android-base/logging.h>
+#include <Log.h>
 #include <android-base/parseint.h>
 #include <android-base/properties.h>
 #include <audio_utils/clock.h>

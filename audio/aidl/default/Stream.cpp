@@ -18,8 +18,8 @@
 
 #define ATRACE_TAG ATRACE_TAG_AUDIO
 #define LOG_TAG "AHAL_Stream"
+#include <Log.h>
 #include <Utils.h>
-#include <android-base/logging.h>
 #include <android/binder_ibinder_platform.h>
 #include <cutils/properties.h>
 #include <utils/SystemClock.h>

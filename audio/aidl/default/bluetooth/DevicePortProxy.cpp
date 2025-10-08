@@ -16,7 +16,7 @@
 
 #define LOG_TAG "AHAL_BluetoothAudioPort"
 
-#include <android-base/logging.h>
+#include <Log.h>
 #include <android-base/stringprintf.h>
 #include <audio_utils/primitives.h>
 #include <log/log.h>

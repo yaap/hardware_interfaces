@@ -18,9 +18,9 @@
 #include <set>
 
 #define LOG_TAG "AHAL_Module"
+#include <Log.h>
 #include <aidl/android/media/audio/common/AudioInputFlags.h>
 #include <aidl/android/media/audio/common/AudioOutputFlags.h>
-#include <android-base/logging.h>
 #include <android/binder_ibinder_platform.h>
 #include <error/expected_utils.h>
 

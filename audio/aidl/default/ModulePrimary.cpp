@@ -17,8 +17,8 @@
 #include <vector>
 
 #define LOG_TAG "AHAL_ModulePrimary"
+#include <Log.h>
 #include <Utils.h>
-#include <android-base/logging.h>
 
 #include "core-impl/ModulePrimary.h"
 #include "core-impl/StreamMmapStub.h"
