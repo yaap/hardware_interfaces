@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#ifdef USE_CCC_V1
+
 #define LOG_TAG "bluetooth_hal.extensions.ccc"
 
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc.h"
@@ -27,10 +29,13 @@
 #include "aidl/hardware/google/bluetooth/ccc/IBluetoothCccCallback.h"
 #include "android-base/logging.h"
 #include "android/binder_auto_utils.h"
+#include "android/binder_interface_utils.h"
+#include "android/binder_manager.h"
 #include "android/binder_status.h"
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc_handler.h"
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc_util.h"
+#include "bluetooth_hal/hal_extension_points.h"
 
 namespace bluetooth_hal {
 namespace extensions {
@@ -38,11 +43,36 @@ namespace ccc {
 namespace {
 
 using ::aidl::hardware::google::bluetooth::ccc::Direction;
+using ::aidl::hardware::google::bluetooth::ccc::IBluetoothCcc;
 using ::aidl::hardware::google::bluetooth::ccc::IBluetoothCccCallback;
 using ::aidl::hardware::google::bluetooth::ccc::LmpEventId;
 using ::aidl::hardware::google::bluetooth::ccc::Timestamp;
+using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
 using ::bluetooth_hal::hci::BluetoothAddress;
+using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
+using ::ndk::SharedRefBase;
+
+void CccInitializer() {
+  auto register_service = [](const std::shared_ptr<ICInterface>& service,
+                             const char* name) {
+    std::string instance = std::string() + name + "/default";
+    binder_status_t status =
+        AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (status != STATUS_OK) {
+      LOG(ERROR) << "Could not register " << name << " as a service!";
+    }
+  };
+
+  register_service(SharedRefBase::make<BluetoothCcc>(),
+                   BluetoothCcc::descriptor);
+}
+
+struct CccRegistrar {
+  CccRegistrar() { BluetoothHalRegisterExtension(CccInitializer); }
+};
+
+CccRegistrar g_ccc_registrar;
 
 using ScopedDeathRecipient =
     std::unique_ptr<AIBinder_DeathRecipient,
@@ -181,3 +211,5 @@ ScopedAStatus BluetoothCcc::unregisterLmpEvents(
 }  // namespace ccc
 }  // namespace extensions
 }  // namespace bluetooth_hal
+
+#endif

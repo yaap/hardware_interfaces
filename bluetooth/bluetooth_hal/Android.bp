@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// ################################################################################
+// # Defaults
+// ################################################################################
 cc_defaults {
     name: "libbluetooth_hal_defaults",
     srcs: [
@@ -79,6 +82,9 @@ cc_defaults {
     ],
 }
 
+// ################################################################################
+// # FileGroups
+// ################################################################################
 filegroup {
     name: "hal_common_srcs",
     srcs: [
@@ -213,6 +219,10 @@ filegroup {
     ],
 }
 
+// ################################################################################
+// # Libraries
+// ################################################################################
+
 cc_library_static {
     name: "libbluetooth_hal",
     vendor_available: true,
@@ -220,6 +230,8 @@ cc_library_static {
     export_include_dirs: ["include/public"],
 }
 
+// These extension libraries should be included in whole_static_libs of the final binary
+// to ensure the constructor of the registrar is called.
 cc_library_static {
     name: "libbluetooth_hal_finder",
     vendor_available: true,
@@ -241,9 +253,10 @@ cc_library_static {
     srcs: [
         "extensions/sar/bluetooth_sar.cc",
     ],
-    static_libs: [
+    shared_libs: [
         "//hardware/google/interfaces:hardware.google.bluetooth.sar-V1-ndk",
     ],
+    cflags: ["-DUSE_SAR_V1"],
     export_include_dirs: ["include/public"],
 }
 
@@ -254,9 +267,10 @@ cc_library_static {
     srcs: [
         "extensions/ext/bluetooth_ext.cc",
     ],
-    static_libs: [
+    shared_libs: [
         "//hardware/google/interfaces:hardware.google.bluetooth.ext-V1-ndk",
     ],
+    cflags: ["-DUSE_EXT_V1"],
     export_include_dirs: ["include/public"],
 }
 
@@ -267,9 +281,10 @@ cc_library_static {
     srcs: [
         "extensions/ccc/bluetooth_ccc.cc",
     ],
-    static_libs: [
+    shared_libs: [
         "//hardware/google/interfaces:hardware.google.bluetooth.ccc-V1-ndk",
     ],
+    cflags: ["-DUSE_CCC_V1"],
     export_include_dirs: ["include/public"],
 }
 
@@ -280,9 +295,10 @@ cc_library_static {
     srcs: [
         "extensions/channel_avoidance/bluetooth_channel_avoidance.cc",
     ],
-    static_libs: [
+    shared_libs: [
         "//hardware/google/interfaces:hardware.google.bluetooth.bt_channel_avoidance-V1-ndk",
     ],
+    cflags: ["-DUSE_CHANNEL_AVOIDANCE_V1"],
     export_include_dirs: ["include/public"],
 }
 
@@ -324,6 +340,9 @@ cc_library_headers {
     proprietary: true,
 }
 
+// ################################################################################
+// # Tests
+// ################################################################################
 cc_defaults {
     name: "bluetooth_hal_test_defaults",
     team: "trendy_team_bluetooth",
