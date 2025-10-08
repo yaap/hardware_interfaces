@@ -177,16 +177,35 @@ class TxHandler {
   bool SendOrQueueCommand(const HalPacket& packet,
                           const std::shared_ptr<HalPacketCallback> callback) {
     bool is_queue_busy = !hci_cmd_queue_.empty();
-    hci_cmd_queue_.emplace(QueuedHciCommand(packet, callback));
 
-    if (is_queue_busy) {
-      // Queue the current command and wait for the previous command to be
-      // completed.
-      HAL_LOG(INFO) << "command queued: " << packet.ToString();
-      return true;
+#ifndef UNIT_TEST
+    // TODO: b/446698573 - A workaround for loopback mode test. Should be
+    // replaced with a router client that handles loopback mode.
+    if (packet.GetCommandOpcode() ==
+        static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
+      if (packet.At(kLoopbackModeEnableOffset) == kLoopbackModeEnableByte) {
+        HAL_LOG(WARNING) << "Loopback mode is enabled, disabling HCI flow "
+                            "control in the HAL.";
+        loopback_mode_enabled_ = true;
+      } else {
+        HAL_LOG(WARNING) << "Loopback mode is disabled";
+        loopback_mode_enabled_ = false;
+      }
     }
+#endif
 
-    SetBusy(true);
+    if (!loopback_mode_enabled_) {
+      hci_cmd_queue_.emplace(QueuedHciCommand(packet, callback));
+
+      if (is_queue_busy) {
+        // Queue the current command and wait for the previous command to be
+        // completed.
+        HAL_LOG(INFO) << "command queued: " << packet.ToString();
+        return true;
+      }
+
+      SetBusy(true);
+    }
 
     SendToTransport(packet);
     return true;
@@ -277,11 +296,17 @@ class TxHandler {
     }
   }
 
+  // TODO: b/446698573 - A workaround for loopback mode test. Should be
+  // replaced with a router client that handles loopback mode.
+  static constexpr uint8_t kLoopbackModeEnableOffset = 4;
+  static constexpr uint8_t kLoopbackModeEnableByte = 0x01;
+
   std::mutex task_wakelock_mutex_;
   int wake_lock_votes_ = 0;
   std::queue<QueuedHciCommand> hci_cmd_queue_;
   std::unique_ptr<util::Worker<TxTask>> tx_thread_;
   std::atomic<bool> is_busy_;
+  bool loopback_mode_enabled_ = false;
 };
 
 class HciRouterImpl : virtual public HciRouter,
@@ -315,6 +340,7 @@ class HciRouterImpl : virtual public HciRouter,
   HalState hal_state_ = HalState::kShutdown;
   std::unique_ptr<TxHandler> tx_handler_;
   std::recursive_mutex mutex_;
+  std::atomic<bool> is_cleaning_up_;
 
   static const std::unordered_map<HalState, std::unordered_set<HalState>>
       kHalStateMachine;
@@ -445,6 +471,8 @@ void HciRouterImpl::Close() {
 }
 
 void HciRouterImpl::Cleanup() {
+  is_cleaning_up_ = true;
+
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   HAL_LOG(INFO) << "Shutting down the HciRouter";
   if (tx_handler_) {
@@ -461,6 +489,7 @@ void HciRouterImpl::Cleanup() {
   // Set HAL state back to the default state (kShutdown).
   UpdateHalState(HalState::kShutdown);
   hci_callback_ = nullptr;
+  is_cleaning_up_ = false;
 }
 
 bool HciRouterImpl::Send(const HalPacket& packet) {
@@ -631,6 +660,11 @@ void HciRouterImpl::OnTransportPacketReady(const HalPacket& packet) {
   HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
   packet.SetDestination(PacketDestination::kHost);
 
+  if (is_cleaning_up_.load()) {
+    HAL_LOG(WARNING) << "Ignore RX packet when cleaning up. "
+                     << packet.ToString();
+    return;
+  }
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   if (hal_state_ == HalState::kShutdown) {
     LOG(WARNING) << __func__ << ": Hal is not ready to receive packets.";

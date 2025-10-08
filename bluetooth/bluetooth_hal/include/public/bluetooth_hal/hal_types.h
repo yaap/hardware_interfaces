@@ -270,6 +270,7 @@ enum class CommandOpCode : uint16_t {
   // Part E, section 7.
   kSetEventMask = 0x0c01,
   kHciReset = 0x0c03,
+  kLoopbackMode = 0x1802,
   kLeSetExtendedScanParam = 0x2041,
   kLeScanEnable = 0x2042,
   kLeExtCreateConnection = 0x2043,
