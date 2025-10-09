@@ -93,6 +93,16 @@ class Worker {
     }
   }
 
+  /**
+   * @brief Gets the current number of messages in the queue.
+   *
+   * @return The number of messages currently in the queue.
+   */
+  size_t GetQueuedMessageSize() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return message_queue_.size();
+  }
+
  private:
   void RunWorkerLoop() {
     while (running_) {
