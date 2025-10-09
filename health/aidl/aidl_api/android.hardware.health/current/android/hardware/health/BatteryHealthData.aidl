@@ -39,4 +39,7 @@ parcelable BatteryHealthData {
   long batteryStateOfHealth;
   @nullable String batterySerialNumber;
   android.hardware.health.BatteryPartStatus batteryPartStatus = android.hardware.health.BatteryPartStatus.UNSUPPORTED;
+  @nullable String batteryManufacturer;
+  @nullable String batteryModelName;
+  long batteryVoltageMinDesignUv;
 }
