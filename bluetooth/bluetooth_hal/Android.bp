@@ -789,6 +789,8 @@ cc_test {
     name: "bluetooth_hal_bqr_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
+        "bqr/bqr_handler.cc",
+        "bqr/bqr_handler_test.cc",
         "bqr/bqr_event.cc",
         "bqr/bqr_event_test.cc",
         "bqr/bqr_link_quality_event.cc",
@@ -807,6 +809,12 @@ cc_test {
         "bqr/bqr_energy_monitoring_event_v6.cc",
         "bqr/bqr_energy_monitoring_event_v7.cc",
         "bqr/bqr_energy_monitoring_event_test.cc",
+        "hci_router_client.cc",
+        ":test_mock_router_srcs",
+        ":test_mock_debug_srcs",
+    ],
+    static_libs: [
+        "libgmock",
     ],
     shared_libs: [
         "libbase",

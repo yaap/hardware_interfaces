@@ -113,6 +113,7 @@ void BqrHandler::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
         HandleEnergyMonitoringEvent(bqr_event);
         break;
       default:
+        HandleUnspecifiedVendorEvent(bqr_event);
         break;
     }
   }
@@ -206,6 +207,11 @@ void BqrHandler::HandleEnergyMonitoringEvent(const BqrEvent& bqr_event) {
     default:
       break;
   }
+}
+
+void BqrHandler::HandleUnspecifiedVendorEvent(
+    [[maybe_unused]] const BqrEvent& bqr_event) {
+  // Empty function can be overridden by child classes if needed.
 }
 
 BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {
