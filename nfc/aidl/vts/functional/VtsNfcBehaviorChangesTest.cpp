@@ -297,10 +297,11 @@ tNFA_STATUS static nfaSetTechAPollingLoopAnnotation(const uint8_t* annotation_da
 }
 
 /*
- * Set passive observer exit frame.
+ * Set passive observer exit frames.
  */
-tNFA_STATUS static nfaSetPassiveObserverExitFrame(const std::vector<uint8_t>& exit_frame,
-                                                  const std::vector<uint8_t>& mask) {
+tNFA_STATUS static nfaSetPassiveObserverExitFrames(
+        const std::vector<std::vector<uint8_t>>& exit_frames,
+        const std::vector<std::vector<uint8_t>>& masks) {
     tNFA_STATUS status = NFA_STATUS_FAILED;
 
     std::vector<uint8_t> cmd;
@@ -308,23 +309,27 @@ tNFA_STATUS static nfaSetPassiveObserverExitFrame(const std::vector<uint8_t>& ex
     cmd.push_back(0x00);  // more
     cmd.push_back(0x88);  // timeout of 5000 ms
     cmd.push_back(0x13);  // timeout of 5000 ms
-    if (exit_frame.empty()) {
+    if (exit_frames.empty()) {
         // No exit frames
         cmd.push_back(0x00);
     } else {
-        cmd.push_back(0x01);  // Number of exit frames.
-        if (mask.empty()) {
-            cmd.push_back(0x00);  // Qualifier type
-        } else {
-            cmd.push_back(0x10);  // Qualifier type
-        }
-        cmd.push_back(exit_frame.size() * 2 + 1);  // Size exit frame, mask & power state
-        cmd.push_back(0x39);                       // Power state.
-        cmd.insert(cmd.end(), exit_frame.begin(), exit_frame.end());  // Frame data
-        if (mask.empty()) {
-            cmd.insert(cmd.end(), exit_frame.size(), 0xFF);  // Mask
-        } else {
-            cmd.insert(cmd.end(), mask.begin(), mask.end());  // Mask
+        cmd.push_back(exit_frames.size());  // Number of exit frames.
+        for (size_t i = 0; i < exit_frames.size(); i++) {
+            const auto& exit_frame = exit_frames[i];
+            const auto& mask = masks[i];
+            if (mask.empty()) {
+                cmd.push_back(0x00);  // Qualifier type
+            } else {
+                cmd.push_back(0x10);  // Qualifier type
+            }
+            cmd.push_back(exit_frame.size() * 2 + 1);  // Size exit frame, mask & power state
+            cmd.push_back(0x39);                       // Power state.
+            cmd.insert(cmd.end(), exit_frame.begin(), exit_frame.end());  // Frame data
+            if (mask.empty()) {
+                cmd.insert(cmd.end(), exit_frame.size(), 0xFF);  // Mask
+            } else {
+                cmd.insert(cmd.end(), mask.begin(), mask.end());  // Mask
+            }
         }
     }
 
@@ -338,6 +343,14 @@ tNFA_STATUS static nfaSetPassiveObserverExitFrame(const std::vector<uint8_t>& ex
     }
 
     return status;
+}
+
+/*
+ * Set passive observer exit frame.
+ */
+tNFA_STATUS static nfaSetPassiveObserverExitFrame(const std::vector<uint8_t>& exit_frame,
+                                                  const std::vector<uint8_t>& mask) {
+    return nfaSetPassiveObserverExitFrames({exit_frame}, {mask});
 }
 
 /*
@@ -540,7 +553,7 @@ TEST_P(NfcBehaviorChanges, SetTechAPollingLoopAnnotation_test) {
 
 /*
  * SetFirmwareExitFrameTable_test:
- * Verifies setFirmwareExitFrameTable can be enabled and disabled repeatedly without timing out
+ * Verifies setFirmwareExitFrameTable can be enabled and disabled without timing out
  * or erroring.
  */
 TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test) {
@@ -548,8 +561,7 @@ TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test) {
         GTEST_SKIP() << "Skipping test for board API level < 202604";
     }
 
-    std::vector<uint8_t> exit_frame = {0x01, 0x02, 0x03, 0x04};
-    tNFC_STATUS status = nfaSetPassiveObserverExitFrame(exit_frame, {});
+    tNFC_STATUS status = nfaSetPassiveObserverExitFrame({{0x01, 0x02, 0x03, 0x04}}, {});
     ASSERT_EQ(status, NFA_STATUS_OK);
 
     status = nfaSetPassiveObserverExitFrame({}, {});
@@ -557,17 +569,17 @@ TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test) {
 }
 
 /*
- * SetFirmwareExitFrameTable_test:
- * Verifies setFirmwareExitFrameTable can be enabled and disabled repeatedly without timing out
- * or erroring.
+ * SetFirmwareExitFrameTable_test_pattern:
+ * Verifies setFirmwareExitFrameTable can be enabled and disabled with different pattern mask
+ * without timing out or erroring.
  */
 TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test_pattern) {
     if (get_vsr_api_level() < 202604) {
         GTEST_SKIP() << "Skipping test for board API level < 202604";
     }
 
-    std::vector<uint8_t> exit_frame = {0x01, 0x02, 0x03, 0x04};
-    std::vector<uint8_t> mask = {0xFF, 0xFF, 0x00, 0x00};
+    std::vector<uint8_t> exit_frame = {{0x01, 0x02, 0x03, 0x04}};
+    std::vector<uint8_t> mask = {{0xFF, 0xFF, 0x00, 0x00}};
     tNFC_STATUS status = nfaSetPassiveObserverExitFrame(exit_frame, mask);
     ASSERT_EQ(status, NFA_STATUS_OK);
 
@@ -588,6 +600,32 @@ TEST_P(NfcBehaviorChanges, GetCaps_numExitFrameEntries) {
 
     ASSERT_EQ(status, NFC_STATUS_OK);
     ASSERT_GE(getCapsNumExitFrameEntries(), 5);
+}
+
+/*
+ * SetFirmwareExitFrameTable_5Entries:
+ * Verifies setFirmwareExitFrameTable can be enabled and disabled with 5 different pattern mask
+ * without timing out or erroring.
+ */
+TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_5Entries) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    std::vector<std::vector<uint8_t>> exit_frames = {{0x01, 0x02, 0x03, 0x04},
+                                                     {0x05, 0x06, 0x07, 0x08},
+                                                     {0x09, 0x0a, 0x0b, 0x0c},
+                                                     {0x0d, 0x0e, 0x0f, 0x10},
+                                                     {0x11, 0x12, 0x13, 0x14}};
+    std::vector<std::vector<uint8_t>> masks = {
+            {0xFF, 0xFF, 0x00, 0x00}, {0x00, 0xFF, 0x00, 0x00}, {0xFF, 0xFF, 0xFF, 0x00},
+            {0xFF, 0xFF, 0x00, 0xFF}, {0xFF, 0xFF, 0xFF, 0xFF},
+    };
+    tNFC_STATUS status = nfaSetPassiveObserverExitFrames(exit_frames, masks);
+    ASSERT_EQ(status, NFA_STATUS_OK);
+
+    status = nfaSetPassiveObserverExitFrame({}, {});
+    ASSERT_EQ(status, NFA_STATUS_OK);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NfcBehaviorChanges);
