@@ -52,20 +52,20 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
                         ? mSharedState.bufferFramesLeft - bufferFramesConsumed
                         : 0;
         int64_t framesPlayed = clipFramesPlayed;
-        while (framesPlayed > 0 && mSharedState.hasClips()) {
-            LOG(VERBOSE) << __func__ << ": clipsFramesLeft: " << mSharedState.clipFramesLeft
-                         << ", nextClipFrames: " << mSharedState.nextClipFrames;
-            const bool hasNextClip = mSharedState.nextClipFrames > 0;
-            if (mSharedState.clipFramesLeft > framesPlayed) {
-                mSharedState.clipFramesLeft -= framesPlayed;
+        while (framesPlayed > 0 && !mSharedState.clips.empty()) {
+            LOG(VERBOSE) << __func__ << ": " << mSharedState.clips.log();
+            const bool hasNextClip = mSharedState.clips.hasNext();
+            if (mSharedState.clips.currentFrames() > framesPlayed) {
+                mSharedState.clips.updateCurrentFrames(-framesPlayed);
                 framesPlayed = 0;
-                if (mSharedState.clipFramesLeft <= mSharedState.earlyNotifyFrames) {
-                    clipNotifies.emplace_back(mSharedState.clipFramesLeft, hasNextClip);
+                if (auto clipFramesLeft = mSharedState.clips.currentFrames();
+                    clipFramesLeft <= mSharedState.earlyNotifyFrames) {
+                    clipNotifies.emplace_back(clipFramesLeft, hasNextClip);
                 }
             } else {
                 clipNotifies.emplace_back(0 /*clipFramesLeft*/, hasNextClip);
-                framesPlayed -= mSharedState.clipFramesLeft;
-                mSharedState.switchToNextClip();
+                framesPlayed -= mSharedState.clips.currentFrames();
+                mSharedState.clips.switchToNext();
                 if (!hasNextClip) {
                     // Since it's a simulation, the buffer consumption rate it not real,
                     // thus 'bufferFramesLeft' might still have something, need to erase it.
@@ -119,10 +119,10 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
 ::android::status_t DriverOffloadStubImpl::drain(StreamDescriptor::DrainMode drainMode) {
     RETURN_STATUS_IF_ERROR(DriverStubImpl::drain(drainMode));
     std::lock_guard l(mState.lock);
-    if (!mState.hasClips()) {
-        mState.clipFramesLeft = std::min(mState.earlyNotifyFrames * 2, mState.clipFramesLeft);
+    if (!mState.clips.empty()) {
+        mState.clips.trimCurrentFrames(mState.earlyNotifyFrames * 2);
         if (drainMode == StreamDescriptor::DrainMode::DRAIN_ALL) {
-            mState.nextClipFrames = 0;
+            mState.clips.eraseAllNext();
         }
     }
     mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
@@ -134,7 +134,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     mDspWorker.pause();
     {
         std::lock_guard l(mState.lock);
-        mState.eraseClips();
+        mState.clips.erase();
         mState.bufferFramesLeft = 0;
         mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     }
@@ -157,9 +157,8 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     bool hasClips;  // Can be start after paused draining.
     {
         std::lock_guard l(mState.lock);
-        hasClips = mState.hasClips();
-        LOG(DEBUG) << __func__ << ": clipFramesLeft: " << mState.clipFramesLeft
-                   << ", nextClipFrames: " << mState.nextClipFrames;
+        hasClips = !mState.clips.empty();
+        LOG(DEBUG) << __func__ << ": " << mState.clips.log();
         mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     }
     if (hasClips) {
@@ -193,14 +192,9 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
                        << "sample rate: " << clipSampleRate;
             if (clipSampleRate == mState.sampleRate) {
                 std::lock_guard l(mState.lock);
-                if (mState.clipFramesLeft == 0 && mState.nextClipFrames == 0) {
-                    mState.clipFramesLeft = clipDurationFrames;
-                } else if (mState.nextClipFrames == 0) {
-                    mState.nextClipFrames = clipDurationFrames;
-                } else {
-                    LOG(ERROR) << __func__ << ": not ready for the next clip, "
-                               << "clipsFramesLeft: " << mState.clipFramesLeft
-                               << ", nextClipFrames: " << mState.nextClipFrames;
+                if (!mState.clips.add(clipDurationFrames)) {
+                    LOG(ERROR) << __func__
+                               << ": not ready for the next clip, clips: " << mState.clips.log();
                     return ::android::INVALID_OPERATION;
                 }
             } else {
