@@ -3627,9 +3627,6 @@ TEST_P(GraphicsComposerAidlCommandV4Test, SetUnsupportedLayerLuts) {
     for (const DisplayWrapper& display : mDisplays) {
         EXPECT_TRUE(mComposerClient->setPowerMode(display.getDisplayId(), PowerMode::ON).isOk());
         auto& writer = getWriter(display.getDisplayId());
-        const auto& [layerStatus, layer] =
-                mComposerClient->createLayer(display.getDisplayId(), kBufferSlotCount, &writer);
-        EXPECT_TRUE(layerStatus.isOk());
         const auto& [status, properties] = mComposerClient->getOverlaySupport();
 
         // TODO (b/362319189): add Lut VTS enforcement
