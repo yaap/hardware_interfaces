@@ -268,7 +268,7 @@ TEST(GRPCVehicleProxyServerUnitTest, Subscribe) {
     auto grpcStatus = server.Subscribe(&context, &request, &returnStatus);
 
     EXPECT_TRUE(grpcStatus.ok());
-    EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::OK);
+    EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::STATUS_CODE_OK);
     EXPECT_EQ(aidlOptions.propId, 1);
     EXPECT_EQ(aidlOptions.areaIds, std::vector<int32_t>{2});
     EXPECT_FLOAT_EQ(aidlOptions.sampleRate, 1.234);
@@ -291,7 +291,7 @@ TEST(GRPCVehicleProxyServerUnitTest, SubscribeNotAvailable) {
     auto grpcStatus = server.Subscribe(&context, &request, &returnStatus);
 
     EXPECT_TRUE(grpcStatus.ok());
-    EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::NOT_AVAILABLE);
+    EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::STATUS_CODE_NOT_AVAILABLE);
 }
 
 TEST(GRPCVehicleProxyServerUnitTest, Unsubscribe) {
@@ -310,7 +310,7 @@ TEST(GRPCVehicleProxyServerUnitTest, Unsubscribe) {
     auto grpcStatus = server.Unsubscribe(&context, &request, &returnStatus);
 
     EXPECT_TRUE(grpcStatus.ok());
-    EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::OK);
+    EXPECT_EQ(returnStatus.status_code(), proto::StatusCode::STATUS_CODE_OK);
 }
 
 TEST(GRPCVehicleProxyServerUnitTest, testGetMinMaxSupportedValues) {
@@ -345,7 +345,7 @@ TEST(GRPCVehicleProxyServerUnitTest, testGetMinMaxSupportedValues) {
 
     ASSERT_TRUE(grpcStatus.ok());
     ASSERT_THAT(result.result(), ::testing::SizeIs(1));
-    EXPECT_EQ(result.result()[0].status(), proto::StatusCode::OK);
+    EXPECT_EQ(result.result()[0].status(), proto::StatusCode::STATUS_CODE_OK);
     ASSERT_THAT(result.result()[0].min_supported_value().int32_values(), ::testing::SizeIs(1));
     EXPECT_EQ(result.result()[0].min_supported_value().int32_values()[0], testValue1);
     ASSERT_THAT(result.result()[0].max_supported_value().int32_values(), ::testing::SizeIs(1));
@@ -386,7 +386,7 @@ TEST(GRPCVehicleProxyServerUnitTest, testGetSupportedValuesLists) {
 
     ASSERT_TRUE(grpcStatus.ok());
     ASSERT_THAT(result.result(), ::testing::SizeIs(1));
-    EXPECT_EQ(result.result()[0].status(), proto::StatusCode::OK);
+    EXPECT_EQ(result.result()[0].status(), proto::StatusCode::STATUS_CODE_OK);
     ASSERT_THAT(result.result()[0].supported_values_list(), ::testing::SizeIs(2));
     ASSERT_THAT(result.result()[0].supported_values_list()[0].int32_values(), ::testing::SizeIs(1));
     EXPECT_THAT(result.result()[0].supported_values_list()[0].int32_values()[0], testValue1);
