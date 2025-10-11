@@ -17,6 +17,7 @@
 package android.hardware.biometrics.fingerprint;
 
 import android.hardware.biometrics.fingerprint.AcquiredInfo;
+import android.hardware.biometrics.fingerprint.AuthenticateSuccess;
 import android.hardware.biometrics.fingerprint.Error;
 import android.hardware.keymaster.HardwareAuthToken;
 /**
@@ -89,6 +90,10 @@ interface ISessionCallback {
      * Used to notify the framework upon successful authentication. Note that the authentication
      * lifecycle ends when either 1) a fingerprint is accepted, or 2) an error occurred. The
      * authentication lifecycle does NOT end when a fingerprint is rejected.
+     *
+     * @deprecated use {@link onAuthenticationSucceededWithResult} instead. Calling this method
+     *             has the same effect but only allows the enrollmentId and hat to be returned to
+     *             the framework.
      *
      * @param enrollmentId Fingerprint that was accepted.
      * @param hat If the sensor is configured as SensorStrength::STRONG, a non-null attestation that
@@ -201,4 +206,18 @@ interface ISessionCallback {
      * The client must not make any more calls to this session.
      */
     void onSessionClosed();
+
+    /**
+     * This method must only be used to notify the framework during ISession#authenticate.
+     *
+     * Used to notify the framework upon successful authentication. Note that the authentication
+     * lifecycle ends when either 1) a fingerprint is accepted, or 2) an error occurred. The
+     * authentication lifecycle does NOT end when a fingerprint is rejected.
+     *
+     * Calling {@link onAuthenticationSucceeded} has the same effect, but this method allows
+     * additional optional information to be returned to the framework.
+     *
+     * @param result A successful authentication result.
+     */
+    void onAuthenticationSucceededWithResult(in AuthenticateSuccess result);
 }
