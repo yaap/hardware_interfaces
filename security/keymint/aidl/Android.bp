@@ -118,3 +118,9 @@ java_defaults {
         "android.hardware.security.keymint-V4-java",
     ],
 }
+
+dirgroup {
+    name: "trusty_dirgroup_hardware_interfaces_security_keymint_aidl",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
+}
