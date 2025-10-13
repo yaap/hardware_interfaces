@@ -38,3 +38,9 @@ aidl_interface {
     versions: ["1"],
     min_sdk_version: "35",
 }
+
+dirgroup {
+    name: "trusty_dirgroup_hardware_interfaces_security_secureclock_aidl",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
+}
