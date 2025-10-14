@@ -704,8 +704,9 @@ bool StreamOutWorkerLogic::write(size_t clientSize, StreamDescriptor::Reply* rep
                      << " succeeded; connected? " << isConnected;
         // Amount of data that the HAL module is going to actually use.
         size_t byteCount = std::min({clientSize, readByteCount, mDataBufferSize});
-        if (byteCount >= frameSize && mContext->getForceTransientBurst()) {
-            // In order to prevent the state machine from going to ACTIVE state,
+        if (byteCount >= frameSize && mContext->getForceTransientBurst() &&
+            !mContext->getAsyncCallback()) {
+            // In order to prevent the state machine from going to ACTIVE state for sync transfers,
             // simulate partial write.
             byteCount -= frameSize;
         }
