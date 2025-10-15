@@ -22,6 +22,7 @@
 #include <aidl/android/hardware/wifi/BnWifi.h>
 #include <aidl/android/hardware/wifi/BnWifiNanIfaceEventCallback.h>
 #include <aidl/android/hardware/wifi/NanBandIndex.h>
+#include <aidl/android/hardware/wifi/NanPeriodicRangingInterval.h>
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_status.h>
@@ -51,6 +52,7 @@ using aidl::android::hardware::wifi::NanMatchAlg;
 using aidl::android::hardware::wifi::NanMatchInd;
 using aidl::android::hardware::wifi::NanPairingConfirmInd;
 using aidl::android::hardware::wifi::NanPairingRequestInd;
+using aidl::android::hardware::wifi::NanPeriodicRangingInterval;
 using aidl::android::hardware::wifi::NanPublishRequest;
 using aidl::android::hardware::wifi::NanPublishType;
 using aidl::android::hardware::wifi::NanRespondToDataPathIndicationRequest;
@@ -652,6 +654,35 @@ TEST_P(WifiNanIfaceAidlTest, NotifyCapabilitiesResponse) {
     EXPECT_GT(capabilities_.maxQueuedTransmitFollowupMsgs, 0);
     EXPECT_GT(capabilities_.maxSubscribeInterfaceAddresses, 0);
     EXPECT_NE(static_cast<int32_t>(capabilities_.supportedCipherSuites), 0);
+}
+
+/*
+ * ValidatePeriodicRangingIntervals
+ *
+ * Ensure that if the device supports periodic ranging, it correctly reports the supported
+ * ranging intervals.
+ */
+TEST_P(WifiNanIfaceAidlTest, ValidatePeriodicRangingIntervals) {
+    uint16_t inputCmdId = 10;
+    callback_event_bitmap_ = 0;
+    EXPECT_TRUE(wifi_nan_iface_->getCapabilitiesRequest(inputCmdId).isOk());
+
+    // Wait for a callback.
+    ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_CAPABILITIES_RESPONSE));
+    ASSERT_TRUE(receivedCallback(NOTIFY_CAPABILITIES_RESPONSE));
+    ASSERT_EQ(id_, inputCmdId);
+    ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+
+    if (capabilities_.supportsPeriodicRanging) {
+        int32_t valid_intervals_mask = 0;
+        for (const auto& interval : ndk::internal::enum_values<
+                     aidl::android::hardware::wifi::NanPeriodicRangingInterval>) {
+            valid_intervals_mask |= static_cast<int32_t>(interval);
+        }
+
+        EXPECT_NE(capabilities_.supportedPeriodicRangingIntervals, 0);
+        EXPECT_EQ(capabilities_.supportedPeriodicRangingIntervals & ~valid_intervals_mask, 0);
+    }
 }
 
 /*
