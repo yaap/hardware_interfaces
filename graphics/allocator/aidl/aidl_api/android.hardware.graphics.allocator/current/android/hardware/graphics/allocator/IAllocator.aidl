@@ -41,4 +41,6 @@ interface IAllocator {
   android.hardware.graphics.allocator.AllocationResult allocate2(in android.hardware.graphics.allocator.BufferDescriptorInfo descriptor, in int count);
   boolean isSupported(in android.hardware.graphics.allocator.BufferDescriptorInfo descriptor);
   String getIMapperLibrarySuffix();
+  boolean isMultiViewSupported(in android.hardware.graphics.allocator.BufferDescriptorInfo[] descriptor, in int baseViewIndex);
+  android.hardware.graphics.allocator.AllocationResult allocateMultiView(in android.hardware.graphics.allocator.BufferDescriptorInfo[] descriptor, in int baseViewIndex);
 }

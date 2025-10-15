@@ -31,7 +31,7 @@ interface IAllocator {
      *     obtained from IMapper::createDescriptor().
      * @param count The number of buffers to allocate.
      * @return An AllocationResult containing the result of the allocation
-     * @throws AllocationError on failure
+     * @throws service-specific status AllocationError on failure
      * @deprecated As of android.hardware.graphics.allocator-V2 in combination with
      *             AIMAPPER_VERSION_5 this is deprecated & replaced with allocate2.
      *             If android.hardware.graphics.mapper@4 is still in use, however, this is
@@ -49,7 +49,7 @@ interface IAllocator {
      *     obtained from IMapper::createDescriptor().
      * @param count The number of buffers to allocate.
      * @return An AllocationResult containing the result of the allocation
-     * @throws AllocationError on failure
+     * @throws service-specific status AllocationError on failure
      */
     AllocationResult allocate2(in BufferDescriptorInfo descriptor, in int count);
 
@@ -73,4 +73,30 @@ interface IAllocator {
      * The library that will attempt to be loaded is "/vendor/lib[64]/hw/mapper.<imapper_suffix>.so"
      */
     String getIMapperLibrarySuffix();
+
+    /**
+     * Test whether the given multiview BufferDescriptorInfo array is allocatable.
+     *
+     * If this function returns true, it means that a multiview buffer with the given
+     * description can be allocated on this implementation, unless resource
+     * exhaustion occurs. If this function returns false, it means that the
+     * allocation of the given description will never succeed.
+     *
+     * @param description the description of the buffer
+     * @return supported whether the description is supported
+     */
+    boolean isMultiViewSupported(in BufferDescriptorInfo[] descriptor, in int baseViewIndex);
+
+    /**
+     * Allocates multi-view buffers with the properties specified by the descriptors.
+     *
+     * Allocations should be optimized for usage bits provided in the
+     * descriptors.
+     *
+     * @param descriptor Properties of the buffers to allocate.
+     * @param baseViewIndex The index of the base view to allocate.
+     * @return An AllocationResult containing the result of the allocation
+     * @throws service-specific status AllocationError on failure
+     */
+    AllocationResult allocateMultiView(in BufferDescriptorInfo[] descriptor, in int baseViewIndex);
 }
