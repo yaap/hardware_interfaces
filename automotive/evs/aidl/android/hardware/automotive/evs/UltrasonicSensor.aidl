@@ -20,6 +20,11 @@ import android.hardware.automotive.evs.SensorPose;
 
 /**
  * Structure that contains all information of an ultrasonic sensor.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use <a
+ *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+ *             VHAL properties</a> instead.
  */
 @VintfStability
 parcelable UltrasonicSensor {

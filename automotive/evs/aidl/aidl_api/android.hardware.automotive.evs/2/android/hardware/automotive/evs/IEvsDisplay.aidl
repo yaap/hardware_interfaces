@@ -32,11 +32,29 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. OEMs should use the standard display classes: <ul> <li>{@link android.hardware.display.DisplayManager}</li> <li>{@link android.view.Display}</li> <li>{@link android.view.WindowManager}</li> </ul>
+ */
 @VintfStability
 interface IEvsDisplay {
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use {@link android.view.Display} instead.
+   */
   android.hardware.automotive.evs.DisplayDesc getDisplayInfo();
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use {@link android.view.Display#getState} instead.
+   */
   android.hardware.automotive.evs.DisplayState getDisplayState();
+  /**
+   * @deprecated EVS functionality and APIs are deprecated.
+   */
   android.hardware.automotive.evs.BufferDesc getTargetBuffer();
+  /**
+   * @deprecated EVS functionality and APIs are deprecated.
+   */
   void returnTargetBufferForDisplay(in android.hardware.automotive.evs.BufferDesc buffer);
+  /**
+   * @deprecated EVS functionality and APIs are deprecated.
+   */
   void setDisplayState(in android.hardware.automotive.evs.DisplayState state);
 }

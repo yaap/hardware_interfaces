@@ -18,6 +18,12 @@ package android.hardware.automotive.evs;
 
 /**
  * Types of informative streaming events
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use the Camera2 NDK API (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_capturecallbacksv2">ACameraCaptureSession_captureCallbacksV2</a>)
+ *             or the Camera2 Java API ({@link
+ *             android.hardware.camera2.CameraCaptureSession.CaptureCallback}) instead.
  */
 @VintfStability
 @Backing(type="int")

@@ -25,6 +25,11 @@ import android.hardware.common.Ashmem;
  * of sensors in an array as indicated by the receiversIdList. The signal is
  * transmitted at a particular time instant indicated by timestampNs from a
  * subset of sensors in the array as provided in the transmittersIdList.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use <a
+ *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+ *             VHAL properties</a> instead.
  */
 @VintfStability
 parcelable UltrasonicsDataFrameDesc {
