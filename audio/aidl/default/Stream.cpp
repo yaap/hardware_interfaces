@@ -448,7 +448,7 @@ void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNext
         mDrainState = DrainState::NONE;
         if ((drainState == DrainState::ALL || drainState == DrainState::EN_SENT) &&
             asyncCallback != nullptr) {
-            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            LOG(DEBUG) << __func__ << ": sending onDrainReady (end of clip)";
             // For EN_SENT, this is the second onDrainReady which notifies about clip transition.
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
@@ -459,7 +459,7 @@ void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNext
         // The stream state does not change, it is still draining.
         mDrainState = DrainState::EN_SENT;
         if (asyncCallback != nullptr) {
-            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            LOG(DEBUG) << __func__ << ": sending onDrainReady (ready for next clip data)";
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
                 LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
