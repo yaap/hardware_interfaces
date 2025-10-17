@@ -47,13 +47,11 @@ class DspClipState {
     void eraseAllNext() {
         if (!empty()) mFrames.resize(1);
     }
-    int64_t switchToNext() {
-        if (hasNext()) {
-            mFrames.erase(mFrames.begin());
-            return mFrames[0];
-        } else {
-            return kError;
-        }
+    int64_t removeCurrent() {
+        if (empty()) return kError;
+        const int64_t result = mFrames[0];
+        mFrames.erase(mFrames.begin());
+        return result;
     }
     int64_t trimCurrentFrames(int64_t frames) {
         if (!empty()) {
