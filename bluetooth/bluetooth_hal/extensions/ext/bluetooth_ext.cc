@@ -44,18 +44,7 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void ExtInitializer() {
-  auto register_service = [](const std::shared_ptr<ICInterface>& service,
-                             const char* name) {
-    std::string instance = std::string() + name + "/default";
-    binder_status_t status =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (status != STATUS_OK) {
-      LOG(ERROR) << "Could not register " << name << " as a service!";
-    }
-  };
-
-  register_service(SharedRefBase::make<BluetoothExt>(),
-                   BluetoothExt::descriptor);
+  RegisterHalService(SharedRefBase::make<BluetoothExt>());
 }
 
 }  // namespace
