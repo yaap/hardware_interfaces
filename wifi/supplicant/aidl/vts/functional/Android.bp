@@ -45,7 +45,7 @@ cc_defaults {
         "android.hardware.wifi.common-V2-ndk",
         "android.hardware.wifi.supplicant@1.0",
         "android.hardware.wifi.supplicant@1.1",
-        "android.hardware.wifi.supplicant-V4-ndk",
+        "android.hardware.wifi.supplicant-V5-ndk",
         "libwifi-system",
         "libwifi-system-iface",
         "VtsHalWifiV1_0TargetTestUtil",

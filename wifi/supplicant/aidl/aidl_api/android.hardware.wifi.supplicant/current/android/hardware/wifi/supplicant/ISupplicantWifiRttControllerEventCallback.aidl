@@ -1,5 +1,5 @@
-/*
- * Copyright (C) 2021 The Android Open Source Project
+/**
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,22 +33,25 @@
 
 package android.hardware.wifi.supplicant;
 @VintfStability
-interface ISupplicant {
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantP2pIface addP2pInterface(in String ifName);
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantStaIface addStaInterface(in String ifName);
-  android.hardware.wifi.supplicant.DebugLevel getDebugLevel();
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantP2pIface getP2pInterface(in String ifName);
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantStaIface getStaInterface(in String ifName);
-  boolean isDebugShowKeysEnabled();
-  boolean isDebugShowTimestampEnabled();
-  android.hardware.wifi.supplicant.IfaceInfo[] listInterfaces();
-  void registerCallback(in android.hardware.wifi.supplicant.ISupplicantCallback callback);
-  void removeInterface(in android.hardware.wifi.supplicant.IfaceInfo ifaceInfo);
-  void setConcurrencyPriority(in android.hardware.wifi.supplicant.IfaceType type);
-  void setDebugParams(in android.hardware.wifi.supplicant.DebugLevel level, in boolean showTimestamp, in boolean showKeys);
-  oneway void terminate();
-  void registerNonStandardCertCallback(in android.hardware.wifi.supplicant.INonStandardCertCallback callback);
-  void setCurrentUserIdentity(in int userId);
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantWifiRttController createRttController(in String ifName);
-  const int EXT_RADIO_WORK_TIMEOUT_IN_SECS = 10;
+interface ISupplicantWifiRttControllerEventCallback {
+  oneway void onResults(in int cmdId, in android.hardware.wifi.supplicant.RttResult[] results);
+  oneway void onContinuousRangingStatusChanged(in int cmdId, in android.hardware.wifi.supplicant.ISupplicantWifiRttControllerEventCallback.ContinuousRangingStatusCode code);
+  oneway void onContinuousRangingTerminated(in int cmdId, in android.hardware.wifi.supplicant.ISupplicantWifiRttControllerEventCallback.ContinuousRangingTerminateReasonCode reason);
+  @Backing(type="int") @VintfStability
+  enum ContinuousRangingStatusCode {
+    UNKNOWN = 0,
+    PR_RANGE_NEGOTIATION_STARTED = 1,
+    PR_RANGE_NEGOTIATION_SUCCEEDED = 2,
+    PR_STARTED_RANGE_REQUESTS_ISTA_ROLE = 3,
+    PR_STARTED_RANGE_REQUESTS_RSTA_ROLE = 4,
+  }
+  @Backing(type="int") @VintfStability
+  enum ContinuousRangingTerminateReasonCode {
+    UNKNOWN = 0,
+    TIMEOUT = 1,
+    USER_REQUEST = 2,
+    ABORT_CONCURRENCY = 3,
+    RECEIVED_RTT_TERMINATE = 4,
+    PR_RANGE_NEG_FAILED = 5,
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,30 +17,24 @@
 package android.hardware.wifi.supplicant;
 
 /**
- * Possible mask of values for PairwiseCipher param.
- * See /external/wpa_supplicant_8/src/common/defs.h for
- * the historical values (starting at WPA_CIPHER_NONE).
+ * RTT bandwidth.
  */
 @VintfStability
-@Backing(type="int")
-enum PairwiseCipherMask {
-    NONE = 1 << 0,
-    TKIP = 1 << 3,
-    CCMP = 1 << 4,
-    /**
-     * GCMP-128 Pairwise Cipher
-     */
-    GCMP_128 = 1 << 6,
-    /**
-     * SMS4 Pairwise Cipher
-     */
-    SMS4 = 1 << 7,
-    /**
-     * GCMP-256 Pairwise Cipher
-     */
-    GCMP_256 = 1 << 8,
-    /**
-     * CCMP-256 Pairwise Cipher
-     */
-    CCMP_256 = 1 << 9,
+enum RttBw {
+    /** Invalid bandwidth. */
+    INVALID = 0,
+    /** 5 MHz bandwidth. */
+    BW_5MHZ = 1 << 0,
+    /** 10 MHz bandwidth. */
+    BW_10MHZ = 1 << 1,
+    /** 20 MHz bandwidth. */
+    BW_20MHZ = 1 << 2,
+    /** 40 MHz bandwidth. */
+    BW_40MHZ = 1 << 3,
+    /** 80 MHz bandwidth. */
+    BW_80MHZ = 1 << 4,
+    /** 160 MHz bandwidth. */
+    BW_160MHZ = 1 << 5,
+    /** 320 MHz bandwidth. */
+    BW_320MHZ = 1 << 6,
 }
