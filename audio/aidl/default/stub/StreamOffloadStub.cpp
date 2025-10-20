@@ -64,8 +64,7 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
                 }
             } else {
                 clipNotifies.emplace_back(0 /*clipFramesLeft*/, hasNextClip);
-                framesPlayed -= mSharedState.clips.currentFrames();
-                mSharedState.clips.switchToNext();
+                framesPlayed -= mSharedState.clips.removeCurrent();
                 if (!hasNextClip) {
                     // Since it's a simulation, the buffer consumption rate it not real,
                     // thus 'bufferFramesLeft' might still have something, need to erase it.
