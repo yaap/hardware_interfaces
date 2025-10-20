@@ -18,6 +18,7 @@
 use kmr_common::crypto;
 
 /// Monotonic clock.
+#[derive(Default)]
 pub struct StdClock;
 
 impl StdClock {
@@ -39,6 +40,7 @@ impl crypto::MonotonicClock for StdClock {
             log::warn!("failed to get time!");
             return crypto::MillisecondsSinceEpoch(0);
         }
+        #[allow(clippy::useless_conversion)]
         crypto::MillisecondsSinceEpoch(((time.tv_sec * 1000) + (time.tv_nsec / 1000 / 1000)).into())
     }
 }

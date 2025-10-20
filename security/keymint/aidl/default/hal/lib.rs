@@ -19,11 +19,14 @@
 
 use kmr_hal::{env::get_property, HalServiceError, SerializedChannel};
 use log::{error, info};
-use std::{sync::{Arc, Mutex}, ops::DerefMut};
+use std::{
+    ops::DerefMut,
+    sync::{Arc, Mutex},
+};
 
 /// Send boot info to TA via the given communication channel.
 pub fn send_boot_info<T: SerializedChannel>(
-    channel: &Arc<Mutex<T>>
+    channel: &Arc<Mutex<T>>,
 ) -> Result<(), HalServiceError> {
     // Retrieve root-of-trust information (with the exception of the verified boot key
     // hash) from Android properties, and populate the TA with this information. On a
@@ -38,16 +41,18 @@ pub fn send_boot_info<T: SerializedChannel>(
 
 /// Send attestation info to TA via the given communication channel.
 pub fn send_attestation_id_info<T: SerializedChannel>(
-    channel: &Arc<Mutex<T>>
+    channel: &Arc<Mutex<T>>,
 ) -> Result<(), HalServiceError> {
     // Retrieve device ID information (except for IMEI/MEID values) from Android properties
     // and populate the TA with this information. On a real device, a factory provisioning
     // process would populate this information.
     let attest_ids = attestation_id_info();
     if let Err(e) = kmr_hal::send_attest_ids(channel.lock().unwrap().deref_mut(), attest_ids) {
-        error!("Failed to send attestation ID info: {e:?}. \
+        error!(
+            "Failed to send attestation ID info: {e:?}. \
                Core functionality will be available, but attestation functionality will likely \
-               to be affected");
+               to be affected"
+        );
     } else {
         info!("Successfully sent non-secure attestation ID info to TA.");
     }
@@ -56,10 +61,10 @@ pub fn send_attestation_id_info<T: SerializedChannel>(
 
 /// Send boot info and attestation info to TA via the given communication channel.
 pub fn send_boot_info_and_attestation_id_info<T: SerializedChannel>(
-    channel: &Arc<Mutex<T>>
+    channel: &Arc<Mutex<T>>,
 ) -> Result<(), HalServiceError> {
-    send_boot_info(&channel)?;
-    send_attestation_id_info(&channel)?;
+    send_boot_info(channel)?;
+    send_attestation_id_info(channel)?;
     Ok(())
 }
 
@@ -80,10 +85,7 @@ fn attestation_property(name: &str) -> Vec<u8> {
 /// Retrieving the serial number requires SELinux permission.
 pub fn attestation_id_info() -> kmr_wire::AttestationIdInfo {
     let prop = |name| {
-        get_property(name)
-            .unwrap_or_else(|_| format!("{} unavailable", name))
-            .as_bytes()
-            .to_vec()
+        get_property(name).unwrap_or_else(|_| format!("{} unavailable", name)).as_bytes().to_vec()
     };
     kmr_wire::AttestationIdInfo {
         brand: attestation_property("brand"),
