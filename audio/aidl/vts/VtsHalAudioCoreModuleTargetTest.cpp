@@ -5307,6 +5307,8 @@ TEST_P(AudioStreamOut, UpdateOffloadMetadata) {
     }
 }
 
+static constexpr std::string kReadSeqName = "Read";
+static constexpr std::string kWriteSeqName = "Write";
 enum {
     NAMED_CMD_NAME,
     NAMED_CMD_MIN_INTERFACE_VERSION,
@@ -5353,11 +5355,24 @@ class AudioStreamIo : public AudioCoreModuleBase,
     }
 
     void Run() {
+        using ProfileId = std::tuple<int32_t, std::string, AudioIoFlags, AudioFormatDescription>;
+        auto profileIdToString = [](const ProfileId& p) -> std::string {
+            return std::string("profile of mix port ")
+                    .append(std::to_string(std::get<0>(p)))
+                    .append(" \"")
+                    .append(std::get<1>(p))
+                    .append("\" with ")
+                    .append(std::get<2>(p).toString())
+                    .append(", ")
+                    .append(std::get<3>(p).toString());
+        };
+
         const auto allPortConfigs =
                 moduleConfig->getPortConfigsForMixPorts(IOTraits<Stream>::is_input);
         if (allPortConfigs.empty()) {
             GTEST_SKIP() << "No mix ports have attached devices";
         }
+        std::set<ProfileId> skipped;
         const auto& commandsAndStates =
                 std::get<NAMED_CMD_CMDS>(std::get<PARAM_CMD_SEQ>(GetParam()));
         const bool validatePositionIncrease =
@@ -5377,7 +5392,6 @@ class AudioStreamIo : public AudioCoreModuleBase,
             ASSERT_TRUE(port.has_value());
             SCOPED_TRACE(port->toString());
             SCOPED_TRACE(portConfig.toString());
-            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) continue;
             const bool isNonBlocking =
                     IOTraits<Stream>::is_input
                             ? false
@@ -5401,6 +5415,10 @@ class AudioStreamIo : public AudioCoreModuleBase,
                 (isNonBlocking && streamType == StreamTypeFilter::SYNC) ||
                 (!isNonBlocking && streamType == StreamTypeFilter::ASYNC) ||
                 (!isOffload && streamType == StreamTypeFilter::OFFLOAD)) {
+                continue;
+            }
+            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) {
+                skipped.emplace(port->id, port->name, port->flags, portConfig.format.value());
                 continue;
             }
             WithDebugFlags delayTransientStates = WithDebugFlags::createNested(*debug);
@@ -5429,6 +5447,12 @@ class AudioStreamIo : public AudioCoreModuleBase,
                             .isOk()) {
                     ASSERT_NO_FATAL_FAILURE(runStreamIoCommands(portConfig));
                 }
+            }
+        }
+        if (const auto seqName = std::get<NAMED_CMD_NAME>(std::get<PARAM_CMD_SEQ>(GetParam()));
+            seqName == kReadSeqName || seqName == kWriteSeqName) {
+            for (const auto& p : skipped) {
+                LOG(WARNING) << profileIdToString(p) << " was not tested for " << seqName;
             }
         }
     }
@@ -5901,13 +5925,13 @@ std::shared_ptr<StateSequence> makeBurstCommands(bool isSync, size_t burstCount,
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kReadSeq =
-        std::make_tuple(std::string("Read"), kAidlVersion1, "", 0, StreamTypeFilter::ANY,
+        std::make_tuple(kReadSeqName, kAidlVersion1, "", 0, StreamTypeFilter::ANY,
                         makeBurstCommands(true), true /*validatePositionIncrease*/);
 static const NamedCommandSequence kWriteSyncSeq =
-        std::make_tuple(std::string("Write"), kAidlVersion1, "", 0, StreamTypeFilter::SYNC,
+        std::make_tuple(kWriteSeqName, kAidlVersion1, "", 0, StreamTypeFilter::SYNC,
                         makeBurstCommands(true), true /*validatePositionIncrease*/);
 static const NamedCommandSequence kWriteAsyncSeq =
-        std::make_tuple(std::string("Write"), kAidlVersion1, "", 0, StreamTypeFilter::ASYNC,
+        std::make_tuple(kWriteSeqName, kAidlVersion1, "", 0, StreamTypeFilter::ASYNC,
                         makeBurstCommands(false), true /*validatePositionIncrease*/);
 
 std::shared_ptr<StateSequence> makeAsyncDrainCommands(bool isInput) {
