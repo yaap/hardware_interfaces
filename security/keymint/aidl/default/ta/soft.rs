@@ -42,9 +42,16 @@ impl RetrieveKeyMaterial for Keys {
     }
 }
 
-/// Implementation of key derivation using a random fake key.
+/// Implementation of key derivation using a fake key (random by default).
 pub struct Derive {
     hbk: Vec<u8>,
+}
+
+impl Derive {
+    /// Create a new `Derive` instance using the given key.
+    pub fn new(hbk: Vec<u8>) -> Self {
+        Self { hbk }
+    }
 }
 
 impl Default for Derive {
