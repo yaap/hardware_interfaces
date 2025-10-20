@@ -1,0 +1,23 @@
+package {
+    default_applicable_licenses: ["hardware_interfaces_license"],
+}
+
+aidl_interface {
+    name: "android.hardware.security.see.devicestate",
+    unstable: true,
+    host_supported: true,
+    srcs: [
+        "android/hardware/security/see/devicestate/*.aidl",
+    ],
+    backend: {
+        rust: {
+            enabled: true,
+        },
+    },
+}
+
+dirgroup {
+    name: "trusty_dirgroup_hardware_interfaces_security_see_devicestate_aidl",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
+}
