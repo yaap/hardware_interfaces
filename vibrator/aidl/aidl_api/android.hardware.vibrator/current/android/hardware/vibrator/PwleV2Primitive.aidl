@@ -32,7 +32,7 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.vibrator;
-@VintfStability
+@FixedSize @VintfStability
 parcelable PwleV2Primitive {
   float amplitude;
   float frequencyHz;

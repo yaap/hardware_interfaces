@@ -45,6 +45,7 @@ parcelable Flags {
   boolean bypass;
   boolean sinkMetadataIndication;
   boolean sourceMetadataIndication;
+  boolean notEligibleForSuspend;
   @Backing(type="byte") @VintfStability
   enum Type {
     INSERT = 0,

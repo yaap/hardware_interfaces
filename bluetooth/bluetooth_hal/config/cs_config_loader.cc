@@ -72,7 +72,26 @@ bool CsConfigLoaderImpl::LoadConfig() {
   std::string file_path = AndroidBaseWrapper::GetWrapper().GetProperty(
       Property::kCsConfigFile, std::string(kDefaultCsConfigFile));
 
-  return LoadConfigFromFile(file_path);
+  if (LoadConfigFromFile(file_path)) {
+    return true;
+  }
+
+  LOG(INFO) << __func__ << ": Failed to load " << file_path
+            << ", trying product specific file.";
+
+  std::string product_name =
+      AndroidBaseWrapper::GetWrapper().GetProperty(Property::kProductName, "");
+
+  if (product_name.empty()) {
+    LOG(WARNING) << __func__ << ": Product name is empty.";
+    return false;
+  }
+
+  size_t pos = kDefaultCsConfigFile.rfind(".json");
+  std::string product_specific_path =
+      file_path.substr(0, pos) + "_" + product_name + ".json";
+
+  return LoadConfigFromFile(product_specific_path);
 }
 
 bool CsConfigLoaderImpl::LoadConfigFromFile(std::string_view path) {

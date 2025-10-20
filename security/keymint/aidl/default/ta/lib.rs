@@ -21,10 +21,7 @@
 extern crate alloc;
 
 use kmr_common::crypto;
-use kmr_crypto_boring::{
-    aes::BoringAes, aes_cmac::BoringAesCmac, des::BoringDes, ec::BoringEc, eq::BoringEq,
-    hmac::BoringHmac, rng::BoringRng, rsa::BoringRsa, sha256::BoringSha256,
-};
+use kmr_crypto_boring::rng::BoringRng;
 use kmr_ta::device::{
     BootloaderDone, CsrSigningAlgorithm, Implementation, TrustedPresenceUnsupported,
 };
@@ -35,6 +32,7 @@ use log::info;
 
 pub mod attest;
 pub mod clock;
+pub mod frp;
 pub mod rpc;
 pub mod soft;
 
@@ -43,21 +41,7 @@ pub mod soft;
 pub fn boringssl_crypto_impls() -> crypto::Implementation {
     let rng = BoringRng;
     let clock = clock::StdClock::new();
-    let rsa = BoringRsa::default();
-    let ec = BoringEc::default();
-    crypto::Implementation {
-        rng: Box::new(rng),
-        clock: Some(Box::new(clock)),
-        compare: Box::new(BoringEq),
-        aes: Box::new(BoringAes),
-        des: Box::new(BoringDes),
-        hmac: Box::new(BoringHmac),
-        rsa: Box::new(rsa),
-        ec: Box::new(ec),
-        ckdf: Box::new(BoringAesCmac),
-        hkdf: Box::new(BoringHmac),
-        sha256: Box::new(BoringSha256),
-    }
+    kmr_crypto_boring::implementation(Box::new(rng), Box::new(clock))
 }
 
 /// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use.
@@ -80,10 +64,8 @@ pub fn build_ta() -> kmr_ta::KeyMintTa {
 
     let sign_info = attest::CertSignInfo::new();
     let keys: Box<dyn kmr_ta::device::RetrieveKeyMaterial> = Box::new(soft::Keys);
-    let rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts> = Box::new(soft::RpcArtifacts::new(
-        soft::Derive::default(),
-        rpc_sign_algo,
-    ));
+    let rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts> =
+        Box::new(soft::RpcArtifacts::new(soft::Derive::default(), rpc_sign_algo));
     let dev = Implementation {
         keys,
         sign_info: Some(Box::new(sign_info)),
@@ -99,11 +81,8 @@ pub fn build_ta() -> kmr_ta::KeyMintTa {
         // No support for converting previous implementation's keyblobs.
         legacy_key: None,
         rpc,
+        frp_secret_storage: Some(Box::new(frp::InMemorySecretStorage::new())),
+        frp_data_storage: Some(Box::new(frp::InMemoryDataStorage::new())),
     };
-    KeyMintTa::new(
-        hw_info,
-        RpcInfo::V3(rpc_info_v3),
-        boringssl_crypto_impls(),
-        dev,
-    )
+    KeyMintTa::new(hw_info, RpcInfo::V3(rpc_info_v3), boringssl_crypto_impls(), dev)
 }

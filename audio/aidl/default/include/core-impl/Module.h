@@ -274,7 +274,7 @@ class Module : public BnModule {
     bool setAudioPortConfigGain(
             const ::aidl::android::media::audio::common::AudioPort& port,
             const ::aidl::android::media::audio::common::AudioGainConfig& gainRequested);
-    ndk::ScopedAStatus validateAudioTrackAttributeTags(const std::vector<std::string>& tags);
+    ndk::ScopedAStatus validateMetadataAttributeTags(const std::vector<std::string>& tags);
 };
 
 std::ostream& operator<<(std::ostream& os, Module::Type t);

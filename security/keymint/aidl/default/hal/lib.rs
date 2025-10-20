@@ -21,8 +21,8 @@ use kmr_hal::{env::get_property, HalServiceError, SerializedChannel};
 use log::{error, info};
 use std::{sync::{Arc, Mutex}, ops::DerefMut};
 
-/// Send boot info and attestation info to TA via the given communication channel.
-pub fn send_boot_info_and_attestation_id_info<T: SerializedChannel>(
+/// Send boot info to TA via the given communication channel.
+pub fn send_boot_info<T: SerializedChannel>(
     channel: &Arc<Mutex<T>>
 ) -> Result<(), HalServiceError> {
     // Retrieve root-of-trust information (with the exception of the verified boot key
@@ -33,7 +33,13 @@ pub fn send_boot_info_and_attestation_id_info<T: SerializedChannel>(
     kmr_hal::send_boot_info(channel.lock().unwrap().deref_mut(), boot_req)
         .map_err(|e| format!("Failed to send boot info: {e:?}"))?;
     info!("Successfully sent non-secure boot info to TA.");
+    Ok(())
+}
 
+/// Send attestation info to TA via the given communication channel.
+pub fn send_attestation_id_info<T: SerializedChannel>(
+    channel: &Arc<Mutex<T>>
+) -> Result<(), HalServiceError> {
     // Retrieve device ID information (except for IMEI/MEID values) from Android properties
     // and populate the TA with this information. On a real device, a factory provisioning
     // process would populate this information.
@@ -45,6 +51,15 @@ pub fn send_boot_info_and_attestation_id_info<T: SerializedChannel>(
     } else {
         info!("Successfully sent non-secure attestation ID info to TA.");
     }
+    Ok(())
+}
+
+/// Send boot info and attestation info to TA via the given communication channel.
+pub fn send_boot_info_and_attestation_id_info<T: SerializedChannel>(
+    channel: &Arc<Mutex<T>>
+) -> Result<(), HalServiceError> {
+    send_boot_info(&channel)?;
+    send_attestation_id_info(&channel)?;
     Ok(())
 }
 

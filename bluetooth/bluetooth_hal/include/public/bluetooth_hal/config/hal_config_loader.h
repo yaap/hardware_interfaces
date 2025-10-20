@@ -251,8 +251,8 @@ class HalConfigLoader : public ConfigLoader {
   static void ResetLoader();
 
  private:
-  static HalConfigLoader* loader_;
-  static std::mutex loader_mutex_;
+  static inline HalConfigLoader* loader_{nullptr};
+  static inline std::mutex loader_mutex_;
 };
 
 }  // namespace config

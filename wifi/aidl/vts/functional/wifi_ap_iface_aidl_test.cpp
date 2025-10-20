@@ -34,6 +34,9 @@ using aidl::android::hardware::wifi::WifiBand;
 class WifiApIfaceAidlTest : public testing::TestWithParam<std::string> {
   public:
     void SetUp() override {
+        if (!::testing::deviceSupportsFeature("android.hardware.wifi")) {
+            GTEST_SKIP() << "Skipping this test since wifi is not supported.";
+        }
         isBridgedSupport_ = testing::checkSubstringInCommandOutput(
                 "/system/bin/cmd wifi get-softap-supported-features",
                 "wifi_softap_bridged_ap_supported");

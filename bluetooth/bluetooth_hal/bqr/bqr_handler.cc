@@ -20,10 +20,15 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iomanip>
+#include <memory>
 #include <unordered_map>
 
 #include "android-base/logging.h"
+#include "bluetooth_hal/bqr/bqr_advance_rf_stats_event.h"
+#include "bluetooth_hal/bqr/bqr_advance_rf_stats_event_v7.h"
+#include "bluetooth_hal/bqr/bqr_energy_monitoring_event.h"
+#include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v6.h"
+#include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v7.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
@@ -63,10 +68,21 @@ BqrHandler::BqrHandler()
       vendor_capability_monitor_(HciCommandCompleteEventMonitor(
           static_cast<uint16_t>(CommandOpCode::kGoogleVendorCapability))) {}
 
-BqrHandler& BqrHandler::GetHandler() {
-  static BqrHandler handler;
-  return handler;
+bool BqrHandler::RegisterBqrHandler(FactoryFn factory) {
+  if (!factory) {
+    return false;
+  }
+  VendorFactory::RegisterProviderFactory(std::move(factory));
+  return true;
 }
+
+void BqrHandler::Start() {
+  if (handler_ptr_ == nullptr) {
+    handler_ptr_ = VendorFactory::Create();
+  }
+}
+
+void BqrHandler::Stop() { handler_ptr_.reset(); }
 
 void BqrHandler::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
                                          const HalPacket& packet) {
@@ -90,7 +106,14 @@ void BqrHandler::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
       case BqrEventType::kLinkQuality:
         HandleLinkQualityEvent(bqr_event);
         break;
+      case BqrEventType::kAdvancedRfStat:
+        HandleAdvancedRfStatEvent(bqr_event);
+        break;
+      case BqrEventType::kEnergyMonitoring:
+        HandleEnergyMonitoringEvent(bqr_event);
+        break;
       default:
+        HandleUnspecifiedVendorEvent(bqr_event);
         break;
     }
   }
@@ -148,6 +171,51 @@ void BqrHandler::HandleLinkQualityEvent(const BqrEvent& bqr_event) {
     default:
       break;
   }
+}
+
+void BqrHandler::HandleAdvancedRfStatEvent(const BqrEvent& bqr_event) {
+  switch (local_supported_bqr_version_) {
+    case BqrVersion::kV6: {
+      BqrAdvanceRfStatsEvent advance_rf_states_event(bqr_event);
+      LOG(INFO) << advance_rf_states_event.ToString();
+    } break;
+    case BqrVersion::kV7: {
+      BqrAdvanceRfStatsEventV7 advance_rf_states_event(bqr_event);
+      LOG(INFO) << advance_rf_states_event.ToString();
+    } break;
+    default:
+      break;
+  }
+}
+
+void BqrHandler::HandleEnergyMonitoringEvent(const BqrEvent& bqr_event) {
+  switch (local_supported_bqr_version_) {
+    case BqrVersion::kV1ToV3:
+    case BqrVersion::kV4:
+    case BqrVersion::kV5: {
+      BqrEnergyMonitoringEvent energy_event(bqr_event);
+      LOG(INFO) << energy_event.ToString();
+    } break;
+    case BqrVersion::kV6: {
+      BqrEnergyMonitoringEventV6 energy_event(bqr_event);
+      LOG(INFO) << energy_event.ToString();
+    } break;
+    case BqrVersion::kV7: {
+      BqrEnergyMonitoringEventV7 energy_event(bqr_event);
+      LOG(INFO) << energy_event.ToString();
+    } break;
+    default:
+      break;
+  }
+}
+
+void BqrHandler::HandleUnspecifiedVendorEvent(
+    [[maybe_unused]] const BqrEvent& bqr_event) {
+  // Empty function can be overridden by child classes if needed.
+}
+
+BqrVersion BqrHandler::GetLocalSupportedBqrVersion() {
+  return local_supported_bqr_version_;
 }
 
 void BqrHandler::OnBluetoothEnabled() {

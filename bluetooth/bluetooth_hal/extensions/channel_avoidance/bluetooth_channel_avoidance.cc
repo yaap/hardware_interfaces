@@ -14,19 +14,59 @@
  * limitations under the License.
  */
 
+#ifdef USE_CHANNEL_AVOIDANCE_V1
+
+#define LOG_TAG "bluetooth_hal.extensions.channel_avoidance"
+
 #include "bluetooth_hal/extensions/channel_avoidance/bluetooth_channel_avoidance.h"
 
 #include <array>
 #include <cstdint>
+#include <memory>
+#include <string>
 
+#include "android-base/logging.h"
 #include "android/binder_auto_utils.h"
+#include "android/binder_interface_utils.h"
+#include "android/binder_manager.h"
 #include "bluetooth_hal/extensions/channel_avoidance/bluetooth_channel_avoidance_handler.h"
+#include "bluetooth_hal/hal_extension_points.h"
 
 namespace bluetooth_hal {
 namespace extensions {
 namespace channel_avoidance {
+namespace {
 
+using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
+
+using ::ndk::ICInterface;
 using ::ndk::ScopedAStatus;
+using ::ndk::SharedRefBase;
+
+void ChannelAvoidanceInitializer() {
+  auto register_service = [](const std::shared_ptr<ICInterface>& service,
+                             const char* name) {
+    std::string instance = std::string() + name + "/default";
+    binder_status_t status =
+        AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (status != STATUS_OK) {
+      LOG(ERROR) << "Could not register " << name << " as a service!";
+    }
+  };
+
+  register_service(SharedRefBase::make<BluetoothChannelAvoidance>(),
+                   BluetoothChannelAvoidance::descriptor);
+}
+
+}  // namespace
+
+struct ChannelAvoidanceRegistrar {
+  ChannelAvoidanceRegistrar() {
+    BluetoothHalRegisterExtension(ChannelAvoidanceInitializer);
+  }
+};
+
+ChannelAvoidanceRegistrar g_channel_avoidance_registrar;
 
 ScopedAStatus BluetoothChannelAvoidance::setBluetoothChannelStatus(
     const std::array<uint8_t, 10>& channel_map) {
@@ -38,3 +78,5 @@ ScopedAStatus BluetoothChannelAvoidance::setBluetoothChannelStatus(
 }  // namespace channel_avoidance
 }  // namespace extensions
 }  // namespace bluetooth_hal
+
+#endif

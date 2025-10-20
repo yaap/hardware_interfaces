@@ -16,12 +16,20 @@
 
 #include "bluetooth_hal/debug/debug_client.h"
 
-#include <memory>
+#include <deque>
+#include <sstream>
+#include <string>
+#include <vector>
 
+#include "android-base/logging.h"
 #include "bluetooth_hal/debug/debug_central.h"
+#include "bluetooth_hal/util/logging.h"
 
 namespace bluetooth_hal {
 namespace debug {
+
+using ::android::base::LogSeverity;
+using ::bluetooth_hal::util::Logger;
 
 DebugClient::DebugClient() { DebugCentral::Get().RegisterDebugClient(this); }
 
@@ -40,8 +48,8 @@ std::vector<Coredump> DebugClient::Dump() {
   return {coredump};
 }
 
-DebugClient::ClientLogStream DebugClient::ClientLog(
-    ::android::base::LogSeverity severity, const char* tag) {
+DebugClient::ClientLogStream DebugClient::ClientLog(LogSeverity severity,
+                                                    const char* tag) {
   if (log_tag_.empty()) {
     SetClientLogTag(tag);
   }
@@ -63,11 +71,9 @@ std::string DebugClient::GetClientLogsInString() const {
 void DebugClient::SetClientLogTag(const std::string& tag) { log_tag_ = tag; }
 
 DebugClient::ClientLogStream::ClientLogStream(
-    std::deque<std::string>& log_buffer, ::android::base::LogSeverity severity,
-    const char* tag)
+    std::deque<std::string>& log_buffer, LogSeverity severity, const char* tag)
     : log_buffer_(log_buffer), severity_(severity), tag_(tag) {
-  timestamp_stream_ << ::bluetooth_hal::util::Logger::GetLogFormatTimestamp()
-                    << ": ";
+  timestamp_stream_ << Logger::GetLogFormatTimestamp() << ": ";
 }
 
 DebugClient::ClientLogStream::~ClientLogStream() {

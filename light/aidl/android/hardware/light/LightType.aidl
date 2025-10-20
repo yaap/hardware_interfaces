@@ -33,4 +33,6 @@ enum LightType {
     WIFI = 7,
     MICROPHONE = 8,
     CAMERA = 9,
+    APPLICATION = 10,
+    PRIORITY_NOTIFICATIONS = 11,
 }

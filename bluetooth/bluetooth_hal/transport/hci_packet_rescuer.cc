@@ -23,8 +23,10 @@
 #include <span>
 #include <unordered_map>
 
+#include "android-base/logging.h"
 #include "bluetooth_hal/debug/bluetooth_activities.h"
 #include "bluetooth_hal/hal_types.h"
+#include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
 
 namespace bluetooth_hal {
 namespace transport {
@@ -65,6 +67,16 @@ static const std::unordered_map<EventCode, uint8_t> kEventCodeToItsParamLength =
 
 }  // namespace
 
+HciPacketRescuer::HciPacketRescuer() {
+  if (vendor_packet_validator_) {
+    return;
+  }
+  vendor_packet_validator_ = VendorPacketValidatorInterface::Create();
+  if (!vendor_packet_validator_) {
+    LOG(ERROR) << __func__ << ": Failed to create VendorPacketValidator.";
+  }
+}
+
 bool HciPacketRescuer::VerifyEventCodeAndItsParamLength(
     std::span<const uint8_t> data, EventCode event_code) {
   const size_t length = data.size();
@@ -86,7 +98,10 @@ bool HciPacketRescuer::VerifyEventCodeAndItsParamLength(
              sub_event_code <= kBleMaximumEventSubCodeForRescue;
     }
     case EventCode::kVendorSpecific: {
-      return vendor_packet_validator_.IsValidVendorSpecificEvent(data);
+      if (!vendor_packet_validator_) {
+        return false;
+      }
+      return vendor_packet_validator_->IsValidVendorSpecificEvent(data);
     }
     case EventCode::kNumberOfCompletedPackets: {
       if (kNumberOfCompletedPacketNumHandlesOffset >= length) {

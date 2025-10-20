@@ -18,30 +18,32 @@
 
 #include "bluetooth_hal/debug/bluetooth_activities.h"
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
-#include "android-base/logging.h"
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/debug/command_error_code.h"
+#include "bluetooth_hal/debug/debug_client.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 #include "bluetooth_hal/util/logging.h"
+#include "com_android_bluetooth_bluetooth_hal_flags.h"
 
 namespace bluetooth_hal {
 namespace debug {
 namespace {
+
+namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
 
 using ::bluetooth_hal::hci::BleMetaEventSubCode;
 using ::bluetooth_hal::hci::BluetoothAddress;
@@ -53,6 +55,8 @@ using ::bluetooth_hal::hci::HciEventMonitor;
 using ::bluetooth_hal::hci::MonitorMode;
 using ::bluetooth_hal::util::Logger;
 
+constexpr std::string_view kBluetoothActivitiesDebuggingTitle =
+    "Bluetooth Activities";
 constexpr uint16_t kBtMaxConnectHistoryRecord = 64;
 constexpr size_t kBleConnectionEventStatusOffset = 4;
 constexpr size_t kBleConnectionHandleOffset = 5;
@@ -74,7 +78,8 @@ std::string ToHexString(uint16_t value, int num_of_digits) {
 }  // namespace
 
 class BluetoothActivitiesImpl : public BluetoothActivities,
-                                public ::bluetooth_hal::hci::HciRouterClient {
+                                public ::bluetooth_hal::hci::HciRouterClient,
+                                public DebugClient {
  public:
   BluetoothActivitiesImpl();
 
@@ -92,10 +97,14 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
   void OnMonitorPacketCallback(
       ::bluetooth_hal::hci::MonitorMode mode,
       const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnBluetoothChipReady() override {};
+  void OnBluetoothChipReady() override;
   void OnBluetoothChipClosed() override;
   void OnBluetoothEnabled() override {};
   void OnBluetoothDisabled() override {};
+
+#ifndef UNIT_TEST
+  std::vector<Coredump> Dump() override;
+#endif
 
  private:
   struct ConnectionActivity {
@@ -131,14 +140,13 @@ BluetoothActivitiesImpl::BluetoothActivitiesImpl()
           static_cast<uint8_t>(EventCode::kConnectionComplete))),
       disconnection_complete_event_monitor_(HciEventMonitor(
           static_cast<uint8_t>(EventCode::kDisconnectionComplete))) {
+  SetClientLogTag(kBluetoothActivitiesDebuggingTitle.data());
+
   RegisterMonitor(ble_connection_complete_event_monitor_,
                   MonitorMode::kMonitor);
   RegisterMonitor(connection_complete_event_monitor_, MonitorMode::kMonitor);
   RegisterMonitor(disconnection_complete_event_monitor_, MonitorMode::kMonitor);
 }
-
-std::unique_ptr<BluetoothActivities> BluetoothActivities::instance_;
-std::mutex BluetoothActivities::mutex_;
 
 void BluetoothActivities::Start() { BluetoothActivities::Get(); }
 
@@ -185,8 +193,13 @@ void BluetoothActivitiesImpl::OnMonitorPacketCallback(
   }
 }
 
+void BluetoothActivitiesImpl::OnBluetoothChipReady() {
+  CLIENT_LOG(INFO) << __func__;
+}
+
 void BluetoothActivitiesImpl::OnBluetoothChipClosed() {
   connected_device_address_.clear();
+  CLIENT_LOG(INFO) << __func__ << ": " << "Clear connected devices.";
 }
 
 void BluetoothActivitiesImpl::HandleBleMetaEvent(const HalPacket& event) {
@@ -204,9 +217,12 @@ void BluetoothActivitiesImpl::HandleBleMetaEvent(const HalPacket& event) {
 
   if (event_status == static_cast<uint8_t>(EventResultCode::kSuccess)) {
     connected_device_address_[activity.connection_handle] = activity.bd_address;
-    LOG(INFO) << __func__ << ": " << activity.event << ", connection handle: "
-              << ToHexString(activity.connection_handle, kUint16HexStringDigit)
-              << ", BD address: " << activity.bd_address.ToString() << ".";
+    CLIENT_LOG(INFO) << __func__ << ": " << activity.event
+                     << ", connection handle: "
+                     << ToHexString(activity.connection_handle,
+                                    kUint16HexStringDigit)
+                     << ", BD address: " << activity.bd_address.ToString()
+                     << ".";
   }
 }
 
@@ -225,9 +241,12 @@ void BluetoothActivitiesImpl::HandleConnectCompleteEvent(
 
   if (event_status == static_cast<uint8_t>(EventResultCode::kSuccess)) {
     connected_device_address_[activity.connection_handle] = activity.bd_address;
-    LOG(INFO) << __func__ << ": " << activity.event << ", connection handle: "
-              << ToHexString(activity.connection_handle, kUint16HexStringDigit)
-              << ", BD address: " << activity.bd_address.ToString() << ".";
+    CLIENT_LOG(INFO) << __func__ << ": " << activity.event
+                     << ", connection handle: "
+                     << ToHexString(activity.connection_handle,
+                                    kUint16HexStringDigit)
+                     << ", BD address: " << activity.bd_address.ToString()
+                     << ".";
   }
 }
 
@@ -247,9 +266,12 @@ void BluetoothActivitiesImpl::HandleDisconnectCompleteEvent(
 
   if (event_status == static_cast<uint8_t>(EventResultCode::kSuccess)) {
     connected_device_address_.erase(activity.connection_handle);
-    LOG(INFO) << __func__ << ": " << activity.event << ", connection handle: "
-              << ToHexString(activity.connection_handle, kUint16HexStringDigit)
-              << ", BD address: " << activity.bd_address.ToString() << ".";
+    CLIENT_LOG(INFO) << __func__ << ": " << activity.event
+                     << ", connection handle: "
+                     << ToHexString(activity.connection_handle,
+                                    kUint16HexStringDigit)
+                     << ", BD address: " << activity.bd_address.ToString()
+                     << ".";
   }
 }
 
@@ -260,6 +282,30 @@ void BluetoothActivitiesImpl::UpdateConnectionHistory(
   }
   connection_history_.emplace_back(device);
 }
+
+#ifndef UNIT_TEST
+std::vector<Coredump> BluetoothActivitiesImpl::Dump() {
+  if (!hal_flags::coredump_bt_activities()) {
+    return std::vector<Coredump>();
+  }
+
+  std::string connection_history_dump_;
+  for (const ConnectionActivity& activity : connection_history_) {
+    connection_history_dump_ +=
+        activity.timestamp + ": " + activity.event + ", connection handle: " +
+        ToHexString(activity.connection_handle, kUint16HexStringDigit) +
+        ", BD address: " + activity.bd_address.ToString() +
+        ", status: " + activity.status + "\n";
+  }
+
+  std::vector<Coredump> bluetooth_activities_coredumps;
+  bluetooth_activities_coredumps.emplace_back(
+      kBluetoothActivitiesDebuggingTitle.data(), connection_history_dump_,
+      CoredumpPosition::kEnd);
+
+  return bluetooth_activities_coredumps;
+}
+#endif
 
 }  // namespace debug
 }  // namespace bluetooth_hal

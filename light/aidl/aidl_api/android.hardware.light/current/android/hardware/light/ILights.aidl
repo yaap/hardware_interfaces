@@ -36,4 +36,5 @@ package android.hardware.light;
 interface ILights {
   void setLightState(in int id, in android.hardware.light.HwLightState state);
   android.hardware.light.HwLight[] getLights();
+  void setLightEffects(in android.hardware.light.HwLightEffect[] effects);
 }

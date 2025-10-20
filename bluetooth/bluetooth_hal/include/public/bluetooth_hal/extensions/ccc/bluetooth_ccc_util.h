@@ -33,11 +33,11 @@ struct CccTimestamp {
   /**
    * Timestamp in microsecond since system boot.
    */
-  long system_time;
+  uint64_t system_time;
   /**
    * Timestamp in microsecond since Bluetooth controller power up.
    */
-  long bluetooth_time;
+  uint64_t bluetooth_time;
 };
 
 enum class CccLmpEventId : uint8_t {

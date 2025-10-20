@@ -41,8 +41,8 @@ parcelable IonexAssistance {
   @VintfStability
   parcelable Header {
     android.hardware.gnss.gnss_assistance.IonexAssistance.Header.MappingFunction mappingFunction;
-    double baseRadiusKm;
-    double heightKm;
+    float baseRadiusKm;
+    float heightKm;
     android.hardware.gnss.gnss_assistance.IonexAssistance.Axes axesInfo;
     @Backing(type="int") @VintfStability
     enum MappingFunction {

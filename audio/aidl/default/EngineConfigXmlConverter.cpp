@@ -21,10 +21,10 @@
 #include <unordered_map>
 
 #define LOG_TAG "AHAL_Config"
+#include <Log.h>
 #include <aidl/android/media/audio/common/AudioFlag.h>
 #include <aidl/android/media/audio/common/AudioHalEngineConfig.h>
 #include <aidl/android/media/audio/common/AudioProductStrategyType.h>
-#include <android-base/logging.h>
 
 #include "core-impl/CapEngineConfigXmlConverter.h"
 #include "core-impl/EngineConfigXmlConverter.h"

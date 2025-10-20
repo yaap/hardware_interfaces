@@ -18,8 +18,8 @@
 
 #define ATRACE_TAG ATRACE_TAG_AUDIO
 #define LOG_TAG "AHAL_Stream"
+#include <Log.h>
 #include <Utils.h>
-#include <android-base/logging.h>
 #include <android/binder_ibinder_platform.h>
 #include <cutils/properties.h>
 #include <utils/SystemClock.h>
@@ -448,7 +448,7 @@ void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNext
         mDrainState = DrainState::NONE;
         if ((drainState == DrainState::ALL || drainState == DrainState::EN_SENT) &&
             asyncCallback != nullptr) {
-            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            LOG(DEBUG) << __func__ << ": sending onDrainReady (end of clip)";
             // For EN_SENT, this is the second onDrainReady which notifies about clip transition.
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
@@ -459,7 +459,7 @@ void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNext
         // The stream state does not change, it is still draining.
         mDrainState = DrainState::EN_SENT;
         if (asyncCallback != nullptr) {
-            LOG(DEBUG) << __func__ << ": sending onDrainReady";
+            LOG(DEBUG) << __func__ << ": sending onDrainReady (ready for next clip data)";
             ndk::ScopedAStatus status = asyncCallback->onDrainReady();
             if (!status.isOk()) {
                 LOG(ERROR) << __func__ << ": error from onDrainReady: " << status;
@@ -704,8 +704,9 @@ bool StreamOutWorkerLogic::write(size_t clientSize, StreamDescriptor::Reply* rep
                      << " succeeded; connected? " << isConnected;
         // Amount of data that the HAL module is going to actually use.
         size_t byteCount = std::min({clientSize, readByteCount, mDataBufferSize});
-        if (byteCount >= frameSize && mContext->getForceTransientBurst()) {
-            // In order to prevent the state machine from going to ACTIVE state,
+        if (byteCount >= frameSize && mContext->getForceTransientBurst() &&
+            !mContext->getAsyncCallback()) {
+            // In order to prevent the state machine from going to ACTIVE state for sync transfers,
             // simulate partial write.
             byteCount -= frameSize;
         }
@@ -839,6 +840,12 @@ ndk::ScopedAStatus StreamCommonImpl::removeEffect(
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
+ndk::ScopedAStatus StreamCommonImpl::createMmapBuffer(MmapBufferDescriptor* _aidl_return) {
+    LOG(DEBUG) << __func__;
+    (void)_aidl_return;
+    return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
 ndk::ScopedAStatus StreamCommonImpl::close() {
     LOG(DEBUG) << __func__;
     if (!isClosed()) {
@@ -927,12 +934,38 @@ void StreamCommonImpl::stopWorker() {
     mWorkerStopIssued = true;
 }
 
+ndk::ScopedAStatus validateMetadataAttributeTags(const std::vector<std::string>& tags) {
+    for (auto& tag : tags) {
+        if (!common::isVendorExtension(tag)) {
+            LOG(ERROR) << __func__ << ": metadata attribute tag " << tag << " is invalid.";
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+    }
+    return ndk::ScopedAStatus::ok();
+}
+
 ndk::ScopedAStatus StreamCommonImpl::updateMetadataCommon(const Metadata& metadata) {
     LOG(DEBUG) << __func__;
     if (!isClosed()) {
         if (metadata.index() != mMetadata.index()) {
             LOG(FATAL) << __func__ << ": changing metadata variant is not allowed";
         }
+        ndk::ScopedAStatus status = std::visit(
+                [&](const auto& data) -> ndk::ScopedAStatus {
+                    for (const auto& track : data.tracks) {
+                        ndk::ScopedAStatus status = validateMetadataAttributeTags(track.tags);
+                        if (!status.isOk()) {
+                            return status;
+                        }
+                    }
+                    return ndk::ScopedAStatus::ok();
+                },
+                metadata);
+
+        if (!status.isOk()) {
+            return status;
+        }
+
         mMetadata = metadata;
         return ndk::ScopedAStatus::ok();
     }

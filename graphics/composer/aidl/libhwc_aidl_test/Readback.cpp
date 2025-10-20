@@ -54,6 +54,17 @@ void saveAsImage(const std::string& prefix, void* bufferData, uint32_t bytesPerP
     fclose(file);
 }
 
+common::PixelFormat mapFromXBits(common::PixelFormat format) {
+    // For golden image generation from the GPU, we aren't guaranteed to have raster
+    // support for X bits, and we never validate the alpha channel anyways.
+    if (format == common::PixelFormat::BGRX_1010102) {
+        // Choose 10-bit RGBA because GPU support for RGBA is broader as it's tied
+        // to bitmap.
+        return common::PixelFormat::RGBA_1010102;
+    }
+    return format;
+}
+
 #define ASSERT_APPROX_EQ(val1, val2, error) \
     ASSERT_NEAR(static_cast<double>(val1), static_cast<double>(val2), static_cast<double>(error))
 }  // namespace
@@ -90,7 +101,7 @@ DisplayProperties ReadbackHelper::setupDisplayProperty(
 
     // Set testRenderEngine and clientCompositionDisplaySettings
     EXPECT_TRUE(composerClient->setPowerMode(displayId, PowerMode::ON).isOk());
-    const auto format = readbackStatus.isOk() ? readBackBufferAttributes.format
+    const auto format = readbackStatus.isOk() ? mapFromXBits(readBackBufferAttributes.format)
                                               : common::PixelFormat::RGBA_8888;
     std::unique_ptr<TestRenderEngine> testRenderEngine;
     EXPECT_NO_FATAL_FAILURE(
@@ -164,6 +175,7 @@ int32_t ReadbackHelper::GetBitsPerChannel(common::PixelFormat pixelFormat) {
     switch (pixelFormat) {
         case common::PixelFormat::RGBA_1010102:
         case common::PixelFormat::BGRA_1010102:
+        case common::PixelFormat::BGRX_1010102:
             return 10;
         case common::PixelFormat::RGBA_8888:
         case common::PixelFormat::RGB_888:
@@ -187,6 +199,7 @@ int32_t ReadbackHelper::GetAlphaBits(common::PixelFormat pixelFormat) {
             return 8;
         case common::PixelFormat::RGBA_1010102:
         case common::PixelFormat::BGRA_1010102:
+        case common::PixelFormat::BGRX_1010102:
             return 2;
         case common::PixelFormat::RGB_888:
             return 0;
@@ -202,7 +215,8 @@ void ReadbackHelper::fillBuffer(uint32_t width, uint32_t height, uint32_t stride
     ASSERT_TRUE(pixelFormat == common::PixelFormat::RGB_888 ||
                 pixelFormat == common::PixelFormat::RGBA_8888 ||
                 pixelFormat == common::PixelFormat::RGBA_1010102 ||
-                pixelFormat == common::PixelFormat::BGRA_1010102);
+                pixelFormat == common::PixelFormat::BGRA_1010102 ||
+                pixelFormat == common::PixelFormat::BGRX_1010102);
     int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
     int32_t alphaBits = GetAlphaBits(pixelFormat);
     ASSERT_NE(-1, alphaBits);
@@ -231,7 +245,8 @@ void ReadbackHelper::fillBuffer(uint32_t width, uint32_t height, uint32_t stride
                 pixelColor[1] = static_cast<uint8_t>(green);
                 pixelColor[2] = static_cast<uint8_t>(blue);
             } else {
-                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102;
+                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102 ||
+                                   pixelFormat == common::PixelFormat::BGRX_1010102;
                 uint32_t alpha = static_cast<uint32_t>(std::round(maxAlphaValue * srcColor.a));
                 uint32_t color =
                         (alpha << (32 - alphaBits)) |
@@ -269,7 +284,8 @@ bool ReadbackHelper::readbackSupported(const common::PixelFormat& pixelFormat,
     if (pixelFormat != common::PixelFormat::RGB_888 &&
         pixelFormat != common::PixelFormat::RGBA_8888 &&
         pixelFormat != common::PixelFormat::RGBA_1010102 &&
-        pixelFormat != common::PixelFormat::BGRA_1010102) {
+        pixelFormat != common::PixelFormat::BGRA_1010102 &&
+        pixelFormat != common::PixelFormat::BGRX_1010102) {
         return false;
     }
     if (std::find(dataspaces.begin(), dataspaces.end(), dataspace) == dataspaces.end()) {
@@ -316,7 +332,8 @@ void ReadbackHelper::compareColorBuffers(const std::vector<Color>& expectedColor
                 uint32_t expectedAlpha =
                         static_cast<uint32_t>(std::round(maxAlphaValue * expectedColor.a));
 
-                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102;
+                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102 ||
+                                   pixelFormat == common::PixelFormat::BGRX_1010102;
 
                 uint32_t actualRed =
                         (*pixelStart >> (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 1 : 3))) &
@@ -369,18 +386,8 @@ void ReadbackHelper::compareColorBuffers(void* expectedBuffer, void* actualBuffe
                 ASSERT_EQ(actualPixel[2], expectedPixel[2])
                         << "Blue channel mismatch at (" << row << ", " << col << ")";
             } else {
-                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102;
-
-                uint32_t expectedRed = (*expectedStart >>
-                                        (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 1 : 3))) &
-                                       maxValue;
-                uint32_t expectedGreen =
-                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
-                uint32_t expectedBlue =
-                        (*expectedStart >>
-                         (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 3 : 1))) &
-                        maxValue;
-                uint32_t expectedAlpha = (*expectedStart >> (32 - alphaBits)) & maxAlphaValue;
+                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102 ||
+                                   pixelFormat == common::PixelFormat::BGRX_1010102;
 
                 uint32_t actualRed = (*actualStart >>
                                       (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 1 : 3))) &
@@ -391,6 +398,19 @@ void ReadbackHelper::compareColorBuffers(void* expectedBuffer, void* actualBuffe
                                        (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 3 : 1))) &
                                       maxValue;
                 uint32_t actualAlpha = (*actualStart >> (32 - alphaBits)) & maxAlphaValue;
+
+                // RenderEngine may swizzle itself, so we need to lookup renderengine's swizzling
+                // for the expected format
+                auto expectedFormat = mapFromXBits(pixelFormat);
+                bgraSwizzle = expectedFormat == common::PixelFormat::BGRA_1010102 ||
+                              expectedFormat == common::PixelFormat::BGRX_1010102;
+                uint32_t expectedRed =
+                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 3)) & maxValue;
+                uint32_t expectedGreen =
+                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
+                uint32_t expectedBlue =
+                        (*expectedStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
+                uint32_t expectedAlpha = (*expectedStart >> (32 - alphaBits)) & maxAlphaValue;
 
                 ASSERT_APPROX_EQ(expectedRed, actualRed, tolerance)
                         << "Red channel mismatch at (" << row << ", " << col << ")";
@@ -455,7 +475,8 @@ void ReadbackBuffer::checkReadbackBuffer(const std::vector<Color>& expectedColor
     EXPECT_EQ(::android::OK, status);
     ASSERT_TRUE(mPixelFormat == PixelFormat::RGB_888 || mPixelFormat == PixelFormat::RGBA_8888 ||
                 mPixelFormat == PixelFormat::RGBA_1010102 ||
-                mPixelFormat == PixelFormat::BGRA_1010102);
+                mPixelFormat == PixelFormat::BGRA_1010102 ||
+                mPixelFormat == PixelFormat::BGRX_1010102);
     const uint32_t stride = (bytesPerPixel > 0 && bytesPerStride > 0)
                                     ? static_cast<uint32_t>(bytesPerStride / bytesPerPixel)
                                     : mGraphicBuffer->getStride();

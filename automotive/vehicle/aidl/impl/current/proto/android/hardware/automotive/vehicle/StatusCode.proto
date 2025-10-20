@@ -18,57 +18,66 @@ syntax = "proto3";
 
 package android.hardware.automotive.vehicle.proto;
 
-/* Must be in sync with StatusCode.aidl. */
+/* Must be in sync with StatusCode.aidl. All values are prefixed to avoid name collisions with
+ * VehiclePropertyStatus. */
 enum StatusCode {
-    OK = 0;
+    STATUS_CODE_OK = 0;
 
     /* Try again. */
-    TRY_AGAIN = 1;
+    STATUS_CODE_TRY_AGAIN = 1;
 
     /* Invalid argument provided. */
-    INVALID_ARG = 2;
+    STATUS_CODE_INVALID_ARG = 2;
 
     /* This code must be returned when device that associated with the vehicle
      * property is not available. For example, when client tries to set HVAC
      * temperature when the whole HVAC unit is turned OFF. */
-    NOT_AVAILABLE = 3;
+    STATUS_CODE_NOT_AVAILABLE = 3;
 
     /* Access denied */
-    ACCESS_DENIED = 4;
+    STATUS_CODE_ACCESS_DENIED = 4;
 
     /* Something unexpected has happened in Vehicle HAL */
-    INTERNAL_ERROR = 5;
+    STATUS_CODE_INTERNAL_ERROR = 5;
 
     /**
      * For features that are not available because the underlying feature is
      * disabled.
      */
-    NOT_AVAILABLE_DISABLED = 6;
+    STATUS_CODE_NOT_AVAILABLE_DISABLED = 6;
 
     /**
      * For features that are not available because the vehicle speed is too low.
      */
-    NOT_AVAILABLE_SPEED_LOW = 7;
+    STATUS_CODE_NOT_AVAILABLE_SPEED_LOW = 7;
 
     /**
      * For features that are not available because the vehicle speed is too
      * high.
      */
-    NOT_AVAILABLE_SPEED_HIGH = 8;
+    STATUS_CODE_NOT_AVAILABLE_SPEED_HIGH = 8;
 
     /**
      * For features that are not available because of bad camera or sensor
      * visibility. Examples might be bird poop blocking the camera or a bumper
      * cover blocking an ultrasonic sensor.
      */
-    NOT_AVAILABLE_POOR_VISIBILITY = 9;
+    STATUS_CODE_NOT_AVAILABLE_POOR_VISIBILITY = 9;
 
     /**
      * The feature cannot be accessed due to safety reasons. Eg. System could be
      * in a faulty state, an object or person could be blocking the requested
      * operation such as closing a trunk door, etc.
      */
-    NOT_AVAILABLE_SAFETY = 10;
+    STATUS_CODE_NOT_AVAILABLE_SAFETY = 10;
+
+    /**
+     * The feature cannot be accessed because the sub-system for the feature is
+     * not connected.
+     *
+     * E.g. trailer light state is not available when the trailer is detached.
+     */
+    STATUS_CODE_NOT_AVAILABLE_SUBSYSTEM_NOT_CONNECTED = 11;
 };
 
 message VehicleHalCallStatus {

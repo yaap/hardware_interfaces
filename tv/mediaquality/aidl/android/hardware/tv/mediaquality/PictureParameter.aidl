@@ -22,6 +22,7 @@ import android.hardware.tv.mediaquality.ColorTemperature;
 import android.hardware.tv.mediaquality.Gamma;
 import android.hardware.tv.mediaquality.PictureQualityEventType;
 import android.hardware.tv.mediaquality.QualityLevel;
+import android.hardware.tv.mediaquality.StreamStatus;
 
 /**
  * The parameters for Picture Profile.
@@ -448,4 +449,10 @@ union PictureParameter {
      * Those status can be found in PictureQualityEventType.
      */
     PictureQualityEventType pictureQualityEventType;
+
+    /**
+     * This indicates the status of the stream (e.g., SDR, HDR10, Dolby Vision), which helps
+     * the framework understand the nature of the content being processed.
+     */
+    StreamStatus streamStatus;
 }

@@ -53,8 +53,6 @@ using ::bluetooth_hal::util::power::WakeSource;
 
 using HalStateChangedCallback = std::function<void(HalState, HalState)>;
 
-std::atomic<bool> BluetoothHci::is_sigterm_handled_{false};
-
 class HciCallback : public HciRouterCallback {
  public:
   HciCallback(const HalPacketCallback& dispatch_packet_to_stack,
@@ -94,7 +92,8 @@ void BluetoothHci::HandleSignal(int signum) {
     return;
   }
 
-  if (!BluetoothFinderHandler::GetHandler().StartPoweredOffFinderMode()) {
+  if (!BluetoothFinderHandler::IsEnabled() ||
+      !BluetoothFinderHandler::GetHandler().StartPoweredOffFinderMode()) {
     // Shutdown lower layer if finder is not enabled.
     Close();
   }

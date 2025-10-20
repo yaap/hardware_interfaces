@@ -17,10 +17,12 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 
 #include "bluetooth_hal/hal_packet.h"
+#include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 namespace debug {
@@ -85,8 +87,8 @@ class BluetoothActivities {
   BluetoothActivities() = default;
 
  private:
-  static std::unique_ptr<BluetoothActivities> instance_;
-  static std::mutex mutex_;
+  static inline std::unique_ptr<BluetoothActivities> instance_;
+  static inline std::mutex mutex_;
 };
 
 }  // namespace debug

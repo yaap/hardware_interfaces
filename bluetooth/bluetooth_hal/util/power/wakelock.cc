@@ -38,10 +38,12 @@ namespace power {
 
 class WakelockImpl : public Wakelock {
  public:
+  WakelockImpl() : wakelock_timeout_(kWakelockTimeMilliseconds) {};
   void Acquire(WakeSource source) override;
   void Release(WakeSource source) override;
   bool IsAcquired() override;
   bool IsWakeSourceAcquired(WakeSource source) override;
+  void SetWakelockTimeout(const int timeout) override;
 
  private:
   void ReleaseWakelock();
@@ -55,6 +57,7 @@ class WakelockImpl : public Wakelock {
 
   // TODO: b/382605673 - Read it from the config manager.
   static constexpr int kWakelockTimeMilliseconds = 100;
+  int wakelock_timeout_;
 };
 
 void WakelockImpl::Acquire(WakeSource source) {
@@ -92,7 +95,7 @@ void WakelockImpl::Release(WakeSource source) {
     // The wakelock list is empty, schedule a timer to release the wakelock.
     release_wakelock_timer_.Schedule(
         std::bind_front(&WakelockImpl::ReleaseWakelock, this),
-        std::chrono::milliseconds{kWakelockTimeMilliseconds});
+        std::chrono::milliseconds{wakelock_timeout_});
   }
   WakelockWatchdog::GetWatchdog().Stop(source);
 }
@@ -123,6 +126,15 @@ void WakelockImpl::ReleaseWakelock() {
     PowerInterface::GetInterface().ReleaseWakelock();
     wakelock_acquired_ = false;
   }
+}
+
+void WakelockImpl::SetWakelockTimeout(const int timeout) {
+  if (timeout == wakelock_timeout_) {
+    return;
+  }
+
+  HAL_LOG(DEBUG) << "Wakelock timeout set to " << timeout;
+  wakelock_timeout_ = timeout;
 }
 
 std::string WakelockImpl::ToString() {

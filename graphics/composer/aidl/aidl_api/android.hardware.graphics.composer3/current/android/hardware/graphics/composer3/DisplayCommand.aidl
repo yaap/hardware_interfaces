@@ -47,4 +47,5 @@ parcelable DisplayCommand {
   boolean presentOrValidateDisplay;
   int frameIntervalNs;
   long pictureProfileId;
+  @nullable android.hardware.graphics.composer3.ActiveConfigCommand activeConfig;
 }

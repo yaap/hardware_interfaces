@@ -16,6 +16,7 @@
 
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v5.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <iomanip>

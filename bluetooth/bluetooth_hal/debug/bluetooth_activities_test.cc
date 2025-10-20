@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/hal_packet.h"

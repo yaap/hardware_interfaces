@@ -383,6 +383,8 @@ interface IModule {
      *                             - If the port config can not be found by the ID.
      *                             - If the port config is not of an input mix port.
      *                             - If a buffer of the requested size can not be provided.
+     *                             - If the sinkMetadata's 'RecordTrackMetadata.tags' value is
+     *                               invalid.
      * @throws EX_ILLEGAL_STATE In the following cases:
      *                          - If the port config already has a stream opened on it.
      *                          - If the limit on the open stream count for the port has
@@ -456,6 +458,8 @@ interface IModule {
      *                             - If a buffer of the requested size can not be provided.
      *                             - If the callback is not provided for a non-blocking
      *                               port configuration.
+     *                             - If the sourceMetadata's 'PlaybackTrackMetadata.tags' value is
+     *                               invalid.
      * @throws EX_ILLEGAL_STATE In the following cases:
      *                          - If the port config already has a stream opened on it.
      *                          - If the limit on the open stream count for the port has
@@ -493,9 +497,10 @@ interface IModule {
      * This method provides supported ranges (inclusive) for the speed factor
      * and the pitch factor.
      *
-     * If the HAL module supports setting the playback rate, it is recommended
-     * to support speed and pitch factor values at least in the range from 0.5f
-     * to 2.0f.
+     * If the HAL module supports setting the playback rate, it must support
+     * speed factor values at least in the range from 0.5f to 2.0f.
+     * It is also recommended to support pitch factor values in the same range,
+     * but it is not required.
      *
      * @throws EX_UNSUPPORTED_OPERATION If setting of playback rate parameters
      *                                  is not supported by the module.

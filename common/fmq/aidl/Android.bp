@@ -25,7 +25,7 @@ aidl_interface {
             // There is no Java FMQ library, but we support the AIDL type
             // to allow subsets of interfaces that include it to be used in Java
             enabled: true,
-            sdk_version: "module_current",
+            sdk_version: "system_current",
         },
         cpp: {
             // FMQ is only supported for PODs with the cpp backend
@@ -44,7 +44,7 @@ aidl_interface {
             enabled: true,
         },
     },
-    frozen: true,
+    frozen: false,
     versions_with_info: [
         {
             version: "1",

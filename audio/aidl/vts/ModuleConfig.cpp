@@ -234,6 +234,20 @@ std::vector<AudioPort> ModuleConfig::getMmapMixPorts(bool isInput, bool connecte
                    : findMixPorts(isInput, connectedOnly, singlePort, outputFlagMatcher);
 }
 
+std::vector<AudioPort> ModuleConfig::getNonMmapMixPorts(bool isInput, bool connectedOnly,
+                                                        bool singlePort) const {
+    static const auto inputFlagMatcher = [&](const AudioPort& port) {
+        return !isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::input>(),
+                                     AudioInputFlags::MMAP_NOIRQ);
+    };
+    static const auto outputFlagMatcher = [&](const AudioPort& port) {
+        return !isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::output>(),
+                                     AudioOutputFlags::MMAP_NOIRQ);
+    };
+    return isInput ? findMixPorts(isInput, connectedOnly, singlePort, inputFlagMatcher)
+                   : findMixPorts(isInput, connectedOnly, singlePort, outputFlagMatcher);
+}
+
 std::vector<AudioPort> ModuleConfig::getRemoteSubmixPorts(bool isInput, bool singlePort) const {
     AudioDeviceType deviceType = isInput ? AudioDeviceType::IN_SUBMIX : AudioDeviceType::OUT_SUBMIX;
     auto ports = getAudioPortsForDeviceTypes(std::vector<AudioDeviceType>{deviceType},
@@ -479,6 +493,48 @@ static size_t combineAudioConfigs(const AudioPort& port, const AudioProfile& pro
 static bool isDynamicProfile(const AudioProfile& profile) {
     return (profile.format.type == AudioFormatType::DEFAULT && profile.format.encoding.empty()) ||
            profile.sampleRates.empty() || profile.channelMasks.empty();
+}
+
+std::optional<AudioPortConfig> ModuleConfig::generateConfigForPort(
+        const AudioPort& port, const AudioPortConfig& audioConfig) {
+    for (const auto& profile : port.profiles) {
+        if (isDynamicProfile(profile)) continue;
+        if (profile.format != audioConfig.format.value()) continue;
+        for (auto channelMask : profile.channelMasks) {
+            if (channelMask != audioConfig.channelMask.value()) continue;
+            for (auto sampleRate : profile.sampleRates) {
+                if (sampleRate != audioConfig.sampleRate.value().value) continue;
+                AudioPortConfig config{};
+                config.portId = port.id;
+                config.sampleRate = audioConfig.sampleRate;
+                config.channelMask = audioConfig.channelMask;
+                config.format = audioConfig.format;
+                config.flags = port.flags;
+                config.ext = port.ext;
+                return config;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<AudioPortConfig> ModuleConfig::generateMismatchedConfigForPorts(
+        const std::vector<AudioPort>& ports, const AudioPortConfig& audioConfig) {
+    for (const auto& port : ports) {
+        for (const auto& profile : port.profiles) {
+            if (isDynamicProfile(profile)) continue;
+            std::vector<AudioPortConfig> configs;
+            combineAudioConfigs(port, profile, &configs);
+            for (const auto& config : configs) {
+                if (config.format != audioConfig.format ||
+                    config.channelMask != audioConfig.channelMask ||
+                    config.sampleRate != audioConfig.sampleRate) {
+                    return config;
+                }
+            }
+        }
+    }
+    return std::nullopt;
 }
 
 std::vector<AudioPort> ModuleConfig::findMixPorts(

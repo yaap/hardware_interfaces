@@ -14,6 +14,12 @@ aidl_interface {
     host_supported: true,
     srcs: [
         "android/hardware/vibrator/*.aidl",
+        "android/hardware/vibrator/hapticgenerator/*.aidl",
+    ],
+    imports: [
+        "android.hardware.common-V2",
+        "android.hardware.common.fmq-V1",
+        "android.media.audio.common.types-V5",
     ],
     headers: [
         "PersistableBundle_aidl",

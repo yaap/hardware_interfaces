@@ -54,6 +54,7 @@ using android::hardware::gnss::GnssData;
 using android::hardware::gnss::GnssLocation;
 using android::hardware::gnss::GnssMeasurement;
 using android::hardware::gnss::GnssPowerStats;
+using android::hardware::gnss::GnssSignalType;
 using android::hardware::gnss::IAGnss;
 using android::hardware::gnss::IAGnssRil;
 using android::hardware::gnss::IGnss;
@@ -280,7 +281,8 @@ TEST_P(GnssHalTest, InjectBestLocation) {
 
 /*
  * TestGnssSvInfoFields:
- * Gets 1 location and a (non-empty) GnssSvInfo, and verifies basebandCN0DbHz is valid.
+ * Gets 1 location and a (non-empty) GnssSvInfo, and verifies basebandCN0DbHz and signalType are
+ * valid.
  */
 TEST_P(GnssHalTest, TestGnssSvInfoFields) {
     if (aidl_gnss_hal_->getInterfaceVersion() <= 1) {
@@ -310,7 +312,7 @@ TEST_P(GnssHalTest, TestGnssSvInfoFields) {
     } while (!sv_info_lists.empty() && last_sv_info_list.size() == 0);
 
     bool nonZeroCn0Found = false;
-    for (auto sv_info : last_sv_info_list) {
+    for (const auto& sv_info : last_sv_info_list) {
         EXPECT_TRUE(sv_info.basebandCN0DbHz >= 0.0 && sv_info.basebandCN0DbHz <= 65.0);
         if (sv_info.basebandCN0DbHz > 0.0) {
             nonZeroCn0Found = true;
@@ -319,6 +321,22 @@ TEST_P(GnssHalTest, TestGnssSvInfoFields) {
     // Assert at least one value is non-zero. Zero is ok in status as it's possibly
     // reporting a searched but not found satellite.
     EXPECT_TRUE(nonZeroCn0Found);
+    // Version 7 is for 26Q2 release
+    if (aidl_gnss_hal_->getInterfaceVersion() >= 7) {
+        for (const auto& sv_info : last_sv_info_list) {
+            EXPECT_TRUE(sv_info.elapsedRealtime.has_value());
+            ElapsedRealtime elapsedRealtime = sv_info.elapsedRealtime.value();
+            EXPECT_TRUE(elapsedRealtime.flags & ElapsedRealtime::HAS_TIMESTAMP_NS);
+            EXPECT_TRUE(elapsedRealtime.flags & ElapsedRealtime::HAS_TIME_UNCERTAINTY_NS);
+            EXPECT_GT(elapsedRealtime.timestampNs, 0);
+            EXPECT_GE(elapsedRealtime.timeUncertaintyNs, 0);
+            EXPECT_TRUE(sv_info.signalType.has_value());
+            GnssSignalType signalType = sv_info.signalType.value();
+            EXPECT_GT(signalType.carrierFrequencyHz, 0);
+            EXPECT_GT(signalType.constellation, GnssConstellationType::UNKNOWN);
+            EXPECT_GT(signalType.codeType.length(), 0);
+        }
+    }
     StopAndClearLocations();
 }
 
@@ -530,6 +548,12 @@ TEST_P(GnssHalTest, TestCorrelationVector) {
  * 5. Requests the 2nd GnssPowerStats, and verifies it has larger values than the 1st one.
  */
 TEST_P(GnssHalTest, TestGnssPowerIndication) {
+    if (aidl_gnss_hal_->getInterfaceVersion() <= 1) {
+        // Skipping the test since deleteAidingData() is only available in version 2+
+        ALOGD("Skipping TestGnssPowerIndication since interfaceVersion <= 1");
+        return;
+    }
+
     // Set up gnssPowerIndication and callback
     sp<IGnssPowerIndication> iGnssPowerIndication;
     auto status = aidl_gnss_hal_->getExtensionGnssPowerIndication(&iGnssPowerIndication);
@@ -548,6 +572,8 @@ TEST_P(GnssHalTest, TestGnssPowerIndication) {
 
     if (gnssPowerIndicationCallback->last_capabilities_ == 0) {
         // Skipping the test since GnssPowerIndication is not supported.
+        ALOGD("Skipping TestGnssPowerIndication since GnssPowerIndication capability is not "
+              "supported");
         return;
     }
 
@@ -561,11 +587,10 @@ TEST_P(GnssHalTest, TestGnssPowerIndication) {
     auto powerStats1 = gnssPowerIndicationCallback->last_gnss_power_stats_;
 
     // Get a location and request another GnssPowerStats
-    if (aidl_gnss_hal_->getInterfaceVersion() <= 1) {
-        gnss_cb_->location_cbq_.reset();
-    } else {
-        aidl_gnss_cb_->location_cbq_.reset();
-    }
+    aidl_gnss_cb_->location_cbq_.reset();
+    status = aidl_gnss_hal_->deleteAidingData(IGnss::GnssAidingData::ALL);
+    ASSERT_TRUE(status.isOk());
+    ALOGD("Start getting one location for checking acquisition power stats.");
     StartAndCheckFirstLocation(/* min_interval_msec= */ 1000, /* low_power_mode= */ false);
 
     // Request and verify the 2nd GnssPowerStats has larger values than the 1st one
@@ -586,7 +611,7 @@ TEST_P(GnssHalTest, TestGnssPowerIndication) {
         EXPECT_GT(powerStats2.totalEnergyMilliJoule, powerStats1.totalEnergyMilliJoule);
     }
 
-    // At least oone of singleband and multiband acquisition energy must increase
+    // At least one of singleband and multiband acquisition energy must increase
     bool singlebandAcqEnergyIncreased = powerStats2.singlebandAcquisitionModeEnergyMilliJoule >
                                         powerStats1.singlebandAcquisitionModeEnergyMilliJoule;
     bool multibandAcqEnergyIncreased = powerStats2.multibandAcquisitionModeEnergyMilliJoule >
@@ -599,11 +624,25 @@ TEST_P(GnssHalTest, TestGnssPowerIndication) {
         EXPECT_TRUE(singlebandAcqEnergyIncreased || multibandAcqEnergyIncreased);
     }
 
+    // Get 5 locations and request another GnssPowerStats
+    aidl_gnss_cb_->location_cbq_.reset();
+    ALOGD("Start getting 5 locations for checking tracking power stats.");
+    StartAndCheckLocations(5);
+
+    // Request and verify the 3rd GnssPowerStats has larger values than the 2nd one
+    iGnssPowerIndication->requestGnssPowerStats();
+
+    EXPECT_TRUE(gnssPowerIndicationCallback->gnss_power_stats_cbq_.retrieve(
+            gnssPowerIndicationCallback->last_gnss_power_stats_, kTimeoutSec));
+    EXPECT_EQ(gnssPowerIndicationCallback->gnss_power_stats_cbq_.calledCount(), 3);
+
+    auto powerStats3 = gnssPowerIndicationCallback->last_gnss_power_stats_;
+
     // At least one of singleband and multiband tracking energy must increase
-    bool singlebandTrackingEnergyIncreased = powerStats2.singlebandTrackingModeEnergyMilliJoule >
-                                             powerStats1.singlebandTrackingModeEnergyMilliJoule;
-    bool multibandTrackingEnergyIncreased = powerStats2.multibandTrackingModeEnergyMilliJoule >
-                                            powerStats1.multibandTrackingModeEnergyMilliJoule;
+    bool singlebandTrackingEnergyIncreased = powerStats3.singlebandTrackingModeEnergyMilliJoule >
+                                             powerStats2.singlebandTrackingModeEnergyMilliJoule;
+    bool multibandTrackingEnergyIncreased = powerStats3.multibandTrackingModeEnergyMilliJoule >
+                                            powerStats2.multibandTrackingModeEnergyMilliJoule;
     if ((gnssPowerIndicationCallback->last_capabilities_ &
          (int)GnssPowerIndicationCallback::CAPABILITY_SINGLEBAND_TRACKING) ||
         (gnssPowerIndicationCallback->last_capabilities_ &
@@ -1256,8 +1295,16 @@ TEST_P(GnssHalTest, GnssDebugValuesSanityTest) {
               sv_info.svid);
         bool foundDebugData = false;
         for (auto satelliteData : data.satelliteDataArray) {
-            if (satelliteData.constellation == sv_info.constellation &&
-                satelliteData.svid == sv_info.svid) {
+            bool constellationMatches = false;
+            if (aidl_gnss_hal_->getInterfaceVersion() >= 7) {
+                constellationMatches =
+                        sv_info.signalType.has_value() &&
+                        satelliteData.constellation == sv_info.signalType.value().constellation;
+            } else {
+                constellationMatches = (satelliteData.constellation == sv_info.constellation);
+            }
+            bool svidMatches = (satelliteData.svid == sv_info.svid);
+            if (constellationMatches && svidMatches) {
                 foundDebugData = true;
                 ALOGD("Found GnssDebug data for this sv.");
                 EXPECT_TRUE(satelliteData.serverPredictionIsAvailable ||

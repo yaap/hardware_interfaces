@@ -38,3 +38,9 @@ aidl_interface {
     frozen: true,
 
 }
+
+dirgroup {
+    name: "trusty_dirgroup_hardware_interfaces_gatekeeper_aidl",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
+}

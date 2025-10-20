@@ -25,3 +25,9 @@ aidl_interface {
     },
     versions: ["1"],
 }
+
+dirgroup {
+    name: "trusty_dirgroup_hardware_interfaces_security_sharedsecret",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
+}

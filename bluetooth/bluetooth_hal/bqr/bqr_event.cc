@@ -17,11 +17,11 @@
 #include "bluetooth_hal/bqr/bqr_event.h"
 
 #include <cstddef>
-#include <sstream>
 #include <string>
 
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
+#include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 namespace bqr {

@@ -18,16 +18,24 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <memory>
+#include <ostream>
 #include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "android-base/logging.h"
+#include "bluetooth_hal/debug/debug_client.h"
 
 namespace bluetooth_hal {
 namespace debug {

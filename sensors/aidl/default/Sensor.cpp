@@ -16,9 +16,11 @@
 
 #include "sensors-impl/Sensor.h"
 
+#include <log/log.h>
 #include "utils/SystemClock.h"
 
 #include <cmath>
+#include <sched.h>
 
 using ::ndk::ScopedAStatus;
 
@@ -105,6 +107,12 @@ void Sensor::run() {
     std::unique_lock<std::mutex> runLock(mRunMutex);
     constexpr int64_t kNanosecondsInSeconds = 1000 * 1000 * 1000;
 
+    struct sched_param params;
+    // Set the thread to the lowest real-time priority.
+    params.sched_priority = 1;
+    if (sched_setscheduler(/*pid=*/0, SCHED_FIFO, &params)) {
+        ALOGE("Unable to set SCHED_FIFO: error %s", strerror(errno));
+    }
     while (!mStopThread) {
         if (!mIsEnabled || mMode == OperationMode::DATA_INJECTION) {
             mWaitCV.wait(runLock, [&] {
@@ -426,6 +434,33 @@ HingeAngleSensor::HingeAngleSensor(int32_t sensorHandle, ISensorsEventCallback* 
 
 void HingeAngleSensor::readEventPayload(EventPayload& payload) {
     payload.set<EventPayload::Tag::scalar>(180.0f);
+}
+
+LowLatencyOffBodyDetectSensor::LowLatencyOffBodyDetectSensor(
+        int32_t sensorHandle, aidl::android::hardware::sensors::ISensorsEventCallback* callback)
+    : OnChangeSensor(callback) {
+    mSensorInfo.sensorHandle = sensorHandle;
+    mSensorInfo.name = "Low Latency Off-body Detect Sensor";
+    mSensorInfo.vendor = "Vendor String";
+    mSensorInfo.version = 1;
+    mSensorInfo.type = SensorType::LOW_LATENCY_OFFBODY_DETECT;
+    mSensorInfo.typeAsString = "";
+    mSensorInfo.maxRange = 1.0f;
+    mSensorInfo.resolution = 1.0f;
+    mSensorInfo.power = 0.001f;
+    mSensorInfo.minDelayUs = 40 * 1000;  // microseconds
+    mSensorInfo.maxDelayUs = kDefaultMaxDelayUs;
+    mSensorInfo.fifoReservedEventCount = 0;
+    mSensorInfo.fifoMaxEventCount = 0;
+    mSensorInfo.requiredPermission = "";
+    mSensorInfo.flags = static_cast<uint32_t>(SensorInfo::SENSOR_FLAG_BITS_ON_CHANGE_MODE |
+                                              SensorInfo::SENSOR_FLAG_BITS_DATA_INJECTION |
+                                              SensorInfo::SENSOR_FLAG_BITS_WAKE_UP);
+}
+
+void LowLatencyOffBodyDetectSensor::readEventPayload(
+        aidl::android::hardware::sensors::Sensor::EventPayload& payload) {
+    payload.set<EventPayload::Tag::scalar>(0.0f);
 }
 
 }  // namespace sensors

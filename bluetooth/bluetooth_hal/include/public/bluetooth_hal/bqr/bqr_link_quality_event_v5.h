@@ -21,7 +21,6 @@
 
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
-#include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
 namespace bluetooth_hal {

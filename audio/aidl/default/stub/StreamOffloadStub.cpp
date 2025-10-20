@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "AHAL_OffloadStream"
-#include <android-base/logging.h>
+#include <Log.h>
 #include <audio_utils/clock.h>
 #include <error/Result.h>
 #include <utils/SystemClock.h>
@@ -52,20 +52,20 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
                         ? mSharedState.bufferFramesLeft - bufferFramesConsumed
                         : 0;
         int64_t framesPlayed = clipFramesPlayed;
-        while (framesPlayed > 0 && !mSharedState.clipFramesLeft.empty()) {
-            LOG(VERBOSE) << __func__ << ": clips: "
-                         << ::android::internal::ToString(mSharedState.clipFramesLeft);
-            const bool hasNextClip = mSharedState.clipFramesLeft.size() > 1;
-            if (mSharedState.clipFramesLeft[0] > framesPlayed) {
-                mSharedState.clipFramesLeft[0] -= framesPlayed;
+        while (framesPlayed > 0 && !mSharedState.clips.empty()) {
+            LOG(VERBOSE) << __func__ << ": " << mSharedState.clips.log();
+            const bool hasNextClip = mSharedState.clips.hasNext();
+            if (mSharedState.clips.currentFrames() > framesPlayed) {
+                mSharedState.clips.updateCurrentFrames(-framesPlayed);
                 framesPlayed = 0;
-                if (mSharedState.clipFramesLeft[0] <= mSharedState.earlyNotifyFrames) {
-                    clipNotifies.emplace_back(mSharedState.clipFramesLeft[0], hasNextClip);
+                if (auto clipFramesLeft = mSharedState.clips.currentFrames();
+                    clipFramesLeft <= mSharedState.earlyNotifyFrames) {
+                    clipNotifies.emplace_back(clipFramesLeft, hasNextClip);
                 }
             } else {
                 clipNotifies.emplace_back(0 /*clipFramesLeft*/, hasNextClip);
-                framesPlayed -= mSharedState.clipFramesLeft[0];
-                mSharedState.clipFramesLeft.erase(mSharedState.clipFramesLeft.begin());
+                framesPlayed -= mSharedState.clips.currentFrames();
+                mSharedState.clips.switchToNext();
                 if (!hasNextClip) {
                     // Since it's a simulation, the buffer consumption rate it not real,
                     // thus 'bufferFramesLeft' might still have something, need to erase it.
@@ -119,12 +119,10 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
 ::android::status_t DriverOffloadStubImpl::drain(StreamDescriptor::DrainMode drainMode) {
     RETURN_STATUS_IF_ERROR(DriverStubImpl::drain(drainMode));
     std::lock_guard l(mState.lock);
-    if (!mState.clipFramesLeft.empty()) {
-        // Cut playback of the current clip.
-        mState.clipFramesLeft[0] = std::min(mState.earlyNotifyFrames * 2, mState.clipFramesLeft[0]);
+    if (!mState.clips.empty()) {
+        mState.clips.trimCurrentFrames(mState.earlyNotifyFrames * 2);
         if (drainMode == StreamDescriptor::DrainMode::DRAIN_ALL) {
-            // Make sure there are no clips after the current one.
-            mState.clipFramesLeft.resize(1);
+            mState.clips.eraseAllNext();
         }
     }
     mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
@@ -136,7 +134,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     mDspWorker.pause();
     {
         std::lock_guard l(mState.lock);
-        mState.clipFramesLeft.clear();
+        mState.clips.erase();
         mState.bufferFramesLeft = 0;
         mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     }
@@ -159,9 +157,8 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     bool hasClips;  // Can be start after paused draining.
     {
         std::lock_guard l(mState.lock);
-        hasClips = !mState.clipFramesLeft.empty();
-        LOG(DEBUG) << __func__
-                   << ": clipFramesLeft: " << ::android::internal::ToString(mState.clipFramesLeft);
+        hasClips = !mState.clips.empty();
+        LOG(DEBUG) << __func__ << ": " << mState.clips.log();
         mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     }
     if (hasClips) {
@@ -195,10 +192,15 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
                        << "sample rate: " << clipSampleRate;
             if (clipSampleRate == mState.sampleRate) {
                 std::lock_guard l(mState.lock);
-                mState.clipFramesLeft.push_back(clipDurationFrames);
+                if (!mState.clips.add(clipDurationFrames)) {
+                    LOG(ERROR) << __func__
+                               << ": not ready for the next clip, clips: " << mState.clips.log();
+                    return ::android::INVALID_OPERATION;
+                }
             } else {
                 LOG(ERROR) << __func__ << ": clip sample rate " << clipSampleRate
                            << " does not match stream sample rate " << mState.sampleRate;
+                return ::android::BAD_VALUE;
             }
         } else {
             frameCount = 0;

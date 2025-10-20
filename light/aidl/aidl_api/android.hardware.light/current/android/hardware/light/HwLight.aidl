@@ -37,4 +37,5 @@ parcelable HwLight {
   int id;
   int ordinal;
   android.hardware.light.LightType type;
+  float maxUpdateHz;
 }

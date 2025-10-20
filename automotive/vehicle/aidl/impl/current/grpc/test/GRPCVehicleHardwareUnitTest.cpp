@@ -79,7 +79,7 @@ MATCHER_P(RepeatedInt32Eq, expected_values, "") {
 
 TEST_F(GRPCVehicleHardwareUnitTest, TestSubscribe) {
     proto::VehicleHalCallStatus protoStatus;
-    protoStatus.set_status_code(proto::StatusCode::OK);
+    protoStatus.set_status_code(proto::StatusCode::STATUS_CODE_OK);
     proto::SubscribeRequest actualRequest;
 
     EXPECT_CALL(*mGrpcStub, Subscribe(_, _, _))
@@ -124,7 +124,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestSubscribeGrpcFailure) {
 
 TEST_F(GRPCVehicleHardwareUnitTest, TestSubscribeProtoFailure) {
     proto::VehicleHalCallStatus protoStatus;
-    protoStatus.set_status_code(proto::StatusCode::NOT_AVAILABLE_SPEED_LOW);
+    protoStatus.set_status_code(proto::StatusCode::STATUS_CODE_NOT_AVAILABLE_SPEED_LOW);
 
     EXPECT_CALL(*mGrpcStub, Subscribe(_, _, _))
             .WillOnce(DoAll(SetArgPointee<2>(protoStatus),  // Set the output status
@@ -138,7 +138,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestSubscribeProtoFailure) {
 
 TEST_F(GRPCVehicleHardwareUnitTest, TestUnsubscribe) {
     proto::VehicleHalCallStatus protoStatus;
-    protoStatus.set_status_code(proto::StatusCode::OK);
+    protoStatus.set_status_code(proto::StatusCode::STATUS_CODE_OK);
     proto::UnsubscribeRequest actualRequest;
 
     EXPECT_CALL(*mGrpcStub, Unsubscribe(_, _, _))
@@ -174,7 +174,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestUnsubscribeGrpcFailure) {
 
 TEST_F(GRPCVehicleHardwareUnitTest, TestUnsubscribeProtoFailure) {
     proto::VehicleHalCallStatus protoStatus;
-    protoStatus.set_status_code(proto::StatusCode::NOT_AVAILABLE_SPEED_LOW);
+    protoStatus.set_status_code(proto::StatusCode::STATUS_CODE_NOT_AVAILABLE_SPEED_LOW);
 
     EXPECT_CALL(*mGrpcStub, Unsubscribe(_, _, _))
             .WillOnce(DoAll(SetArgPointee<2>(protoStatus),  // Set the output status
@@ -404,7 +404,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestGetValues) {
                 response->Clear();
                 auto* resultPtr = response->add_results();
                 resultPtr->set_request_id(testRequestId);
-                resultPtr->set_status(proto::StatusCode::OK);
+                resultPtr->set_status(proto::StatusCode::STATUS_CODE_OK);
                 auto* valuePtr = resultPtr->mutable_value();
                 valuePtr->set_prop(testPropId);
                 valuePtr->add_int32_values(testValue);
@@ -480,7 +480,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestGetValuesOutdatedRetry) {
                 response->Clear();
                 auto* resultPtr = response->add_results();
                 resultPtr->set_request_id(testRequestId);
-                resultPtr->set_status(proto::StatusCode::OK);
+                resultPtr->set_status(proto::StatusCode::STATUS_CODE_OK);
                 auto* valuePtr = resultPtr->mutable_value();
                 valuePtr->set_prop(testPropId);
                 valuePtr->set_timestamp(testTimestamp1);
@@ -494,7 +494,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, TestGetValuesOutdatedRetry) {
                 response->Clear();
                 auto* resultPtr = response->add_results();
                 resultPtr->set_request_id(testRequestId);
-                resultPtr->set_status(proto::StatusCode::OK);
+                resultPtr->set_status(proto::StatusCode::STATUS_CODE_OK);
                 auto* valuePtr = resultPtr->mutable_value();
                 valuePtr->set_prop(testPropId);
                 valuePtr->set_timestamp(testTimestamp2);
@@ -542,7 +542,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, testGetMinMaxSupportedValues) {
                           proto::GetMinMaxSupportedValuesResult* response) {
                 for (const auto& propIdAreaId : request.prop_id_area_id()) {
                     proto::MinMaxSupportedValueResult* individualResult = response->add_result();
-                    individualResult->set_status(proto::StatusCode::OK);
+                    individualResult->set_status(proto::StatusCode::STATUS_CODE_OK);
                     individualResult->mutable_min_supported_value()->add_int32_values(testValue1);
                     individualResult->mutable_max_supported_value()->add_int32_values(testValue2);
                 }
@@ -573,7 +573,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, testGetMinMaxSupportedValues_noMaxValue) {
                           proto::GetMinMaxSupportedValuesResult* response) {
                 for (const auto& propIdAreaId : request.prop_id_area_id()) {
                     proto::MinMaxSupportedValueResult* individualResult = response->add_result();
-                    individualResult->set_status(proto::StatusCode::OK);
+                    individualResult->set_status(proto::StatusCode::STATUS_CODE_OK);
                     individualResult->mutable_min_supported_value()->add_int32_values(testValue1);
                 }
                 return ::grpc::Status::OK;
@@ -602,7 +602,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, testGetSupportedValuesLists) {
                           proto::GetSupportedValuesListsResult* response) {
                 for (const auto& propIdAreaId : request.prop_id_area_id()) {
                     proto::SupportedValuesListResult* individualResult = response->add_result();
-                    individualResult->set_status(proto::StatusCode::OK);
+                    individualResult->set_status(proto::StatusCode::STATUS_CODE_OK);
                     individualResult->add_supported_values_list()->add_int32_values(testValue1);
                     individualResult->add_supported_values_list()->add_int32_values(testValue2);
                 }
@@ -632,7 +632,7 @@ TEST_F(GRPCVehicleHardwareUnitTest, testGetSupportedValuesLists_noSupportedValue
                           proto::GetSupportedValuesListsResult* response) {
                 for (const auto& propIdAreaId : request.prop_id_area_id()) {
                     proto::SupportedValuesListResult* individualResult = response->add_result();
-                    individualResult->set_status(proto::StatusCode::INTERNAL_ERROR);
+                    individualResult->set_status(proto::StatusCode::STATUS_CODE_INTERNAL_ERROR);
                 }
                 return ::grpc::Status::OK;
             });

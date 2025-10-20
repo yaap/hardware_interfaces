@@ -59,6 +59,10 @@ private:
 
     bool isLocal();
 
+    void setKey(uint32_t key);
+
+    uint32_t getKey();
+
     bool isActive(int64_t *lastTransactionMs, bool clearCache);
 
     ConnectionId getConnectionId();
@@ -86,6 +90,7 @@ private:
 
     class Impl;
     std::shared_ptr<Impl> mImpl;
+    uint32_t mKey;
 
     friend struct ClientManager;
     friend struct Observer;

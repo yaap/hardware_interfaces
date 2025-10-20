@@ -19,18 +19,24 @@
 #include "bluetooth_hal/debug/vnd_snoop_logger.h"
 
 #include <arpa/inet.h>
-#include <stdint.h>
 #include <sys/stat.h>
 #include <time.h>
 
+#include <cerrno>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
+#include <functional>
+#include <iomanip>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "android-base/logging.h"
 #include "android-base/properties.h"

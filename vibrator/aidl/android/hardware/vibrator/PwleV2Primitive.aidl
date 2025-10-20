@@ -17,6 +17,7 @@
 package android.hardware.vibrator;
 
 @VintfStability
+@FixedSize
 parcelable PwleV2Primitive {
     /**
      * Input amplitude ranges from 0.0 (inclusive) to 1.0 (inclusive), representing the relative

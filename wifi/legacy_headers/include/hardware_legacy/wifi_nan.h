@@ -63,7 +63,7 @@ typedef u32 NanDataPathId;
 #define NAN_PMK_INFO_LEN                        32
 #define NAN_MAX_SCID_BUF_LEN                    1024
 #define NAN_MAX_SDEA_SERVICE_SPECIFIC_INFO_LEN  2048
-#define NAN_SECURITY_MIN_PASSPHRASE_LEN         8
+#define NAN_SECURITY_MIN_PASSPHRASE_LEN         6
 #define NAN_SECURITY_MAX_PASSPHRASE_LEN         63
 #define NAN_MAX_CHANNEL_INFO_SUPPORTED          4
 #define NAN_IDENTITY_KEY_LEN                    16
@@ -3051,6 +3051,13 @@ typedef struct {
     u8 peer_disc_mac_addr[NAN_MAC_ADDR_LEN];
     /* Proposed bootstrapping method from peer*/
     u16 request_bootstrapping_method;
+
+    /*
+      Sequence of values indicating the service specific info in SDEA
+      Used for service managed bootstrapping method
+    */
+    u16 sdea_service_specific_info_len;
+    u8 sdea_service_specific_info[NAN_MAX_SDEA_SERVICE_SPECIFIC_INFO_LEN];
 
 } NanBootstrappingRequestInd;
 

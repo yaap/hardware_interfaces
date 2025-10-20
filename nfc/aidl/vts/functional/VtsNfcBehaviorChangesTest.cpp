@@ -169,6 +169,42 @@ void static nfaVSCallback(uint8_t event, uint16_t param_len, uint8_t* p_param) {
                                                      param_len);
                     }
                 } break;
+                case NCI_ANDROID_SET_TECH_A_POLLING_LOOP_ANNOTATION: {
+                    if (param_len == 5) {
+                        if ((p_param[0] & NCI_MT_MASK) == (NCI_MT_RSP << NCI_MT_SHIFT)) {
+                            sVSCmdStatus = p_param[4];
+                            LOG(INFO)
+                                    << StringPrintf("Set annotation RSP: status: %x", sVSCmdStatus);
+                            SyncEventGuard guard(sNfaVsCommand);
+                            sNfaVsCommand.notifyOne();
+                        } else {
+                            LOG(WARNING) << StringPrintf(
+                                    "Set annotation RSP has incorrect message type: %x",
+                                    p_param[0]);
+                        }
+                    } else {
+                        LOG(WARNING) << StringPrintf("Set annotation RSP has incorrect length: %d",
+                                                     param_len);
+                    }
+                } break;
+                case NCI_ANDROID_SET_PASSIVE_OBSERVER_EXIT_FRAME: {
+                    if (param_len == 5) {
+                        if ((p_param[0] & NCI_MT_MASK) == (NCI_MT_RSP << NCI_MT_SHIFT)) {
+                            sVSCmdStatus = p_param[4];
+                            LOG(INFO)
+                                    << StringPrintf("Set exit frame RSP: status: %x", sVSCmdStatus);
+                            SyncEventGuard guard(sNfaVsCommand);
+                            sNfaVsCommand.notifyOne();
+                        } else {
+                            LOG(WARNING) << StringPrintf(
+                                    "Set exit frame RSP has incorrect message type: %x",
+                                    p_param[0]);
+                        }
+                    } else {
+                        LOG(WARNING) << StringPrintf("Set exit frame RSP has incorrect length: %d",
+                                                     param_len);
+                    }
+                } break;
                 case NCI_ANDROID_POLLING_FRAME_NTF: {
                     // TODO
                 } break;
@@ -229,6 +265,95 @@ tNFA_STATUS static nfaSetPassiveObserverTech(uint8_t tech_mask) {
 }
 
 /*
+ * Set Tech A polling loop annotation.
+ */
+tNFA_STATUS static nfaSetTechAPollingLoopAnnotation(const uint8_t* annotation_data,
+                                                    size_t annotation_size) {
+    tNFA_STATUS status = NFA_STATUS_FAILED;
+
+    std::vector<uint8_t> cmd;
+    cmd.push_back(NCI_ANDROID_SET_TECH_A_POLLING_LOOP_ANNOTATION);
+    if (annotation_data == NULL || annotation_size == 0) {
+        // Annotation is null or size is 0, setting 0 annotations
+        cmd.push_back(0x00);
+    } else {
+        cmd.push_back(0x01);                 // Number of frame entries.
+        cmd.push_back(0x20);                 // Position and type.
+        cmd.push_back(annotation_size + 1);  // Length
+        cmd.push_back(0x0a);                 // Waiting time
+        cmd.insert(cmd.end(), annotation_data, annotation_data + annotation_size);
+    }
+
+    status = NFA_SendVsCommand(NCI_MSG_PROP_ANDROID, cmd.size(), cmd.data(), nfaVSCallback);
+
+    if (status == NFA_STATUS_OK) {
+        if (!sNfaVsCommand.wait(1000)) {
+            LOG(WARNING) << "Timeout waiting for set tech a polling loop annotation response";
+            return NFA_STATUS_TIMEOUT;
+        }
+    }
+
+    return status;
+}
+
+/*
+ * Set passive observer exit frames.
+ */
+tNFA_STATUS static nfaSetPassiveObserverExitFrames(
+        const std::vector<std::vector<uint8_t>>& exit_frames,
+        const std::vector<std::vector<uint8_t>>& masks) {
+    tNFA_STATUS status = NFA_STATUS_FAILED;
+
+    std::vector<uint8_t> cmd;
+    cmd.push_back(NCI_ANDROID_SET_PASSIVE_OBSERVER_EXIT_FRAME);
+    cmd.push_back(0x00);  // more
+    cmd.push_back(0x88);  // timeout of 5000 ms
+    cmd.push_back(0x13);  // timeout of 5000 ms
+    if (exit_frames.empty()) {
+        // No exit frames
+        cmd.push_back(0x00);
+    } else {
+        cmd.push_back(exit_frames.size());  // Number of exit frames.
+        for (size_t i = 0; i < exit_frames.size(); i++) {
+            const auto& exit_frame = exit_frames[i];
+            const auto& mask = masks[i];
+            if (mask.empty()) {
+                cmd.push_back(0x00);  // Qualifier type
+            } else {
+                cmd.push_back(0x10);  // Qualifier type
+            }
+            cmd.push_back(exit_frame.size() * 2 + 1);  // Size exit frame, mask & power state
+            cmd.push_back(0x39);                       // Power state.
+            cmd.insert(cmd.end(), exit_frame.begin(), exit_frame.end());  // Frame data
+            if (mask.empty()) {
+                cmd.insert(cmd.end(), exit_frame.size(), 0xFF);  // Mask
+            } else {
+                cmd.insert(cmd.end(), mask.begin(), mask.end());  // Mask
+            }
+        }
+    }
+
+    status = NFA_SendVsCommand(NCI_MSG_PROP_ANDROID, cmd.size(), cmd.data(), nfaVSCallback);
+
+    if (status == NFA_STATUS_OK) {
+        if (!sNfaVsCommand.wait(1000)) {
+            LOG(WARNING) << "Timeout waiting for set passive observer exit frame response";
+            return NFA_STATUS_TIMEOUT;
+        }
+    }
+
+    return status;
+}
+
+/*
+ * Set passive observer exit frame.
+ */
+tNFA_STATUS static nfaSetPassiveObserverExitFrame(const std::vector<uint8_t>& exit_frame,
+                                                  const std::vector<uint8_t>& mask) {
+    return nfaSetPassiveObserverExitFrames({exit_frame}, {mask});
+}
+
+/*
  * Get chipset capabilities.
  */
 tNFA_STATUS static nfaGetCaps() {
@@ -254,6 +379,14 @@ uint8_t static getCapsPassiveObserverModeValue() {
     return sCaps[2];
 }
 
+/*
+ * Get number of exit frame entries from capabilities.
+ */
+uint8_t static getCapsNumExitFrameEntries() {
+    // Index 11 is for number of exit frame entries.
+    return sCaps[11];
+}
+
 class NfcBehaviorChanges : public testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
@@ -261,6 +394,13 @@ protected:
         status = NFA_StartRfDiscovery();
         ASSERT_EQ(status, NFA_STATUS_OK);
         ASSERT_TRUE(sNfaEnableDisablePollingEvent.wait(1000)) << "Timeout starting RF discovery";
+    }
+
+    void TearDown() override {
+        tNFA_STATUS status = NFA_STATUS_OK;
+        status = NFA_StopRfDiscovery();
+        ASSERT_EQ(status, NFA_STATUS_OK);
+        ASSERT_TRUE(sNfaEnableDisablePollingEvent.wait(1000)) << "Timeout stopping RF discovery";
     }
 
     static void SetUpTestSuite() {
@@ -294,7 +434,7 @@ protected:
         usleep(10000);
 
         if (get_vsr_api_level() >= 202504) {
-            uint8_t cmd[] = {NCI_ANDROID_SET_PASSIVE_OBSERVER_TECH, 0x0B};
+            uint8_t cmd[] = {NCI_ANDROID_SET_PASSIVE_OBSERVER_TECH, 0x03};
             status = NFA_SendVsCommand(NCI_MSG_PROP_ANDROID, sizeof(cmd), cmd, nfaVSCallback);
             if (status == NFA_STATUS_OK) {
                 if (!sNfaVsCommand.wait(1000)) {
@@ -391,6 +531,101 @@ TEST_P(NfcBehaviorChanges, SetPassiveObserverTech_testThroughput) {
         status = nfaSetPassiveObserverTech(0x00);
         ASSERT_EQ(status, NFA_STATUS_OK);
     }
+}
+
+/*
+ * SetTechAPollingLoopAnnotation_test:
+ * Verifies setTechAPollingLoopAnnotation can be enabled and disabled repeatedly without timing out
+ * or erroring.
+ */
+TEST_P(NfcBehaviorChanges, SetTechAPollingLoopAnnotation_test) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    uint8_t annotation[] = {0x6a, 0x01, 0xcf, 0x00, 0x00};
+    tNFC_STATUS status = nfaSetTechAPollingLoopAnnotation(annotation, sizeof(annotation));
+    ASSERT_EQ(status, NFA_STATUS_OK);
+
+    status = nfaSetTechAPollingLoopAnnotation(NULL, 0);
+    ASSERT_EQ(status, NFA_STATUS_OK);
+}
+
+/*
+ * SetFirmwareExitFrameTable_test:
+ * Verifies setFirmwareExitFrameTable can be enabled and disabled without timing out
+ * or erroring.
+ */
+TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    tNFC_STATUS status = nfaSetPassiveObserverExitFrame({{0x01, 0x02, 0x03, 0x04}}, {});
+    ASSERT_EQ(status, NFA_STATUS_OK);
+
+    status = nfaSetPassiveObserverExitFrame({}, {});
+    ASSERT_EQ(status, NFA_STATUS_OK);
+}
+
+/*
+ * SetFirmwareExitFrameTable_test_pattern:
+ * Verifies setFirmwareExitFrameTable can be enabled and disabled with different pattern mask
+ * without timing out or erroring.
+ */
+TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test_pattern) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    std::vector<uint8_t> exit_frame = {{0x01, 0x02, 0x03, 0x04}};
+    std::vector<uint8_t> mask = {{0xFF, 0xFF, 0x00, 0x00}};
+    tNFC_STATUS status = nfaSetPassiveObserverExitFrame(exit_frame, mask);
+    ASSERT_EQ(status, NFA_STATUS_OK);
+
+    status = nfaSetPassiveObserverExitFrame({}, {});
+    ASSERT_EQ(status, NFA_STATUS_OK);
+}
+
+/*
+ * GetCaps_numExitFrameEntries:
+ * Verifies GET_CAPS returns at least 5 for number of exit frame entries.
+ */
+TEST_P(NfcBehaviorChanges, GetCaps_numExitFrameEntries) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    tNFC_STATUS status = nfaGetCaps();
+
+    ASSERT_EQ(status, NFC_STATUS_OK);
+    ASSERT_GE(getCapsNumExitFrameEntries(), 5);
+}
+
+/*
+ * SetFirmwareExitFrameTable_5Entries:
+ * Verifies setFirmwareExitFrameTable can be enabled and disabled with 5 different pattern mask
+ * without timing out or erroring.
+ */
+TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_5Entries) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    std::vector<std::vector<uint8_t>> exit_frames = {{0x01, 0x02, 0x03, 0x04},
+                                                     {0x05, 0x06, 0x07, 0x08},
+                                                     {0x09, 0x0a, 0x0b, 0x0c},
+                                                     {0x0d, 0x0e, 0x0f, 0x10},
+                                                     {0x11, 0x12, 0x13, 0x14}};
+    std::vector<std::vector<uint8_t>> masks = {
+            {0xFF, 0xFF, 0x00, 0x00}, {0x00, 0xFF, 0x00, 0x00}, {0xFF, 0xFF, 0xFF, 0x00},
+            {0xFF, 0xFF, 0x00, 0xFF}, {0xFF, 0xFF, 0xFF, 0xFF},
+    };
+    tNFC_STATUS status = nfaSetPassiveObserverExitFrames(exit_frames, masks);
+    ASSERT_EQ(status, NFA_STATUS_OK);
+
+    status = nfaSetPassiveObserverExitFrame({}, {});
+    ASSERT_EQ(status, NFA_STATUS_OK);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NfcBehaviorChanges);

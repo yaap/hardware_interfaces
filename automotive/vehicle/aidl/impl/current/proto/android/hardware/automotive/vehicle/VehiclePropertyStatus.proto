@@ -18,10 +18,11 @@ syntax = "proto3";
 
 package android.hardware.automotive.vehicle.proto;
 
-/* Must be in sync with VehiclePropertyStatus.aidl. */
+/* Must be in sync with VehiclePropertyStatus.aidl. All values are prefixed to avoid name collisions
+ * with StatusCode. */
 enum VehiclePropertyStatus {
     /* Property is available and behaving normally */
-    AVAILABLE = 0;
+    VEHICLE_PROPERTY_STATUS_AVAILABLE = 0;
     /* A property in this state is not available for reading and writing.  This
      * is a transient state that depends on the availability of the underlying
      * implementation (e.g. hardware or driver). It MUST NOT be used to
@@ -30,8 +31,46 @@ enum VehiclePropertyStatus {
      * correctly describe its status as UNAVAILABLE A set() of a property in
      * this state MAY return NOT_AVAILABLE. The HAL implementation MUST ignore
      * the value of the status field when writing a property value coming from
-     * Android. */
-    UNAVAILABLE = 1;
-    /* There is an error with this property. */
-    ERROR = 2;
+     * Android.
+     *
+     * This represents a general not-available status. If more detailed info is
+     * known, a more specific not-available status should be used instead.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_GENERAL = 0x01;
+    /**
+     * There is an error with this property.
+     */
+    VEHICLE_PROPERTY_STATUS_ERROR = 0x02;
+    // All NOT_AVAILABLE_XXX status starts with 0x1000.
+    /**
+     * The property is not available because the underlying feature is disabled.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_DISABLED = 0x1001;
+    /**
+     * The property is not available because the vehicle speed is too low.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_SPEED_LOW = 0x1002;
+    /**
+     * The property is not available because the vehicle speed is too high.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_SPEED_HIGH = 0x1003;
+    /**
+     * The property is not available because of bad camera or sensor visibility. Examples
+     * might be bird poop blocking the camera or a bumper cover blocking an ultrasonic sensor.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_POOR_VISIBILITY = 0x1004;
+    /**
+     * The property cannot be accessed due to safety reasons. Eg. System could be
+     * in a faulty state, an object or person could be blocking the requested
+     * operation such as closing a trunk door, etc.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_SAFETY = 0x1005;
+    /**
+     * The property is not available because the sub-system for the feature is
+     * not connected.
+     *
+     * E.g. the trailer light property is in this state if the trailer is not
+     * attached.
+     */
+    VEHICLE_PROPERTY_STATUS_NOT_AVAILABLE_SUBSYSTEM_NOT_CONNECTED = 0x1006;
 };

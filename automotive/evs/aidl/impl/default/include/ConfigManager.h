@@ -125,6 +125,11 @@ class ConfigManager final {
          * only for DeviceType::VIDEO.
          */
         PixelFormat format;
+
+        /* Path of a media file to use for camera emulation. This field is effective
+         * only for DeviceType::VIDEO.
+         */
+        std::string filePath;
     };
 
     class CameraGroupInfo : public CameraInfo {

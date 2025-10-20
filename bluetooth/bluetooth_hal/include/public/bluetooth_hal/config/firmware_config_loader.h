@@ -220,8 +220,8 @@ class FirmwareConfigLoader : public ConfigLoader {
   static void ResetLoader();
 
  private:
-  static FirmwareConfigLoader* loader_;
-  static std::mutex loader_mutex_;
+  static inline FirmwareConfigLoader* loader_{nullptr};
+  static inline std::mutex loader_mutex_;
 };
 
 }  // namespace config

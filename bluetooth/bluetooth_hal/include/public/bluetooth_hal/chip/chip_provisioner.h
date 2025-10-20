@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <future>
 #include <optional>
@@ -32,6 +35,24 @@ namespace chip {
 class ChipProvisioner : public ChipProvisionerInterface,
                         public ::bluetooth_hal::hci::HciRouterClient {
  public:
+  // Defines the states for the firmware provisioning state machine.
+  enum class ProvisioningState {
+    kIdle,
+    kInitialReset,
+    kReadChipId,
+    kSetRuntimeBaudRate,
+    kCheckFirmwareStatus,
+    kSetFastDownload,
+    kDownloadMinidrv,
+    kWriteFirmware,
+    kFinalReset,
+    kReadFwVersion,
+    kWriteBdAddress,
+    kSetupLowPowerMode,
+    kDone,
+    kError,
+  };
+
   ChipProvisioner()
       : config_loader_(
             ::bluetooth_hal::config::FirmwareConfigLoader::GetLoader()) {}
@@ -85,32 +106,14 @@ class ChipProvisioner : public ChipProvisionerInterface,
   void UpdateHalState(::bluetooth_hal::HalState state);
   bool ExecuteCurrentSetupStep(
       ::bluetooth_hal::config::SetupCommandType next_command_type);
-  bool SendCommandNoAck(const hci::HalPacket& packet);
-  bool SendCommandAndWait(const hci::HalPacket& packet);
+  bool SendCommandNoAck(const ::bluetooth_hal::hci::HalPacket& packet);
+  bool SendCommandAndWait(const ::bluetooth_hal::hci::HalPacket& packet);
   bool ProvisionBluetoothAddress();
-  std::optional<hci::HalPacket> PrepareWriteBdAddressPacket();
+  std::optional<::bluetooth_hal::hci::HalPacket> PrepareWriteBdAddressPacket();
 
   virtual bool WriteFwPatchramPacket();
 
  private:
-  // Defines the states for the firmware provisioning state machine.
-  enum class ProvisioningState {
-    kIdle,
-    kInitialReset,
-    kReadChipId,
-    kSetRuntimeBaudRate,
-    kCheckFirmwareStatus,
-    kSetFastDownload,
-    kDownloadMinidrv,
-    kWriteFirmware,
-    kFinalReset,
-    kReadFwVersion,
-    kWriteBdAddress,
-    kSetupLowPowerMode,
-    kDone,
-    kError,
-  };
-
   void RunProvisioningSequence();
 
   std::optional<std::function<void(::bluetooth_hal::HalState)>>

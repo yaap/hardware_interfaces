@@ -125,6 +125,7 @@ size_t HciPacketizer::ProcessData(std::span<const uint8_t> data) {
       if (!packet_found) {
         const std::string err_msg =
             GenerateUnimplementedPacketLog(hci_packet_type, data);
+        LOG(ERROR) << __func__ << ": " << err_msg;
       } else {
         packet_.push_back(data[offset]);
         state_ = State::kHciPreamble;

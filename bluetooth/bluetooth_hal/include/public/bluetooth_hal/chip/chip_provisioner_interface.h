@@ -17,27 +17,35 @@
 #pragma once
 
 #include <functional>
-#include <memory>
 
 #include "bluetooth_hal/hal_types.h"
+#include "bluetooth_hal/util/provider_factory.h"
 
 namespace bluetooth_hal {
 namespace chip {
 
-class ChipProvisionerInterface {
- public:
-  using FactoryFn = std::function<std::unique_ptr<ChipProvisionerInterface>()>;
+class ChipProvisioner;
 
+class ChipProvisionerInterface
+    : public ::bluetooth_hal::util::ProviderFactory<ChipProvisionerInterface,
+                                                    ChipProvisioner> {
+ public:
   /**
    * @brief Registers a vendor-specific factory for creating
    * ChipProvisionerInterface instances.
    *
-   * If a vendor factory is registered, ChipProvisionerInterface::Create() will
-   * use it. Otherwise, a default implementation will be created.
-   *
    * @param factory The factory function to register.
    */
-  static void RegisterVendorChipProvisioner(FactoryFn factory);
+  static void RegisterVendorChipProvisioner(FactoryFn factory) {
+    RegisterProviderFactory(std::move(factory));
+  }
+
+  /**
+   * @brief Unregisters the vendor-specific factory.
+   *
+   * This is primarily intended for use in test environments.
+   */
+  static void UnregisterVendorChipProvisioner() { UnregisterProviderFactory(); }
 
   virtual ~ChipProvisionerInterface() = default;
 
@@ -63,19 +71,6 @@ class ChipProvisionerInterface {
    * @return True if firmware reset is successful, false otherwise.
    */
   virtual bool ResetFirmware() = 0;
-
-  /**
-   * @brief Creates an instance of ChipProvisionerInterface.
-   *
-   * This factory method will use a registered vendor factory if available,
-   * otherwise it will create a default implementation.
-   *
-   * @return A unique_ptr to a ChipProvisionerInterface instance.
-   */
-  static std::unique_ptr<ChipProvisionerInterface> Create();
-
- private:
-  static FactoryFn vendor_factory_;
 };
 
 }  // namespace chip

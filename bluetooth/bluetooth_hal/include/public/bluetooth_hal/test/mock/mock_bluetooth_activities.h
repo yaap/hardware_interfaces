@@ -20,6 +20,8 @@
 #include <cstdint>
 
 #include "bluetooth_hal/debug/bluetooth_activities.h"
+#include "bluetooth_hal/hal_packet.h"
+#include "bluetooth_hal/hal_types.h"
 #include "gmock/gmock.h"
 
 namespace bluetooth_hal {
@@ -37,6 +39,8 @@ class MockBluetoothActivities : public BluetoothActivities {
   MOCK_METHOD(void, OnBluetoothChipClosed, (), ());
 
   static void SetMockBluetoothActivities(MockBluetoothActivities* mock);
+
+  static inline MockBluetoothActivities* mock_bluetooth_activities_{nullptr};
 };
 
 }  // namespace debug

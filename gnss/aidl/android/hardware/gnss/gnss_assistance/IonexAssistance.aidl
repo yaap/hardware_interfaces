@@ -68,14 +68,14 @@ parcelable IonexAssistance {
          */
         MappingFunction mappingFunction;
 
-        /**
-         * The mean earth radius in kilometers.
-         * e.g. 6731 km or 6771 km.
-         */
-        double baseRadiusKm;
+        /** The mean earth radius in kilometers. */
+        float baseRadiusKm;
 
-        /** The constant height of the ionospheric layer in kilometers. */
-        double heightKm;
+        /**
+         * The height of the ionospheric layer, measured from the surface of the earth in
+         * kilometers.
+         */
+        float heightKm;
 
         /** The definition of the latitude and longitude axes for the grid. */
         Axes axesInfo;

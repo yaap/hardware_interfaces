@@ -19,6 +19,7 @@
 #include <string>
 
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v6.h"
+#include "bluetooth_hal/hal_packet.h"
 
 namespace bluetooth_hal {
 namespace bqr {

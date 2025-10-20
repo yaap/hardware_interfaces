@@ -111,7 +111,7 @@ void TestRenderEngine::checkColorBuffer(const ::android::sp<::android::GraphicBu
 
     ReadbackHelper::compareColorBuffers(renderedBufferData, bufferData, bufferStride, bytesPerPixel,
                                         mGraphicBuffer->getWidth(), mGraphicBuffer->getHeight(),
-                                        mFormat);
+                                        static_cast<common::PixelFormat>(buffer->getPixelFormat()));
     ASSERT_EQ(::android::OK, buffer->unlock());
     ASSERT_EQ(::android::OK, mGraphicBuffer->unlock());
 }

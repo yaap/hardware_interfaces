@@ -18,9 +18,7 @@
 
 #include <cstdint>
 #include <string>
-
-#include "bluetooth_hal/bluetooth_address.h"
-#include "bluetooth_hal/hal_packet.h"
+#include <string_view>
 
 namespace bluetooth_hal {
 namespace bqr {

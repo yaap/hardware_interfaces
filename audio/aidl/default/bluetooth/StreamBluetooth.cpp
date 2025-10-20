@@ -18,8 +18,8 @@
 #include <algorithm>
 
 #define LOG_TAG "AHAL_StreamBluetooth"
+#include <Log.h>
 #include <Utils.h>
-#include <android-base/logging.h>
 #include <audio_utils/clock.h>
 
 #include "core-impl/StreamBluetooth.h"
@@ -173,17 +173,24 @@ StreamBluetooth::~StreamBluetooth() {
     const size_t bytesTransferred = mIsInput ? mBtDeviceProxy->readData(buffer, bytesToTransfer)
                                              : mBtDeviceProxy->writeData(buffer, bytesToTransfer);
     *actualFrameCount = bytesTransferred / mFrameSizeBytes;
-    PresentationPosition presentation_position;
-    if (!mBtDeviceProxy->getPresentationPosition(presentation_position)) {
-        presentation_position.remoteDeviceAudioDelayNanos =
-                kBluetoothDefaultRemoteDelayMs * NANOS_PER_MILLISECOND;
-        LOG(WARNING) << __func__ << ": getPresentationPosition failed, latency info is unavailable";
+
+    const int64_t decimPresentationPosition =
+            getContext().getFrameCount() / getContext().getSampleRate();
+    if (decimPresentationPosition != mDecimPresentationPosition) {
+        if (!mBtDeviceProxy->getPresentationPosition(mActualPresentationPosition)) {
+            mActualPresentationPosition.remoteDeviceAudioDelayNanos =
+                    kBluetoothDefaultRemoteDelayMs * NANOS_PER_MILLISECOND;
+            LOG(WARNING) << __func__
+                         << ": getPresentationPosition failed, latency info is unavailable";
+        }
+        mDecimPresentationPosition = decimPresentationPosition;
     }
     // TODO(b/317117580): incorporate logic from
     //                    packages/modules/Bluetooth/system/audio_bluetooth_hw/stream_apis.cc
     //                    out_calculate_feeding_delay_ms / in_calculate_starving_delay_ms
-    *latencyMs = std::max(*latencyMs, (int32_t)(presentation_position.remoteDeviceAudioDelayNanos /
-                                                NANOS_PER_MILLISECOND));
+    *latencyMs =
+            std::max(*latencyMs, (int32_t)(mActualPresentationPosition.remoteDeviceAudioDelayNanos /
+                                           NANOS_PER_MILLISECOND));
     return ::android::OK;
 }
 
@@ -237,6 +244,7 @@ ndk::ScopedAStatus StreamBluetooth::prepareToClose() {
     if (!mEnabled) {
         return ::android::OK;
     }
+    mDecimPresentationPosition = -1;
     if (mBtDeviceProxy != nullptr) mBtDeviceProxy->start();
     return ::android::OK;
 }

@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+#include <cstdint>
+#include <string>
+
 #include "android-base/logging.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
-#include "bluetooth_hal/debug/debug_central.h"
 
 namespace bluetooth_hal {
 namespace debug {

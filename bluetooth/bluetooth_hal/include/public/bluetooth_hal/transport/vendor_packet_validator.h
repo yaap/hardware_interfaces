@@ -19,15 +19,28 @@
 #include <cstdint>
 #include <span>
 
+#include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
+
 namespace bluetooth_hal {
 namespace transport {
 
-class VendorPacketValidator {
+class VendorPacketValidator
+    : public bluetooth_hal::transport::VendorPacketValidatorInterface {
  public:
   VendorPacketValidator() = default;
   ~VendorPacketValidator() = default;
 
-  bool IsValidVendorSpecificEvent(std::span<const uint8_t> data) const;
+  /**
+   * Validates a vendor-specific event.
+   *
+   * This is the default implementation which always returns false. Vendors
+   * should override this with their own implementation for event validation.
+   *
+   * @param data The vendor-specific event to validate.
+   * @return `true` if the event is valid, `false` otherwise. This default
+   *         implementation always returns `false`.
+   */
+  bool IsValidVendorSpecificEvent(std::span<const uint8_t> data) const override;
 };
 
 }  // namespace transport

@@ -84,6 +84,8 @@ interface IGnss {
     @VintfStability
     @Backing(type="int")
     enum GnssAidingData {
+        // Delete the real-time precise ephemeris such as SUPL, but keep the
+        // long-term predicted ephemeris undeleted.
         EPHEMERIS = 0x0001,
         ALMANAC = 0x0002,
         POSITION = 0x0004,
@@ -96,6 +98,8 @@ interface IGnss {
         SADATA = 0x0200,
         RTI = 0x0400,
         CELLDB_INFO = 0x8000,
+        // Delete all aiding data, including the aiding data not deletable by
+        // the above flags, for example, the long-term predicted ephemeris.
         ALL = 0xFFFF
     }
 
@@ -126,6 +130,11 @@ interface IGnss {
      * reopen this interface, to serve requests, there may be some minor delays in GNSS response
      * requests as hardware readiness states are restored, not to exceed those that occur on normal
      * device boot up.
+     *
+     * When the system server crashes, obviously the method will not be called, and the system
+     * server can no longer receive any updates from the GNSS HAL. For system health reasons, the
+     * GNSS HAL implementation must immediately stop responding to any existing requests until the
+     * setCallback() method is called again.
      */
     void close();
 

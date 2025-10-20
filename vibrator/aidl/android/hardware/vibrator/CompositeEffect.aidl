@@ -19,6 +19,7 @@ package android.hardware.vibrator;
 import android.hardware.vibrator.CompositePrimitive;
 
 @VintfStability
+@FixedSize
 parcelable CompositeEffect {
     /* Period of silence preceding primitive. */
     int delayMs;

@@ -57,4 +57,5 @@ parcelable NanCapabilities {
   boolean supportsPeriodicRanging;
   android.hardware.wifi.RttBw maxSupportedBandwidth;
   int maxNumRxChainsSupported;
+  int supportedPeriodicRangingIntervals;
 }

@@ -29,6 +29,7 @@
 #include <aidl/android/hardware/graphics/common/FRect.h>
 #include <aidl/android/hardware/graphics/common/Rect.h>
 #include <aidl/android/hardware/graphics/common/Transform.h>
+#include <aidl/android/hardware/graphics/composer3/ActiveConfigCommand.h>
 #include <aidl/android/hardware/graphics/composer3/Color.h>
 #include <aidl/android/hardware/graphics/composer3/Composition.h>
 #include <aidl/android/hardware/graphics/composer3/DisplayBrightness.h>
@@ -71,6 +72,11 @@ class ComposerClientWriter final {
 
     ComposerClientWriter(const ComposerClientWriter&) = delete;
     ComposerClientWriter& operator=(const ComposerClientWriter&) = delete;
+
+    void setActiveConfig(int64_t display, int configId, bool seamless) {
+        ActiveConfigCommand command = {.configId = configId, .seamlessRequired = seamless};
+        getDisplayCommand(display).activeConfig.emplace(std::move(command));
+    }
 
     void setColorTransform(int64_t display, const float* matrix) {
         std::vector<float> matVec;

@@ -17,14 +17,15 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <deque>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/debug/debug_types.h"
-#include "bluetooth_hal/util/logging.h"
 
 #ifdef UNIT_TEST
 #define CLIENT_LOG(severity) LOG(severity)

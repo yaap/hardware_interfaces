@@ -1413,6 +1413,7 @@ TEST_P(RadioNetworkTest, getBarringInfo) {
     if (radioRsp_network->rspInfo.error == RadioError::REQUEST_NOT_SUPPORTED) {
         GTEST_SKIP() << "Skipping getBarringInfo because it's not supported";
     }
+    ASSERT_EQ(radioRsp_network->rspInfo.error, RadioError::NONE);
     ASSERT_TRUE(radioRsp_network->barringInfoList.size() > 0);
 
     std::set<int> reportedServices;

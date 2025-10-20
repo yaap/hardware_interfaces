@@ -37,7 +37,7 @@ cc_test {
         "libbinder",
     ],
     static_libs: [
-        "android.hardware.light-V2-cpp",
+        "android.hardware.light-V3-cpp",
     ],
     test_suites: [
         "vts",

@@ -23,7 +23,7 @@ namespace bluetooth_hal {
 namespace debug {
 
 /* HCI connect/disconnect event result codes to human readable strings. */
-static std::string_view result_code_strings[] = {
+inline constexpr std::string_view kResultCodeToStrings[] = {
     "Success",                                                   // 0x00
     "Unknown HCI Command",                                       // 0x01
     "Unknown Connection Identifier",                             // 0x02
@@ -58,10 +58,10 @@ static std::string_view result_code_strings[] = {
  * @return a string_view of the string for the given result code.
  */
 inline std::string_view GetResultString(const uint8_t result_code) {
-  if (result_code > 0x19) {
-    return result_code_strings[0x1A];
+  if (result_code >= std::size(kResultCodeToStrings)) {
+    return kResultCodeToStrings[std::size(kResultCodeToStrings) - 1];
   }
-  return result_code_strings[result_code];
+  return kResultCodeToStrings[result_code];
 }
 
 }  // namespace debug

@@ -1920,7 +1920,8 @@ VehiclePropValue FakeVehicleHardware::createHwMotionInputProp(
 }
 
 void FakeVehicleHardware::eventFromVehicleBus(const VehiclePropValue& value) {
-    mServerSidePropStore->writeValue(mValuePool->obtain(value));
+    mServerSidePropStore->writeValue(mValuePool->obtain(value), /* updateStatus= */ true,
+                                     VehiclePropertyStore::EventMode::ALWAYS);
 }
 
 std::string FakeVehicleHardware::dumpSubscriptions() {
@@ -2360,7 +2361,12 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
         const std::vector<std::string>& options) {
     // Options format:
     // --set/get/inject-event PROP [-f f1 f2...] [-i i1 i2...] [-i64 i1 i2...] [-s s1 s2...]
-    // [-b b1 b2...] [-a a] [-t timestamp]
+    // [-b b1 b2...] [-a a] [-t timestamp] [-p property_status]
+    //
+    // Number formats:
+    // -f: accepts floating point values in decimal or hex with an optional '+' or '-' sign.
+    // -i, -i64, -a, -t, -p: accept integer values in decimal or hex with an optional '+' or '-'
+    // sign.
     size_t optionIndex = 1;
     auto result = parsePropId(options, optionIndex);
     if (!result.ok()) {
@@ -2369,7 +2375,6 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
     }
     VehiclePropValue prop = {};
     prop.prop = result.value();
-    prop.status = VehiclePropertyStatus::AVAILABLE;
     optionIndex++;
     std::unordered_set<std::string> parsedOptions;
     int32_t areaIdIndex = -1;
@@ -2459,6 +2464,17 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
                                                getErrorMsg(int64Result).c_str());
             }
             prop.timestamp = int64Result.value();
+        } else if (EqualsIgnoreCase(argType, "-p")) {
+            if (argValuesSize != 1) {
+                return Error() << "Expect exact one value when using \"-p\"\n";
+            }
+            auto statusResult = safelyParseInt<int32_t>(currentIndex, argValues[0]);
+            if (!statusResult.ok()) {
+                return Error() << StringPrintf("Status: \"%s\" is not a valid int32: %s\n",
+                                               argValues[0].c_str(),
+                                               getErrorMsg(statusResult).c_str());
+            }
+            prop.status = static_cast<VehiclePropertyStatus>(statusResult.value());
         } else {
             return Error() << StringPrintf("Unknown option: %s\n", argType.c_str());
         }

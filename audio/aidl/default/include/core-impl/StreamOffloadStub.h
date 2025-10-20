@@ -28,6 +28,56 @@ namespace aidl::android::hardware::audio::core {
 
 namespace offload {
 
+class DspClipState {
+  public:
+    static constexpr int64_t kError = -1;
+    static constexpr size_t kClipCountLimit = 2;
+
+    bool add(int64_t frames) {
+        if (mFrames.size() < kClipCountLimit) {
+            mFrames.push_back(frames);
+            return true;
+        }
+        return false;
+    }
+    int64_t currentFrames() const { return !empty() ? mFrames[0] : kError; }
+    bool empty() const { return mFrames.empty(); }
+    bool hasNext() const { return mFrames.size() > 1; }
+    void erase() { mFrames.clear(); }
+    void eraseAllNext() {
+        if (!empty()) mFrames.resize(1);
+    }
+    int64_t switchToNext() {
+        if (hasNext()) {
+            mFrames.erase(mFrames.begin());
+            return mFrames[0];
+        } else {
+            return kError;
+        }
+    }
+    int64_t trimCurrentFrames(int64_t frames) {
+        if (!empty()) {
+            if (mFrames[0] > frames) mFrames[0] = frames;
+            return mFrames[0];
+        }
+        return kError;
+    }
+    int64_t updateCurrentFrames(int64_t delta) {
+        return !empty() ? updateFrames(0, delta) : kError;
+    }
+    int64_t updateLastFrames(int64_t delta) {
+        return !empty() ? updateFrames(mFrames.size() - 1, delta) : kError;
+    }
+
+    std::string log() const { return ::android::internal::ToString(mFrames); }
+
+  private:
+    int64_t updateFrames(size_t index, int64_t delta) {
+        return delta >= 0 || mFrames[index] >= -delta ? mFrames[index] += delta : kError;
+    }
+    std::vector<int64_t> mFrames;
+};
+
 struct DspSimulatorState {
     static constexpr int64_t kSkipBufferNotifyFrames = -1;
 
@@ -36,7 +86,7 @@ struct DspSimulatorState {
     const int64_t earlyNotifyFrames;
     DriverCallbackInterface* callback = nullptr;  // set before starting DSP worker
     std::mutex lock;
-    std::vector<int64_t> clipFramesLeft GUARDED_BY(lock);
+    DspClipState clips GUARDED_BY(lock);
     int64_t bufferFramesLeft GUARDED_BY(lock) = 0;
     int64_t bufferNotifyFrames GUARDED_BY(lock) = kSkipBufferNotifyFrames;
 };

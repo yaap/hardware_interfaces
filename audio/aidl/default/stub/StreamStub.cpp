@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "AHAL_Stream"
-#include <android-base/logging.h>
+#include <Log.h>
 
 #include "core-impl/Module.h"
 #include "core-impl/StreamStub.h"

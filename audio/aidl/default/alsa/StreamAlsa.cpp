@@ -18,7 +18,7 @@
 #include <limits>
 
 #define LOG_TAG "AHAL_StreamAlsa"
-#include <android-base/logging.h>
+#include <Log.h>
 
 #include <Utils.h>
 #include <audio_utils/clock.h>

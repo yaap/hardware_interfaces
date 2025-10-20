@@ -57,4 +57,12 @@ parcelable NanBootstrappingRequest {
      * ID
      */
     byte discoverySessionId;
+
+    /**
+     * Arbitrary information communicated to the peer. There is no semantic meaning to these
+     * bytes. They are passed-through from sender to receiver as-is with no parsing.
+     * Max length: |NanCapabilities.maxServiceSpecificInfoLen|.
+     * NAN Spec: Service Descriptor Attribute (SDA) / Service Info
+     */
+    @nullable byte[] serviceSpecificInfo;
 }

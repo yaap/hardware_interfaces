@@ -14,12 +14,22 @@
  * limitations under the License.
  */
 
+#pragma once
+
+#include "bluetooth_hal/util/provider_factory.h"
+
 namespace bluetooth_hal {
 namespace util {
 namespace power {
 
 class PowerInterface {
  public:
+  using VendorFactory =
+      ::bluetooth_hal::util::ProviderFactory<PowerInterface, PowerInterface>;
+  using FactoryFn = VendorFactory::FactoryFn;
+
+  static bool RegisterPowerInterface(FactoryFn factory);
+
   virtual ~PowerInterface() = default;
 
   /**

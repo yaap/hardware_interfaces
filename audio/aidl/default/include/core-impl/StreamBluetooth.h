@@ -93,6 +93,8 @@ class StreamBluetooth : public StreamCommonImpl {
     std::shared_ptr<::android::bluetooth::audio::aidl::BluetoothAudioPortAidl> mBtDeviceProxy
             GUARDED_BY(mLock);  // proxy may be null if the stream is not connected to a device
     bool mEnabled GUARDED_BY(mLock) = true;
+    int64_t mDecimPresentationPosition;
+    ::aidl::android::hardware::bluetooth::audio::PresentationPosition mActualPresentationPosition;
 };
 
 class StreamInBluetooth final : public StreamIn, public StreamBluetooth {

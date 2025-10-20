@@ -115,4 +115,5 @@ union PictureParameter {
   int colorTunerLuminanceFlesh;
   boolean activeProfile;
   android.hardware.tv.mediaquality.PictureQualityEventType pictureQualityEventType;
+  android.hardware.tv.mediaquality.StreamStatus streamStatus;
 }

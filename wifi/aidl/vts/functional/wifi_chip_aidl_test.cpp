@@ -53,6 +53,9 @@ using aidl::android::hardware::wifi::WifiUsableChannel;
 class WifiChipAidlTest : public testing::TestWithParam<std::string> {
   public:
     void SetUp() override {
+        if (!::testing::deviceSupportsFeature("android.hardware.wifi")) {
+            GTEST_SKIP() << "Skipping this test since wifi is not supported.";
+        }
         stopWifiService(getInstanceName());
         wifi_chip_ = getWifiChip(getInstanceName());
         ASSERT_NE(nullptr, wifi_chip_.get());

@@ -18,9 +18,9 @@
 #include <set>
 
 #define LOG_TAG "AHAL_Module"
+#include <Log.h>
 #include <aidl/android/media/audio/common/AudioInputFlags.h>
 #include <aidl/android/media/audio/common/AudioOutputFlags.h>
-#include <android-base/logging.h>
 #include <android/binder_ibinder_platform.h>
 #include <error/expected_utils.h>
 
@@ -982,10 +982,10 @@ ndk::ScopedAStatus Module::getAudioRoutesForAudioPort(int32_t in_portId,
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus Module::validateAudioTrackAttributeTags(const std::vector<std::string>& tags) {
+ndk::ScopedAStatus Module::validateMetadataAttributeTags(const std::vector<std::string>& tags) {
     for (auto& tag : tags) {
         if (!common::isVendorExtension(tag)) {
-            LOG(ERROR) << __func__ << ": " << mType << ": AudioTrack attribute tag " << tag
+            LOG(ERROR) << __func__ << ": " << mType << ": metadata attribute tag " << tag
                        << " is invalid.";
             return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
         }
@@ -998,7 +998,7 @@ ndk::ScopedAStatus Module::openInputStream(const OpenInputStreamArguments& in_ar
     LOG(DEBUG) << __func__ << ": " << mType << ": port config id " << in_args.portConfigId
                << ", buffer size " << in_args.bufferSizeFrames << " frames";
     for (const auto& track : in_args.sinkMetadata.tracks) {
-        RETURN_STATUS_IF_ERROR(validateAudioTrackAttributeTags(track.tags));
+        RETURN_STATUS_IF_ERROR(validateMetadataAttributeTags(track.tags));
     }
     AudioPort* port = nullptr;
     RETURN_STATUS_IF_ERROR(findPortIdForNewStream(in_args.portConfigId, &port));
@@ -1033,7 +1033,7 @@ ndk::ScopedAStatus Module::openOutputStream(const OpenOutputStreamArguments& in_
                << ", has offload info? " << (in_args.offloadInfo.has_value()) << ", buffer size "
                << in_args.bufferSizeFrames << " frames";
     for (const auto& track : in_args.sourceMetadata.tracks) {
-        RETURN_STATUS_IF_ERROR(validateAudioTrackAttributeTags(track.tags));
+        RETURN_STATUS_IF_ERROR(validateMetadataAttributeTags(track.tags));
     }
     AudioPort* port = nullptr;
     RETURN_STATUS_IF_ERROR(findPortIdForNewStream(in_args.portConfigId, &port));

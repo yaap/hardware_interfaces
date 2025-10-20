@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace bluetooth_hal {
 
@@ -81,6 +82,28 @@ enum class HalState : uint8_t {
   // HAL is running with Bluetooth enabled.
   kRunning,
 };
+
+inline std::string_view HalStateToString(HalState state) {
+  switch (state) {
+    case HalState::kShutdown:
+      return "Shutdown";
+    case HalState::kInit:
+      return "Init";
+    case HalState::kPreFirmwareDownload:
+      return "PreFirmwareDownload";
+    case HalState::kFirmwareDownloading:
+      return "FirmwareDownloading";
+    case HalState::kFirmwareDownloadCompleted:
+      return "FirmwareDownloadCompleted";
+    case HalState::kFirmwareReady:
+      return "FirmwareReady";
+    case HalState::kBtChipReady:
+      return "BtChipReady";
+    case HalState::kRunning:
+      return "Running";
+  }
+  return "Unknown";
+}
 
 namespace hci {
 // HCI UART transport packet types (refer to Bluetooth Core Specification,
@@ -247,6 +270,7 @@ enum class CommandOpCode : uint16_t {
   // Part E, section 7.
   kSetEventMask = 0x0c01,
   kHciReset = 0x0c03,
+  kLoopbackMode = 0x1802,
   kLeSetExtendedScanParam = 0x2041,
   kLeScanEnable = 0x2042,
   kLeExtCreateConnection = 0x2043,

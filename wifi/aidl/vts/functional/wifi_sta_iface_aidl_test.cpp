@@ -62,6 +62,9 @@ static bool sWifiFrameworkDisabledByTest = false;
 class WifiStaIfaceAidlTest : public testing::TestWithParam<std::string> {
   public:
     void SetUp() override {
+        if (!::testing::deviceSupportsFeature("android.hardware.wifi")) {
+            GTEST_SKIP() << "Skipping this test since wifi is not supported.";
+        }
         stopWifiService(getInstanceName());
         wifi_sta_iface_ = getWifiStaIface(getInstanceName());
         if (wifi_sta_iface_ == nullptr) {
@@ -131,6 +134,10 @@ class WifiStaIfaceAidlTest : public testing::TestWithParam<std::string> {
     }
 
     bool isPcDevice() { return testing::deviceSupportsFeature("android.hardware.type.pc"); }
+
+    bool isAutoDevice() {
+        return testing::deviceSupportsFeature("android.hardware.type.automotive");
+    }
 
     // Detect Panel TV devices by using ro.oem.key1 property.
     // https://docs.partner.android.com/tv/build/platform/props-vars/ro-oem-key1
@@ -213,6 +220,9 @@ TEST_P(WifiStaIfaceAidlTest, CheckApfIsSupported) {
     }
     if (isPcDevice()) {
         GTEST_SKIP() << "PC devices do not support APF.";
+    }
+    if (isAutoDevice()) {
+        GTEST_SKIP() << "Auto devices do not support APF.";
     }
     int vendor_api_level = property_get_int32("ro.vendor.api_level", 0);
     // Before VSR 14, APF support is optional.

@@ -53,6 +53,8 @@ class MockHciRouter : public HciRouter {
               (override));
 
   MOCK_METHOD(void, SendPacketToStack, (const HalPacket& packet), (override));
+
+  static inline MockHciRouter* mock_hci_router_{nullptr};
 };
 
 }  // namespace hci

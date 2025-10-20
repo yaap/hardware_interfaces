@@ -28,7 +28,6 @@
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/config_constants.h"
-#include "bluetooth_hal/config/config_util.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/android_base_wrapper.h"
@@ -516,9 +515,6 @@ std::string HalConfigLoaderImpl::DumpConfigToString() const {
 
   return ss.str();
 }
-
-std::mutex HalConfigLoader::loader_mutex_;
-HalConfigLoader* HalConfigLoader::loader_ = nullptr;
 
 HalConfigLoader& HalConfigLoader::GetLoader() {
   std::lock_guard<std::mutex> lock(loader_mutex_);

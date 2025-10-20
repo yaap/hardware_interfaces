@@ -18,17 +18,18 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/vendor_packet_validator.h"
+#include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
 
 namespace bluetooth_hal {
 namespace transport {
 
 class HciPacketRescuer {
  public:
-  HciPacketRescuer() = default;
+  HciPacketRescuer();
   ~HciPacketRescuer() = default;
 
   /**
@@ -52,7 +53,7 @@ class HciPacketRescuer {
   bool IsProbablyValidThreadPacket(std::span<const uint8_t> data);
   bool IsValidHciPacket(std::span<const uint8_t> data);
 
-  ::bluetooth_hal::transport::VendorPacketValidator vendor_packet_validator_;
+  std::unique_ptr<VendorPacketValidatorInterface> vendor_packet_validator_;
 };
 
 }  // namespace transport

@@ -659,9 +659,6 @@ FirmwareConfigLoaderImpl::GetNextFirmwareDataByAccumulation() {
   return std::nullopt;
 }
 
-std::mutex FirmwareConfigLoader::loader_mutex_;
-FirmwareConfigLoader* FirmwareConfigLoader::loader_ = nullptr;
-
 FirmwareConfigLoader& FirmwareConfigLoader::GetLoader() {
   std::lock_guard<std::mutex> lock(loader_mutex_);
   if (loader_ == nullptr) {

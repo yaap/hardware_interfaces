@@ -47,8 +47,9 @@ constexpr std::chrono::milliseconds kLpmWakeupSettlementMs{10};
 
 std::string GetRfkillStatePath() {
   std::string state_path;
+  constexpr int kMaxRfkillNodes = 256;
 
-  for (int i = 0;; ++i) {
+  for (int i = 0; i < kMaxRfkillNodes; ++i) {
     const std::string type_path =
         HalConfigLoader::GetLoader().GetRfkillFolderPrefix() +
         std::to_string(i) + "/type";

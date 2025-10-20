@@ -41,7 +41,8 @@ parcelable NanBootstrappingConfirmInd {
     NanStatus reasonCode;
 
     /**
-     * The delay of bootstrapping in seconds for the follow up request.
+     * The delay of bootstrapping in time units for the follow up request.
+     * Wi-Fi Aware R4.0 Table 129.
      */
     int comeBackDelay;
 

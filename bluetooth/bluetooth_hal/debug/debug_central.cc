@@ -22,40 +22,43 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <ctime>
 #include <iomanip>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include "android-base/logging.h"
 #include "android-base/properties.h"
-#include "android-base/stringprintf.h"
 #include "bluetooth_hal/bqr/bqr_root_inflammation_event.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
-#include "bluetooth_hal/debug/bluetooth_activity.h"
+#include "bluetooth_hal/debug/debug_client.h"
+#include "bluetooth_hal/debug/debug_monitor.h"
+#include "bluetooth_hal/debug/debug_types.h"
 #include "bluetooth_hal/debug/debug_util.h"
 #include "bluetooth_hal/extensions/thread/thread_handler.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_router.h"
-#include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/util/logging.h"
 #include "bluetooth_hal/util/power/wakelock_watchdog.h"
+#include "bluetooth_hal/util/timer_manager.h"
 
 namespace bluetooth_hal {
 namespace debug {
 namespace {
 
-using ::android::base::StringPrintf;
 using ::bluetooth_hal::bqr::BqrErrorCode;
 using ::bluetooth_hal::bqr::BqrErrorToStringView;
 using ::bluetooth_hal::bqr::BqrRootInflammationEvent;
@@ -63,8 +66,6 @@ using ::bluetooth_hal::config::HalConfigLoader;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciRouter;
 using ::bluetooth_hal::thread::ThreadHandler;
-using ::bluetooth_hal::transport::TransportInterface;
-using ::bluetooth_hal::transport::TransportType;
 using ::bluetooth_hal::util::Logger;
 using ::bluetooth_hal::util::power::WakelockWatchdog;
 
@@ -102,12 +103,73 @@ DurationTracker::~DurationTracker() {
   DebugCentral::Get().AddLog(type_, ss.str());
 }
 
+class DebugCentralImpl : public DebugCentral {
+ public:
+  DebugCentralImpl();
+  ~DebugCentralImpl() = default;
+
+  bool RegisterDebugClient(DebugClient* debug_client) override;
+
+  bool UnregisterDebugClient(DebugClient* debug_client) override;
+
+  void Dump(int fd) override;
+
+  void SetBtUartDebugPort(const std::string& uart_port) override;
+
+  void AddLog(AnchorType type, const std::string& log) override;
+
+  void ReportBqrError(::bluetooth_hal::bqr::BqrErrorCode error,
+                      std::string extra_info) override;
+
+  void HandleRootInflammationEvent(
+      const ::bluetooth_hal::bqr::BqrRootInflammationEvent& event) override;
+
+  void HandleDebugInfoEvent(
+      const ::bluetooth_hal::hci::HalPacket& packet) override;
+
+  void HandleDebugInfoCommand() override;
+
+  void GenerateVendorDumpFile(const std::string& file_path,
+                              const std::vector<uint8_t>& data,
+                              uint8_t vendor_error_code = 0) override;
+
+  void GenerateCoredump(CoredumpErrorCode error_code,
+                        uint8_t sub_error_code = 0) override;
+
+  void ResetCoredumpGenerator() override;
+
+  bool IsCoredumpGenerated() override;
+
+  std::string& GetCoredumpTimestampString() override;
+
+ private:
+  static constexpr int kMaxHalLogLines = 400;
+  std::string serial_debug_port_;
+  std::string crash_timestamp_;
+  std::recursive_mutex mutex_;
+  std::list<std::pair<std::string, std::string>> hal_log_;
+  std::map<AnchorType, std::pair<std::string, std::string>> anchor_log_;
+  ::bluetooth_hal::util::Timer debug_info_command_timer_;
+  DebugMonitor debug_monitor_;
+  std::unordered_set<DebugClient*> debug_clients_;
+  bool is_coredump_generated_;
+
+  std::string DumpBluetoothHalLog(const std::vector<Coredump>& client_dumps);
+  bool OkToGenerateCrashDump(uint8_t error_code);
+  bool IsHardwareStageSupported();
+  std::string GetOrCreateCoredumpTimestampString();
+  int OpenOrCreateCoredumpBin(const std::string& file_prefix);
+  std::vector<Coredump> GetCoredumpFromDebugClients();
+};
+
 DebugCentral& DebugCentral::Get() {
-  static DebugCentral debug_central;
+  static DebugCentralImpl debug_central;
   return debug_central;
 }
 
-bool DebugCentral::RegisterDebugClient(DebugClient* client) {
+DebugCentralImpl::DebugCentralImpl() : is_coredump_generated_(false) {}
+
+bool DebugCentralImpl::RegisterDebugClient(DebugClient* client) {
   if (!client) {
     return false;
   }
@@ -121,7 +183,7 @@ bool DebugCentral::RegisterDebugClient(DebugClient* client) {
   return true;
 }
 
-bool DebugCentral::UnregisterDebugClient(DebugClient* client) {
+bool DebugCentralImpl::UnregisterDebugClient(DebugClient* client) {
   if (!client) {
     return false;
   }
@@ -133,7 +195,7 @@ bool DebugCentral::UnregisterDebugClient(DebugClient* client) {
   return true;
 }
 
-std::vector<Coredump> DebugCentral::GetCoredumpFromDebugClients() {
+std::vector<Coredump> DebugCentralImpl::GetCoredumpFromDebugClients() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   std::vector<Coredump> client_dumps;
   for (auto client : debug_clients_) {
@@ -148,7 +210,7 @@ std::vector<Coredump> DebugCentral::GetCoredumpFromDebugClients() {
   return client_dumps;
 }
 
-void DebugCentral::Dump(int fd) {
+void DebugCentralImpl::Dump(int fd) {
   LOG(INFO) << __func__
             << ": Write bt coredump files to `IBluetoothHci_default.txt`.";
 
@@ -164,7 +226,7 @@ void DebugCentral::Dump(int fd) {
   FlushCoredumpToFd(fd);
 }
 
-void DebugCentral::SetBtUartDebugPort(const std::string& uart_port) {
+void DebugCentralImpl::SetBtUartDebugPort(const std::string& uart_port) {
   if (uart_port.empty()) {
     LOG(ERROR) << __func__ << ": UART port is empty!";
     return;
@@ -180,7 +242,7 @@ void DebugCentral::SetBtUartDebugPort(const std::string& uart_port) {
   LOG(ERROR) << __func__ << ": Cannot found uart port!";
 }
 
-void DebugCentral::AddLog(AnchorType type, const std::string& log) {
+void DebugCentralImpl::AddLog(AnchorType type, const std::string& log) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   std::string timestamp_str = Logger::GetLogFormatTimestamp();
   std::pair log_with_timestamp =
@@ -194,8 +256,10 @@ void DebugCentral::AddLog(AnchorType type, const std::string& log) {
   }
 }
 
-void DebugCentral::ReportBqrError(BqrErrorCode error, std::string extra_info) {
-  HalPacket bqr_event({0xff, 0x04, 0x58, 0x05, 0x00, (uint8_t)error});
+void DebugCentralImpl::ReportBqrError(BqrErrorCode error,
+                                      std::string extra_info) {
+  HalPacket bqr_event(
+      {0xff, 0x04, 0x58, 0x05, 0x00, static_cast<uint8_t>(error)});
 
   HAL_LOG(ERROR) << extra_info;
   LOG(ERROR) << __func__ << ": Root inflamed event with error_code: ("
@@ -215,7 +279,7 @@ void DebugCentral::ReportBqrError(BqrErrorCode error, std::string extra_info) {
   }
 }
 
-void DebugCentral::HandleDebugInfoCommand() {
+void DebugCentralImpl::HandleDebugInfoCommand() {
   // It is supported to generate coredump and record the timestamp when bthal
   // received root-inflamed event or any fw dump packet, if the controller
   // did not send any response packets, we force to trigger coredump here
@@ -229,9 +293,9 @@ void DebugCentral::HandleDebugInfoCommand() {
       std::chrono::milliseconds(kHandleDebugInfoCommandMs));
 }
 
-void DebugCentral::GenerateVendorDumpFile(const std::string& file_path,
-                                          const std::vector<uint8_t>& data,
-                                          uint8_t vendor_error_code) {
+void DebugCentralImpl::GenerateVendorDumpFile(const std::string& file_path,
+                                              const std::vector<uint8_t>& data,
+                                              uint8_t vendor_error_code) {
   if (file_path.empty()) {
     LOG(ERROR) << "File name is empty!";
     return;
@@ -252,7 +316,7 @@ void DebugCentral::GenerateVendorDumpFile(const std::string& file_path,
   close(fd);
 }
 
-bool DebugCentral::IsHardwareStageSupported() {
+bool DebugCentralImpl::IsHardwareStageSupported() {
   std::string cur_hw_stage = ::android::base::GetProperty(kHwStage, "default");
   std::vector<std::string> not_supported_hw_stages =
       HalConfigLoader::GetLoader().GetUnsupportedHwStages();
@@ -263,7 +327,7 @@ bool DebugCentral::IsHardwareStageSupported() {
                       }) == not_supported_hw_stages.end();
 }
 
-bool DebugCentral::OkToGenerateCrashDump(uint8_t error_code) {
+bool DebugCentralImpl::OkToGenerateCrashDump(uint8_t error_code) {
   // 1) generate coredump when bt is on
   // 2) generate coredump when bt is off, thread is enabled, and supports
   // accelerated bt on
@@ -282,7 +346,7 @@ bool DebugCentral::OkToGenerateCrashDump(uint8_t error_code) {
   return is_thread_dispatcher_working || debug_monitor_.IsBluetoothEnabled();
 }
 
-std::string DebugCentral::DumpBluetoothHalLog(
+std::string DebugCentralImpl::DumpBluetoothHalLog(
     const std::vector<Coredump>& client_dumps) {
   std::stringstream anchor_log;
   for (auto it = anchor_log_.begin(); it != anchor_log_.end(); ++it) {
@@ -312,7 +376,7 @@ std::string DebugCentral::DumpBluetoothHalLog(
   return ss.str();
 }
 
-void DebugCentral::HandleRootInflammationEvent(
+void DebugCentralImpl::HandleRootInflammationEvent(
     const BqrRootInflammationEvent& event) {
   if (!event.IsValid()) {
     LOG(ERROR) << __func__ << ": Invalid root inflammation event! "
@@ -334,7 +398,7 @@ void DebugCentral::HandleRootInflammationEvent(
   }
 }
 
-void DebugCentral::HandleDebugInfoEvent(const HalPacket& packet) {
+void DebugCentralImpl::HandleDebugInfoEvent(const HalPacket& packet) {
   bool last_soc_dump_packet = false;
   if (packet.size() <= kDebugInfoPayloadOffset) {
     LOG(INFO) << __func__ << ": Invalid length of debug info event!";
@@ -369,8 +433,8 @@ void DebugCentral::HandleDebugInfoEvent(const HalPacket& packet) {
   }
 }
 
-void DebugCentral::GenerateCoredump(CoredumpErrorCode error_code,
-                                    uint8_t sub_error_code) {
+void DebugCentralImpl::GenerateCoredump(CoredumpErrorCode error_code,
+                                        uint8_t sub_error_code) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (is_coredump_generated_) {
     // coredump has already been generated, avoid duplicated dump in one crash
@@ -378,8 +442,9 @@ void DebugCentral::GenerateCoredump(CoredumpErrorCode error_code,
     return;
   }
 
-  // Pause the watchdog to prevent it from biting before coredump is completed.
-  // The HAL will be restarted when the router state exits from Running state.
+  // Pause the watchdog to prevent it from biting before coredump is
+  // completed. The HAL will be restarted when the router state exits from
+  // Running state.
   WakelockWatchdog::GetWatchdog().Pause();
   is_coredump_generated_ = true;
 
@@ -427,7 +492,8 @@ void DebugCentral::GenerateCoredump(CoredumpErrorCode error_code,
   close(coredump_fd);
 }
 
-int DebugCentral::OpenOrCreateCoredumpBin(const std::string& file_name_prefix) {
+int DebugCentralImpl::OpenOrCreateCoredumpBin(
+    const std::string& file_name_prefix) {
   std::string file_name =
       file_name_prefix + GetOrCreateCoredumpTimestampString() + ".bin";
 
@@ -462,7 +528,7 @@ int DebugCentral::OpenOrCreateCoredumpBin(const std::string& file_name_prefix) {
   return fd;
 }
 
-std::string DebugCentral::GetOrCreateCoredumpTimestampString() {
+std::string DebugCentralImpl::GetOrCreateCoredumpTimestampString() {
   if (crash_timestamp_.empty()) {
     time_t rawtime;
     time(&rawtime);
@@ -481,12 +547,12 @@ std::string DebugCentral::GetOrCreateCoredumpTimestampString() {
   return crash_timestamp_;
 }
 
-bool DebugCentral::IsCoredumpGenerated() {
+bool DebugCentralImpl::IsCoredumpGenerated() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   return is_coredump_generated_;
 }
 
-void DebugCentral::ResetCoredumpGenerator() {
+void DebugCentralImpl::ResetCoredumpGenerator() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   crash_timestamp_.clear();
   if (is_coredump_generated_) {
@@ -495,7 +561,7 @@ void DebugCentral::ResetCoredumpGenerator() {
   }
 }
 
-std::string& DebugCentral::GetCoredumpTimestampString() {
+std::string& DebugCentralImpl::GetCoredumpTimestampString() {
   return crash_timestamp_;
 }
 
@@ -518,6 +584,8 @@ std::string DebugCentral::CoredumpErrorCodeToString(
       return "Controller Debug Info Data Dump Without Root Inflammed (BtFw)";
     case CoredumpErrorCode::kControllerDebugInfo:
       return "Debug Info Event (BtFw)";
+    case CoredumpErrorCode::kControllerUnimplementedPacketType:
+      return "Controller Unimplemented Packet Type (BtFw)";
     case CoredumpErrorCode::kVendor:
       return "Vendor Error";
     default: {

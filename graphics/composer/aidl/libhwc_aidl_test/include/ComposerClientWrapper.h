@@ -205,6 +205,8 @@ class ComposerClientWrapper {
 
     std::vector<std::pair<int64_t, common::DisplayHotplugEvent>> getAndClearLatestHotplugs();
 
+    std::pair<ScopedAStatus, VsyncSample> getDisplayKnownVsyncSample(int64_t display);
+
     static constexpr int32_t kMaxFrameIntervalNs = 50000000;  // 20fps
     static constexpr int32_t kNoFrameIntervalNs = 0;
 
