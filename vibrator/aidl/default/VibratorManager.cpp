@@ -361,7 +361,7 @@ void HapticGeneratorSessionState::handleStartEffect(HapticGeneratorReply* reply)
     mIsEffectComplete = false;
     mRemainingPcmBytes = 0;
     // Clear any leftover data from a previous effect by draining the effects input queue
-    VibrationEffect effect;
+    VibrationEffectContent effect;
     while (effectQueue->read(&effect)) {
         // Discard data
     }
@@ -376,7 +376,7 @@ void HapticGeneratorSessionState::handleBurstBytes(const HapticGeneratorCommand&
         return;
     }
 
-    VibrationEffect effect;
+    VibrationEffectContent effect;
     while (effectQueue->read(&effect)) {
         LOG(VERBOSE) << "HapticGenerator: Consumed one effect part from queue.";
         mRemainingPcmBytes += kSimulatedEffectSize;
@@ -427,7 +427,7 @@ void HapticGeneratorSessionState::handleCancelEffect(HapticGeneratorReply* reply
         mRemainingPcmBytes = 0;
         reply->status = 0;
         // Clear any leftover data from a previous effect by draining the effect input queue
-        VibrationEffect effect;
+        VibrationEffectContent effect;
         while (effectQueue->read(&effect)) {
             // Discard data
         }

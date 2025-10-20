@@ -20,7 +20,7 @@ import android.hardware.common.fmq.MQDescriptor;
 import android.hardware.common.fmq.SynchronizedReadWrite;
 import android.hardware.vibrator.HapticGeneratorCommand;
 import android.hardware.vibrator.HapticGeneratorReply;
-import android.hardware.vibrator.VibrationEffect;
+import android.hardware.vibrator.VibrationEffectContent;
 
 /**
  * A collection of message queues for haptic PCM data generation.
@@ -32,8 +32,8 @@ import android.hardware.vibrator.VibrationEffect;
  *     data for a new effect.
  *  3. The HAL writes a reply into the 'reply' queue informing it's ready to
  *     start generation.
- *  4. If there is more VibrationEffect data to be sent to the HAL,
- *     the framework writes VibrationEffect data into the 'effect' queue.
+ *  4. If there is more VibrationEffectContent to be sent to the HAL,
+ *     the framework writes VibrationEffectContent into the 'effect' queue.
  *  5. [Optional] If the entire effect was written into the 'effect' queue in
  *     the previous step:
  *     5.1 The framework sends a 'completeEffect' command to the 'command'
@@ -41,7 +41,7 @@ import android.hardware.vibrator.VibrationEffect;
  *     5.2 The HAL writes a reply into the 'reply' queue acknowledging.
  *  6. The framework writes a 'burstBytes' command into the 'command' queue and
  *     waits for the reply.
- *  7. The HAL reads any available VibrationEffect data from the 'effect' queue.
+ *  7. The HAL reads any available VibrationEffectContent from the 'effect' queue.
  *  8. The HAL generates the next bytes of haptic PCM data for the current
  *     effect and writes it into the 'pcm' queue. The generated data is not
  *     necessarily based on the most recent data read from the 'effect' queue.
@@ -71,7 +71,7 @@ parcelable HapticGeneratorQueues {
      * This queue acts as a buffer for the vibration effect data that the HAL
      * will process to generate haptic PCM.
      */
-    MQDescriptor<VibrationEffect, SynchronizedReadWrite> effect;
+    MQDescriptor<VibrationEffectContent, SynchronizedReadWrite> effect;
 
     /**
      * For replies from the HAL back to the framework.

@@ -27,7 +27,7 @@
 #include <aidl/android/hardware/vibrator/OneShotPrimitive.h>
 #include <aidl/android/hardware/vibrator/PredefinedEffect.h>
 #include <aidl/android/hardware/vibrator/PwleV2Primitive.h>
-#include <aidl/android/hardware/vibrator/VibrationEffect.h>
+#include <aidl/android/hardware/vibrator/VibrationEffectContent.h>
 #include <aidl/android/media/audio/common/AudioChannelLayout.h>
 #include <aidl/android/media/audio/common/AudioConfigBase.h>
 #include <aidl/android/media/audio/common/AudioFormatDescription.h>
@@ -61,7 +61,7 @@ using aidl::android::hardware::vibrator::IVibratorManager;
 using aidl::android::hardware::vibrator::OneShotPrimitive;
 using aidl::android::hardware::vibrator::PredefinedEffect;
 using aidl::android::hardware::vibrator::PwleV2Primitive;
-using aidl::android::hardware::vibrator::VibrationEffect;
+using aidl::android::hardware::vibrator::VibrationEffectContent;
 using aidl::android::hardware::vibrator::VibrationSessionConfig;
 using aidl::android::hardware::vibrator::testing::hapticgenerator::HapticGeneratorUtils;
 using aidl::android::media::audio::common::AudioChannelLayout;
@@ -79,7 +79,7 @@ namespace fmq = aidl::android::hardware::common::fmq;
 
 // FMQ aliases
 using CommandQueue = AidlMessageQueue<HapticGeneratorCommand, fmq::SynchronizedReadWrite>;
-using EffectQueue = AidlMessageQueue<VibrationEffect, fmq::SynchronizedReadWrite>;
+using EffectQueue = AidlMessageQueue<VibrationEffectContent, fmq::SynchronizedReadWrite>;
 using ReplyQueue = AidlMessageQueue<HapticGeneratorReply, fmq::SynchronizedReadWrite>;
 using PcmQueue = AidlMessageQueue<int8_t, fmq::SynchronizedReadWrite>;
 
@@ -834,30 +834,30 @@ TEST_P(VibratorManagerAidl, HapticGeneratorEnqueueAllVibrationEffectTypes) {
     // Clear any stale data from the output PCM queue
     HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
-    VibrationEffect predefinedEffect;
-    predefinedEffect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{
+    VibrationEffectContent predefinedEffect;
+    predefinedEffect.set<VibrationEffectContent::Tag::predefined>(PredefinedEffect{
             .effect = kEffects[0],
     });
     EXPECT_TRUE(effectQueue->writeBlocking(&predefinedEffect, 1, FMQ_TIMEOUT_NANOS));
 
-    VibrationEffect oneShotPrimitiveEffect;
-    oneShotPrimitiveEffect.set<VibrationEffect::Tag::oneShotPrimitive>(OneShotPrimitive{
+    VibrationEffectContent oneShotPrimitiveEffect;
+    oneShotPrimitiveEffect.set<VibrationEffectContent::Tag::oneShotPrimitive>(OneShotPrimitive{
             .amplitude = 0.5f,
             .timeMillis = 100,
     });
     EXPECT_TRUE(effectQueue->writeBlocking(&oneShotPrimitiveEffect, 1, FMQ_TIMEOUT_NANOS));
 
-    VibrationEffect compositeEffect;
-    compositeEffect.set<VibrationEffect::Tag::composite>(CompositeEffect{
+    VibrationEffectContent compositeEffect;
+    compositeEffect.set<VibrationEffectContent::Tag::composite>(CompositeEffect{
             .delayMs = 10,
             .primitive = CompositePrimitive::NOOP,
             .scale = 0.0f,
     });
     EXPECT_TRUE(effectQueue->writeBlocking(&compositeEffect, 1, FMQ_TIMEOUT_NANOS));
 
-    VibrationEffect pwleEffect;
+    VibrationEffectContent pwleEffect;
     PwleV2Primitive pwle;
-    pwleEffect.set<VibrationEffect::Tag::pwleV2Primitive>(pwle);
+    pwleEffect.set<VibrationEffectContent::Tag::pwleV2Primitive>(pwle);
     EXPECT_TRUE(effectQueue->writeBlocking(&pwleEffect, 1, FMQ_TIMEOUT_NANOS));
 
     HapticGeneratorUtils::sendCompleteCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);
@@ -940,8 +940,8 @@ TEST_P(VibratorManagerAidl, HapticGeneratorStartEffectAndBurstFullEffect) {
     // Clear any stale data from the output PCM queue
     HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
-    VibrationEffect effect;
-    effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
+    VibrationEffectContent effect;
+    effect.set<VibrationEffectContent::Tag::predefined>(PredefinedEffect{});
     ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
 
     size_t totalBytesReceived = 0;
@@ -996,8 +996,8 @@ TEST_P(VibratorManagerAidl, HapticGeneratorStreamLongEffect) {
     HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
     // Fill the effect queue completely with the first half of the effect
-    VibrationEffect effect;
-    effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
+    VibrationEffectContent effect;
+    effect.set<VibrationEffectContent::Tag::predefined>(PredefinedEffect{});
     const size_t effectQueueCapacity = effectQueue->getQuantumCount();
     for (size_t i = 0; i < effectQueueCapacity; ++i) {
         ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
@@ -1052,8 +1052,8 @@ TEST_P(VibratorManagerAidl, HapticGeneratorRestartEffectMidConversion) {
     // Clear any stale data from the output PCM queue
     HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
-    VibrationEffect effect;
-    effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
+    VibrationEffectContent effect;
+    effect.set<VibrationEffectContent::Tag::predefined>(PredefinedEffect{});
     ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
 
     size_t bytesReceived = 0;
@@ -1098,8 +1098,8 @@ TEST_P(VibratorManagerAidl, HapticGeneratorCancelEffectMidConversion) {
     // Clear any stale data from the output PCM queue
     HapticGeneratorUtils::clearPcmQueue(pcmQueue);
 
-    VibrationEffect effect;
-    effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
+    VibrationEffectContent effect;
+    effect.set<VibrationEffectContent::Tag::predefined>(PredefinedEffect{});
     ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
 
     size_t bytesReceived = 0;
@@ -1130,8 +1130,8 @@ TEST_P(VibratorManagerAidl, HapticGeneratorSessionCleared) {
     auto replyQueue = std::make_unique<ReplyQueue>(hgSession.queues[0].reply);
     auto pcmQueue = std::make_unique<PcmQueue>(hgSession.queues[0].pcm);
 
-    VibrationEffect effect;
-    effect.set<VibrationEffect::Tag::predefined>(PredefinedEffect{});
+    VibrationEffectContent effect;
+    effect.set<VibrationEffectContent::Tag::predefined>(PredefinedEffect{});
     ASSERT_TRUE(effectQueue->writeBlocking(&effect, 1, FMQ_TIMEOUT_NANOS));
 
     HapticGeneratorUtils::sendStartCommandExpectStatusReply(commandQueue, replyQueue, STATUS_OK);

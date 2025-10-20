@@ -33,7 +33,7 @@
 
 package android.hardware.vibrator;
 @FixedSize @VintfStability
-union VibrationEffect {
+union VibrationEffectContent {
   byte[32] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   android.hardware.vibrator.CompositeEffect composite;
   android.hardware.vibrator.OneShotPrimitive oneShotPrimitive;

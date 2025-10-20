@@ -43,7 +43,7 @@ class HapticGeneratorSessionState {
     using CommandQueue = ::android::AidlMessageQueue<
             HapticGeneratorCommand, ::aidl::android::hardware::common::fmq::SynchronizedReadWrite>;
     using VibrationEffectQueue = ::android::AidlMessageQueue<
-            VibrationEffect, ::aidl::android::hardware::common::fmq::SynchronizedReadWrite>;
+            VibrationEffectContent, ::aidl::android::hardware::common::fmq::SynchronizedReadWrite>;
     using PcmQueue = ::android::AidlMessageQueue<
             int8_t, ::aidl::android::hardware::common::fmq::SynchronizedReadWrite>;
     using ReplyQueue = ::android::AidlMessageQueue<
