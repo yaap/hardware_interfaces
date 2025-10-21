@@ -96,4 +96,12 @@ enum Capability {
      * @see LayerCommand.newBufferSlotCount
      */
     LAYER_LIFECYCLE_BATCH_COMMAND = 8,
+
+    /**
+     * Specifies that the device HAL supports config change through display command.
+     * Implementation of support for |DisplayCommand.activeConfig|
+     *
+     * @see IComposerClient.executeCommands
+     */
+    DISPLAY_COMMAND_CONFIG_CHANGE = 9,
 }
