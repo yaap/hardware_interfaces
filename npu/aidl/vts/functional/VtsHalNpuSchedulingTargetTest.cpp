@@ -34,6 +34,8 @@
 #include <android/binder_interface_utils.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
+#include <android/content/pm/IPackageManagerNative.h>
+#include <binder/IServiceManager.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -61,6 +63,8 @@ using testing::Matcher;
 using testing::Not;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
+
+const std::string FEATURE_HARDWARE_NPU = "android.hardware.npu";
 
 namespace aidl::android::hardware::npu {
 
@@ -112,6 +116,25 @@ TEST_P(NpuSchedulingAidl, SetSchedulingConfigs) {
 }
 
 /*
+ * Tests that setSchedulingConfigs() rejects invalid priorities
+ */
+TEST_P(NpuSchedulingAidl, SetSchedulingConfigsInvalidPriority) {
+    std::vector<SchedulingConfig> configs;
+
+    SchedulingConfig config;
+    config.uid = 1001;
+    config.priority = -100;
+    config.hasDirectAccess = true;
+    config.canAttributeOtherUid = false;
+    configs.push_back(config);
+
+    auto status = scheduling->setSchedulingConfigs(configs);
+    ASSERT_FALSE(status.isOk())
+            << "setSchedulingConfigs with invalid priority must return EX_ILLEGAL_ARGUMENT";
+    ASSERT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
+}
+
+/*
  * Tests that updateSchedulingConfigs() works with valid input
  */
 TEST_P(NpuSchedulingAidl, UpdateSchedulingConfigs) {
@@ -129,7 +152,7 @@ TEST_P(NpuSchedulingAidl, UpdateSchedulingConfigs) {
 }
 
 /*
- * Tests that setSchedulingConfigs() works with valid instance
+ * Tests that setCallback() works with valid instance
  */
 TEST_P(NpuSchedulingAidl, SetCallback) {
     auto callback = ndk::SharedRefBase::make<SchedulingCallback>();
@@ -139,7 +162,7 @@ TEST_P(NpuSchedulingAidl, SetCallback) {
 }
 
 /*
- * Tests that setSchedulingConfigs() works with a null instance
+ * Tests that setCallaback() works with a null instance
  */
 TEST_P(NpuSchedulingAidl, SetCallbackNull) {
     auto status = scheduling->setCallback(nullptr);
@@ -150,6 +173,42 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NpuSchedulingAidl);
 INSTANTIATE_TEST_SUITE_P(NpuScheduling, NpuSchedulingAidl,
                          testing::ValuesIn(getAidlHalInstanceNames(IScheduling::descriptor)),
                          PrintInstanceNameToString);
+
+// Check whether the given named feature is available.
+static bool checkFeature(const std::string& name) {
+    ::android::sp<::android::IServiceManager> sm(::android::defaultServiceManager());
+    ::android::sp<::android::IBinder> binder(
+            sm->waitForService(::android::String16("package_native")));
+    if (binder == nullptr) {
+        GTEST_LOG_(ERROR) << "waitForService package_native failed";
+        return false;
+    }
+    ::android::sp<::android::content::pm::IPackageManagerNative> packageMgr =
+            ::android::interface_cast<::android::content::pm::IPackageManagerNative>(binder);
+    if (packageMgr == nullptr) {
+        GTEST_LOG_(ERROR) << "Cannot find package manager";
+        return false;
+    }
+    bool hasFeature = false;
+    auto status = packageMgr->hasSystemFeature(::android::String16(name.c_str()), 0, &hasFeature);
+    if (!status.isOk()) {
+        GTEST_LOG_(ERROR) << "hasSystemFeature('" << name << "') failed: " << status;
+        return false;
+    }
+    return hasFeature;
+}
+
+// [VSR-5.7-001] (if device has an NPU as indicated by FEATURE_HARDWARE_NPU) MUST support
+// FEATURE_NPU and implement the android.hardware.npu HAL interface
+TEST(NpuFeature, ImplementsHal) {
+    if (!checkFeature(FEATURE_HARDWARE_NPU)) {
+        GTEST_SKIP() << "Device does not declare feature " << FEATURE_HARDWARE_NPU;
+        return;
+    }
+
+    ASSERT_FALSE(getAidlHalInstanceNames(IScheduling::descriptor).empty())
+            << "No implementation for " << IScheduling::descriptor << " found";
+}
 
 }  // namespace aidl::android::hardware::npu
 
