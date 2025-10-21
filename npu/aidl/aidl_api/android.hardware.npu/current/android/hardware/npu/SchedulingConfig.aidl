@@ -38,4 +38,6 @@ parcelable SchedulingConfig {
   int priority;
   boolean hasDirectAccess;
   boolean canAttributeOtherUid;
+  const int MIN_PRIORITY = 0;
+  const int MAX_PRIORITY = 1000;
 }
