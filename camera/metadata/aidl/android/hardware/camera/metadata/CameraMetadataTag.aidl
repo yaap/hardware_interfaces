@@ -2326,6 +2326,13 @@ enum CameraMetadataTag {
      */
     ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION,
     /**
+     * android.logicalMultiCamera.additionalResults [dynamic, enum, public]
+     *
+     * <p>Controls whether the camera device could also return additional
+     * physical cameras' metadata in the results.</p>
+     */
+    ANDROID_LOGICAL_MULTI_CAMERA_ADDITIONAL_RESULTS,
+    /**
      * android.distortionCorrection.mode [dynamic, enum, public]
      *
      * <p>Mode of operation for the lens distortion correction block.</p>
