@@ -21,14 +21,21 @@ package android.hardware.npu;
  */
 @VintfStability
 parcelable SchedulingConfig {
+    // The minimum priority value, representing the HIGHEST priority
+    const int MIN_PRIORITY = 0;
+
+    // The maximum priority value, representing the LOWEST priority
+    const int MAX_PRIORITY = 1000;
+
     /**
      * The Linux UID of the application.
      */
     int uid;
 
     /**
-     * The priority of the application, ranging from 0 to 1000. 0 is the highest priority
-     * and 1000 is the lowest. Values outside of this range should not be accepted and
+     * The priority of the application, ranging from MIN_PRIORITY to MAX_PRIORITY.
+     * MIN_PRIORITY is the highest priority and MAX_PRIORITY is the lowest.
+     * Values outside of this range should not be accepted and
      * methods should throw EX_ILLEGAL_ARGUMENT.
      */
     int priority;

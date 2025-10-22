@@ -32,7 +32,9 @@ cc_test {
     ],
     srcs: ["VtsHalNpuSchedulingTargetTest.cpp"],
     shared_libs: [
+        "libbinder",
         "libbinder_ndk",
+        "packagemanager_aidl-cpp",
     ],
     static_libs: [
         "android.hardware.npu-V1-ndk",
