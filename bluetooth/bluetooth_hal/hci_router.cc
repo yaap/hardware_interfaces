@@ -396,10 +396,13 @@ const std::unordered_map<HalState, std::unordered_set<HalState>>
 
 HciRouterImpl::HciRouterImpl() {
   if (HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
-    // Power ON Bluetooth chip and download firmware if Accelerated BT ON
-    // feature is supported.
     LOG(INFO) << "Powering ON Bluetooth chip for Accelerated BT ON.";
-    InitializeModules();
+
+    // Power ON Bluetooth chip and download firmware if Accelerated BT ON
+    // feature is supported. Post InitializeModules() to another thread to
+    // prevent potential recursive initialization.
+    std::thread init_thread([this]() { InitializeModules(); });
+    init_thread.detach();
   }
 }
 
