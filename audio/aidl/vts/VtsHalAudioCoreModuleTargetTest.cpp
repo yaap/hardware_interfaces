@@ -1400,10 +1400,6 @@ class StreamWriterLogic : public StreamCommonLogic {
                         return Status::ABORT;
                     }
                     LOG(DEBUG) << __func__ << ": read from file " << size << " bytes";
-                    mCompressedMediaPos += size;
-                    if (mCompressedMediaPos >= mCompressedMediaSize) {
-                        mCompressedMediaPos = mCompressedMediaSize;
-                    }
                 } else {
                     LOG(DEBUG) << __func__ << ": ran out of compressed data in the media file";
                 }
@@ -1417,13 +1413,6 @@ class StreamWriterLogic : public StreamCommonLogic {
                 command.get<StreamDescriptor::Command::Tag::burst>() = 0;
             }
             registerBurstNow();
-        }
-        if (isCompressOffload() && mCompressedMediaPos >= mCompressedMediaSize &&
-            (command.getTag() == StreamDescriptor::Command::Tag::flush ||
-             command.getTag() == StreamDescriptor::Command::Tag::drain)) {
-            mCompressedMedia.seekg(0, mCompressedMedia.beg);
-            mCompressedMediaPos = 0;
-            LOG(DEBUG) << __func__ << ": rewound to the beginning of the media file";
         }
         LOG(DEBUG) << "Writing command: " << command.toString();
         if (!getCommandMQ()->writeBlocking(&command, 1)) {
@@ -1472,6 +1461,26 @@ class StreamWriterLogic : public StreamCommonLogic {
                       reply.state) == enum_range<StreamDescriptor::State>().end()) {
             LOG(ERROR) << __func__ << ": received invalid stream state: " << toString(reply.state);
             return Status::ABORT;
+        }
+        if (isCompressOffload()) {
+            if (actualSize > 0) {  // 'burst' command.
+                if (const int32_t requested = command.get<StreamDescriptor::Command::Tag::burst>();
+                    reply.fmqByteCount < requested) {
+                    // Rewind back the file position to repeat sending unconsumed data next time.
+                    mCompressedMedia.seekg(reply.fmqByteCount - requested, mCompressedMedia.cur);
+                }
+                mCompressedMediaPos += reply.fmqByteCount;
+                if (mCompressedMediaPos > mCompressedMediaSize) {
+                    mCompressedMediaPos = mCompressedMediaSize;
+                }
+            }
+            if (mCompressedMediaPos >= mCompressedMediaSize &&
+                (command.getTag() == StreamDescriptor::Command::Tag::flush ||
+                 command.getTag() == StreamDescriptor::Command::Tag::drain)) {
+                mCompressedMedia.seekg(0, mCompressedMedia.beg);
+                mCompressedMediaPos = 0;
+                LOG(DEBUG) << __func__ << ": rewound to the beginning of the media file";
+            }
         }
         if (getDriver()->processValidReply(reply)) {
             return updateMmapSharedMemoryIfNeeded(reply.state) ? Status::CONTINUE : Status::ABORT;
@@ -6158,14 +6167,19 @@ static const NamedCommandSequence kDrainEarlyPauseAfterNotifFlushOffloadSeq = st
 
 // DRAINING_en ->(onDrainReady) DRAINING_en_sent ->(pause) DRAIN_PAUSED_en_sent ->(burst)
 //   DRAIN_PAUSED_en_sent ->(start) DRAINING_en_sent ->(onDrainReady) IDLE | TRANSFERRING
+//                                                   ->(onTransferReady) DRAINING_en_sent
 std::shared_ptr<StateSequence> makeDrainEarlyPauseAfterReadyOffloadCommands() {
     using State = StreamDescriptor::State;
     auto d = std::make_unique<StateDag>();
+    StateDag::Node lastDraining = d->makeFinalNode(State::DRAINING);
     StateDag::Node lastIdle = d->makeFinalNode(State::IDLE);
     StateDag::Node lastTransferring = d->makeFinalNode(State::TRANSFERRING);
-    // The second onDrainReady event.
-    StateDag::Node continueDraining =
-            d->makeNode(State::DRAINING, kDrainReadyEvent, lastIdle, lastTransferring);
+    // The second onDrainReady event, or onTransferReady (which leaves the stream in DRAINING)
+    StateDag::Node continueDraining = d->makeNode(
+            State::DRAINING,
+            static_cast<StreamEventReceiver::Event>(static_cast<int>(kDrainReadyEvent) |
+                                                    static_cast<int>(kTransferReadyEvent)),
+            lastDraining, lastIdle, lastTransferring);
     StateDag::Node drain = d->makeNodes(
             {std::make_pair(State::ACTIVE, kDrainOutEarlyCommand),
              std::make_pair(State::DRAINING, kDrainReadyEvent),
