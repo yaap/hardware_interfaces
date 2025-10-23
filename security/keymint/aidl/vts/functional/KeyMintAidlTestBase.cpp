@@ -34,6 +34,7 @@
 #include <gmock/gmock.h>
 #include <openssl/evp.h>
 #include <openssl/mem.h>
+#include <openssl/mldsa.h>
 #include <remote_prov/remote_prov_utils.h>
 #include <vendorsupport/api_level.h>
 
@@ -70,6 +71,9 @@ namespace test {
 
 namespace {
 
+// Whether to check that BOOT_PATCHLEVEL is populated.
+bool check_boot_pl = true;
+
 // Possible values for the feature version.  Assumes that future KeyMint versions
 // will continue with the 100 * AIDL_version numbering scheme.
 //
@@ -87,7 +91,8 @@ const size_t kPkcs1UndigestedSignaturePaddingOverhead = 11;
 // Determine whether the key description is for an asymmetric key.
 bool is_asymmetric(const AuthorizationSet& key_desc) {
     auto algorithm = key_desc.GetTagValue(TAG_ALGORITHM);
-    if (algorithm && (algorithm.value() == Algorithm::RSA || algorithm.value() == Algorithm::EC)) {
+    if (algorithm && (algorithm.value() == Algorithm::RSA || algorithm.value() == Algorithm::EC ||
+                      algorithm.value() == Algorithm::ML_DSA)) {
         return true;
     } else {
         return false;
@@ -172,6 +177,23 @@ bool avb_verification_enabled() {
     char value[PROPERTY_VALUE_MAX];
     return property_get("ro.boot.vbmeta.device_state", value, "") != 0;
 }
+
+constexpr char hex_value[256] = {0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 1,  2,  3,  4,  5,  6,  7, 8, 9, 0, 0, 0, 0, 0, 0,  // '0'..'9'
+                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'A'..'F'
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'a'..'f'
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 char nibble2hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -1210,6 +1232,30 @@ void KeyMintAidlTestBase::LocalVerifyMessage(const vector<uint8_t>& der_cert, co
     }
 }
 
+void KeyMintAidlTestBase::LocalVerifyMlDsaRaw(const std::string& message,
+                                              const std::string& signature, MlDsaVariant variant,
+                                              const vector<uint8_t>& pubkey) {
+    CBS in_cbs;
+    CBS_init(&in_cbs, pubkey.data(), pubkey.size());
+    if (variant == MlDsaVariant::ML_DSA_65) {
+        MLDSA65_public_key mldsa_pubkey;
+        ASSERT_EQ(MLDSA65_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
+
+        EXPECT_EQ(MLDSA65_verify(&mldsa_pubkey, reinterpret_cast<const uint8_t*>(signature.data()),
+                                 signature.size(), reinterpret_cast<const uint8_t*>(message.data()),
+                                 message.size(), nullptr, 0),
+                  1);
+    } else {
+        MLDSA87_public_key mldsa_pubkey;
+        ASSERT_EQ(MLDSA87_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
+
+        EXPECT_EQ(MLDSA87_verify(&mldsa_pubkey, reinterpret_cast<const uint8_t*>(signature.data()),
+                                 signature.size(), reinterpret_cast<const uint8_t*>(message.data()),
+                                 message.size(), nullptr, 0),
+                  1);
+    }
+}
+
 string KeyMintAidlTestBase::LocalRsaEncryptMessage(const string& message,
                                                    const AuthorizationSet& params) {
     SCOPED_TRACE("LocalRsaEncryptMessage");
@@ -1713,6 +1759,65 @@ ErrorCode KeyMintAidlTestBase::GenerateAttestKey(const AuthorizationSet& key_des
     return GenerateKey(key_desc, attest_key, key_blob, key_characteristics, cert_chain);
 }
 
+void KeyMintAidlTestBase::CheckBaseParams(const vector<KeyCharacteristics>& keyCharacteristics) {
+    AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
+    EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
+
+    // Check that some unexpected tags/values are NOT present.
+    EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
+    EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
+}
+
+void KeyMintAidlTestBase::CheckSymmetricParams(
+        const vector<KeyCharacteristics>& keyCharacteristics) {
+    AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
+    EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
+    EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
+
+    EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
+}
+
+AuthorizationSet KeyMintAidlTestBase::CheckCommonParams(
+        const vector<KeyCharacteristics>& keyCharacteristics, const KeyOrigin expectedKeyOrigin) {
+    // TODO(swillden): Distinguish which params should be in which auth list.
+    AuthorizationSet auths;
+    for (auto& entry : keyCharacteristics) {
+        auths.push_back(AuthorizationSet(entry.authorizations));
+    }
+    EXPECT_TRUE(auths.Contains(TAG_ORIGIN, expectedKeyOrigin));
+
+    // Verify that App data, ROT and auth timeout are NOT included.
+    EXPECT_FALSE(auths.Contains(TAG_ROOT_OF_TRUST));
+    EXPECT_FALSE(auths.Contains(TAG_APPLICATION_DATA));
+    EXPECT_FALSE(auths.Contains(TAG_MODULE_HASH));
+    EXPECT_FALSE(auths.Contains(TAG_AUTH_TIMEOUT, 301U));
+
+    // None of the tests specify CREATION_DATETIME so check that the KeyMint implementation
+    // never adds it.
+    EXPECT_FALSE(auths.Contains(TAG_CREATION_DATETIME));
+
+    // Check OS details match the original hardware info.
+    auto os_ver = auths.GetTagValue(TAG_OS_VERSION);
+    EXPECT_TRUE(os_ver);
+    EXPECT_EQ(*os_ver, os_version());
+    auto os_pl = auths.GetTagValue(TAG_OS_PATCHLEVEL);
+    EXPECT_TRUE(os_pl);
+    EXPECT_EQ(*os_pl, os_patch_level());
+
+    // Should include vendor patchlevel.
+    auto vendor_pl = auths.GetTagValue(TAG_VENDOR_PATCHLEVEL);
+    EXPECT_TRUE(vendor_pl);
+    EXPECT_EQ(*vendor_pl, vendor_patch_level());
+
+    // Should include boot patchlevel (but there are some test scenarios where this is not
+    // possible).
+    if (check_boot_pl) {
+        auto boot_pl = auths.GetTagValue(TAG_BOOT_PATCHLEVEL);
+        EXPECT_TRUE(boot_pl);
+    }
+
+    return auths;
+}
 // Check if ATTEST_KEY feature is disabled
 bool KeyMintAidlTestBase::is_attest_key_feature_disabled(void) const {
     if (!check_feature(FEATURE_KEYSTORE_APP_ATTEST_KEY)) {
@@ -2092,6 +2197,16 @@ bool verify_attestation_record(int32_t aidl_version,                   //
     return true;
 }
 
+string hex2str(string a) {
+    string b;
+    size_t num = a.size() / 2;
+    b.resize(num);
+    for (size_t i = 0; i < num; i++) {
+        b[i] = (hex_value[a[i * 2] & 0xFF] << 4) + (hex_value[a[i * 2 + 1] & 0xFF]);
+    }
+    return b;
+}
+
 string bin2hex(const vector<uint8_t>& data) {
     string retval;
     retval.reserve(data.size() * 2 + 1);
@@ -2140,6 +2255,22 @@ AssertionResult ChainSignaturesAreValid(const vector<Certificate>& chain,
         }
         if (!key_cert.get() || !signing_cert.get()) return AssertionFailure() << cert_data.str();
 
+        string cert_issuer = x509NameToStr(X509_get_issuer_name(key_cert.get()));
+        string signer_subj = x509NameToStr(X509_get_subject_name(signing_cert.get()));
+        if (cert_issuer != signer_subj && strict_issuer_check) {
+            return AssertionFailure() << "Cert " << i << " has wrong issuer.\n"
+                                      << " Signer subject is " << signer_subj
+                                      << " Issuer subject is " << cert_issuer << endl
+                                      << cert_data.str();
+        }
+
+        SubjectPublicKeyInfo info;
+        extract_spki(signing_cert.get(), &info, /* require_no_params= */ false);
+        if (info.is_mldsa()) {
+            // TODO(b/395069628): implement ML-DSA signature checking of certs
+            continue;
+        }
+
         EVP_PKEY_Ptr signing_pubkey(X509_get_pubkey(signing_cert.get()));
         if (!signing_pubkey.get()) return AssertionFailure() << cert_data.str();
 
@@ -2148,15 +2279,6 @@ AssertionResult ChainSignaturesAreValid(const vector<Certificate>& chain,
                    << "Verification of certificate " << i << " failed "
                    << "OpenSSL error string: " << ERR_error_string(ERR_get_error(), NULL) << '\n'
                    << cert_data.str();
-        }
-
-        string cert_issuer = x509NameToStr(X509_get_issuer_name(key_cert.get()));
-        string signer_subj = x509NameToStr(X509_get_subject_name(signing_cert.get()));
-        if (cert_issuer != signer_subj && strict_issuer_check) {
-            return AssertionFailure() << "Cert " << i << " has wrong issuer.\n"
-                                      << " Signer subject is " << signer_subj
-                                      << " Issuer subject is " << cert_issuer << endl
-                                      << cert_data.str();
         }
     }
 
@@ -2172,6 +2294,29 @@ ErrorCode GetReturnErrorCode(const Status& result) {
     }
 
     return ErrorCode::UNKNOWN_ERROR;
+}
+
+// Retrieve the OID for the public key in a certificate, without attempting
+// to convert the public key into a usable BoringSSL key
+void extract_spki(X509* certificate, SubjectPublicKeyInfo* info, bool require_no_params) {
+    X509_PUBKEY* pubkey = X509_get_X509_PUBKEY(certificate);
+    ASSERT_NE(pubkey, nullptr);
+
+    const uint8_t* pubkey_bytes = nullptr;
+    int pubkey_len = 0;
+    X509_ALGOR* algorithm = nullptr;
+    X509_PUBKEY_get0_param(nullptr, &pubkey_bytes, &pubkey_len, &algorithm, pubkey);
+    info->pubkey = vector(pubkey_bytes, pubkey_bytes + pubkey_len);
+
+    ASSERT_NE(algorithm, nullptr);
+    ASSERT_NE(algorithm->algorithm, nullptr);
+    if (require_no_params) {
+        ASSERT_EQ(algorithm->parameter, nullptr) << "Unexpected parameters found in SPKI";
+    }
+    char oid_chars[1024];
+    int oid_chars_len = OBJ_obj2txt(oid_chars, sizeof(oid_chars), algorithm->algorithm,
+                                    /* use-dotted-form = */ 1);
+    info->oid = string(oid_chars, oid_chars_len);
 }
 
 X509_Ptr parse_cert_blob(const vector<uint8_t>& blob) {
@@ -2600,6 +2745,10 @@ std::optional<std::string> get_attestation_id(const char* prop) {
     }
 
     return std::nullopt;
+}
+
+void skip_boot_pl_check() {
+    check_boot_pl = false;
 }
 
 }  // namespace test

@@ -152,6 +152,13 @@ prebuilt_etc {
     src: "android.hardware.hardware_keystore_V4.xml",
 }
 
+prebuilt_etc {
+    name: "android.hardware.hardware_keystore_V5.xml",
+    sub_dir: "permissions",
+    vendor: true,
+    src: "android.hardware.hardware_keystore_V5.xml",
+}
+
 rust_library {
     name: "libkmr_hal_nonsecure",
     crate_name: "kmr_hal_nonsecure",

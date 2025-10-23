@@ -45,6 +45,7 @@ enum Tag {
   CALLER_NONCE = (android.hardware.security.keymint.TagType.BOOL | 7) /* 1879048199 */,
   MIN_MAC_LENGTH = (android.hardware.security.keymint.TagType.UINT | 8) /* 805306376 */,
   EC_CURVE = (android.hardware.security.keymint.TagType.ENUM | 10) /* 268435466 */,
+  ML_DSA_VARIANT = (android.hardware.security.keymint.TagType.ENUM | 11) /* 268435467 */,
   RSA_PUBLIC_EXPONENT = (android.hardware.security.keymint.TagType.ULONG | 200) /* 1342177480 */,
   INCLUDE_UNIQUE_ID = (android.hardware.security.keymint.TagType.BOOL | 202) /* 1879048394 */,
   RSA_OAEP_MGF_DIGEST = (android.hardware.security.keymint.TagType.ENUM_REP | 203) /* 536871115 */,
