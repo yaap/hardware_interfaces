@@ -50,5 +50,4 @@ union KeyParameterValue {
   long longInteger;
   long dateTime;
   byte[] blob;
-  android.hardware.security.keymint.MlDsaVariant mlDsaVariant;
 }

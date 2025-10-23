@@ -71,7 +71,6 @@ cc_test {
         "DeviceUniqueAttestationTest.cpp",
         "KeyBlobUpgradeTest.cpp",
         "KeyMintTest.cpp",
-        "MlDsaTest.cpp",
         "SecureElementProvisioningTest.cpp",
     ],
     static_libs: [

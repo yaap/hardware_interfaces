@@ -79,6 +79,9 @@ namespace {
 // Maximum supported Ed25519 message size.
 const size_t MAX_ED25519_MSG_SIZE = 16 * 1024;
 
+// Whether to check that BOOT_PATCHLEVEL is populated.
+bool check_boot_pl = true;
+
 // The maximum number of times we'll attempt to verify that corruption
 // of an encrypted blob results in an error. Retries are necessary as there
 // is a small (roughly 1/256) chance that corrupting ciphertext still results
@@ -102,6 +105,33 @@ bool contains(const vector<KeyParameter>& set, TypedTag<tag_type, tag>) {
     auto it = std::find_if(set.begin(), set.end(),
                            [&](const KeyParameter& param) { return param.tag == tag; });
     return (it != set.end());
+}
+
+constexpr char hex_value[256] = {0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 1,  2,  3,  4,  5,  6,  7, 8, 9, 0, 0, 0, 0, 0, 0,  // '0'..'9'
+                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'A'..'F'
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'a'..'f'
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+string hex2str(string a) {
+    string b;
+    size_t num = a.size() / 2;
+    b.resize(num);
+    for (size_t i = 0; i < num; i++) {
+        b[i] = (hex_value[a[i * 2] & 0xFF] << 4) + (hex_value[a[i * 2 + 1] & 0xFF]);
+    }
+    return b;
 }
 
 string rsa_key = hex2str(
@@ -584,7 +614,67 @@ std::shared_ptr<IRemotelyProvisionedComponent> matching_rp_instance(const std::s
 
 }  // namespace
 
-typedef KeyMintAidlTestBase NewKeyGenerationTest;
+class NewKeyGenerationTest : public KeyMintAidlTestBase {
+  protected:
+    void CheckBaseParams(const vector<KeyCharacteristics>& keyCharacteristics) {
+        AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
+        EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
+
+        // Check that some unexpected tags/values are NOT present.
+        EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
+        EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
+    }
+
+    void CheckSymmetricParams(const vector<KeyCharacteristics>& keyCharacteristics) {
+        AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
+        EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
+        EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
+
+        EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
+    }
+
+    AuthorizationSet CheckCommonParams(const vector<KeyCharacteristics>& keyCharacteristics,
+                                       const KeyOrigin expectedKeyOrigin) {
+        // TODO(swillden): Distinguish which params should be in which auth list.
+        AuthorizationSet auths;
+        for (auto& entry : keyCharacteristics) {
+            auths.push_back(AuthorizationSet(entry.authorizations));
+        }
+        EXPECT_TRUE(auths.Contains(TAG_ORIGIN, expectedKeyOrigin));
+
+        // Verify that App data, ROT and auth timeout are NOT included.
+        EXPECT_FALSE(auths.Contains(TAG_ROOT_OF_TRUST));
+        EXPECT_FALSE(auths.Contains(TAG_APPLICATION_DATA));
+        EXPECT_FALSE(auths.Contains(TAG_MODULE_HASH));
+        EXPECT_FALSE(auths.Contains(TAG_AUTH_TIMEOUT, 301U));
+
+        // None of the tests specify CREATION_DATETIME so check that the KeyMint implementation
+        // never adds it.
+        EXPECT_FALSE(auths.Contains(TAG_CREATION_DATETIME));
+
+        // Check OS details match the original hardware info.
+        auto os_ver = auths.GetTagValue(TAG_OS_VERSION);
+        EXPECT_TRUE(os_ver);
+        EXPECT_EQ(*os_ver, os_version());
+        auto os_pl = auths.GetTagValue(TAG_OS_PATCHLEVEL);
+        EXPECT_TRUE(os_pl);
+        EXPECT_EQ(*os_pl, os_patch_level());
+
+        // Should include vendor patchlevel.
+        auto vendor_pl = auths.GetTagValue(TAG_VENDOR_PATCHLEVEL);
+        EXPECT_TRUE(vendor_pl);
+        EXPECT_EQ(*vendor_pl, vendor_patch_level());
+
+        // Should include boot patchlevel (but there are some test scenarios where this is not
+        // possible).
+        if (check_boot_pl) {
+            auto boot_pl = auths.GetTagValue(TAG_BOOT_PATCHLEVEL);
+            EXPECT_TRUE(boot_pl);
+        }
+
+        return auths;
+    }
+};
 
 /*
  * NewKeyGenerationTest.Aes
@@ -9063,7 +9153,7 @@ int main(int argc, char** argv) {
                 // Allow checks of BOOT_PATCHLEVEL to be disabled, so that the tests can
                 // be run in emulated environments that don't have the normal bootloader
                 // interactions.
-                aidl::android::hardware::security::keymint::test::skip_boot_pl_check();
+                aidl::android::hardware::security::keymint::test::check_boot_pl = false;
             }
             if (std::string(argv[i]) == "--keyblob_dir") {
                 if (i + 1 >= argc) {

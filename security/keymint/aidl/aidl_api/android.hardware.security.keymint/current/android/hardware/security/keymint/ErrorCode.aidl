@@ -120,7 +120,6 @@ enum ErrorCode {
   BOOT_LEVEL_EXCEEDED = (-84) /* -84 */,
   HARDWARE_NOT_YET_AVAILABLE = (-85) /* -85 */,
   MODULE_HASH_ALREADY_SET = (-86) /* -86 */,
-  UNSUPPORTED_ML_DSA_VARIANT = (-87) /* -87 */,
   UNIMPLEMENTED = (-100) /* -100 */,
   VERSION_MISMATCH = (-101) /* -101 */,
   UNKNOWN_ERROR = (-1000) /* -1000 */,

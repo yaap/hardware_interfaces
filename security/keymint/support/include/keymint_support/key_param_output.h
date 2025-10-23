@@ -29,9 +29,6 @@
 #include <aidl/android/hardware/security/keymint/KeyOrigin.h>
 #include <aidl/android/hardware/security/keymint/KeyParameter.h>
 #include <aidl/android/hardware/security/keymint/KeyPurpose.h>
-#ifdef KEYMINT_HAL_V5
-#include <aidl/android/hardware/security/keymint/MlDsaVariant.h>
-#endif
 #include <aidl/android/hardware/security/keymint/PaddingMode.h>
 #include <aidl/android/hardware/security/keymint/SecurityLevel.h>
 #include <aidl/android/hardware/security/keymint/Tag.h>
@@ -64,12 +61,6 @@ inline ::std::ostream& operator<<(::std::ostream& os, ErrorCode value) {
 inline ::std::ostream& operator<<(::std::ostream& os, KeyOrigin value) {
     return os << toString(value);
 }
-
-#ifdef KEYMINT_HAL_V5
-inline ::std::ostream& operator<<(::std::ostream& os, MlDsaVariant value) {
-    return os << toString(value);
-}
-#endif
 
 inline ::std::ostream& operator<<(::std::ostream& os, PaddingMode value) {
     return os << toString(value);
