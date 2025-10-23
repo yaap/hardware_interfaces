@@ -23,7 +23,6 @@ import android.hardware.security.keymint.EcCurve;
 import android.hardware.security.keymint.HardwareAuthenticatorType;
 import android.hardware.security.keymint.KeyOrigin;
 import android.hardware.security.keymint.KeyPurpose;
-import android.hardware.security.keymint.MlDsaVariant;
 import android.hardware.security.keymint.PaddingMode;
 import android.hardware.security.keymint.SecurityLevel;
 
@@ -52,7 +51,4 @@ union KeyParameterValue {
     long dateTime; // In milliseconds from epoch
 
     byte[] blob;
-
-    /* Variants added after KeyMint v1 (and which therefore have to be at the bottom) */
-    MlDsaVariant mlDsaVariant; /* Enum */
 }

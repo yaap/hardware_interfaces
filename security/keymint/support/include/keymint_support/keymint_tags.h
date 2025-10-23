@@ -62,11 +62,9 @@ struct Tag2TypedTag {
 #undef DECLARE_TYPED_TAG
 #endif
 
-#define DECLARE_TYPED_TAG_VALUE(name, value)                   \
-    typedef typename Tag2TypedTag<value>::type TAG_##name##_t; \
+#define DECLARE_TYPED_TAG(name)                                    \
+    typedef typename Tag2TypedTag<Tag::name>::type TAG_##name##_t; \
     static TAG_##name##_t TAG_##name;
-
-#define DECLARE_TYPED_TAG(name) DECLARE_TYPED_TAG_VALUE(name, Tag::name)
 
 DECLARE_TYPED_TAG(ACTIVE_DATETIME);
 DECLARE_TYPED_TAG(ALGORITHM);
@@ -105,25 +103,15 @@ DECLARE_TYPED_TAG(MAC_LENGTH);
 DECLARE_TYPED_TAG(MAX_USES_PER_BOOT);
 DECLARE_TYPED_TAG(MIN_MAC_LENGTH);
 DECLARE_TYPED_TAG(MIN_SECONDS_BETWEEN_OPS);
-
-// Allow for building against HAL versions before v4 where the `Tag::MODULE_HASH` constant is not
-// available.
-static const Tag Tag_MODULE_HASH = static_cast<Tag>(-1879047468);
-DECLARE_TYPED_TAG_VALUE(MODULE_HASH, Tag_MODULE_HASH);
-
+// TODO: remove special case macro once v4 HAL is frozen
 #ifdef KEYMINT_HAL_V4
-static_assert(Tag_MODULE_HASH == Tag::MODULE_HASH);
+DECLARE_TYPED_TAG(MODULE_HASH);
+#else
+// When building for previous frozen HAL, the `Tag::MODULE_NAME` constant is not available.
+static const Tag Tag_MODULE_HASH = static_cast<Tag>(-1879047468);
+typedef typename Tag2TypedTag<Tag_MODULE_HASH>::type TAG_MODULE_HASH_t;
+static TAG_MODULE_HASH_t TAG_MODULE_HASH;
 #endif
-
-// Allow for building against HAL versions before v5 where the `Tag::ML_DSA_VARIANT` constant is
-// not available.
-static const Tag Tag_ML_DSA_VARIANT = static_cast<Tag>(268435467);
-DECLARE_TYPED_TAG_VALUE(ML_DSA_VARIANT, Tag_ML_DSA_VARIANT);
-
-#ifdef KEYMINT_HAL_V5
-static_assert(Tag_ML_DSA_VARIANT == Tag::ML_DSA_VARIANT);
-#endif
-
 DECLARE_TYPED_TAG(NONCE);
 DECLARE_TYPED_TAG(NO_AUTH_REQUIRED);
 DECLARE_TYPED_TAG(ORIGIN);

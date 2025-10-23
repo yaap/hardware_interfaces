@@ -129,13 +129,6 @@ import android.hardware.security.secureclock.TimeStampToken;
  *      - TRUSTED_ENVIRONMENT IKeyMintDevices must support MD-5, SHA1, SHA-2-224, SHA-2-256,
  *        SHA-2-384 and SHA-2-512.  STRONGBOX IKeyMintDevices must support SHA-2-256.
  *
- * TRUSTED_ENVIRONMENT implementations of IKeyMintDevice must provide support for the following:
- *
- * o   ML-DSA
- *
- *      - ML-DSA-65 and ML-DSA-87 must be supported.  ML-DSA-44 is not supported.
- *      - Import of ML-DSA keys in raw format (32-byte seed value).
- *
  * == Key Access Control ==
  *
  * Hardware-based keys that can never be extracted from the device don't provide much security if an
@@ -355,19 +348,6 @@ interface IKeyMintDevice {
      * Tag::MIN_MAC_LENGTH must be provided, and must be a multiple of 8 in the range 64 to 512
      * bits (inclusive). If omitted, generateKey must return ErrorCode::MISSING_MIN_MAC_LENGTH; if
      * invalid, generateKey must return ErrorCode::UNSUPPORTED_MIN_MAC_LENGTH.
-     *
-     * == ML-DSA Keys ==
-     *
-     * Tag::ML_DSA_VARIANT must be provided to generate an ML-DSA key. If it is not provided,
-     * generateKey must return ErrorCode::UNSUPPORTED_ML_DSA_VARIANT.  TEE IKeyMintDevice
-     * implementations must support ML-DSA-65 and ML-DSA-87.  StrongBox implementations do not
-     * support ML-DSA.
-     *
-     * ML-DSA keys can have purpose KeyPurpose::SIGN or KeyPurpose::ATTEST_KEY, but cannot have
-     * both.  Key generation with both SIGN and ATTEST_KEY purpose should be rejected with
-     * ErrorCode::INCOMPATIBLE_PURPOSE.
-     *
-     * ML-DSA keys only support Tag::DIGEST values of Digest::NONE.
      *
      * @param keyParams Key generation parameters are defined as KeyMintDevice tag/value pairs,
      *        provided in params.  See above for detailed specifications of which tags are required

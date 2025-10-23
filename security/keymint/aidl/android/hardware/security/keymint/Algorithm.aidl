@@ -27,7 +27,6 @@ enum Algorithm {
     RSA = 1,
     /** 2 removed, do not reuse. */
     EC = 3,
-    ML_DSA = 4,
 
     /** Block cipher algorithms */
     AES = 32,
