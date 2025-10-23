@@ -30,7 +30,7 @@ namespace hci {
 class HciRouterClient : public HciRouterClientCallback {
  public:
   HciRouterClient();
-  ~HciRouterClient();
+  virtual ~HciRouterClient();
 
   /**
    * @brief Called when the controller responds to a command.

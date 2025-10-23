@@ -17,6 +17,12 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <string>
+
+#include "android-base/logging.h"
+#include "android/binder_manager.h"
+#include "android/binder_status.h"
 
 namespace bluetooth_hal {
 namespace extensions {
@@ -24,9 +30,29 @@ namespace extensions {
 // An initializer function for a HAL extension.
 using BluetoothHalExtensionInitializer = std::function<void()>;
 
-// Each extension should call this function, typically from a static
-// constructor, to register its initialization logic with the core HAL.
+/**
+ * Each extension should call this function, typically from a static
+ * constructor, to register its initialization logic with the core HAL.
+ *
+ * @param init_func the extension's initializer function.
+ */
 void BluetoothHalRegisterExtension(BluetoothHalExtensionInitializer init_func);
+
+/**
+ * Registers a HAL service with the Android Service Manager.
+ *
+ * @tparam T The type of the service, which must have a `descriptor` field.
+ * @param service The service instance to register.
+ */
+template <typename T>
+void RegisterHalService(const std::shared_ptr<T>& service) {
+  std::string instance = std::string() + T::descriptor + "/default";
+  int status =
+      AServiceManager_addService(service->asBinder().get(), instance.c_str());
+  if (status != STATUS_OK) {
+    LOG(ERROR) << "Could not register " << T::descriptor << " as a service!";
+  }
+}
 
 }  // namespace extensions
 }  // namespace bluetooth_hal
