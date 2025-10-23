@@ -285,11 +285,6 @@ class AuthorizationSetBuilder : public AuthorizationSet {
     AuthorizationSetBuilder& AesEncryptionKey(uint32_t key_size);
     AuthorizationSetBuilder& TripleDesEncryptionKey(uint32_t key_size);
 
-#ifdef KEYMINT_HAL_V5
-    AuthorizationSetBuilder& MlDsaKey(MlDsaVariant variant);
-    AuthorizationSetBuilder& MlDsaSigningKey(MlDsaVariant variant);
-#endif
-
     AuthorizationSetBuilder& SigningKey();
     AuthorizationSetBuilder& EncryptionKey();
     AuthorizationSetBuilder& AttestKey();

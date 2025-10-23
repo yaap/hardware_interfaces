@@ -178,19 +178,6 @@ AuthorizationSetBuilder& AuthorizationSetBuilder::TripleDesEncryptionKey(uint32_
     return EncryptionKey();
 }
 
-#ifdef KEYMINT_HAL_V5
-AuthorizationSetBuilder& AuthorizationSetBuilder::MlDsaKey(MlDsaVariant variant) {
-    Authorization(TAG_ALGORITHM, Algorithm::ML_DSA);
-    Authorization(TAG_ML_DSA_VARIANT, variant);
-    return *this;
-}
-
-AuthorizationSetBuilder& AuthorizationSetBuilder::MlDsaSigningKey(MlDsaVariant variant) {
-    MlDsaKey(variant);
-    return SigningKey();
-}
-#endif
-
 AuthorizationSetBuilder& AuthorizationSetBuilder::SigningKey() {
     Authorization(TAG_PURPOSE, KeyPurpose::SIGN);
     return Authorization(TAG_PURPOSE, KeyPurpose::VERIFY);
