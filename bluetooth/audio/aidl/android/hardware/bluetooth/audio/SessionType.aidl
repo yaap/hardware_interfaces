@@ -43,7 +43,7 @@ enum SessionType {
      */
     LE_AUDIO_SOFTWARE_DECODING_DATAPATH,
     /**
-     * Used when audio is encoded by hardware offload and is streamed to LE
+     * Used when audio is encoded by hardware offload / software offload and is streamed to LE
      * Audio unicast device. This is a control path only.
      */
     LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
@@ -58,7 +58,7 @@ enum SessionType {
      */
     LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH,
     /**
-     * Used when audio is encoded by hardware offload and is streamed to LE
+     * Used when audio is encoded by hardware offload / software offload and is streamed to LE
      * Audio broadcast channels. This is a control path only.
      */
     LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
@@ -83,4 +83,14 @@ enum SessionType {
      * This is a control path only.
      */
     HFP_HARDWARE_OFFLOAD_DATAPATH,
+    /**
+     * Used when audio is decoded by the Bluetooth stack and is streamed to LE
+     * Audio broadcast channels.
+     */
+    LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
+    /**
+     * Used when audio is decoded by hardware offload / software offload and is streamed to LE
+     * Audio broadcast channels. This is a control path only.
+     */
+    LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH,
 }

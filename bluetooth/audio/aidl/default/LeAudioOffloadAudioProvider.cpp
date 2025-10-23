@@ -146,10 +146,18 @@ LeAudioOffloadInputAudioProvider::LeAudioOffloadInputAudioProvider()
   session_type_ = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH;
 }
 
-LeAudioOffloadBroadcastAudioProvider::LeAudioOffloadBroadcastAudioProvider()
+LeAudioOffloadBroadcastOutputAudioProvider::
+    LeAudioOffloadBroadcastOutputAudioProvider()
     : LeAudioOffloadAudioProvider() {
   session_type_ =
       SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH;
+}
+
+LeAudioOffloadBroadcastInputAudioProvider::
+    LeAudioOffloadBroadcastInputAudioProvider()
+    : LeAudioOffloadAudioProvider() {
+  session_type_ =
+      SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH;
 }
 
 LeAudioOffloadAudioProvider::LeAudioOffloadAudioProvider()
@@ -164,7 +172,9 @@ ndk::ScopedAStatus LeAudioOffloadAudioProvider::startSession(
     const AudioConfiguration& audio_config,
     const std::vector<LatencyMode>& latency_modes, DataMQDesc* _aidl_return) {
   if (session_type_ ==
-      SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+          SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
+      session_type_ ==
+          SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
     if (audio_config.getTag() != AudioConfiguration::leAudioBroadcastConfig) {
       LOG(WARNING) << __func__ << " - Invalid Audio Configuration="
                    << audio_config.toString();
