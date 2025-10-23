@@ -22,6 +22,10 @@ import android.hardware.npu.SchedulingConfig;
 /**
  * This is used to inform the NPU of the priorities of the applications
  * on the system and receive callbacks related to scheduling decisions.
+ *
+ * If the NPU gets work for a UID that does not have an associated
+ * SchedulingConfig, it should give it the lowest priority (SchedulingConfig.MAX_PRIORITY),
+ * allow direct access, and disallow attribution to other UIDs.
  */
 @VintfStability
 interface IScheduling {
@@ -29,7 +33,8 @@ interface IScheduling {
      * Sets priorities based on the passed set of SchedulingConfig
      *
      * @param schedulingConfigs the scheduling configuration for a set of UIDs
-     * @throws EX_ILLEGAL_ARGUMENT if parameters of SchedulingConfig are invalid
+     * @throws EX_ILLEGAL_ARGUMENT if parameters of SchedulingConfig are invalid or if
+     *                             there are multiple configs for the same UID.
      */
     void setSchedulingConfigs(in SchedulingConfig[] schedulingConfigs);
 
@@ -37,6 +42,10 @@ interface IScheduling {
      * Provide an incremental update to the scheduling configs. These will
      * replace an existing config for a given UID or add to the set of configs if
      * there is no existing one for a given UID.
+     *
+     * @param configs the scheduling configuration updates for a set of UIDs
+     * @throws EX_ILLEGAL_ARGUMENT if parameters of SchedulingConfig are invalid or if
+     *                             there are multiple configs for the same UID.
      */
     void updateSchedulingConfigs(in SchedulingConfig[] configs);
 
@@ -46,5 +55,5 @@ interface IScheduling {
      * @param callback The callback instance. Only one callback is allowed. Subsequent
      *                 calls must overwrite the callback set in prior ones.
      */
-    void setCallback(in ISchedulingCallback callback);
+    void setCallback(in @nullable ISchedulingCallback callback);
 }
