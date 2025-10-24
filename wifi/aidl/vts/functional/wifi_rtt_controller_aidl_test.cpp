@@ -114,11 +114,16 @@ class WifiRttControllerEventCallback : public BnWifiRttControllerEventCallback {
     WifiRttControllerEventCallback() = default;
 
     ::ndk::ScopedAStatus onResults(int /* cmdId */,
-                                   const std::vector<RttResult>& /* results */) override {
+                                   const std::vector<RttResult>& results) override {
+        results_ = results;
         return ndk::ScopedAStatus::ok();
     }
-};
 
+    const std::vector<RttResult>& getResults() const { return results_; }
+
+  private:
+    std::vector<RttResult> results_;
+};
 /*
  * RegisterEventCallback
  *
@@ -313,6 +318,51 @@ TEST_P(WifiRttControllerAidlTest, Request2SidedRangeMeasurement) {
 
     // Sleep for 2 seconds to wait for driver/firmware to complete RTT.
     sleep(2);
+}
+
+/*
+ * Request2SidedRangeMeasurementWithRetryMillis
+ * Tests the two sided ranging - 802.11mc FTM protocol.
+ */
+TEST_P(WifiRttControllerAidlTest, Request2SidedRangeMeasurementWithRetryMillis) {
+    RttCapabilities caps = getCapabilities();
+    if (!caps.rttFtmSupported) {
+        GTEST_SKIP() << "Skipping two sided RTT since driver/fw does not support";
+    }
+
+    RttConfig config;
+    config.addr = {{0x00, 0x01, 0x02, 0x03, 0x04, 0x05}};
+    config.type = RttType::TWO_SIDED;
+    config.peer = RttPeerType::AP;
+    config.channel.width = WifiChannelWidthInMhz::WIDTH_80;
+    config.channel.centerFreq = 5180;
+    config.channel.centerFreq0 = 5210;
+    config.channel.centerFreq1 = 0;
+    config.bw = RttBw::BW_20MHZ;
+    config.preamble = RttPreamble::HT;
+    config.mustRequestLci = false;
+    config.mustRequestLcr = false;
+    config.burstPeriod = 0;
+    config.numBurst = 0;
+    config.numFramesPerBurst = 8;
+    config.numRetriesPerRttFrame = 0;
+    config.numRetriesPerFtmr = 0;
+    config.burstDuration = 9;
+
+    int cmdId = 55;
+    std::vector<RttConfig> configs = {config};
+    std::shared_ptr<WifiRttControllerEventCallback> callback =
+            ndk::SharedRefBase::make<WifiRttControllerEventCallback>();
+    ASSERT_NE(nullptr, callback.get());
+    EXPECT_TRUE(wifi_rtt_controller_->registerEventCallback(callback).isOk());
+    EXPECT_TRUE(wifi_rtt_controller_->rangeRequest(cmdId, configs).isOk());
+
+    // Sleep for 2 seconds to wait for driver/firmware to complete RTT.
+    sleep(2);
+
+    for (const auto& result : callback->getResults()) {
+        EXPECT_GE(result.retryAfterDurationMillis, 0);
+    }
 }
 
 /*

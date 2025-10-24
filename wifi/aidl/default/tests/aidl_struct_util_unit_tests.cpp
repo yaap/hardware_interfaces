@@ -801,6 +801,8 @@ void verifyRttResult(wifi_rtt_result* legacy_rtt_result_ptr, RttResult* aidl_res
     EXPECT_EQ((int)legacy_rtt_result_ptr->success_number, aidl_results_ptr->successNumber);
     EXPECT_EQ(legacy_rtt_result_ptr->number_per_burst_peer, aidl_results_ptr->numberPerBurstPeer);
     EXPECT_EQ(legacy_rtt_result_ptr->retry_after_duration, aidl_results_ptr->retryAfterDuration);
+    EXPECT_EQ((int)legacy_rtt_result_ptr->retry_after_duration_millis,
+              aidl_results_ptr->retryAfterDurationMillis);
     EXPECT_EQ(legacy_rtt_result_ptr->rssi, aidl_results_ptr->rssi);
     EXPECT_EQ(legacy_rtt_result_ptr->rssi_spread, aidl_results_ptr->rssiSpread);
     EXPECT_EQ(legacy_rtt_result_ptr->rtt, aidl_results_ptr->rtt);
@@ -830,6 +832,7 @@ void fillLegacyRttResult(wifi_rtt_result* rtt_result_ptr) {
     rtt_result_ptr->number_per_burst_peer = 0xF & rand();
     rtt_result_ptr->status = RTT_STATUS_SUCCESS;
     rtt_result_ptr->retry_after_duration = 0xF & rand();
+    rtt_result_ptr->retry_after_duration_millis = rand();
     rtt_result_ptr->type = RTT_TYPE_2_SIDED;
     rtt_result_ptr->rssi = rand();
     rtt_result_ptr->rssi_spread = rand();

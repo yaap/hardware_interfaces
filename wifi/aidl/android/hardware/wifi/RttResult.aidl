@@ -64,6 +64,7 @@ parcelable RttResult {
     /**
      * If status is RTT_STATUS_FAIL_BUSY_TRY_LATER, this will be the time provided by the responder
      * as to when the request can be tried again. Applies to 2-sided RTT only. In sec, 1-31 sec.
+     * @deprecated use retryAfterDurationMillis instead.
      */
     byte retryAfterDuration;
     /**
@@ -250,4 +251,11 @@ parcelable RttResult {
      * cookie is 255 bytes. Refer IEEE Std 802.11az‐2022, section 9.4.2.303 PASN Parameters element.
      */
     @nullable byte[] pasnComebackCookie;
+    /**
+     * If status is RTT_STATUS_FAIL_BUSY_TRY_LATER, this will be the time provided by the responder
+     * as to when the request can be tried again. Applies to 2-sided RTT only. In milliseconds.
+     * This value has to be >= 0. 0 means immediate retry, otherwise retry
+     * |retryAfterDurationMillis| milliseconds after |timeStampInUs|.
+     */
+    int retryAfterDurationMillis;
 }

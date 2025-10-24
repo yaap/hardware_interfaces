@@ -203,10 +203,16 @@ typedef struct {
                                   // - for multi-burst request, initiator will return
                                   // failure right away.
     wifi_rtt_status status;       // ranging status
-    byte retry_after_duration;    // When status == RTT_STATUS_FAIL_BUSY_TRY_LATER,
+    byte retry_after_duration;    // Deprecated. Use retry_after_duration_millis instead.
+                                  // When status == RTT_STATUS_FAIL_BUSY_TRY_LATER,
                                   // this will be the time provided by the responder as to
                                   // when the request can be tried again. Applies to 2-sided
                                   // RTT only. In sec, 1-31sec.
+    u32 retry_after_duration_millis;  // When status == RTT_STATUS_FAIL_BUSY_TRY_LATER, this
+                                      // will be the time provided by the responder as to when the
+                                      // request can be tried again. Applies to 2-sided RTT only.
+                                      // In milliseconds. 0 means immediate retry, otherwise retry
+                                      // retry_after_duration_millis milliseconds after ts.
     wifi_rtt_type type;           // RTT type
     wifi_rssi rssi;               // average rssi in 0.5 dB steps e.g. 143 implies -71.5 dB
     wifi_rssi rssi_spread;        // rssi spread in 0.5 dB steps e.g. 5 implies 2.5 dB spread (optional)
