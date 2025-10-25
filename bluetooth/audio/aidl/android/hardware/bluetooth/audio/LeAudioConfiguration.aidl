@@ -82,4 +82,10 @@ parcelable LeAudioConfiguration {
      * Octet 4 onwards = Vendor specific Metadata
      */
     @nullable byte[] vendorSpecificMetadata;
+
+    /**
+     * The update packet sequence number parameter indicates the sequence
+     * number of the SDU that is part of the first post transition payload
+     */
+    int updatePacketSequenceNumber;
 }
