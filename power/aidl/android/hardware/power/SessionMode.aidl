@@ -48,4 +48,14 @@ enum SessionMode {
      * GRAPHICS_PIPELINE enabled.
      */
     AUTO_GPU,
+
+    /**
+     * This mode indicates that the session threads are part of a low-latency,
+     * audio pipeline that requires a consistent performance floor.
+     *
+     * Note: This mode disables certain power-saving logic. It should only
+     * be used when the application is actively processing time-critical
+     * data loops.
+     */
+    AUDIO_PERFORMANCE,
 }

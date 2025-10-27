@@ -397,7 +397,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.power</name>
-        <version>5-6</version>
+        <version>5-7</version>
         <interface>
             <name>IPower</name>
             <instance>default</instance>
