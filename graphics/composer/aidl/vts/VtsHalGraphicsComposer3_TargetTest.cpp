@@ -3682,6 +3682,55 @@ TEST_P(GraphicsComposerAidlCommandV4Test, GetDisplayConfigurations_hasHdrType) {
     }
 }
 
+class GraphicsComposerAidlCommandV5Test : public GraphicsComposerAidlCommandTest {
+  protected:
+    void SetUp() override {
+        GraphicsComposerAidlTest::SetUp();
+        if (getInterfaceVersion() <= 4) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 5";
+        }
+    }
+};
+
+TEST_P(GraphicsComposerAidlCommandV5Test, SetActiveConfigDisplayCommand) {
+    if (!hasCapability(Capability::DISPLAY_COMMAND_CONFIG_CHANGE)) {
+        GTEST_SKIP() << "DISPLAY_COMMAND_CONFIG_CHANGE not supported by the implementation";
+    }
+    for (auto& display : mDisplays) {
+        const auto& [status, configs] = mComposerClient->getDisplayConfigs(display.getDisplayId());
+        EXPECT_TRUE(status.isOk());
+
+        for (const auto& config : configs) {
+            auto& writer = getWriter(display.getDisplayId());
+            writer.setActiveConfig(static_cast<int64_t>(display.getDisplayId()), config, false);
+
+            execute();
+            ASSERT_TRUE(getReader(display.getDisplayId()).takeErrors().empty());
+
+            const auto [status, configId] =
+                    mComposerClient->getActiveConfig(display.getDisplayId());
+            EXPECT_TRUE(status.isOk());
+            EXPECT_EQ(config, configId);
+        }
+    }
+}
+
+TEST_P(GraphicsComposerAidlCommandV5Test, SetActiveConfigDisplayCommand_BadConfig) {
+    if (!hasCapability(Capability::DISPLAY_COMMAND_CONFIG_CHANGE)) {
+        GTEST_SKIP() << "DISPLAY_COMMAND_CONFIG_CHANGE not supported by the implementation";
+    }
+    for (DisplayWrapper& display : mDisplays) {
+        int32_t constexpr kInvalidConfigId = IComposerClient::INVALID_CONFIGURATION;
+        auto& writer = getWriter(display.getDisplayId());
+        writer.setActiveConfig(static_cast<int64_t>(display.getDisplayId()), kInvalidConfigId,
+                               false);
+
+        execute();
+        const auto errors = getReader(display.getDisplayId()).takeErrors();
+        EXPECT_TRUE(errors.size() == 1 && errors[0].errorCode == IComposerClient::EX_BAD_CONFIG);
+    }
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandTest);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlCommandTest,
@@ -3720,6 +3769,11 @@ INSTANTIATE_TEST_SUITE_P(
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandV4Test);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlCommandV4Test,
+        testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
+        ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandV5Test);
+INSTANTIATE_TEST_SUITE_P(
+        PerInstance, GraphicsComposerAidlCommandV5Test,
         testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
         ::android::PrintInstanceNameToString);
 }  // namespace aidl::android::hardware::graphics::composer3::vts

@@ -1400,10 +1400,6 @@ class StreamWriterLogic : public StreamCommonLogic {
                         return Status::ABORT;
                     }
                     LOG(DEBUG) << __func__ << ": read from file " << size << " bytes";
-                    mCompressedMediaPos += size;
-                    if (mCompressedMediaPos >= mCompressedMediaSize) {
-                        mCompressedMediaPos = mCompressedMediaSize;
-                    }
                 } else {
                     LOG(DEBUG) << __func__ << ": ran out of compressed data in the media file";
                 }
@@ -1417,13 +1413,6 @@ class StreamWriterLogic : public StreamCommonLogic {
                 command.get<StreamDescriptor::Command::Tag::burst>() = 0;
             }
             registerBurstNow();
-        }
-        if (isCompressOffload() && mCompressedMediaPos >= mCompressedMediaSize &&
-            (command.getTag() == StreamDescriptor::Command::Tag::flush ||
-             command.getTag() == StreamDescriptor::Command::Tag::drain)) {
-            mCompressedMedia.seekg(0, mCompressedMedia.beg);
-            mCompressedMediaPos = 0;
-            LOG(DEBUG) << __func__ << ": rewound to the beginning of the media file";
         }
         LOG(DEBUG) << "Writing command: " << command.toString();
         if (!getCommandMQ()->writeBlocking(&command, 1)) {
@@ -1472,6 +1461,26 @@ class StreamWriterLogic : public StreamCommonLogic {
                       reply.state) == enum_range<StreamDescriptor::State>().end()) {
             LOG(ERROR) << __func__ << ": received invalid stream state: " << toString(reply.state);
             return Status::ABORT;
+        }
+        if (isCompressOffload()) {
+            if (actualSize > 0) {  // 'burst' command.
+                if (const int32_t requested = command.get<StreamDescriptor::Command::Tag::burst>();
+                    reply.fmqByteCount < requested) {
+                    // Rewind back the file position to repeat sending unconsumed data next time.
+                    mCompressedMedia.seekg(reply.fmqByteCount - requested, mCompressedMedia.cur);
+                }
+                mCompressedMediaPos += reply.fmqByteCount;
+                if (mCompressedMediaPos > mCompressedMediaSize) {
+                    mCompressedMediaPos = mCompressedMediaSize;
+                }
+            }
+            if (mCompressedMediaPos >= mCompressedMediaSize &&
+                (command.getTag() == StreamDescriptor::Command::Tag::flush ||
+                 command.getTag() == StreamDescriptor::Command::Tag::drain)) {
+                mCompressedMedia.seekg(0, mCompressedMedia.beg);
+                mCompressedMediaPos = 0;
+                LOG(DEBUG) << __func__ << ": rewound to the beginning of the media file";
+            }
         }
         if (getDriver()->processValidReply(reply)) {
             return updateMmapSharedMemoryIfNeeded(reply.state) ? Status::CONTINUE : Status::ABORT;
@@ -5307,6 +5316,8 @@ TEST_P(AudioStreamOut, UpdateOffloadMetadata) {
     }
 }
 
+static constexpr std::string kReadSeqName = "Read";
+static constexpr std::string kWriteSeqName = "Write";
 enum {
     NAMED_CMD_NAME,
     NAMED_CMD_MIN_INTERFACE_VERSION,
@@ -5353,11 +5364,24 @@ class AudioStreamIo : public AudioCoreModuleBase,
     }
 
     void Run() {
+        using ProfileId = std::tuple<int32_t, std::string, AudioIoFlags, AudioFormatDescription>;
+        auto profileIdToString = [](const ProfileId& p) -> std::string {
+            return std::string("profile of mix port ")
+                    .append(std::to_string(std::get<0>(p)))
+                    .append(" \"")
+                    .append(std::get<1>(p))
+                    .append("\" with ")
+                    .append(std::get<2>(p).toString())
+                    .append(", ")
+                    .append(std::get<3>(p).toString());
+        };
+
         const auto allPortConfigs =
                 moduleConfig->getPortConfigsForMixPorts(IOTraits<Stream>::is_input);
         if (allPortConfigs.empty()) {
             GTEST_SKIP() << "No mix ports have attached devices";
         }
+        std::set<ProfileId> skipped;
         const auto& commandsAndStates =
                 std::get<NAMED_CMD_CMDS>(std::get<PARAM_CMD_SEQ>(GetParam()));
         const bool validatePositionIncrease =
@@ -5377,7 +5401,6 @@ class AudioStreamIo : public AudioCoreModuleBase,
             ASSERT_TRUE(port.has_value());
             SCOPED_TRACE(port->toString());
             SCOPED_TRACE(portConfig.toString());
-            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) continue;
             const bool isNonBlocking =
                     IOTraits<Stream>::is_input
                             ? false
@@ -5401,6 +5424,10 @@ class AudioStreamIo : public AudioCoreModuleBase,
                 (isNonBlocking && streamType == StreamTypeFilter::SYNC) ||
                 (!isNonBlocking && streamType == StreamTypeFilter::ASYNC) ||
                 (!isOffload && streamType == StreamTypeFilter::OFFLOAD)) {
+                continue;
+            }
+            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) {
+                skipped.emplace(port->id, port->name, port->flags, portConfig.format.value());
                 continue;
             }
             WithDebugFlags delayTransientStates = WithDebugFlags::createNested(*debug);
@@ -5429,6 +5456,12 @@ class AudioStreamIo : public AudioCoreModuleBase,
                             .isOk()) {
                     ASSERT_NO_FATAL_FAILURE(runStreamIoCommands(portConfig));
                 }
+            }
+        }
+        if (const auto seqName = std::get<NAMED_CMD_NAME>(std::get<PARAM_CMD_SEQ>(GetParam()));
+            seqName == kReadSeqName || seqName == kWriteSeqName) {
+            for (const auto& p : skipped) {
+                LOG(WARNING) << profileIdToString(p) << " was not tested for " << seqName;
             }
         }
     }
@@ -5901,13 +5934,13 @@ std::shared_ptr<StateSequence> makeBurstCommands(bool isSync, size_t burstCount,
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kReadSeq =
-        std::make_tuple(std::string("Read"), kAidlVersion1, "", 0, StreamTypeFilter::ANY,
+        std::make_tuple(kReadSeqName, kAidlVersion1, "", 0, StreamTypeFilter::ANY,
                         makeBurstCommands(true), true /*validatePositionIncrease*/);
 static const NamedCommandSequence kWriteSyncSeq =
-        std::make_tuple(std::string("Write"), kAidlVersion1, "", 0, StreamTypeFilter::SYNC,
+        std::make_tuple(kWriteSeqName, kAidlVersion1, "", 0, StreamTypeFilter::SYNC,
                         makeBurstCommands(true), true /*validatePositionIncrease*/);
 static const NamedCommandSequence kWriteAsyncSeq =
-        std::make_tuple(std::string("Write"), kAidlVersion1, "", 0, StreamTypeFilter::ASYNC,
+        std::make_tuple(kWriteSeqName, kAidlVersion1, "", 0, StreamTypeFilter::ASYNC,
                         makeBurstCommands(false), true /*validatePositionIncrease*/);
 
 std::shared_ptr<StateSequence> makeAsyncDrainCommands(bool isInput) {
@@ -6158,14 +6191,19 @@ static const NamedCommandSequence kDrainEarlyPauseAfterNotifFlushOffloadSeq = st
 
 // DRAINING_en ->(onDrainReady) DRAINING_en_sent ->(pause) DRAIN_PAUSED_en_sent ->(burst)
 //   DRAIN_PAUSED_en_sent ->(start) DRAINING_en_sent ->(onDrainReady) IDLE | TRANSFERRING
+//                                                   ->(onTransferReady) DRAINING_en_sent
 std::shared_ptr<StateSequence> makeDrainEarlyPauseAfterReadyOffloadCommands() {
     using State = StreamDescriptor::State;
     auto d = std::make_unique<StateDag>();
+    StateDag::Node lastDraining = d->makeFinalNode(State::DRAINING);
     StateDag::Node lastIdle = d->makeFinalNode(State::IDLE);
     StateDag::Node lastTransferring = d->makeFinalNode(State::TRANSFERRING);
-    // The second onDrainReady event.
-    StateDag::Node continueDraining =
-            d->makeNode(State::DRAINING, kDrainReadyEvent, lastIdle, lastTransferring);
+    // The second onDrainReady event, or onTransferReady (which leaves the stream in DRAINING)
+    StateDag::Node continueDraining = d->makeNode(
+            State::DRAINING,
+            static_cast<StreamEventReceiver::Event>(static_cast<int>(kDrainReadyEvent) |
+                                                    static_cast<int>(kTransferReadyEvent)),
+            lastDraining, lastIdle, lastTransferring);
     StateDag::Node drain = d->makeNodes(
             {std::make_pair(State::ACTIVE, kDrainOutEarlyCommand),
              std::make_pair(State::DRAINING, kDrainReadyEvent),

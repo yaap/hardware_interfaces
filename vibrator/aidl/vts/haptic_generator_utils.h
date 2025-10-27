@@ -23,7 +23,7 @@
 #include <aidl/android/hardware/vibrator/HapticGeneratorSession.h>
 #include <aidl/android/hardware/vibrator/IVibratorCallback.h>
 #include <aidl/android/hardware/vibrator/IVibratorManager.h>
-#include <aidl/android/hardware/vibrator/VibrationEffect.h>
+#include <aidl/android/hardware/vibrator/VibrationEffectContent.h>
 #include <aidl/android/media/audio/common/AudioChannelLayout.h>
 #include <aidl/android/media/audio/common/AudioConfigBase.h>
 #include <aidl/android/media/audio/common/AudioFormatDescription.h>
@@ -56,7 +56,7 @@ using ::aidl::android::media::audio::common::PcmType;
 // FMQ aliases
 using CommandQueue =
         ::android::AidlMessageQueue<HapticGeneratorCommand, fmq::SynchronizedReadWrite>;
-using EffectQueue = ::android::AidlMessageQueue<VibrationEffect, fmq::SynchronizedReadWrite>;
+using EffectQueue = ::android::AidlMessageQueue<VibrationEffectContent, fmq::SynchronizedReadWrite>;
 using ReplyQueue = ::android::AidlMessageQueue<HapticGeneratorReply, fmq::SynchronizedReadWrite>;
 using PcmQueue = ::android::AidlMessageQueue<int8_t, fmq::SynchronizedReadWrite>;
 

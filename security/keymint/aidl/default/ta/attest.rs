@@ -376,6 +376,7 @@ pub struct CertSignInfo {
 
 impl CertSignInfo {
     /// Create a new cert signing impl.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         CertSignInfo {
             rsa_info: CertSignAlgoInfo {

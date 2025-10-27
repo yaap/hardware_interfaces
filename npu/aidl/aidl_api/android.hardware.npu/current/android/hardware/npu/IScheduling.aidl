@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,12 +31,10 @@
 // with such a backward incompatible change, it has a high risk of breaking
 // later when a module using the interface is updated, e.g., Mainline modules.
 
-package android.hardware.vibrator;
-@FixedSize @VintfStability
-union VibrationEffect {
-  byte[32] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  android.hardware.vibrator.CompositeEffect composite;
-  android.hardware.vibrator.OneShotPrimitive oneShotPrimitive;
-  android.hardware.vibrator.PredefinedEffect predefined;
-  android.hardware.vibrator.PwleV2Primitive pwleV2Primitive;
+package android.hardware.npu;
+@VintfStability
+interface IScheduling {
+  void setSchedulingConfigs(in android.hardware.npu.SchedulingConfig[] schedulingConfigs);
+  void updateSchedulingConfigs(in android.hardware.npu.SchedulingConfig[] configs);
+  void setCallback(in android.hardware.npu.ISchedulingCallback callback);
 }

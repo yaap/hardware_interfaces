@@ -23,7 +23,8 @@ extern crate alloc;
 use kmr_common::crypto;
 use kmr_crypto_boring::rng::BoringRng;
 use kmr_ta::device::{
-    BootloaderDone, CsrSigningAlgorithm, Implementation, TrustedPresenceUnsupported,
+    BootloaderDone, CsrSigningAlgorithm, FrpDataStorage, FrpSecretStorage, Implementation,
+    TrustedPresenceUnsupported,
 };
 use kmr_ta::{HardwareInfo, KeyMintTa, RpcInfo, RpcInfoV3};
 use kmr_wire::keymint::SecurityLevel;
@@ -46,6 +47,21 @@ pub fn boringssl_crypto_impls() -> crypto::Implementation {
 
 /// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use.
 pub fn build_ta() -> kmr_ta::KeyMintTa {
+    let rpc_sign_algo = CsrSigningAlgorithm::EdDSA;
+    build_ta_with(
+        Box::new(soft::RpcArtifacts::new(soft::Derive::default(), rpc_sign_algo)),
+        Some(Box::new(frp::InMemorySecretStorage::new())),
+        Some(Box::new(frp::InMemoryDataStorage::new())),
+    )
+}
+
+/// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use, including some specified trait
+/// implementations.
+pub fn build_ta_with(
+    rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts>,
+    frp_secret_storage: Option<Box<dyn FrpSecretStorage>>,
+    frp_data_storage: Option<Box<dyn FrpDataStorage>>,
+) -> kmr_ta::KeyMintTa {
     info!("Building NON-SECURE KeyMint Rust TA");
     let hw_info = HardwareInfo {
         version_number: 1,
@@ -54,7 +70,6 @@ pub fn build_ta() -> kmr_ta::KeyMintTa {
         author_name: "Google",
         unique_id: "NON-SECURE KeyMint TA",
     };
-    let rpc_sign_algo = CsrSigningAlgorithm::EdDSA;
     let rpc_info_v3 = RpcInfoV3 {
         author_name: "Google",
         unique_id: "NON-SECURE KeyMint TA",
@@ -64,8 +79,6 @@ pub fn build_ta() -> kmr_ta::KeyMintTa {
 
     let sign_info = attest::CertSignInfo::new();
     let keys: Box<dyn kmr_ta::device::RetrieveKeyMaterial> = Box::new(soft::Keys);
-    let rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts> =
-        Box::new(soft::RpcArtifacts::new(soft::Derive::default(), rpc_sign_algo));
     let dev = Implementation {
         keys,
         sign_info: Some(Box::new(sign_info)),
@@ -81,8 +94,8 @@ pub fn build_ta() -> kmr_ta::KeyMintTa {
         // No support for converting previous implementation's keyblobs.
         legacy_key: None,
         rpc,
-        frp_secret_storage: Some(Box::new(frp::InMemorySecretStorage::new())),
-        frp_data_storage: Some(Box::new(frp::InMemoryDataStorage::new())),
+        frp_secret_storage,
+        frp_data_storage,
     };
     KeyMintTa::new(hw_info, RpcInfo::V3(rpc_info_v3), boringssl_crypto_impls(), dev)
 }

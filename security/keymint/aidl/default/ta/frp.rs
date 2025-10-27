@@ -24,6 +24,7 @@ use std::collections::HashMap;
 ///
 /// A proper implementation needs to persist the secret to secure storage that survives factory
 /// reset, but this is sufficient for VTS.
+#[derive(Default)]
 pub struct InMemorySecretStorage {
     secret: [u8; 32],
 }
@@ -31,7 +32,7 @@ pub struct InMemorySecretStorage {
 impl InMemorySecretStorage {
     /// Create a new instance.
     pub fn new() -> Self {
-        Self { secret: [0; 32] }
+        Self::default()
     }
 }
 
@@ -50,14 +51,15 @@ impl FrpSecretStorage for InMemorySecretStorage {
 ///
 /// A proper implementation needs to persist the secret to storage that survives factory reset,
 /// but this is sufficient for VTS.
+#[derive(Default)]
 pub struct InMemoryDataStorage {
-    data: HashMap<String, Vec<u8>>
+    data: HashMap<String, Vec<u8>>,
 }
 
 impl InMemoryDataStorage {
     /// Create a new instance.
     pub fn new() -> Self {
-        Self { data: HashMap::new() }
+        Self::default()
     }
 }
 
@@ -76,7 +78,7 @@ impl FrpDataStorage for InMemoryDataStorage {
         Ok(())
     }
 
-    fn clear(&mut self) -> Result<(),Error> {
+    fn clear(&mut self) -> Result<(), Error> {
         self.data.clear();
         Ok(())
     }

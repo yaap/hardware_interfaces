@@ -36,7 +36,7 @@ package android.hardware.vibrator;
 parcelable HapticGeneratorQueues {
   int vibratorId;
   android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.HapticGeneratorCommand,android.hardware.common.fmq.SynchronizedReadWrite> command;
-  android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.VibrationEffect,android.hardware.common.fmq.SynchronizedReadWrite> effect;
+  android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.VibrationEffectContent,android.hardware.common.fmq.SynchronizedReadWrite> effect;
   android.hardware.common.fmq.MQDescriptor<android.hardware.vibrator.HapticGeneratorReply,android.hardware.common.fmq.SynchronizedReadWrite> reply;
   android.hardware.common.fmq.MQDescriptor<byte,android.hardware.common.fmq.SynchronizedReadWrite> pcm;
 }

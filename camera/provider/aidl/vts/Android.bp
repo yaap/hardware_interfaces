@@ -82,6 +82,7 @@ cc_test {
         ],
     },
     test_suites: [
+        "dts",
         "general-tests",
         "vts",
     ],

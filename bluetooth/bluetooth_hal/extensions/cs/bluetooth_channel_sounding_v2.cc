@@ -62,24 +62,13 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void RangingV2Initializer() {
-  auto register_service = [](const std::shared_ptr<ICInterface>& service,
-                             const char* name) {
-    std::string instance = std::string() + name + "/default";
-    binder_status_t status =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (status != STATUS_OK) {
-      LOG(ERROR) << "Could not register " << name << " as a service!";
-    }
-  };
-
-  register_service(SharedRefBase::make<BluetoothChannelSoundingV2>(),
-                   BluetoothChannelSoundingV2::descriptor);
+  RegisterHalService(SharedRefBase::make<BluetoothChannelSoundingV2>());
 }
 
 }  // namespace
 
 struct RangingV2Registrar {
-  RangingV2Registrar() { BluetoothHalRegisterExtension(RangingV2Initializer); }
+  RangingV2Registrar() { RangingV2Initializer(); }
 };
 
 RangingV2Registrar g_ranging_v2_registrar;

@@ -22,13 +22,23 @@ import android.hardware.vibrator.PredefinedEffect;
 import android.hardware.vibrator.PwleV2Primitive;
 import android.hardware.vibrator.VendorEffect;
 
+/**
+ * VibrationEffectContent represent an atomic part of a VibrationEffect.
+ *
+ * It has a fixed size and can be used to send vibration effects across Fast Message Queues (FMQs).
+ *
+ * The each content represent one of the following vibrate APIs:
+ * <ul>
+ * <li>OneShotPrimitive: IVibrator.on followed by IVibrator.setAmplitude.
+ * <li>PredefinedEffect: IVibrator.perform.
+ * <li>CompositeEffect: IVibrator.compose (single primitive + scale + delay).
+ * <li>PwleV2Primitive: IVibrator.composePwleV2 (single envelope primitive).
+ * </ul>
+ */
 @VintfStability
 @FixedSize
-union VibrationEffect {
-    /**
-     * Reserved space for future additions to this union. This ensures
-     * backward compatibility.
-     */
+union VibrationEffectContent {
+    // Reserved space for future additions to this union. This ensures backward compatibility.
     byte[32] reserved = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0};
     CompositeEffect composite;

@@ -24,6 +24,7 @@
 #include <trusty/tipc.h>
 #include <optional>
 #include <string>
+#include "delegatorhelpers.h"
 #include "hwcryptokeyimpl.h"
 
 using android::IBinder;
@@ -60,21 +61,6 @@ std::map<std::weak_ptr<ndk_hwcrypto::IOpaqueKey>, wp<cpp_hwcrypto::IOpaqueKey>, 
 std::map<std::weak_ptr<ndk_hwcrypto::ICryptoOperationContext>,
          wp<cpp_hwcrypto::ICryptoOperationContext>, std::owner_less<>>
         contextMapping;
-
-static ndk::ScopedAStatus convertStatus(Status status) {
-    if (status.isOk()) {
-        return ndk::ScopedAStatus::ok();
-    } else {
-        auto exCode = status.exceptionCode();
-        if (exCode == Status::Exception::EX_SERVICE_SPECIFIC) {
-            return ndk::ScopedAStatus::fromServiceSpecificErrorWithMessage(
-                    status.serviceSpecificErrorCode(), status.exceptionMessage());
-        } else {
-            return ndk::ScopedAStatus::fromExceptionCodeWithMessage(exCode,
-                                                                    status.exceptionMessage());
-        }
-    }
-}
 
 static std::optional<cpp_hwcrypto::types::ExplicitKeyMaterial> convertExplicitKeyMaterial(
         const ndk_hwcrypto::types::ExplicitKeyMaterial& keyMaterial) {
@@ -717,18 +703,7 @@ static void create_key_mapping_if_success(Status status,
 }
 
 Result<void> HwCryptoKey::connectToTrusty(const char* tipcDev) {
-    assert(!mSession);
-    auto session_initializer = [](sp<RpcSession>& session) {
-        session->setFileDescriptorTransportMode(RpcSession::FileDescriptorTransportMode::TRUSTY);
-    };
-    mSession =
-            RpcTrustyConnectWithSessionInitializer(tipcDev, HWCRYPTO_KEY_PORT, session_initializer);
-    if (!mSession) {
-        return ErrnoError() << "failed to connect to hwcrypto";
-    }
-    mRoot = mSession->getRootObject();
-    mHwCryptoServer = cpp_hwcrypto::IHwCryptoKey::asInterface(mRoot);
-    return {};
+    return connectToTrustyService(tipcDev, HWCRYPTO_KEY_PORT, mSession, mRoot, mHwCryptoServer);
 }
 
 HwCryptoKey::HwCryptoKey() {}

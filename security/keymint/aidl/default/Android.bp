@@ -157,6 +157,7 @@ rust_library {
     crate_name: "kmr_hal_nonsecure",
     vendor_available: true,
     lints: "android",
+    clippy_lints: "android",
     rustlibs: [
         "libbinder_rs",
         "libhex",
@@ -175,6 +176,7 @@ rust_library {
     vendor_available: true,
     host_supported: true,
     lints: "android",
+    clippy_lints: "android",
     rustlibs: [
         "libhex",
         "liblibc",
