@@ -72,8 +72,10 @@ using aidl::android::media::audio::common::PcmType;
 using android::AidlMessageQueue;
 using std::chrono::high_resolution_clock;
 
+using aidl::android::hardware::vibrator::testing::FMQ_TIMEOUT_NANOS;
+using aidl::android::hardware::vibrator::testing::VIBRATION_CALLBACK_TIMEOUT;
+
 using namespace ::std::chrono_literals;
-using namespace aidl::android::hardware::vibrator::testing;
 
 namespace fmq = aidl::android::hardware::common::fmq;
 

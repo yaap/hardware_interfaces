@@ -54,6 +54,8 @@ using aidl::android::hardware::vibrator::VendorEffect;
 using aidl::android::os::PersistableBundle;
 using std::chrono::high_resolution_clock;
 
+using aidl::android::hardware::vibrator::testing::VIBRATION_CALLBACK_TIMEOUT;
+
 using namespace ::std::chrono_literals;
 
 namespace pwle_v2_utils = aidl::android::hardware::vibrator::testing::pwlev2;
@@ -86,10 +88,6 @@ const std::vector<CompositePrimitive> kInvalidPrimitives = {
     static_cast<CompositePrimitive>(static_cast<int32_t>(kCompositePrimitives.front()) - 1),
     static_cast<CompositePrimitive>(static_cast<int32_t>(kCompositePrimitives.back()) + 1),
 };
-
-// Timeout to wait for vibration callback completion.
-static const std::chrono::milliseconds VIBRATION_CALLBACK_TIMEOUT =
-        300ms * android::base::HwTimeoutMultiplier();
 
 static constexpr int32_t VENDOR_EFFECTS_MIN_VERSION = 3;
 static constexpr int32_t PWLE_V2_MIN_VERSION = 3;
