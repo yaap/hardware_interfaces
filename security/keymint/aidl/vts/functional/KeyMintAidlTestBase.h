@@ -59,6 +59,9 @@ const string FEATURE_KEYSTORE_APP_ATTEST_KEY = "android.hardware.keystore.app_at
 const string FEATURE_STRONGBOX_KEYSTORE = "android.hardware.strongbox_keystore";
 const string FEATURE_HARDWARE_KEYSTORE = "android.hardware.hardware_keystore";
 
+const string ML_DSA_65_OID = "2.16.840.1.101.3.4.3.18";
+const string ML_DSA_87_OID = "2.16.840.1.101.3.4.3.19";
+
 // RAII class to ensure that a keyblob is deleted regardless of how a test exits.
 class KeyBlobDeleter {
   public:
@@ -225,6 +228,8 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
                             const string& signature, const AuthorizationSet& params);
     void LocalVerifyMessage(const string& message, const string& signature,
                             const AuthorizationSet& params);
+    void LocalVerifyMlDsaRaw(const std::string& message, const std::string& signature,
+                             MlDsaVariant variant, const vector<uint8_t>& pubkey);
 
     string LocalRsaEncryptMessage(const string& message, const AuthorizationSet& params);
     string EncryptMessage(const vector<uint8_t>& key_blob, const string& message,
@@ -360,6 +365,11 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
                                 vector<KeyCharacteristics>* key_characteristics,
                                 vector<Certificate>* cert_chain);
 
+    void CheckBaseParams(const vector<KeyCharacteristics>& keyCharacteristics);
+    void CheckSymmetricParams(const vector<KeyCharacteristics>& keyCharacteristics);
+    AuthorizationSet CheckCommonParams(const vector<KeyCharacteristics>& keyCharacteristics,
+                                       const KeyOrigin expectedKeyOrigin);
+
     bool is_attest_key_feature_disabled(void) const;
     bool is_strongbox_enabled(void) const;
     bool is_chipset_allowed_km4_strongbox(void) const;
@@ -433,7 +443,21 @@ bool verify_attestation_record(int aidl_version,                       //
                                const vector<uint8_t>& attestation_cert,
                                vector<uint8_t>* unique_id = nullptr);
 
+string hex2str(string a);
 string bin2hex(const vector<uint8_t>& data);
+
+// Information held in the SubjectPublicKeyInfo of a certificate.
+struct SubjectPublicKeyInfo {
+    bool is_mldsa() { return (oid == ML_DSA_65_OID || oid == ML_DSA_87_OID); }
+
+    // OBJECT IDENTIFIER as a dotted string.
+    string oid;
+    // Raw bytes of the public key.
+    vector<uint8_t> pubkey;
+    // Parameters are not included.
+};
+
+void extract_spki(X509* certificate, SubjectPublicKeyInfo* info, bool require_no_params = true);
 X509_Ptr parse_cert_blob(const vector<uint8_t>& blob);
 ASN1_OCTET_STRING* get_attestation_record(X509* certificate);
 vector<uint8_t> make_name_from_str(const string& name);
@@ -447,6 +471,8 @@ std::string get_imei(int slot);
 
 // Retrieve a device ID property value, to match what is expected in attestations.
 std::optional<std::string> get_attestation_id(const char* prop);
+
+void skip_boot_pl_check();
 
 // Add the appropriate attestation device ID tag value to the provided `AuthorizationSetBuilder`,
 // if found.
