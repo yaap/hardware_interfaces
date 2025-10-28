@@ -63,6 +63,7 @@ cc_test {
         "-Werror",
     ],
     test_suites: [
+        "dts",
         "general-tests",
         "vts",
     ],
