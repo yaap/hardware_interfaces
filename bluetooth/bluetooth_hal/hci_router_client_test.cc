@@ -34,6 +34,7 @@ namespace {
 using ::bluetooth_hal::HalState;
 
 using ::testing::_;
+using ::testing::Invoke;
 using ::testing::Return;
 using ::testing::Test;
 
@@ -164,9 +165,17 @@ TEST_F(HciRouterClientTest, HandleIsBluetoothEnabledAndIsBluetoothChipReady) {
   ASSERT_TRUE(router_client_->IsBluetoothEnabled());
 }
 
-TEST_F(HciRouterClientTest, HandleSendCommandWithValidInput) {
+TEST_F(HciRouterClientTest, HandleSendCommand) {
   const HalPacket packet = GenerateHciResetCommand();
-  EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+  EXPECT_CALL(mock_hci_router_, SendCommand(packet, _))
+      .WillOnce(Invoke([&](const HalPacket& captured_packet,
+                           const HalPacketCallback& /* callback */) {
+        EXPECT_EQ(captured_packet.GetSource(), PacketSource::kClient);
+        EXPECT_EQ(captured_packet.GetDestination(),
+                  PacketDestination::kController);
+        return true;
+      }));
+  ;
   ASSERT_TRUE(router_client_->SendCommand(packet));
 }
 
@@ -176,9 +185,16 @@ TEST_F(HciRouterClientTest, HandleSendCommandWithInValidInput) {
   ASSERT_FALSE(router_client_->SendCommand(packet));
 }
 
-TEST_F(HciRouterClientTest, HandleSendDataWithValidInput) {
+TEST_F(HciRouterClientTest, HandleSendData) {
   const HalPacket packet({0x70, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00});
-  EXPECT_CALL(mock_hci_router_, Send(packet)).Times(1);
+  EXPECT_CALL(mock_hci_router_, Send(packet))
+      .WillOnce(Invoke([&](const HalPacket& captured_packet) {
+        EXPECT_EQ(captured_packet.GetSource(), PacketSource::kClient);
+        EXPECT_EQ(captured_packet.GetDestination(),
+                  PacketDestination::kController);
+        return true;
+      }));
+  ;
   ASSERT_TRUE(router_client_->SendData(packet));
 }
 
