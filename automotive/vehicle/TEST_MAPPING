@@ -58,6 +58,9 @@
     },
     {
       "name": "CtsCarTestCases"
+    },
+    {
+      "name": "VehicleHalE2eTest"
     }
   ],
   "postsubmit": [
