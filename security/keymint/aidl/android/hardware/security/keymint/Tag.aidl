@@ -158,6 +158,14 @@ enum Tag {
     EC_CURVE = TagType.ENUM | 10,
 
     /**
+     * Tag::ML_DSA_VARIANT specifies an ML-DSA variant. Possible values are defined in the
+     * MlDsaVariant enumeration.
+     *
+     * Must be hardware-enforced.
+     */
+    ML_DSA_VARIANT = TagType.ENUM | 11,
+
+    /**
      * Tag::RSA_PUBLIC_EXPONENT specifies the value of the public exponent for an RSA key pair.
      * This tag is relevant only to RSA keys, and is required for all RSA keys.
      *
