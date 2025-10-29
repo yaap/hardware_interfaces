@@ -27,12 +27,6 @@
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 
-#define KEYMINT_HAL_V4
-#define KEYMINT_HAL_V5
-#include <keymint_support/authorization_set.h>
-#include <keymint_support/key_param_output.h>
-#include <keymint_support/openssl_utils.h>
-
 #include "KeyMintAidlTestBase.h"
 
 namespace aidl::android::hardware::security::keymint::test {
@@ -47,7 +41,7 @@ const std::map<MlDsaVariant, std::string> kOidString = {
 const std::string kSeed =
         hex2str("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
-// From draft-ietf-lamps-dilithium-certificates-12 section C.1.2.1
+// From RFC 9881 section C.1.2.1
 const std::string kSeed65Pkcs8 =
         hex2str("3034"                // SEQUENCE len x34 {
                 "020100"              // INTEGER 0 (Version)
@@ -72,15 +66,6 @@ class MlDsaTest : public KeyMintAidlTestBase {
         if (!MlDsaSupported()) {
             GTEST_SKIP() << "ML-DSA support not required";
         }
-    }
-
-    bool MlDsaSupported() {
-        // StrongBox never supports ML-DSA.
-        if (SecLevel() == SecurityLevel::STRONGBOX) {
-            return false;
-        }
-        // ML-DSA was included in version 5 of the KeyMint interface.
-        return AidlVersion() >= 5;
     }
 
     static AuthorizationSetBuilder KeyParams(MlDsaVariant variant) {

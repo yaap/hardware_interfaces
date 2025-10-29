@@ -32,8 +32,11 @@
 #include <aidl/android/hardware/security/keymint/IKeyMintDevice.h>
 #include <aidl/android/hardware/security/keymint/MacedPublicKey.h>
 
+#define KEYMINT_HAL_V4
+#define KEYMINT_HAL_V5
 #include <keymint_support/attestation_record.h>
 #include <keymint_support/authorization_set.h>
+#include <keymint_support/key_param_output.h>
 #include <keymint_support/openssl_utils.h>
 
 namespace aidl::android::hardware::security::keymint {
@@ -112,6 +115,7 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     std::optional<bool> isRkpOnly();
 
     bool Curve25519Supported();
+    bool MlDsaSupported();
 
     ErrorCode GenerateKey(const AuthorizationSet& key_desc);
 
