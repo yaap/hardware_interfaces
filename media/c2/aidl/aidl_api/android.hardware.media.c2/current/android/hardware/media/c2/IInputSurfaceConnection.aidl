@@ -36,4 +36,5 @@ package android.hardware.media.c2;
 interface IInputSurfaceConnection {
   void disconnect();
   void signalEndOfStream();
+  boolean notifiesInputBufferDoneToClient();
 }
