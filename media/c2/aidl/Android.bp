@@ -58,40 +58,6 @@ aidl_interface {
             ],
         },
     ],
-    frozen: false,
+    frozen: true,
 
-}
-
-// Note: This should always be one version ahead of the last frozen version
-latest_android_hardware_media_c2 = "android.hardware.media.c2-V2"
-
-// Modules that depend on android.hardware.media.c2 directly can include
-// the following cc_defaults to avoid explicitly managing dependency versions
-// across many scattered files.
-cc_defaults {
-    name: "latest_android_hardware_media_c2_ndk_static",
-    static_libs: [
-        latest_android_hardware_media_c2 + "-ndk",
-    ],
-}
-
-cc_defaults {
-    name: "latest_android_hardware_media_c2_ndk_shared",
-    shared_libs: [
-        latest_android_hardware_media_c2 + "-ndk",
-    ],
-}
-
-cc_defaults {
-    name: "latest_android_hardware_media_c2_ndk_export_headers",
-    export_shared_lib_headers: [
-        latest_android_hardware_media_c2 + "-ndk",
-    ],
-}
-
-aidl_interface_defaults {
-    name: "latest_android_hardware_media_c2_import_interface",
-    imports: [
-        latest_android_hardware_media_c2,
-    ],
 }
