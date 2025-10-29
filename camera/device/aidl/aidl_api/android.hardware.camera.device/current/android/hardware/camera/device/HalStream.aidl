@@ -43,4 +43,5 @@ parcelable HalStream {
   String physicalCameraId;
   boolean supportOffline;
   boolean enableHalBufferManager;
+  @nullable android.hardware.graphics.common.ExtendableType[] additionalOptions;
 }

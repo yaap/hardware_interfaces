@@ -147,4 +147,13 @@ parcelable HalStream {
      * will ignore this field and assume output buffers are managed by the camera framework.
      */
     boolean enableHalBufferManager;
+
+    /**
+     * The additional options for the HAL stream buffer allocation.
+     *
+     * These additional options do not change the overall usage. Instead, they impact
+     * how a buffer is allocated such as the compression level for the EGL_EXT_surface_compression
+     * extension.
+     */
+    @nullable android.hardware.graphics.common.ExtendableType[] additionalOptions;
 }
