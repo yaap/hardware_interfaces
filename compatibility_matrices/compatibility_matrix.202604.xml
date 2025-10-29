@@ -372,7 +372,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.media.c2</name>
-        <version>1-2</version>
+        <version>1</version>
         <interface>
             <name>IComponentStore</name>
             <regex-instance>default[0-9]*</regex-instance>
