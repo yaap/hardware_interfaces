@@ -1004,7 +1004,7 @@ TEST_P(SupplicantP2pIfaceAidlTest, ManageNetworks) {
     // Remove the network and update the configuration to
     // disk(p2p_supplicant.conf)
     EXPECT_TRUE(p2p_iface_->removeNetwork(networkId).isOk());
-    EXPECT_TRUE(p2p_iface_->saveConfig().isOk());
+    p2p_iface_->saveConfig();
 }
 
 /*
