@@ -645,6 +645,7 @@ namespace {
 const char* kDeviceNameRE = "device@([0-9]+\\.[0-9]+)/\\s+/(.+)";
 const std::string CAMERA_DEVICE_API_VERSION_1 = "1.1";
 const int32_t CAMERA_DEVICE_API_MINOR_VERSION_3 = 3;
+const int32_t CAMERA_DEVICE_API_MINOR_VERSION_4 = 4;
 
 const int32_t kMaxVideoWidth = 4096;
 const int32_t kMaxVideoHeight = 2160;

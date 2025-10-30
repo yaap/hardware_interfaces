@@ -420,4 +420,19 @@ interface ICameraDevice {
      * empty metadata structure if a service specific error is returned.
      */
     CameraMetadata getSessionCharacteristics(in StreamConfiguration sessionConfig);
+
+    /**
+     * warmUp:
+     *
+     * The camera framework uses this call to notify the camera device that an open() call can be
+     * expected within a few hundred milliseconds.
+     *
+     * The camera device interface may use this call to power up sensors,
+     * warm up the camera pipelines in order to reduce the latency of the first camera open
+     * and other initializations. This is aimed at reducing the latency of the first capture
+     * after the camera is opened - for scenarios where the framework knows that a client is about
+     * to open a camera device - eg: when a gesture is used to open camera.
+     *
+     */
+    oneway void warmUp();
 }
