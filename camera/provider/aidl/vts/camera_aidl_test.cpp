@@ -2323,9 +2323,24 @@ void CameraAidlTest::processCaptureRequestInternal(uint64_t bufferUsage,
     int32_t frameNumber = 1;
     CameraMetadata settings;
     for (const auto& name : cameraDeviceNames) {
+        CameraMetadata meta;
+        std::shared_ptr<ICameraDeviceSession> session;
+        std::shared_ptr<ICameraDevice> device;
+        openEmptyDeviceSession(name, mProvider, &session /*out*/, &meta /*out*/, &device /*out*/);
+        camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
+        bool depthOnly = isDepthOnly(staticMeta);
+        ndk::ScopedAStatus ret = session->close();
+        ASSERT_TRUE(ret.isOk());
+        session = nullptr;
+        // Depth only stream with COMPOSER usage isn't typically supported.
+        if (depthOnly && bufferUsage == GRALLOC1_CONSUMER_USAGE_HWCOMPOSER) {
+            ALOGI("%s: camera %s: Depth only camera with HARDWARE COMPOSER stream. Skip!",
+                  __FUNCTION__, name.c_str());
+            continue;
+        }
+
         Stream testStream;
         std::vector<HalStream> halStreams;
-        std::shared_ptr<ICameraDeviceSession> session;
         std::shared_ptr<DeviceCb> cb;
         bool supportsPartialResults = false;
         bool useHalBufManager = false;
@@ -2339,7 +2354,7 @@ void CameraAidlTest::processCaptureRequestInternal(uint64_t bufferUsage,
         ::aidl::android::hardware::common::fmq::MQDescriptor<
                 int8_t, aidl::android::hardware::common::fmq::SynchronizedReadWrite>
                 descriptor;
-        ndk::ScopedAStatus ret = session->getCaptureResultMetadataQueue(&descriptor);
+        ret = session->getCaptureResultMetadataQueue(&descriptor);
         ASSERT_TRUE(ret.isOk());
 
         resultQueue = std::make_shared<ResultMetadataQueue>(descriptor);
