@@ -386,4 +386,20 @@ enum StandardMetadataType {
      * The metadata type is a uint32_t.
      */
     STRIDE = 23,
+
+    /**
+     * Can be used to get or set dynamic HDR metadata specified by SMPTE ST 2094-50.
+     *
+     * This metadata is a uint8_t byte array.
+     *
+     * This is not used in tone mapping until it has been set for the first time.
+     * It is the responsibility of the Android framework to use this metadata for
+     * tone-mapping. HAL implementations MUST NOT use this metadata to create a custom
+     * LUT without following the 2094-50 standard.
+     *
+     * When it is encoded into a byte stream, the length of the HDR metadata byte array is written
+     * using 8 bytes in little endian. It is followed by the uint8_t byte array.
+     * If this is unset when encoded into a byte stream, the byte stream is empty.
+     */
+    SMPTE2094_50 = 24,
 }
