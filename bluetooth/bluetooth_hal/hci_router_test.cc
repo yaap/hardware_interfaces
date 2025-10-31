@@ -110,9 +110,6 @@ class HciRouterTest : public Test {
     MockWakelock::SetMockWakelock(&mock_wakelock_);
     MockVndSnoopLogger::SetMockVndSnoopLogger(&mock_vnd_snoop_logger_);
 
-    set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
-        false);
-
     router_ = &HciRouter::GetRouter();
     InitializeHciRouter();
   }
@@ -366,7 +363,11 @@ TEST_F(HciRouterTest, HandleSendHciCommand) {
   EXPECT_TRUE(GetIsRouterBusy());
 }
 
-TEST_F(HciRouterTest, HandleSendHciCommandTwiceWithoutEvent) {
+TEST_F(HciRouterTest, HandleSendHciCommandTwiceWithoutEventWithoutFlag) {
+  // TODO: b/439994729 - remove this test when deprecating the flag.
+  set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
+      false);
+
   HalPacket cmd_reset({0x01, 0x03, 0x0c, 0x00});
   cmd_reset.SetSource(PacketSource::kStack);
   HalPacket cmd_set_host_le_support({0x01, 0x6d, 0x0c, 0x02, 0x01, 0x00});
@@ -382,6 +383,46 @@ TEST_F(HciRouterTest, HandleSendHciCommandTwiceWithoutEvent) {
       }));
   EXPECT_CALL(mock_hci_router_client_agent_,
               DispatchPacketToClients(cmd_set_host_le_support))
+      .Times(0);
+
+  EXPECT_TRUE(SendToRouter(cmd_reset));
+  WaitPacketSentToTransport(cmd_reset);
+  EXPECT_TRUE(GetIsRouterBusy());
+
+  EXPECT_TRUE(SendToRouter(cmd_set_host_le_support));
+  // The packet should not reach to the router, so no need to wait here.
+  EXPECT_TRUE(GetIsRouterBusy());
+}
+
+TEST_F(HciRouterTest, HandleSendHciCommandTwiceWithoutEvent) {
+  set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
+      true);
+
+  HalPacket cmd_reset({0x01, 0x03, 0x0c, 0x00});
+  cmd_reset.SetSource(PacketSource::kStack);
+  HalPacket cmd_set_host_le_support({0x01, 0x6d, 0x0c, 0x02, 0x01, 0x00});
+  cmd_set_host_le_support.SetSource(PacketSource::kStack);
+
+  // The second command is stays in the HCI queue until the first command is
+  // completed, however it will be passed to router client agent first for
+  // potential packet interceptions.
+  EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(cmd_reset))
+      .WillOnce(Invoke([&](const HalPacket& captured_packet) {
+        EXPECT_EQ(captured_packet.GetSource(), PacketSource::kStack);
+        EXPECT_EQ(captured_packet.GetDestination(),
+                  PacketDestination::kController);
+        return MonitorMode::kNone;
+      }));
+  EXPECT_CALL(mock_hci_router_client_agent_,
+              DispatchPacketToClients(cmd_set_host_le_support))
+      .WillOnce(Invoke([&](const HalPacket& captured_packet) {
+        EXPECT_EQ(captured_packet.GetSource(), PacketSource::kStack);
+        EXPECT_EQ(captured_packet.GetDestination(),
+                  PacketDestination::kController);
+        return MonitorMode::kNone;
+      }));
+  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
       .Times(0);
 
   EXPECT_TRUE(SendToRouter(cmd_reset));
