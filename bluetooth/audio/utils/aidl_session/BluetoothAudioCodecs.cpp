@@ -416,17 +416,22 @@ BluetoothAudioCodecs::GetLeAudioOffloadCodecCapabilities(
   return kDefaultOffloadLeAudioCapabilities;
 }
 
+std::vector<CodecInfo> BluetoothAudioCodecs::GetCodecInfo(
+    const SessionType& session_type) {
+  switch (session_type) {
+    case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
+    case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH:
+    case SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
+      return GetLeAudioOffloadCodecInfo(session_type);
+    case SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH:
+      return GetHfpOffloadCodecInfo();
+    default:
+      return std::vector<CodecInfo>();
+  }
+}
+
 std::vector<CodecInfo> BluetoothAudioCodecs::GetLeAudioOffloadCodecInfo(
     const SessionType& session_type) {
-  if (session_type !=
-          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH &&
-      session_type !=
-          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH &&
-      session_type !=
-          SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
-    return std::vector<CodecInfo>();
-  }
-
   if (kDefaultOffloadLeAudioCodecInfoMap.empty()) {
     auto le_audio_offload_setting =
         BluetoothLeAudioCodecsProvider::ParseFromLeAudioOffloadSettingFile();

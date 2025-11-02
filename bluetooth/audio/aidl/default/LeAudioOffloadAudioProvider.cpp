@@ -1267,9 +1267,8 @@ void LeAudioOffloadAudioProvider::getBroadcastSettings() {
   LOG(INFO) << __func__
             << ": Loading basic broadcast settings from provider info";
 
-  std::vector<CodecInfo> db_codec_info =
-      BluetoothAudioCodecs::GetLeAudioOffloadCodecInfo(
-          SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH);
+  std::vector<CodecInfo> db_codec_info = BluetoothAudioCodecs::GetCodecInfo(
+      SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH);
   for (auto x : db_codec_info) {
     LOG(INFO) << __func__ << ": codec info = " << x.toString();
   }
