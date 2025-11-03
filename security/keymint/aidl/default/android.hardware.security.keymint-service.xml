@@ -9,4 +9,9 @@
         <version>3</version>
         <fqname>IRemotelyProvisionedComponent/default</fqname>
     </hal>
+    <hal format="aidl">
+        <name>android.hardware.security.timestamp</name>
+        <version>1</version>
+        <fqname>ITimeStamper/default</fqname>
+    </hal>
 </manifest>
