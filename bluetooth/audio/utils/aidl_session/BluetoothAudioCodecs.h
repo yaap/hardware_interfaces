@@ -51,13 +51,10 @@ class BluetoothAudioCodecs {
 
   static std::vector<LeAudioCodecCapabilitiesSetting>
   GetLeAudioOffloadCodecCapabilities(const SessionType& session_type);
-  static std::vector<CodecInfo> GetLeAudioOffloadCodecInfo(
-      const SessionType& session_type);
+  static std::vector<CodecInfo> GetCodecInfo(const SessionType& session_type);
 
   static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
   GetLeAudioAseConfigurationSettings();
-
-  static std::vector<CodecInfo> GetHfpOffloadCodecInfo();
 
  private:
   template <typename T>
@@ -82,6 +79,9 @@ class BluetoothAudioCodecs {
       const CodecConfiguration::CodecSpecific& codec_specific);
   static bool IsOffloadOpusConfigurationValid(
       const CodecConfiguration::CodecSpecific& codec_specific);
+  static std::vector<CodecInfo> GetLeAudioOffloadCodecInfo(
+      const SessionType& session_type);
+  static std::vector<CodecInfo> GetHfpOffloadCodecInfo();
 };
 
 }  // namespace audio
