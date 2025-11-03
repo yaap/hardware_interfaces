@@ -31,13 +31,19 @@
 #include <thread>
 #include <unordered_map>
 
+#include <android_hardware_usb_flags.h>
 #include <cutils/uevent.h>
+#include <libusbutils/CommonUtils.h>
+#include <libusbutils/UsbPowerProfileMonitor.h>
 #include <sys/epoll.h>
 #include <utils/Errors.h>
 #include <utils/StrongPointer.h>
 
 #include "Usb.h"
 
+namespace usb_flags = android::hardware::usb::flags;
+
+using aidl::android::hardware::usb::UsbPowerProfileMonitor;
 using android::base::GetProperty;
 using android::base::Trim;
 
@@ -250,12 +256,18 @@ bool switchMode(const string &portName, const PortRole &in_role, struct Usb *usb
     return roleSwitch;
 }
 
+void updatePortStatus(android::hardware::usb::Usb* usb) {
+    std::vector<PortStatus> currentPortStatus;
+
+    queryVersionHelper(usb, &currentPortStatus);
+}
+
 Usb::Usb()
     : mLock(PTHREAD_MUTEX_INITIALIZER),
       mRoleSwitchLock(PTHREAD_MUTEX_INITIALIZER),
       mPartnerLock(PTHREAD_MUTEX_INITIALIZER),
-      mPartnerUp(false)
-{
+      mPartnerUp(false),
+      mPowerMonitor(new UsbPowerProfileMonitor(true, true)) {
     pthread_condattr_t attr;
     if (pthread_condattr_init(&attr)) {
         ALOGE("pthread_condattr_init failed: %s", strerror(errno));
@@ -516,6 +528,14 @@ Status getPortStatusHelper(std::vector<PortStatus> *currentPortStatus) {
             (*currentPortStatus)[i].supportedModes.push_back(PortMode::DRP);
             (*currentPortStatus)[i].usbDataStatus.push_back(UsbDataStatus::ENABLED);
 
+            /**
+             * C++ optional object contains a value when the object is initialized or assigned
+             * a value of the optional type. PortPartnerStatus does not have a constructor, so we
+             * initialize a local object then assign to set the optional object value().
+             */
+            PortPartnerStatus partnerStatus;
+            (*currentPortStatus)[i].partnerStatus = partnerStatus;
+
             ALOGI("%d:%s connected:%d canChangeMode:%d canChagedata:%d canChangePower:%d "
                   "usbDataEnabled:%d plugOrientation:%d",
                   i, port.first.c_str(), port.second, (*currentPortStatus)[i].canChangeMode,
@@ -537,6 +557,7 @@ void queryVersionHelper(android::hardware::usb::Usb *usb,
     status = getPortStatusHelper(currentPortStatus);
     queryMoistureDetectionStatus(currentPortStatus);
     queryNonCompliantChargerStatus(currentPortStatus);
+    usb->mPowerMonitor->queryPowerProfileStatus(currentPortStatus);
     if (usb->mCallback != NULL) {
         ScopedAStatus ret = usb->mCallback->notifyPortStatusChange(*currentPortStatus,
             status);
@@ -633,6 +654,18 @@ static void uevent_event(uint32_t /*epevents*/, struct data *payload) {
                 pthread_mutex_unlock(&payload->usb->mRoleSwitchLock);
             }
             break;
+        } else if (std::regex_match(cp, std::regex("usb_power_delivery/(pd[0-9]+)"))) {
+            if (usb_flags::enable_power_profile_reporting()) {
+                armTimerFd(payload->usb->mPowerMonitor->mTimerDebounceFd,
+                           POWER_MONITOR_DEBOUNCE_MS);
+            }
+        } else if (std::regex_search(cp, std::regex("power_supply/usb"))) {
+            if (usb_flags::enable_power_profile_reporting()) {
+                if (!strncmp(cp, "change@", strlen("change@"))) {
+                    armTimerFd(payload->usb->mPowerMonitor->mTimerDebounceFd,
+                               POWER_MONITOR_DEBOUNCE_MS);
+                }
+            }
         } /* advance to after the next \0 */
         while (*cp++) {
         }
@@ -644,6 +677,9 @@ void *work(void *param) {
     struct epoll_event ev;
     int nevents = 0;
     struct data payload;
+    int ret;
+    unsigned long res;
+    ::aidl::android::hardware::usb::Usb* usb = (::aidl::android::hardware::usb::Usb*)param;
 
     uevent_fd = uevent_open_socket(UEVENT_MAX_EVENTS * UEVENT_MSG_LEN, true);
 
@@ -653,14 +689,15 @@ void *work(void *param) {
     }
 
     payload.uevent_fd = uevent_fd;
-    payload.usb = (::aidl::android::hardware::usb::Usb *)param;
+    payload.usb = usb;
 
     fcntl(uevent_fd, F_SETFL, O_NONBLOCK);
 
     ev.events = EPOLLIN;
+    ev.data.fd = uevent_fd;
     ev.data.ptr = (void *)uevent_event;
 
-    epoll_fd = epoll_create(UEVENT_MAX_EVENTS);
+    epoll_fd = epoll_create(UEVENT_MAX_EVENTS + EPOLL_MAX_EVENTS);
     if (epoll_fd == -1) {
         ALOGE("epoll_create failed; errno=%d", errno);
         goto error;
@@ -672,7 +709,7 @@ void *work(void *param) {
     }
 
     while (!destroyThread) {
-        struct epoll_event events[UEVENT_MAX_EVENTS];
+        struct epoll_event events[UEVENT_MAX_EVENTS + EPOLL_MAX_EVENTS];
 
         nevents = epoll_wait(epoll_fd, events, UEVENT_MAX_EVENTS, -1);
         if (nevents == -1) {
@@ -683,9 +720,18 @@ void *work(void *param) {
         }
 
         for (int n = 0; n < nevents; ++n) {
-            if (events[n].data.ptr)
-                (*(void (*)(int, struct data *payload))events[n].data.ptr)(events[n].events,
-                                                                           &payload);
+            if (events[n].data.fd == uevent_fd) {
+                if (events[n].data.ptr) {
+                    (*(void (*)(int, struct data* payload))events[n].data.ptr)(events[n].events,
+                                                                               &payload);
+                }
+            } else if (events[n].data.fd == usb->mPowerMonitor->mTimerDebounceFd.get()) {
+                ret = read(usb->mPowerMonitor->mTimerDebounceFd.get(), &res, sizeof(res));
+                if (ret < 0) {
+                    ALOGW("mTimerDebounceFd debounce read errno %d", errno);
+                }
+                updatePortStatus(usb);
+            }
         }
     }
 

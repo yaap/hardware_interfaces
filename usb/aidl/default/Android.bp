@@ -40,6 +40,13 @@ cc_binary {
         "libcutils",
         "liblog",
         "libutils",
+        "libprotobuf-cpp-lite",
+        "server_configurable_flags",
+        "libaconfig_storage_read_api_cc",
+    ],
+    static_libs: [
+        "libusbutils",
+        "android.hardware.usb.flags-aconfig-cc-lib",
     ],
 }
 
