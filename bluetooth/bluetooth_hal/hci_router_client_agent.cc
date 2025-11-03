@@ -25,9 +25,12 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
+#include "com_android_bluetooth_bluetooth_hal_flags.h"
 
 namespace bluetooth_hal {
 namespace hci {
+
+namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
 
 class HciRouterClientAgentImpl : public HciRouterClientAgent {
  public:
@@ -91,6 +94,13 @@ MonitorMode HciRouterClientAgentImpl::DispatchPacketToClients(
   if (!IsBluetoothEnabled()) {
     // Look for HCI_RESET complete event if Bluetooth is not enabled.
     HandleBluetoothEnable(packet);
+  }
+
+  if (hal_flags::handle_recursive_packets_from_router_clients() &&
+      packet.GetSource() == PacketSource::kClient) {
+    // Ignore packets generated from a router client to prevent duplicated
+    // callbacks.
+    return MonitorMode::kBypass;
   }
 
   MonitorMode result = MonitorMode::kNone;

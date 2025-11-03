@@ -184,6 +184,20 @@ class HciRouterClient : public HciRouterClientCallback {
   bool SendCommand(const HalPacket& packet);
 
   /**
+   * @brief Sends a command to the HCI router without expecting an
+   * acknowledgment.
+   *
+   * This method should only be used to send HCI commands when no response is
+   * expected or required.
+   *
+   * @param packet The HAL packet containing the command.
+   *
+   * @return `true` if the command was sent successfully, `false` otherwise.
+   *
+   */
+  bool SendCommandNoAck(const HalPacket& packet);
+
+  /**
    * @brief Sends data to the HCI router.
    *
    * This method can be used to send various types of packets to the HAL,
@@ -195,6 +209,14 @@ class HciRouterClient : public HciRouterClientCallback {
    *
    */
   bool SendData(const HalPacket& packet);
+
+  /**
+   * @brief Sends data to the stack.
+   *
+   * @param packet The HAL packet containing the data.
+   *
+   */
+  void SendPacketToStack(const HalPacket& packet);
 
  private:
   std::map<HciMonitor, MonitorMode> monitors_;

@@ -145,6 +145,8 @@ parcelable DataProfileInfo {
      * It includes an optional DNN which, if present, must be used for traffic matching --
      * it does not specify the end point to be used for the data call. The end point is specified by
      * apn; apn must be used as the end point if one is not specified through URSP rules.
+     * It includes ConnectionCapability. The HAL shall use the ConnectionCapability for service
+     * routing (e.g., to a specific slice).
      */
     TrafficDescriptor trafficDescriptor;
     /**

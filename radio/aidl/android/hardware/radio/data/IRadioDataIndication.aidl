@@ -40,6 +40,9 @@ oneway interface IRadioDataIndication {
      *        - The framework sends a IRadioData.deactivateDataCall().
      *        - The radio is powered off/on.
      *        - Unsolicited disconnect from either modem or network side.
+     * HAL Notes for ConnectionCapability: When setupDataCall results in the reuse CID, this event
+     * MUST be triggered. The trafficDescriptors in each SetupDataCallResult in dcList
+     * MUST reflect the full set of ConnectionCapabilities for that session.
      */
     void dataCallListChanged(in RadioIndicationType type, in SetupDataCallResult[] dcList);
 

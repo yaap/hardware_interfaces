@@ -36,15 +36,17 @@ var (
 	pctx = android.NewPackageContext("android/vintf")
 
 	assembleVintfRule = pctx.AndroidStaticRule("assemble_vintf", blueprint.RuleParams{
-		Command:     `${assembleVintfEnv} ${assembleVintfCmd} -i ${inputs} -o ${out} ${extraArgs}`,
-		CommandDeps: []string{"${assembleVintfCmd}", "${AvbToolCmd}"},
-		Description: "assemble_vintf -i ${inputs}",
+		Command:         `${assembleVintfEnv} ${assembleVintfCmd} -i ${inputs} -o ${out} ${extraArgs}`,
+		CommandDeps:     []string{"${assembleVintfCmd}", "${AvbToolCmd}"},
+		Description:     "assemble_vintf -i ${inputs}",
+		SandboxDisabled: true,
 	}, "inputs", "extraArgs", "assembleVintfEnv")
 
 	xmllintXsd = pctx.AndroidStaticRule("xmllint-xsd", blueprint.RuleParams{
-		Command:     `$XmlLintCmd --quiet --schema $xsd $in > /dev/null && touch -a $out`,
-		CommandDeps: []string{"$XmlLintCmd"},
-		Restat:      true,
+		Command:         `$XmlLintCmd --quiet --schema $xsd $in > /dev/null && touch -a $out`,
+		CommandDeps:     []string{"$XmlLintCmd"},
+		Restat:          true,
+		SandboxDisabled: true,
 	}, "xsd")
 
 	kernelConfigTag  = dependencyTag{name: "kernel-config"}

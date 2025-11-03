@@ -37,6 +37,7 @@ cc_test {
         "android.hardware.graphics.mapper@2.1-vts",
     ],
     test_suites: [
+        "dts",
         "general-tests",
         "vts",
     ],

@@ -21,3 +21,10 @@ flag {
     description: "Flag for adopting debug client to dump bt activities"
     bug: "432614127"
 }
+
+flag {
+    name: "handle_recursive_packets_from_router_clients"
+    namespace: "pixel_bluetooth"
+    description: "Flag for the HCI router to handle recursive packets from clients"
+    bug: "439994729"
+}

@@ -19,6 +19,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client_callback.h"
+#include "com_android_bluetooth_bluetooth_hal_flags.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -47,6 +48,8 @@ class HciRouterClientAgentTest : public Test {
   static void SetUpTestSuite() {}
 
   void SetUp() override {
+    set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
+        false);
     agent_ = &HciRouterClientAgent::GetAgent();
     ShutdownBluetooth();
     EXPECT_FALSE(agent_->IsBluetoothEnabled());
@@ -340,6 +343,22 @@ TEST_F(HciRouterClientAgentTest, HandleRegisterClientWhenEnabled) {
   EnableBluetooth();
 
   EXPECT_TRUE(agent_->RegisterClient(&mock_router_client));
+  EXPECT_TRUE(agent_->UnregisterClient(&mock_router_client));
+}
+
+TEST_F(HciRouterClientAgentTest, HandleDispatchPacketFromClient) {
+  set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
+      true);
+  HalPacket packet({0x01, 0x02, 0x03, 0x04});
+  packet.SetSource(PacketSource::kClient);
+  MockHciRouterClient mock_router_client;
+
+  // Expect packet not to be dispatched to clients if the packet was from a
+  // client.
+  EXPECT_CALL(mock_router_client, OnPacketCallback).Times(0);
+
+  EXPECT_TRUE(agent_->RegisterClient(&mock_router_client));
+  EXPECT_EQ(MonitorMode::kBypass, agent_->DispatchPacketToClients(packet));
   EXPECT_TRUE(agent_->UnregisterClient(&mock_router_client));
 }
 

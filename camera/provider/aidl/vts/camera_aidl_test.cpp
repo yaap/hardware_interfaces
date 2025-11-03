@@ -593,15 +593,36 @@ void CameraAidlTest::notifyDeviceState(int64_t state) {
 }
 
 void CameraAidlTest::allocateGraphicBuffer(uint32_t width, uint32_t height, uint64_t usage,
-                                           PixelFormat format, buffer_handle_t* buffer_handle) {
+                                           PixelFormat format, const ExtendableType& extras,
+                                           buffer_handle_t* buffer_handle) {
     ASSERT_NE(buffer_handle, nullptr);
 
     uint32_t stride;
 
-    android::status_t err = android::GraphicBufferAllocator::get().allocateRawHandle(
-            width, height, static_cast<int32_t>(format), 1u /*layerCount*/, usage, buffer_handle,
-            &stride, "VtsHalCameraProviderV2");
-    ASSERT_EQ(err, android::NO_ERROR);
+    std::vector<android::GraphicBufferAllocator::AdditionalOptions> grallocExtras;
+    if (extras.has_value()) {
+        for (const auto& extra : extras.value()) {
+            if (extra.has_value()) {
+                grallocExtras.push_back({extra.value().name.c_str(), extra.value().value});
+            }
+        }
+    }
+    android::GraphicBufferAllocator::AllocationRequest request = {
+            .importBuffer = false,
+            .width = width,
+            .height = height,
+            .format = (int)format,
+            .layerCount = 1,
+            .usage = usage,
+            .requestorName = "VtsHalCameraProviderV2",
+            .extras = grallocExtras,
+    };
+
+    android::GraphicBufferAllocator::AllocationResult result =
+            android::GraphicBufferAllocator::get().allocate(request);
+    ASSERT_EQ(result.status, android::NO_ERROR);
+
+    *buffer_handle = result.handle;
 }
 
 bool CameraAidlTest::matchDeviceName(const std::string& deviceName, const std::string& providerType,
@@ -2302,9 +2323,24 @@ void CameraAidlTest::processCaptureRequestInternal(uint64_t bufferUsage,
     int32_t frameNumber = 1;
     CameraMetadata settings;
     for (const auto& name : cameraDeviceNames) {
+        CameraMetadata meta;
+        std::shared_ptr<ICameraDeviceSession> session;
+        std::shared_ptr<ICameraDevice> device;
+        openEmptyDeviceSession(name, mProvider, &session /*out*/, &meta /*out*/, &device /*out*/);
+        camera_metadata_t* staticMeta = reinterpret_cast<camera_metadata_t*>(meta.metadata.data());
+        bool depthOnly = isDepthOnly(staticMeta);
+        ndk::ScopedAStatus ret = session->close();
+        ASSERT_TRUE(ret.isOk());
+        session = nullptr;
+        // Depth only stream with COMPOSER usage isn't typically supported.
+        if (depthOnly && bufferUsage == GRALLOC1_CONSUMER_USAGE_HWCOMPOSER) {
+            ALOGI("%s: camera %s: Depth only camera with HARDWARE COMPOSER stream. Skip!",
+                  __FUNCTION__, name.c_str());
+            continue;
+        }
+
         Stream testStream;
         std::vector<HalStream> halStreams;
-        std::shared_ptr<ICameraDeviceSession> session;
         std::shared_ptr<DeviceCb> cb;
         bool supportsPartialResults = false;
         bool useHalBufManager = false;
@@ -2318,7 +2354,7 @@ void CameraAidlTest::processCaptureRequestInternal(uint64_t bufferUsage,
         ::aidl::android::hardware::common::fmq::MQDescriptor<
                 int8_t, aidl::android::hardware::common::fmq::SynchronizedReadWrite>
                 descriptor;
-        ndk::ScopedAStatus ret = session->getCaptureResultMetadataQueue(&descriptor);
+        ret = session->getCaptureResultMetadataQueue(&descriptor);
         ASSERT_TRUE(ret.isOk());
 
         resultQueue = std::make_shared<ResultMetadataQueue>(descriptor);
@@ -2362,7 +2398,7 @@ void CameraAidlTest::processCaptureRequestInternal(uint64_t bufferUsage,
                      */
                     ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
                             static_cast<uint64_t>(halStreams[0].producerUsage), bufferUsage)),
-                    halStreams[0].overrideFormat, &handle);
+                    halStreams[0].overrideFormat, halStreams[0].additionalOptions, &handle);
 
             outputBuffer = {halStreams[0].id, bufferId,       ::android::makeToAidl(handle),
                             BufferStatus::OK, NativeHandle(), NativeHandle()};
@@ -2890,7 +2926,8 @@ void CameraAidlTest::processPreviewStabilizationCaptureRequestInternal(
                                   ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
                                           static_cast<uint64_t>(halStreams[0].producerUsage),
                                           GRALLOC1_CONSUMER_USAGE_HWCOMPOSER)),
-                                  halStreams[0].overrideFormat, &buffer_handle);
+                                  halStreams[0].overrideFormat, halStreams[0].additionalOptions,
+                                  &buffer_handle);
             outputBuffer = {halStreams[0].id, bufferId,       ::android::makeToAidl(buffer_handle),
                             BufferStatus::OK, NativeHandle(), NativeHandle()};
         }
@@ -3875,7 +3912,8 @@ void CameraAidlTest::processColorSpaceRequest(
                             static_cast<uint64_t>(halStream.producerUsage),
                             static_cast<uint64_t>(halStream.consumerUsage)));
                     allocateGraphicBuffer(previewStream.width, previewStream.height, usage,
-                                            halStream.overrideFormat, &buffer_handle);
+                                          halStream.overrideFormat, halStream.additionalOptions,
+                                          &buffer_handle);
 
                     inflightReq->mOutstandingBufferIds[halStream.id][bufferId] = buffer_handle;
                     graphicBuffers.push_back(buffer_handle);
@@ -4032,7 +4070,8 @@ void CameraAidlTest::processZoomSettingsOverrideRequests(
                                       ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
                                               static_cast<uint64_t>(halStreams[0].producerUsage),
                                               static_cast<uint64_t>(halStreams[0].consumerUsage))),
-                                      halStreams[0].overrideFormat, &buffers[i]);
+                                      halStreams[0].overrideFormat, halStreams[0].additionalOptions,
+                                      &buffers[i]);
                 outputBuffer = {halStreams[0].id, bufferId + i,   ::android::makeToAidl(buffers[i]),
                                 BufferStatus::OK, NativeHandle(), NativeHandle()};
             }

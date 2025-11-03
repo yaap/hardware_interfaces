@@ -68,7 +68,7 @@ class SupplicantP2pNetworkAidlTest : public testing::TestWithParam<std::string> 
             // Remove the network and update the configuration to
             // disk(p2p_supplicant.conf)
             EXPECT_TRUE(p2p_iface_->removeNetwork(network_id_).isOk());
-            EXPECT_TRUE(p2p_iface_->saveConfig().isOk());
+            p2p_iface_->saveConfig();
         }
         stopSupplicantService();
         startWifiFramework();

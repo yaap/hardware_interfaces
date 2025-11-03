@@ -59,7 +59,7 @@ constexpr char kRandGenBdaddrPath[] =
 constexpr char kEvbDefaultBdaddrProp[] = "ro.vendor.bluetooth.evb_bdaddr";
 constexpr uint16_t kHciVscWriteBdAddress = 0xfc01;
 constexpr uint16_t kHciVscWriteBdAddressLength = 0x0A;
-constexpr int kCommandTimeoutMs = 2000;
+constexpr int kCommandTimeoutMs = 8000;
 
 std::string_view ProvisioningStateToString(
     ChipProvisioner::ProvisioningState state) {

@@ -123,12 +123,24 @@ enum class PacketDestination : uint8_t {
   kNone,
   kController,
   kHost,
+  kMax = kHost,
+};
+
+enum class PacketSource : uint8_t {
+  kNone,
+  kController,
+  kStack,
+  kClient,
+  kMax = kClient
 };
 
 enum class MonitorMode : int {
   kNone,
   kMonitor,
   kIntercept,
+
+  // Internal mode for router clients.
+  kBypass = 100,
 };
 
 class HciConstants {

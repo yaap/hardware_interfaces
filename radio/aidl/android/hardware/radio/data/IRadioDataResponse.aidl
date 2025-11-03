@@ -201,6 +201,8 @@ oneway interface IRadioDataResponse {
      *   RadioError:INTERNAL_ERR
      *   RadioError:NO_RESOURCES if the vendor is unable to handle due to resources being full.
      *   RadioError:SIM_ABSENT
+     * HAL Notes for ConnectionCapability:
+     * - HAL can return dcResponse.cause = DataCallFailCause.DUPLICATE_CID (0x10007) for CID reuse.
      */
     void setupDataCallResponse(in RadioResponseInfo info, in SetupDataCallResult dcResponse);
 

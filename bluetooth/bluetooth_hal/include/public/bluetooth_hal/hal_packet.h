@@ -82,6 +82,29 @@ class HalPacket : public std::vector<uint8_t> {
   PacketDestination GetDestination() const { return direction_; }
 
   /**
+   * @brief Set the source of the packet. The source is
+   * PacketSource::kNone by default.
+   *
+   * @param The source of the packet.
+   *
+   * @note It is **not recommended** to use this API as it can change the way
+   * HciRouter works. The source of the packet will be set once it is
+   * processed by the HciRouter.
+   *
+   */
+  void SetSource(PacketSource source) const { source_ = source; }
+
+  /**
+   * @brief Get the source of the packet. By default, the source
+   * is PacketSource::kNone before the packet is processed by the
+   * HciRouter.
+   *
+   * @return The source of the packet.
+   *
+   */
+  PacketSource GetSource() const { return source_; }
+
+  /**
    * @brief Support getting the byte at an offset with other types.
    *
    * @param offset Template of the offset, can be enum or other numeric types.
@@ -421,6 +444,7 @@ class HalPacket : public std::vector<uint8_t> {
   }
 
   mutable PacketDestination direction_ = PacketDestination::kNone;
+  mutable PacketSource source_ = PacketSource::kNone;
 };
 
 /**
