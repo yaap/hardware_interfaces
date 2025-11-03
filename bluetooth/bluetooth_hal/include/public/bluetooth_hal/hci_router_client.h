@@ -17,7 +17,9 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <mutex>
+#include <type_traits>
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
@@ -31,6 +33,27 @@ class HciRouterClient : public HciRouterClientCallback {
  public:
   HciRouterClient();
   virtual ~HciRouterClient();
+
+  /**
+   * @brief Creates a new instance of a class derived from HciRouterClient.
+   *
+   * This method ensures that only classes inheriting from HciRouterClient can
+   * be instantiated. After creation, it checks the Bluetooth chip and enabled
+   * states and invokes the corresponding callbacks if they are ready or
+   * enabled.
+   *
+   * @tparam T The type of the derived class to create. Must be a child class
+   *           of HciRouterClient.
+   *
+   * @return A shared pointer to the newly created instance of type T.
+   */
+  template <class T, typename std::enable_if<std::is_base_of<
+                         HciRouterClient, T>::value>::type* = nullptr>
+  static std::shared_ptr<T> Create() {
+    auto ptr = std::make_shared<T>();
+    ptr->SyncBluetoothState();
+    return ptr;
+  }
 
   /**
    * @brief Called when the controller responds to a command.
@@ -81,6 +104,18 @@ class HciRouterClient : public HciRouterClientCallback {
       [[maybe_unused]] ::bluetooth_hal::HalState old_state) override {};
 
  protected:
+  /**
+   * @brief Sync the current Bluetooth chip and enabled states.
+   *
+   * This method is called after a new HciRouterClient instance is created. It
+   * queries the current Bluetooth HAL state and invokes the appropriate
+   * callbacks (`OnBluetoothChipReady()` and `OnBluetoothEnabled()`) if the
+   * conditions are met. This ensures that the new client's state is
+   * synchronized with the current HAL state.
+   *
+   */
+  void SyncBluetoothState();
+
   /**
    * @brief Callback invoked when a received HCI packet matches a registered
    * monitor.

@@ -92,13 +92,14 @@ class HciRouterClientTest : public Test {
         .WillByDefault(Return(true));
     ON_CALL(mock_hci_router_client_agent_, UnregisterClient(_))
         .WillByDefault(Return(true));
-    EXPECT_CALL(mock_hci_router_client_agent_, RegisterClient(_)).Times(1);
 
+    EXPECT_CALL(mock_hci_router_client_agent_, RegisterClient(_)).Times(1);
     router_client_ = new HciRouterClientTestInstance();
   }
 
   void TearDown() override {
-    EXPECT_CALL(mock_hci_router_client_agent_, UnregisterClient(_)).Times(1);
+    EXPECT_CALL(mock_hci_router_client_agent_, UnregisterClient(router_client_))
+        .Times(1);
     delete (router_client_);
   }
 
@@ -148,6 +149,87 @@ class HciRouterClientTest : public Test {
   static constexpr uint16_t kHciResetCommandOpcode = 0x0C03;
   static constexpr uint16_t kHciBleAdvSubCode = 0x0D;
 };
+
+TEST_F(HciRouterClientTest, HandleCreate) {
+  class ClientLocalTestInstance : public HciRouterClient {
+   public:
+    void OnBluetoothEnabled() override { is_enabled_ = true; }
+    void OnBluetoothChipReady() override { is_chip_ready_ = true; }
+    MOCK_METHOD(void, OnBluetoothChipClosed, (), (override));
+    MOCK_METHOD(void, OnBluetoothDisabled, (), (override));
+    void OnCommandCallback(const HalPacket&) override {}
+    void OnMonitorPacketCallback(MonitorMode, const HalPacket&) override {}
+
+    bool IsEnabled() { return is_enabled_; }
+    bool IsChipReady() { return is_chip_ready_; }
+
+   private:
+    bool is_enabled_{false};
+    bool is_chip_ready_{false};
+  };
+
+  // Scenario 1: Both IsBluetoothChipReady and IsBluetoothEnabled return false
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+      .WillByDefault(Return(false));
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+      .WillByDefault(Return(false));
+  EXPECT_CALL(mock_hci_router_client_agent_, RegisterClient(_)).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady()).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled()).Times(1);
+
+  auto instance1 = HciRouterClient::Create<ClientLocalTestInstance>();
+  EXPECT_CALL(mock_hci_router_client_agent_, UnregisterClient(instance1.get()))
+      .Times(1);
+  ASSERT_FALSE(instance1->IsEnabled());
+  ASSERT_FALSE(instance1->IsChipReady());
+
+  // Scenario 2: IsBluetoothChipReady returns true, IsBluetoothEnabled returns
+  // false
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+      .WillByDefault(Return(true));
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+      .WillByDefault(Return(false));
+  EXPECT_CALL(mock_hci_router_client_agent_, RegisterClient(_)).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady()).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled()).Times(1);
+
+  auto instance2 = HciRouterClient::Create<ClientLocalTestInstance>();
+  EXPECT_CALL(mock_hci_router_client_agent_, UnregisterClient(instance2.get()))
+      .Times(1);
+  ASSERT_FALSE(instance2->IsEnabled());
+  ASSERT_TRUE(instance2->IsChipReady());
+
+  // Scenario 3: IsBluetoothChipReady returns false, IsBluetoothEnabled returns
+  // true
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+      .WillByDefault(Return(false));
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+      .WillByDefault(Return(true));
+  EXPECT_CALL(mock_hci_router_client_agent_, RegisterClient(_)).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady()).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled()).Times(1);
+
+  auto instance3 = HciRouterClient::Create<ClientLocalTestInstance>();
+  EXPECT_CALL(mock_hci_router_client_agent_, UnregisterClient(instance3.get()))
+      .Times(1);
+  ASSERT_TRUE(instance3->IsEnabled());
+  ASSERT_FALSE(instance3->IsChipReady());
+
+  // Scenario 4: Both IsBluetoothChipReady and IsBluetoothEnabled return true
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
+      .WillByDefault(Return(true));
+  ON_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled())
+      .WillByDefault(Return(true));
+  EXPECT_CALL(mock_hci_router_client_agent_, RegisterClient(_)).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady()).Times(1);
+  EXPECT_CALL(mock_hci_router_client_agent_, IsBluetoothEnabled()).Times(1);
+
+  auto instance4 = HciRouterClient::Create<ClientLocalTestInstance>();
+  EXPECT_CALL(mock_hci_router_client_agent_, UnregisterClient(instance4.get()))
+      .Times(1);
+  ASSERT_TRUE(instance4->IsEnabled());
+  ASSERT_TRUE(instance4->IsChipReady());
+}
 
 TEST_F(HciRouterClientTest, HandleIsBluetoothEnabledAndIsBluetoothChipReady) {
   ON_CALL(mock_hci_router_client_agent_, IsBluetoothChipReady())
