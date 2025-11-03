@@ -40,6 +40,9 @@ parcelable RttResult {
   int successNumber;
   byte numberPerBurstPeer;
   android.hardware.wifi.RttStatus status;
+  /**
+   * @deprecated use retryAfterDurationMillis instead.
+   */
   byte retryAfterDuration;
   android.hardware.wifi.RttType type;
   int rssi;
@@ -73,4 +76,5 @@ parcelable RttResult {
   int secureHeLtfProtocolVersion;
   long pasnComebackAfterMillis;
   @nullable byte[] pasnComebackCookie;
+  int retryAfterDurationMillis;
 }
