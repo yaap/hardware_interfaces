@@ -3207,7 +3207,6 @@ bool convertLegacyRttResultToAidl(const legacy_hal::wifi_rtt_result& legacy_resu
     aidl_result->numberPerBurstPeer = legacy_result.number_per_burst_peer;
     aidl_result->status = convertLegacyRttStatusToAidl(legacy_result.status);
     aidl_result->retryAfterDuration = legacy_result.retry_after_duration;
-    aidl_result->retryAfterDurationMillis = legacy_result.retry_after_duration_millis;
     aidl_result->type = convertLegacyRttTypeToAidl(legacy_result.type);
     aidl_result->rssi = legacy_result.rssi;
     aidl_result->rssiSpread = legacy_result.rssi_spread;
