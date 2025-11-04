@@ -242,6 +242,63 @@ static uint8_t GetBitpool(const A2dpBits& configuration, int bitrate) {
     return std::clamp(bitpool, 2, 250);
 }
 
+A2dpStatus A2dpOffloadCodecSbc::ParseConfiguration(const std::vector<uint8_t>& configuration,
+                                                   SbcParameters* sbc_parameters) {
+    auto config = A2dpBits(configuration);
+
+    /* --- Check Sampling Frequency --- */
+
+    int sampling_frequency = config.find_active_bit(kSamplingFrequency);
+    if (sampling_frequency < 0) return A2dpStatus::INVALID_SAMPLING_FREQUENCY;
+
+    /* --- Check Channel Mode --- */
+
+    int channel_mode = config.find_active_bit(kChannelMode);
+    if (channel_mode < 0) return A2dpStatus::INVALID_CHANNEL_MODE;
+
+    /* --- Check Block Length --- */
+
+    int block_length = config.find_active_bit(kBlockLength);
+    if (block_length < 0) return A2dpStatus::INVALID_BLOCK_LENGTH;
+
+    /* --- Check Subbands --- */
+
+    int subbands = config.find_active_bit(kSubbands);
+    if (subbands < 0) return A2dpStatus::INVALID_SUBBANDS;
+
+    /* --- Check Allocation Method --- */
+
+    int allocation_method = config.find_active_bit(kAllocationMethod);
+    if (allocation_method < 0) return A2dpStatus::INVALID_ALLOCATION_METHOD;
+
+    /* --- Check Bitpool --- */
+
+    uint8_t min_bitpool = config.get(kMinimumBitpool);
+    if (min_bitpool < kDefaultMinimumBitpool || min_bitpool > kDefaultMaximumBitpool)
+        return A2dpStatus::INVALID_MINIMUM_BITPOOL_VALUE;
+
+    uint8_t max_bitpool = config.get(kMaximumBitpool);
+    if (max_bitpool < kDefaultMinimumBitpool || max_bitpool > kDefaultMaximumBitpool)
+        return A2dpStatus::INVALID_MAXIMUM_BITPOOL_VALUE;
+
+    /* --- Return --- */
+
+    sbc_parameters->channelMode = GetChannelModeEnum(channel_mode);
+    sbc_parameters->samplingFrequencyHz = GetSamplingFrequencyValue(sampling_frequency);
+    sbc_parameters->bitdepth = kBitdepth;
+
+    sbc_parameters->minBitrate = GetBitrate(config, min_bitpool);
+    sbc_parameters->maxBitrate = GetBitrate(config, max_bitpool);
+
+    sbc_parameters->block_length = GetBlockLengthValue(block_length);
+    sbc_parameters->subbands = GetSubbandsValue(subbands);
+    sbc_parameters->allocation_method = GetAllocationMethodEnum(allocation_method);
+    sbc_parameters->min_bitpool = min_bitpool;
+    sbc_parameters->max_bitpool = max_bitpool;
+
+    return A2dpStatus::OK;
+}
+
 /**
  * SBC Class implementation
  */
