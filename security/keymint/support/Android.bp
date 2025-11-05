@@ -51,10 +51,16 @@ cc_defaults {
     ],
 }
 
+// KeyMint support library, including support for the latest version of the HAL.
+//
+// Clients of the library should define the same flags when including header
+// files to ensure that all the entrypoints needed for supporting the latest
+// version are declared.
 cc_library {
     name: "libkeymint_support",
     cflags: [
         "-DKEYMINT_HAL_V4",
+        "-DKEYMINT_HAL_V5",
     ],
     defaults: [
         "keymint_use_latest_hal_aidl_ndk_shared",
