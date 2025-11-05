@@ -46,4 +46,8 @@ enum UwbVendorRadarAppConfigTlvTypes {
   RADAR_PRF_MODE = 0x9,
   NUMBER_OF_BURSTS = 0xA,
   RADAR_DATA_TYPE = 0xB,
+  ANTENNA_BITMAP = 0xA0,
+  GPIO_BITMAP = 0xA1,
+  TX_POWER = 0xA2,
+  RX_GAIN = 0xA3,
 }
