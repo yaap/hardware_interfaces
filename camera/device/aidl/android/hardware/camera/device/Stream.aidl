@@ -242,4 +242,16 @@ parcelable Stream {
      * See ANDROID_REQUEST_AVAILABLE_COLOR_SPACE_PROFILES_MAP for possible values.
      */
     int colorSpace;
+
+    /**
+     * Whether concurrent streaming is to be enable for all streams within this
+     * stream group.
+     *
+     * When set to true, the HAL is allowed to concurrently output multiple streams
+     * within the same stream group. The framework guarantees that all streams with
+     * the same groupId have this field set to the same value.
+     *
+     * This field should be ignored if groupId is -1.
+     */
+    boolean concurrentGroup;
 }

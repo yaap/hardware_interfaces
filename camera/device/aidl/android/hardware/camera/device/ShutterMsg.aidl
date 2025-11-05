@@ -16,6 +16,8 @@
 
 package android.hardware.camera.device;
 
+import android.hardware.camera.device.StreamGroupState;
+
 /**
  * ShutterMsg:
  *
@@ -45,4 +47,12 @@ parcelable ShutterMsg {
      * will be ignored by the camera framework.
      */
     long readoutTimestamp;
+
+    /**
+     * The active stream ids for stream groups used by multi-resolution
+     * outputs. If the device doesn't support multi-resolution outputs, or if
+     * no multi-resolution outputs are configured, or if the multi-resolution group's
+     * concurrent outputs are not enabled, this field must be set to empty.
+     */
+    StreamGroupState[] streamGroupState = {};
 }

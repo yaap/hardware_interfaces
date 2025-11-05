@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,21 +33,7 @@
 
 package android.hardware.camera.device;
 @VintfStability
-parcelable Stream {
-  int id;
-  android.hardware.camera.device.StreamType streamType;
-  int width;
-  int height;
-  android.hardware.graphics.common.PixelFormat format;
-  android.hardware.graphics.common.BufferUsage usage;
-  android.hardware.graphics.common.Dataspace dataSpace;
-  android.hardware.camera.device.StreamRotation rotation;
-  String physicalCameraId;
-  int bufferSize;
+parcelable StreamGroupState {
   int groupId;
-  android.hardware.camera.metadata.SensorPixelMode[] sensorPixelModesUsed;
-  android.hardware.camera.metadata.RequestAvailableDynamicRangeProfilesMap dynamicRangeProfile;
-  android.hardware.camera.metadata.ScalerAvailableStreamUseCases useCase;
-  int colorSpace;
-  boolean concurrentGroup;
+  int[] activeStreamIds = {};
 }
