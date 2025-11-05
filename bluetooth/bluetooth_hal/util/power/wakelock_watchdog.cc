@@ -33,6 +33,8 @@ namespace bluetooth_hal {
 namespace util {
 namespace power {
 
+using ::bluetooth_hal::debug::DebugCentral;
+
 class WatchdogBiteHandler {
  public:
   // Intentionally crash in different methods to create crash reason
@@ -163,6 +165,9 @@ void WakelockWatchdogImpl::Bark(WakeSource source, int remain_time) {
 
 void WakelockWatchdogImpl::Bite(WakeSource source) {
   WatchdogBiteHandler watchdog_bite_handler;
+  LOG(ERROR) << __func__ << ": wakelock watchdog BITE!";
+  DebugCentral::Get().DumpPartialHalLogToLogcat();
+
   switch (source) {
     case WakeSource::kTx:
       watchdog_bite_handler.TxTimeout();
