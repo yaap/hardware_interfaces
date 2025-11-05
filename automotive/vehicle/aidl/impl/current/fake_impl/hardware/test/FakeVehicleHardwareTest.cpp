@@ -82,6 +82,8 @@ using ::aidl::android::hardware::automotive::vehicle::VehicleAreaMirror;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaSeat;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaWindow;
 using ::aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightState;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightSwitch;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleProperty;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropertyAccess;
@@ -358,6 +360,11 @@ class FakeVehicleHardwareTest : public ::testing::Test {
                   getHardware()->subscribe(newSubscribeOptions(propId, areaId, sampleRateHz)))
                 << "failed to subscribe to propId: " << propId << "areaId: " << areaId
                 << ", sampleRateHz: " << sampleRateHz;
+    }
+
+    void unsubscribe(int32_t propId, int32_t areaId) {
+        ASSERT_EQ(StatusCode::OK, getHardware()->unsubscribe(propId, areaId))
+                << "failed to unsubscribe to propId: " << propId << "areaId: " << areaId;
     }
 
     static void addSetValueRequest(std::vector<SetValueRequest>& requests,
@@ -2325,6 +2332,117 @@ TEST_F(FakeVehicleHardwareTest, testSendAdasPropertiesState) {
             changedPropIds.insert(event.prop);
         }
         EXPECT_EQ(changedPropIds, expectedChangedPropIds);
+    }
+}
+
+TEST_F(FakeVehicleHardwareTest, testUpdateLightsState) {
+    StatusCode status = setValue(
+            VehiclePropValue{.prop = toInt(VehicleProperty::NIGHT_MODE), .value.int32Values = {0}});
+
+    ASSERT_EQ(status, StatusCode::OK);
+
+    const std::vector<std::pair<int32_t, int32_t>> lightsSwitchAndLightsStateProps = {
+            {
+                    toInt(VehicleProperty::HEADLIGHTS_SWITCH),
+                    toInt(VehicleProperty::HEADLIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::HIGH_BEAM_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::HIGH_BEAM_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::FRONT_FOG_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::FRONT_FOG_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::REAR_FOG_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::REAR_FOG_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::HAZARD_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::HAZARD_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::CABIN_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::CABIN_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::READING_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::READING_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_STATE),
+            },
+    };
+
+    for (auto& lightsSwitchAndLightsStateProp : lightsSwitchAndLightsStateProps) {
+        int32_t lightsSwitchPropId = lightsSwitchAndLightsStateProp.first;
+        int32_t lightsStatePropId = lightsSwitchAndLightsStateProp.second;
+        auto lightsSwitchPropConfig = getVehiclePropConfig(lightsSwitchPropId);
+        auto lightsStatePropConfig = getVehiclePropConfig(lightsStatePropId);
+        for (auto& lightsSwitchAreaConfig : lightsSwitchPropConfig->areaConfigs) {
+            for (auto& lightsStateAreaConfig : lightsStatePropConfig->areaConfigs) {
+                // Area IDs don't match
+                if ((lightsSwitchAreaConfig.areaId & lightsStateAreaConfig.areaId) == 0) {
+                    continue;
+                }
+                for (int64_t enumValueLong : lightsSwitchAreaConfig.supportedEnumValues.value()) {
+                    int32_t enumValue = static_cast<int32_t>(enumValueLong);
+                    auto result = getValue(VehiclePropValue{.areaId = lightsSwitchAreaConfig.areaId,
+                                                            .prop = lightsSwitchPropId});
+
+                    EXPECT_TRUE(result.ok());
+                    EXPECT_EQ(result.value().value.int32Values.size(), 1u);
+
+                    // Skip if value already set
+                    if (enumValue == result.value().value.int32Values[0]) {
+                        continue;
+                    }
+                    subscribe(lightsSwitchPropId, lightsSwitchAreaConfig.areaId,
+                              /* sampleRateHz= */ 0);
+                    subscribe(lightsStatePropId, lightsStateAreaConfig.areaId,
+                              /* sampleRateHz= */ 0);
+                    StatusCode status =
+                            setValue(VehiclePropValue{.areaId = lightsSwitchAreaConfig.areaId,
+                                                      .prop = lightsSwitchPropId,
+                                                      .value.int32Values = {enumValue}});
+
+                    EXPECT_EQ(status, StatusCode::OK);
+
+                    auto events = getChangedProperties();
+                    EXPECT_EQ(events.size(), 2u);
+                    for (const auto& event : events) {
+                        EXPECT_TRUE(event.prop == lightsSwitchPropId ||
+                                    event.prop == lightsStatePropId);
+                        if (event.prop == lightsSwitchPropId) {
+                            EXPECT_EQ(event.areaId, lightsSwitchAreaConfig.areaId);
+                            EXPECT_EQ(event.value.int32Values.size(), 1u);
+                            EXPECT_EQ(event.value.int32Values[0], enumValue);
+                        }
+                        if (event.prop == lightsStatePropId) {
+                            EXPECT_EQ(event.areaId, lightsStateAreaConfig.areaId);
+                            EXPECT_EQ(event.value.int32Values.size(), 1u);
+
+                            if (enumValue == toInt(VehicleLightSwitch::AUTOMATIC)) {
+                                // Night mode is disabled at the beginning of the test
+                                EXPECT_EQ(event.value.int32Values[0],
+                                          toInt(VehicleLightState::OFF));
+                            } else {
+                                EXPECT_EQ(event.value.int32Values[0], enumValue);
+                            }
+                        }
+                    }
+                    unsubscribe(lightsSwitchPropId, lightsSwitchAreaConfig.areaId);
+                    unsubscribe(lightsStatePropId, lightsStateAreaConfig.areaId);
+                    clearChangedProperties();
+                }
+            }
+        }
     }
 }
 
