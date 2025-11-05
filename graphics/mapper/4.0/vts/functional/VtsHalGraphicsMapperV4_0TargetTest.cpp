@@ -722,6 +722,9 @@ TEST_P(GraphicsMapperHidlTest, LockUnlockBasic) {
  * Test IMapper::lock and IMapper::unlock with no CPU usage requested.
  */
 TEST_P(GraphicsMapperHidlTest, LockUnlockNoCPUUsage) {
+    if (base::GetIntProperty("ro.vendor.api_level", __ANDROID_API_FUTURE__) <= __ANDROID_API_U__) {
+        GTEST_SKIP() << "Old vendor grallocs allowed for locking non-cpu buffers";
+    }
     const auto& info = mDummyDescriptorInfo;
 
     const native_handle_t* bufferHandle;
