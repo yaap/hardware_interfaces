@@ -16,7 +16,11 @@
 
 package com.android.tests.usbgadget;
 
+import android.hardware.usb.flags.Flags;
 import android.platform.test.annotations.RequiresDevice;
+import android.platform.test.annotations.RequiresFlagsEnabled;
+import android.platform.test.flag.junit.CheckFlagsRule;
+import android.platform.test.flag.junit.host.HostFlagsValueProvider;
 import com.android.tests.usbgadget.libusb.ConfigDescriptor;
 import com.android.tests.usbgadget.libusb.DeviceDescriptor;
 import com.android.tests.usbgadget.libusb.IUsbNative;
@@ -40,18 +44,27 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /** A host-side test for USB Gadget HAL */
 @RunWith(DeviceJUnit4ClassRunner.class)
 public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
-    public static final String TAG = VtsHalUsbGadgetV2_0HostTest.class.getSimpleName();
 
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule =
+            HostFlagsValueProvider.createCheckFlagsRule(this::getDevice);
+
+    public static final String TAG = VtsHalUsbGadgetV2_0HostTest.class.getSimpleName();
     private static final String HAL_SERVICE = "android.hardware.usb.gadget.IUsbGadget/default";
     private static final String FEATURE_AUTOMOTIVE = "android.hardware.type.automotive";
     private static final long CONN_TIMEOUT = 5000;
     private static final int UNKNOWN_SPEED = -1;
+    // Vendor-specific class (0xFF), subclass (0xFF), and protocol (0x00)
+    private static final int CTRL_INTERFACE_CLASS = 0xFF;
+    private static final int CTRL_INTERFACE_SUBCLASS = 0xFF;
+    private static final int CTRL_INTERFACE_PROTOCOL = 0x00;
 
     private static boolean mHasService;
     private static IUsbNative mUsb;
@@ -257,4 +270,25 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
 
         Assert.assertTrue("usb not reconnect", mReconnected);
     }
+
+    /**
+    * Check for CTRL interface.
+    *
+    * <p>Checks the host to see if the CTRL interface is present.
+    * It is assumed that the CTRL function is enabled when userspace AOA is enabled.
+    * The class, subclass, and protocol values used here are typical for vendor-specific
+    * functions.
+    */
+   @RequiresDevice
+   @Test
+   @RequiresFlagsEnabled(Flags.FLAG_ENABLE_AOA_USERSPACE_IMPLEMENTATION)
+   public void testCtrlInterface() throws Exception {
+       Assume.assumeTrue(
+               String.format("The device doesn't have service %s", HAL_SERVICE), mHasService);
+
+       Assert.assertTrue(
+               "CTRL interface not present",
+               checkProtocol(CTRL_INTERFACE_CLASS, CTRL_INTERFACE_SUBCLASS,
+                       CTRL_INTERFACE_PROTOCOL));
+   }
 }
