@@ -48,9 +48,8 @@ namespace audio {
 ///
 ///  2. The implementation of the provider must be completed with
 ///     DSP configuration for streaming.
-enum : bool {
-  kEnableA2dpCodecExtensibility = false,
-};
+constexpr char kEnableA2dpCodecExtensibility[] =
+    "persist.vendor.audio.a2dp_codec_extensibility";
 
 class BluetoothAudioProvider : public BnBluetoothAudioProvider {
  public:
