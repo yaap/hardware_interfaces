@@ -42,4 +42,6 @@ parcelable WorkInfo {
   @nullable String debugFeatureId;
   int jobPriority;
   int effectivePriority;
+  long timestampMs;
+  int deviceNumber;
 }
