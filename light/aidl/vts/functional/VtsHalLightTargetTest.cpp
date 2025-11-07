@@ -91,7 +91,7 @@ class LightsAidl : public testing::TestWithParam<std::string> {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
         return effect;
@@ -195,12 +195,12 @@ TEST_P(LightsAidlV3, TestLightEffects) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
         Status status = lights->setLightEffects({effect});
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             EXPECT_TRUE(status.isOk());
         } else {
             EXPECT_EQ(Status::EX_UNSUPPORTED_OPERATION, status.exceptionCode());
@@ -219,10 +219,10 @@ TEST_P(LightsAidlV3, TestEffectsInfiniteIterations) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 0;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_TRUE(status.isOk());
         }
@@ -244,7 +244,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidLightIdUnsupported) {
     effect.colors = {(int32_t)0xFFFFFFFF};
     effect.iterations = 1;
     effect.preemptive = false;
-    effect.frameRateHz = 30;
+    effect.framePeriodMillis = 33;
     effect.interpolationType = InterpolationType::LINEAR;
 
     Status status = lights->setLightEffects({effect});
@@ -263,10 +263,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_emptyFrames) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -284,10 +284,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_emptyColors) {
         effect.colors = {};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -305,10 +305,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_unevenArrays) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -326,10 +326,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_negativeIterations) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = -1;
         effect.preemptive = false;
-        effect.frameRateHz = 30;
+        effect.framePeriodMillis = 33;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -347,10 +347,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_ZeroFrameRate) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = 0;
+        effect.framePeriodMillis = 0;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -368,10 +368,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_NegativeFrameRate) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = -10;
+        effect.framePeriodMillis = -10;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -390,10 +390,10 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_ExcessiveFrameRate) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.frameRateHz = light.maxUpdateHz + 1;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis - 1;
         effect.interpolationType = InterpolationType::LINEAR;
 
-        if (light.maxUpdateHz > 0) {
+        if (light.minUpdatePeriodMillis > 0) {
             Status status = lights->setLightEffects({effect});
             EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT, status.exceptionCode());
         }
@@ -408,7 +408,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_OneInvalidEffectInList) {
 
     // Fill the vector only with lights that support effects.
     for (const HwLight& light : supportedLights) {
-        if (light.maxUpdateHz == 0) {
+        if (light.minUpdatePeriodMillis == 0) {
             continue;
         }
 
@@ -417,7 +417,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_OneInvalidEffectInList) {
         effect.frames = {5};
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.preemptive = false;
-        effect.frameRateHz = light.maxUpdateHz;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
         effect.iterations = 1;
 
@@ -451,7 +451,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_OneInvalidLightInList) {
         effect.frames = {5};
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.preemptive = false;
-        effect.frameRateHz = light.maxUpdateHz;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
         effect.iterations = 1;
 
