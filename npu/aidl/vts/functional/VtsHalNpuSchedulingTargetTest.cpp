@@ -81,7 +81,6 @@ class NpuSchedulingAidl : public testing::TestWithParam<std::string> {
 class SchedulingCallback : public BnSchedulingCallback {
   public:
     SchedulingCallback() = default;
-    ::ndk::ScopedAStatus onIdle() override { return ndk::ScopedAStatus::ok(); }
 
     ::ndk::ScopedAStatus onWorkRequested([[maybe_unused]] const WorkInfo& workInfo) override {
         return ndk::ScopedAStatus::ok();

@@ -34,7 +34,6 @@
 package android.hardware.npu;
 @VintfStability
 interface ISchedulingCallback {
-  oneway void onIdle();
   oneway void onWorkRequested(in android.hardware.npu.WorkInfo info);
   oneway void onWorkStarted(in android.hardware.npu.WorkInfo workInfo, in android.hardware.npu.StartReason reason);
   oneway void onWorkEnded(in android.hardware.npu.WorkInfo workInfo, in android.hardware.npu.EndReason reason);
