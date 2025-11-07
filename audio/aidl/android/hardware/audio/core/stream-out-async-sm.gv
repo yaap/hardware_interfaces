@@ -53,6 +53,11 @@ digraph stream_out_async_state_machine {
     DRAIN_PAUSED -> DRAINING [label="start"];         // consumer -> active
     DRAIN_PAUSED -> TRANSFER_PAUSED [label="burst"];  // producer -> active
     DRAIN_PAUSED -> IDLE [label="flush"];             // buffer is cleared
+
+    // IMPORTANT: The behavior below is only expected from the HAL when
+    // it exposes 'aosp.clipTransitionSupport' vendor property. It will be
+    // required starting from HAL V5.
+    //
     // Note that the states in both clusters are combined with 'DRAINING' and 'DRAIN_PAUSED'
     // state at the API level. The 'en' and 'en_sent' attributes only belong to the internal
     // state of the stream and are not observable outside.
