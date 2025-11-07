@@ -59,10 +59,12 @@
 
 using namespace android;
 using aidl::android::hardware::audio::common::AudioOffloadMetadata;
+using aidl::android::hardware::audio::common::durationMsFromFrameCount;
 using aidl::android::hardware::audio::common::getChannelCount;
 using aidl::android::hardware::audio::common::hasMmapFlag;
 using aidl::android::hardware::audio::common::isAnyBitPositionFlagSet;
 using aidl::android::hardware::audio::common::isBitPositionFlagSet;
+using aidl::android::hardware::audio::common::isPcmFormat;
 using aidl::android::hardware::audio::common::isTelephonyDeviceType;
 using aidl::android::hardware::audio::common::isValidAudioMode;
 using aidl::android::hardware::audio::common::PlaybackTrackMetadata;
@@ -266,7 +268,10 @@ std::optional<AudioOffloadInfo> generateOffloadInfoIfNeeded(const AudioPortConfi
     if (portConfig.flags.has_value() &&
         portConfig.flags.value().getTag() == AudioIoFlags::Tag::output &&
         isBitPositionFlagSet(portConfig.flags.value().get<AudioIoFlags::Tag::output>(),
-                             AudioOutputFlags::COMPRESS_OFFLOAD)) {
+                             AudioOutputFlags::COMPRESS_OFFLOAD)
+            // TODO(b/453737884): Uncomment when AIDL and default impls gets updated
+            /*&& portConfig.format.has_value() &&
+              portConfig.format.value().type == AudioFormatType::NON_PCM*/) {
         AudioOffloadInfo offloadInfo;
         offloadInfo.base.sampleRate = portConfig.sampleRate.value().value;
         offloadInfo.base.channelMask = portConfig.channelMask.value();
@@ -1130,7 +1135,8 @@ class StreamCommonLogic : public StreamLogic {
                                      : 0.0),
           mIsCompressOffload(context.getFlags().getTag() == AudioIoFlags::output &&
                              isBitPositionFlagSet(context.getFlags().get<AudioIoFlags::output>(),
-                                                  AudioOutputFlags::COMPRESS_OFFLOAD)),
+                                                  AudioOutputFlags::COMPRESS_OFFLOAD) &&
+                             context.getConfig().format.type == AudioFormatType::NON_PCM),
           mConfig(context.getConfig()) {}
     StreamContext::CommandMQ* getCommandMQ() const { return mCommandMQ; }
     const AudioConfigBase& getConfig() const { return mConfig; }
@@ -1535,24 +1541,30 @@ class DefaultStreamCallback : public ::aidl::android::hardware::audio::core::BnS
   public:
     // To avoid timing out the whole test suite in case no event is received
     // from the HAL, use a local timeout for event waiting.
-    // TODO: The timeout for 'onTransferReady' should depend on the buffer size.
-    static constexpr auto kEventTimeoutMs = std::chrono::milliseconds(3000);
+    static constexpr int32_t kDefaultEventTimeoutMs = 3000;
 
     StreamEventReceiver* getEventReceiver() { return this; }
     std::tuple<int, Event> getLastEvent() const override {
         std::lock_guard l(mLock);
         return getLastEvent_l();
     }
+    void updateCallbackTimeout(int timeoutMs) {
+        if (mEventTimeoutMs.count() != timeoutMs) {
+            LOG(DEBUG) << __func__ << ": " << timeoutMs << "ms";
+        }
+        mEventTimeoutMs = std::chrono::milliseconds(timeoutMs);
+    }
     std::tuple<int, Event> waitForEvent(int clientEventSeq) override {
         std::unique_lock l(mLock);
         android::base::ScopedLockAssertion lock_assertion(mLock);
         LOG(DEBUG) << __func__ << ": client " << clientEventSeq << ", last " << mLastEventSeq;
-        if (mCv.wait_for(l, kEventTimeoutMs, [&]() {
+        if (mCv.wait_for(l, mEventTimeoutMs, [&]() {
                 android::base::ScopedLockAssertion lock_assertion(mLock);
                 return clientEventSeq < mLastEventSeq;
             })) {
         } else {
-            LOG(WARNING) << __func__ << ": timed out waiting for an event";
+            LOG(WARNING) << __func__ << ": timed out waiting for an event (timeout "
+                         << mEventTimeoutMs.count() << ")";
             putLastEvent_l(Event::None);
         }
         return getLastEvent_l();
@@ -1574,6 +1586,7 @@ class DefaultStreamCallback : public ::aidl::android::hardware::audio::core::BnS
         mLastEvent = event;
     }
 
+    std::chrono::milliseconds mEventTimeoutMs = std::chrono::milliseconds(kDefaultEventTimeoutMs);
     mutable std::mutex mLock;
     std::condition_variable mCv;
     int mLastEventSeq GUARDED_BY(mLock) = kEventSeqInit;
@@ -1631,6 +1644,7 @@ class WithStream : public StreamWorkerMethods {
         const auto& config = mPortConfig.get();
         const AudioConfigBase cfg{config.sampleRate->value, *config.channelMask, *config.format};
         mContext.emplace(mDescriptor, cfg, config.flags.value());
+        UpdateCallbackTimeout(*config.format, config.sampleRate->value);
         return mStream->getInterfaceVersion(&mInterfaceVersion);
     }
     void SetUpStream(IModule* module, long bufferSizeFrames) {
@@ -1647,6 +1661,7 @@ class WithStream : public StreamWorkerMethods {
         mContext.emplace(mDescriptor, cfg, config.flags.value());
         ASSERT_NO_FATAL_FAILURE(mContext.value().checkIsValid());
         ASSERT_IS_OK(mStream->getInterfaceVersion(&mInterfaceVersion));
+        UpdateCallbackTimeout(*config.format, config.sampleRate->value);
     }
     void SetUp(IModule* module, long bufferSizeFrames) {
         ASSERT_NO_FATAL_FAILURE(SetUpPortConfig(module));
@@ -1712,6 +1727,18 @@ class WithStream : public StreamWorkerMethods {
     }
 
   private:
+    void UpdateCallbackTimeout(AudioFormatDescription format, int32_t sampleRate) {
+        // Since the HAL/HW implementation may have internal buffering, assume it's not
+        // larger than 4x + some allowance for notification delays due to system load.
+        static constexpr int kMaxHalInternalBuffers = 6;
+        if (isPcmFormat(format) && mStreamCallback) {
+            mStreamCallback->updateCallbackTimeout(
+                    std::max(DefaultStreamCallback::kDefaultEventTimeoutMs,
+                             durationMsFromFrameCount(mDescriptor.bufferSizeFrames, sampleRate) *
+                                     kMaxHalInternalBuffers));
+        }
+    }
+
     static constexpr const char* kCreateMmapBuffer = "aosp.createMmapBuffer";
 
     WithAudioPortConfig mPortConfig;
@@ -3891,6 +3918,7 @@ static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig,
                                      {AudioOutputFlags::VOIP_RX, AudioOutputFlags::INCALL_MUSIC}) ||
              (isBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::output>(),
                                    AudioOutputFlags::COMPRESS_OFFLOAD) &&
+              portConfig.format.value().type == AudioFormatType::NON_PCM &&
               (aidlVersion <= kAidlVersion4 || !getMediaFileInfoForConfig(portConfig)))));
 }
 
@@ -5327,7 +5355,7 @@ enum {
     NAMED_CMD_CMDS,
     NAMED_CMD_VALIDATE_POS_INCREASE
 };
-enum class StreamTypeFilter { ANY, SYNC, ASYNC, OFFLOAD };
+enum class StreamTypeFilter { ANY, SYNC, ASYNC, OFFLOAD /*compress offload*/ };
 using NamedCommandSequence =
         std::tuple<std::string, int /*minInterfaceVersion*/, std::string /*featureProperty*/,
                    int /*cmdDelayMs*/, StreamTypeFilter, std::shared_ptr<StateSequence>,
@@ -5412,18 +5440,19 @@ class AudioStreamIo : public AudioCoreModuleBase,
                             isBitPositionFlagSet(portConfig.flags.value()
                                                          .template get<AudioIoFlags::Tag::output>(),
                                                  AudioOutputFlags::NON_BLOCKING);
-            const bool isOffload =
+            const bool isCompressOffload =
                     IOTraits<Stream>::is_input
                             ? false
                             : isBitPositionFlagSet(
                                       portConfig.flags.value()
                                               .template get<AudioIoFlags::Tag::output>(),
-                                      AudioOutputFlags::COMPRESS_OFFLOAD);
+                                      AudioOutputFlags::COMPRESS_OFFLOAD) &&
+                                      portConfig.format.value().type == AudioFormatType::NON_PCM;
             if (auto streamType =
                         std::get<NAMED_CMD_STREAM_TYPE>(std::get<PARAM_CMD_SEQ>(GetParam()));
                 (isNonBlocking && streamType == StreamTypeFilter::SYNC) ||
                 (!isNonBlocking && streamType == StreamTypeFilter::ASYNC) ||
-                (!isOffload && streamType == StreamTypeFilter::OFFLOAD)) {
+                (!isCompressOffload && streamType == StreamTypeFilter::OFFLOAD)) {
                 continue;
             }
             if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) {

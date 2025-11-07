@@ -112,20 +112,25 @@ constexpr size_t getChannelCount(
     return 0;
 }
 
+constexpr bool isPcmFormat(
+        const ::aidl::android::media::audio::common::AudioFormatDescription& format) {
+    // TODO(b/447435551): Replace with MEDIA_MIMETYPE_AUDIO_IEC61937
+    constexpr std::string_view kMimeTypeIec61937 = "audio/x-iec61937";
+    using ::aidl::android::media::audio::common::AudioFormatType;
+    return format.type == AudioFormatType::PCM ||
+           (format.type == AudioFormatType::NON_PCM && format.encoding == kMimeTypeIec61937);
+}
+
 constexpr size_t getFrameSizeInBytes(
         const ::aidl::android::media::audio::common::AudioFormatDescription& format,
         const ::aidl::android::media::audio::common::AudioChannelLayout& layout) {
-    // TODO(b/447435551): Replace with MEDIA_MIMETYPE_AUDIO_IEC61937
-    constexpr std::string_view kMimeTypeIec61937 = "audio/x-iec61937";
     if (format == ::aidl::android::media::audio::common::AudioFormatDescription{}) {
         // Unspecified format.
         return 0;
     }
-    using ::aidl::android::media::audio::common::AudioFormatType;
-    if (format.type == AudioFormatType::PCM ||
-        (format.type == AudioFormatType::NON_PCM && format.encoding == kMimeTypeIec61937)) {
+    if (isPcmFormat(format)) {
         return getPcmSampleSizeInBytes(format.pcm) * getChannelCount(layout);
-    } else if (format.type == AudioFormatType::NON_PCM) {
+    } else if (format.type == ::aidl::android::media::audio::common::AudioFormatType::NON_PCM) {
         // For non-PCM formats always use the underlying PCM size. The default value for
         // PCM is "UINT_8_BIT", thus non-encapsulated streams have the frame size of 1.
         return getPcmSampleSizeInBytes(format.pcm);
@@ -204,6 +209,10 @@ template <typename E, typename U = std::underlying_type_t<E>,
           typename = std::enable_if_t<is_bit_position_enum<E>::value>>
 constexpr bool isAnyBitPositionFlagSet(U mask, std::initializer_list<E> flags) {
     return (mask & makeBitPositionFlagMask<E>(flags)) != 0;
+}
+
+constexpr int32_t durationMsFromFrameCount(int32_t frameCount, int32_t sampleRateHz) {
+    return (frameCount * 1000) / sampleRateHz;
 }
 
 constexpr int32_t frameCountFromDurationUs(long durationUs, int32_t sampleRateHz) {
