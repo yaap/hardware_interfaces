@@ -36,12 +36,13 @@ package android.hardware.usb.gadget;
 parcelable GadgetFunction {
   const long NONE = 0;
   const long ADB = 1;
-  const long ACCESSORY = (1 << 1);
-  const long MTP = (1 << 2);
-  const long MIDI = (1 << 3);
-  const long PTP = (1 << 4);
-  const long RNDIS = (1 << 5);
-  const long AUDIO_SOURCE = (1 << 6);
-  const long UVC = (1 << 7);
-  const long NCM = (1 << 10);
+  const long ACCESSORY = (1 << 1) /* 2 */;
+  const long MTP = (1 << 2) /* 4 */;
+  const long MIDI = (1 << 3) /* 8 */;
+  const long PTP = (1 << 4) /* 16 */;
+  const long RNDIS = (1 << 5) /* 32 */;
+  const long AUDIO_SOURCE = (1 << 6) /* 64 */;
+  const long UVC = (1 << 7) /* 128 */;
+  const long CTRL = (1 << 8) /* 256 */;
+  const long NCM = (1 << 10) /* 1024 */;
 }
