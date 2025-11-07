@@ -32,6 +32,15 @@ namespace hardware {
 namespace bluetooth {
 namespace audio {
 
+void BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
+    std::optional<setting::LeAudioOffloadSetting> setting) {
+  if (setting) {
+    le_audio_offload_setting_.emplace(std::move(*setting));
+  } else {
+    le_audio_offload_setting_.reset();
+  }
+}
+
 static const char* kLeAudioCodecCapabilitiesFile =
     "/vendor/etc/le_audio_codec_capabilities.xml";
 
@@ -54,15 +63,19 @@ const CodecId::Vendor opus_codec{
     .id = kLeAudioVendorCompanyIdGoogle,
 };
 
-std::optional<setting::LeAudioOffloadSetting>
-BluetoothLeAudioCodecsProvider::ParseFromLeAudioOffloadSettingFile() {
-  auto le_audio_offload_setting =
-      setting::readLeAudioOffloadSetting(kLeAudioCodecCapabilitiesFile);
-  if (!le_audio_offload_setting.has_value()) {
-    LOG(ERROR) << __func__ << ": Failed to read "
-               << kLeAudioCodecCapabilitiesFile;
+bool BluetoothLeAudioCodecsProvider::ParseFromLeAudioOffloadSettingFile() {
+  if (!le_audio_offload_setting_.has_value()) {
+    if (auto result =
+            setting::readLeAudioOffloadSetting(kLeAudioCodecCapabilitiesFile)) {
+      le_audio_offload_setting_.emplace(std::move(*result));
+    }
+    if (!le_audio_offload_setting_.has_value()) {
+      LOG(ERROR) << __func__ << ": Failed to read "
+                 << kLeAudioCodecCapabilitiesFile;
+      return false;
+    }
   }
-  return le_audio_offload_setting;
+  return true;
 }
 
 void add_flag(CodecInfo& codec_info, int32_t bitmask) {
@@ -86,17 +99,15 @@ bool is_equal(CodecInfo& codec_info_a, CodecInfo& codec_info_b) {
 }
 
 std::unordered_map<SessionType, std::vector<CodecInfo>>
-BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
+BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo() {
   // Load from previous storage if present
   if (!session_codecs_map_.empty()) return session_codecs_map_;
 
   isInvalidFileContent = true;
-  if (!le_audio_offload_setting.has_value()) return {};
+  if (!ParseFromLeAudioOffloadSettingFile()) return {};
 
   // Load scenario, configuration, codec configuration and strategy
-  LoadConfigurationToMap(le_audio_offload_setting);
+  LoadConfigurationToMap();
   if (supported_scenarios_.empty() || configuration_map_.empty() ||
       codec_configuration_map_.empty() || strategy_configuration_map_.empty())
     return {};
@@ -254,23 +265,21 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
 }
 
 std::vector<LeAudioCodecCapabilitiesSetting>
-BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
+BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities() {
   if (!leAudioCodecCapabilities.empty()) {
     return leAudioCodecCapabilities;
   }
 
   isInvalidFileContent = true;
 
-  if (!le_audio_offload_setting.has_value()) {
+  if (!ParseFromLeAudioOffloadSettingFile()) {
     LOG(ERROR)
         << __func__
         << ": input le_audio_offload_setting content need to be non empty";
     return {};
   }
 
-  LoadConfigurationToMap(le_audio_offload_setting);
+  LoadConfigurationToMap();
   if (supported_scenarios_.empty() || configuration_map_.empty() ||
       codec_configuration_map_.empty() || strategy_configuration_map_.empty())
     return {};
@@ -291,13 +300,11 @@ void BluetoothLeAudioCodecsProvider::ClearLeAudioCodecCapabilities() {
   supported_scenarios_.clear();
 }
 
-std::vector<setting::Scenario> BluetoothLeAudioCodecsProvider::GetScenarios(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
+std::vector<setting::Scenario> BluetoothLeAudioCodecsProvider::GetScenarios() {
   std::vector<setting::Scenario> supported_scenarios;
-  if (le_audio_offload_setting->hasScenarioList()) {
+  if (le_audio_offload_setting_->hasScenarioList()) {
     for (const auto& scenario_list :
-         le_audio_offload_setting->getScenarioList()) {
+         le_audio_offload_setting_->getScenarioList()) {
       if (!scenario_list.hasScenario()) {
         continue;
       }
@@ -311,12 +318,10 @@ std::vector<setting::Scenario> BluetoothLeAudioCodecsProvider::GetScenarios(
   return supported_scenarios;
 }
 
-void BluetoothLeAudioCodecsProvider::UpdateConfigurationsToMap(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
-  if (le_audio_offload_setting->hasConfigurationList()) {
+void BluetoothLeAudioCodecsProvider::UpdateConfigurationsToMap() {
+  if (le_audio_offload_setting_->hasConfigurationList()) {
     for (const auto& configuration_list :
-         le_audio_offload_setting->getConfigurationList()) {
+         le_audio_offload_setting_->getConfigurationList()) {
       if (!configuration_list.hasConfiguration()) {
         continue;
       }
@@ -331,12 +336,10 @@ void BluetoothLeAudioCodecsProvider::UpdateConfigurationsToMap(
   }
 }
 
-void BluetoothLeAudioCodecsProvider::UpdateCodecConfigurationsToMap(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
-  if (le_audio_offload_setting->hasCodecConfigurationList()) {
+void BluetoothLeAudioCodecsProvider::UpdateCodecConfigurationsToMap() {
+  if (le_audio_offload_setting_->hasCodecConfigurationList()) {
     for (const auto& codec_configuration_list :
-         le_audio_offload_setting->getCodecConfigurationList()) {
+         le_audio_offload_setting_->getCodecConfigurationList()) {
       if (!codec_configuration_list.hasCodecConfiguration()) {
         continue;
       }
@@ -351,12 +354,10 @@ void BluetoothLeAudioCodecsProvider::UpdateCodecConfigurationsToMap(
   }
 }
 
-void BluetoothLeAudioCodecsProvider::UpdateStrategyConfigurationsToMap(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
-  if (le_audio_offload_setting->hasStrategyConfigurationList()) {
+void BluetoothLeAudioCodecsProvider::UpdateStrategyConfigurationsToMap() {
+  if (le_audio_offload_setting_->hasStrategyConfigurationList()) {
     for (const auto& strategy_configuration_list :
-         le_audio_offload_setting->getStrategyConfigurationList()) {
+         le_audio_offload_setting_->getStrategyConfigurationList()) {
       if (!strategy_configuration_list.hasStrategyConfiguration()) {
         continue;
       }
@@ -371,33 +372,31 @@ void BluetoothLeAudioCodecsProvider::UpdateStrategyConfigurationsToMap(
   }
 }
 
-void BluetoothLeAudioCodecsProvider::LoadConfigurationToMap(
-    const std::optional<setting::LeAudioOffloadSetting>&
-        le_audio_offload_setting) {
+void BluetoothLeAudioCodecsProvider::LoadConfigurationToMap() {
   ClearLeAudioCodecCapabilities();
 
-  supported_scenarios_ = GetScenarios(le_audio_offload_setting);
+  supported_scenarios_ = GetScenarios();
   if (supported_scenarios_.empty()) {
     LOG(ERROR) << __func__ << ": No scenarios in "
                << kLeAudioCodecCapabilitiesFile;
     return;
   }
 
-  UpdateConfigurationsToMap(le_audio_offload_setting);
+  UpdateConfigurationsToMap();
   if (configuration_map_.empty()) {
     LOG(ERROR) << __func__ << ": No configurations in "
                << kLeAudioCodecCapabilitiesFile;
     return;
   }
 
-  UpdateCodecConfigurationsToMap(le_audio_offload_setting);
+  UpdateCodecConfigurationsToMap();
   if (codec_configuration_map_.empty()) {
     LOG(ERROR) << __func__ << ": No codec configurations in "
                << kLeAudioCodecCapabilitiesFile;
     return;
   }
 
-  UpdateStrategyConfigurationsToMap(le_audio_offload_setting);
+  UpdateStrategyConfigurationsToMap();
   if (strategy_configuration_map_.empty()) {
     LOG(ERROR) << __func__ << ": No strategy configurations in "
                << kLeAudioCodecCapabilitiesFile;

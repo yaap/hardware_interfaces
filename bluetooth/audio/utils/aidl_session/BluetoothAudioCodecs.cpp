@@ -407,11 +407,8 @@ BluetoothAudioCodecs::GetLeAudioOffloadCodecCapabilities(
   }
 
   if (kDefaultOffloadLeAudioCapabilities.empty()) {
-    auto le_audio_offload_setting =
-        BluetoothLeAudioCodecsProvider::ParseFromLeAudioOffloadSettingFile();
     kDefaultOffloadLeAudioCapabilities =
-        BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities(
-            le_audio_offload_setting);
+        BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities();
   }
   return kDefaultOffloadLeAudioCapabilities;
 }
@@ -433,11 +430,8 @@ std::vector<CodecInfo> BluetoothAudioCodecs::GetCodecInfo(
 std::vector<CodecInfo> BluetoothAudioCodecs::GetLeAudioOffloadCodecInfo(
     const SessionType& session_type) {
   if (kDefaultOffloadLeAudioCodecInfoMap.empty()) {
-    auto le_audio_offload_setting =
-        BluetoothLeAudioCodecsProvider::ParseFromLeAudioOffloadSettingFile();
     kDefaultOffloadLeAudioCodecInfoMap =
-        BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
-            le_audio_offload_setting);
+        BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo();
   }
   auto codec_info_map_iter =
       kDefaultOffloadLeAudioCodecInfoMap.find(session_type);
