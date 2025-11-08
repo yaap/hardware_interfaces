@@ -40,13 +40,23 @@ enum ConnectionEvent {
   CS_SIGNALLING_3G = 2,
   PS_SIGNALLING_3G = 3,
   NAS_SIGNALLING_LTE = 4,
+  /**
+   * @deprecated For signalling reporting, used only prior to radio hal version 5.0
+   */
   AS_SIGNALLING_LTE = 5,
+  AS_SIGNALLING_LTE_DRB = 16,
+  AS_SIGNALLING_LTE_NON_DRB = 17,
   VOLTE_SIP = 6,
   VOLTE_SIP_SOS = 7,
   VOLTE_RTP = 8,
   VOLTE_RTP_SOS = 9,
   NAS_SIGNALLING_5G = 10,
+  /**
+   * @deprecated For signalling reporting, used only prior to radio hal version 5.0
+   */
   AS_SIGNALLING_5G = 11,
+  AS_SIGNALLING_5G_DRB = 18,
+  AS_SIGNALLING_5G_NON_DRB = 19,
   VONR_SIP = 12,
   VONR_SIP_SOS = 13,
   VONR_RTP = 14,
