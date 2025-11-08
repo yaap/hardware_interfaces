@@ -75,6 +75,8 @@ using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateReq;
 using ::aidl::android::hardware::automotive::vehicle::VehicleArea;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightState;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightSwitch;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleProperty;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropertyAccess;
@@ -266,6 +268,46 @@ const std::unordered_map<int32_t, std::vector<int32_t>> mAdasEnabledPropToAdasPr
                 {
                         toInt(VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE),
                 },
+        },
+};
+
+// Map of *_LIGHTS_SWITCH to *_LIGHTS_STATE properties
+const std::unordered_map<int32_t, int32_t> mLightsSwitchToLightsStateProps = {
+        {
+                toInt(VehicleProperty::HEADLIGHTS_SWITCH),
+                toInt(VehicleProperty::HEADLIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::HIGH_BEAM_LIGHTS_SWITCH),
+                toInt(VehicleProperty::HIGH_BEAM_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::FRONT_FOG_LIGHTS_SWITCH),
+                toInt(VehicleProperty::FRONT_FOG_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::REAR_FOG_LIGHTS_SWITCH),
+                toInt(VehicleProperty::REAR_FOG_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::HAZARD_LIGHTS_SWITCH),
+                toInt(VehicleProperty::HAZARD_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::CABIN_LIGHTS_SWITCH),
+                toInt(VehicleProperty::CABIN_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::READING_LIGHTS_SWITCH),
+                toInt(VehicleProperty::READING_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_SWITCH),
+                toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_SWITCH),
+                toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_STATE),
         },
 };
 
@@ -600,9 +642,9 @@ VehiclePropValuePool::RecyclableType FakeVehicleHardware::createApPowerStateReq(
     return req;
 }
 
-VehiclePropValuePool::RecyclableType FakeVehicleHardware::createAdasStateReq(int32_t propertyId,
-                                                                             int32_t areaId,
-                                                                             int32_t state) {
+VehiclePropValuePool::RecyclableType FakeVehicleHardware::createUpdateStateReq(int32_t propertyId,
+                                                                               int32_t areaId,
+                                                                               int32_t state) {
     auto req = mValuePool->obtain(VehiclePropertyType::INT32);
     req->prop = propertyId;
     req->areaId = areaId;
@@ -840,6 +882,16 @@ VhalResult<void> FakeVehicleHardware::isAdasPropertyAvailable(int32_t adasStateP
     }
 
     return {};
+}
+
+bool FakeVehicleHardware::isNightModeEnabled() const {
+    auto nightModeResult = mServerSidePropStore->readValue(toInt(VehicleProperty::NIGHT_MODE));
+    if (!nightModeResult.ok()) {
+        ALOGW("Failed to get NIGHT_MODE property, error: %s", getErrorMsg(nightModeResult).c_str());
+        return false;
+    }
+    return nightModeResult.value()->value.int32Values.size() == 1 &&
+           nightModeResult.value()->value.int32Values[0] == 1;
 }
 
 VhalResult<void> FakeVehicleHardware::setUserHalProp(const VehiclePropValue& value) {
@@ -1160,11 +1212,31 @@ void FakeVehicleHardware::sendAdasPropertiesState(int32_t propertyId, int32_t st
                 hardcoded_state = toInt(CruiseControlType::ADAPTIVE);
             }
             auto propValue =
-                    createAdasStateReq(dependentPropId, areaConfig.areaId, hardcoded_state);
+                    createUpdateStateReq(dependentPropId, areaConfig.areaId, hardcoded_state);
             // This will trigger a property change event for the current ADAS property value.
             mServerSidePropStore->writeValue(std::move(propValue), /*updateStatus=*/true,
                                              VehiclePropertyStore::EventMode::ALWAYS);
         }
+    }
+}
+
+void FakeVehicleHardware::updateLightsState(int32_t lightsStatePropId, int32_t lightsSwitchAreaId,
+                                            int32_t state) {
+    auto propConfigResult = mServerSidePropStore->getPropConfig(lightsStatePropId);
+    if (!propConfigResult.ok()) {
+        ALOGW("Failed to get config for *_LIGHTS_STATE property 0x%x, error: %s", lightsStatePropId,
+              getErrorMsg(propConfigResult).c_str());
+        return;
+    }
+    for (auto& areaConfig : propConfigResult.value().areaConfigs) {
+        int32_t areaId = areaConfig.areaId;
+        // Only update the relevant area ID
+        if ((lightsSwitchAreaId & areaId) != areaId) {
+            continue;
+        }
+        auto propValue = createUpdateStateReq(lightsStatePropId, areaId, state);
+        mServerSidePropStore->writeValue(std::move(propValue), /*updateStatus=*/true,
+                                         VehiclePropertyStore::EventMode::ON_VALUE_CHANGE);
     }
 }
 
@@ -1197,6 +1269,30 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
             sendAdasPropertiesState(propId, /* state = */ 1);
         } else {
             sendAdasPropertiesState(propId, toInt(ErrorState::NOT_AVAILABLE_DISABLED));
+        }
+    }
+
+    if (mLightsSwitchToLightsStateProps.count(propId) && value.value.int32Values.size() == 1) {
+        int32_t lightsStatePropId = mLightsSwitchToLightsStateProps.find(propId)->second;
+        int32_t lightsSwitch = value.value.int32Values[0];
+        std::optional<int32_t> lightsState = std::nullopt;
+        switch (lightsSwitch) {
+            case toInt(VehicleLightSwitch::OFF):
+                lightsState = toInt(VehicleLightState::OFF);
+                break;
+            case toInt(VehicleLightSwitch::ON):
+                lightsState = toInt(VehicleLightState::ON);
+                break;
+            case toInt(VehicleLightSwitch::DAYTIME_RUNNING):
+                lightsState = toInt(VehicleLightState::DAYTIME_RUNNING);
+                break;
+            case toInt(VehicleLightSwitch::AUTOMATIC):
+                lightsState = isNightModeEnabled() ? toInt(VehicleLightState::ON)
+                                                   : toInt(VehicleLightState::OFF);
+                break;
+        }
+        if (lightsState.has_value()) {
+            updateLightsState(lightsStatePropId, value.areaId, lightsState.value());
         }
     }
 
