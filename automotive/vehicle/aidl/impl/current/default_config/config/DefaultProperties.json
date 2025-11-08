@@ -3382,7 +3382,7 @@
             "property": "VehicleProperty::HEADLIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
             }
         },
@@ -3390,47 +3390,82 @@
             "property": "VehicleProperty::HIGH_BEAM_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
+            ]
         },
         {
             "property": "VehicleProperty::FRONT_FOG_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
+            ]
         },
         {
             "property": "VehicleProperty::REAR_FOG_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
+            ]
         },
         {
             "property": "VehicleProperty::HAZARD_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
+            ]
         },
         {
             "property": "VehicleProperty::CABIN_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
+            ]
         },
         {
             "property": "VehicleProperty::READING_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
             },
             "areas": [
@@ -3449,13 +3484,20 @@
                 {
                     "areaId": "Constants::SEAT_2_CENTER"
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_STATE_OFF",
+                "Constants::LIGHT_STATE_ON"
             ]
         },
         {
             "property": "VehicleProperty::STEERING_WHEEL_LIGHTS_STATE",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_STATE_ON"
+                    "Constants::LIGHT_STATE_OFF"
                 ]
             },
             "areas": [
@@ -3485,31 +3527,60 @@
                 "int32Values": [
                     "Constants::LIGHT_SWITCH_AUTO"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON",
+                "Constants::LIGHT_SWITCH_AUTO"
+            ]
         },
         {
             "property": "VehicleProperty::FRONT_FOG_LIGHTS_SWITCH",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_SWITCH_AUTO"
+                    "Constants::LIGHT_SWITCH_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON"
+            ]
         },
         {
             "property": "VehicleProperty::REAR_FOG_LIGHTS_SWITCH",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_SWITCH_AUTO"
+                    "Constants::LIGHT_SWITCH_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON"
+            ]
         },
         {
             "property": "VehicleProperty::HAZARD_LIGHTS_SWITCH",
             "defaultValue": {
                 "int32Values": [
-                    "Constants::LIGHT_SWITCH_AUTO"
+                    "Constants::LIGHT_SWITCH_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON"
+            ]
         },
         {
             "property": "VehicleProperty::CABIN_LIGHTS_SWITCH",
@@ -3517,7 +3588,15 @@
                 "int32Values": [
                     "Constants::LIGHT_SWITCH_OFF"
                 ]
-            }
+            },
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON",
+                "Constants::LIGHT_SWITCH_AUTO"
+            ]
         },
         {
             "property": "VehicleProperty::READING_LIGHTS_SWITCH",
@@ -3542,6 +3621,14 @@
                 {
                     "areaId": "Constants::SEAT_2_CENTER"
                 }
+            ],
+            "hasSupportedValueInfo": {
+                "hasSupportedValuesList": true
+            },
+            "supportedEnumValues": [
+                "Constants::LIGHT_SWITCH_OFF",
+                "Constants::LIGHT_SWITCH_ON",
+                "Constants::LIGHT_SWITCH_AUTO"
             ]
         },
         {
