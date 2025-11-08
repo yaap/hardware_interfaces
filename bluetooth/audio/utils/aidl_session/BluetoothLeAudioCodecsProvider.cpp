@@ -51,8 +51,6 @@ static const AudioLocation kMonoAudio = AudioLocation::UNKNOWN;
 
 static std::vector<LeAudioCodecCapabilitiesSetting> leAudioCodecCapabilities;
 
-static bool isInvalidFileContent = false;
-
 // TODO: reuse from utils/aidl_session/BluetoothAudioType.h
 /* Vendor codec ID */
 constexpr uint16_t kLeAudioVendorCompanyIdGoogle = 0x00E0;
@@ -103,7 +101,6 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo() {
   // Load from previous storage if present
   if (!session_codecs_map_.empty()) return session_codecs_map_;
 
-  isInvalidFileContent = true;
   if (!ParseFromLeAudioOffloadSettingFile()) return {};
 
   // Load scenario, configuration, codec configuration and strategy
@@ -259,8 +256,6 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo() {
   for (auto& c : broadcast_config)
     session_codecs_map_[broadcast_path].push_back(config_codec_info_map_[c]);
 
-  isInvalidFileContent = session_codecs_map_.empty();
-
   return session_codecs_map_;
 }
 
@@ -269,8 +264,6 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities() {
   if (!leAudioCodecCapabilities.empty()) {
     return leAudioCodecCapabilities;
   }
-
-  isInvalidFileContent = true;
 
   if (!ParseFromLeAudioOffloadSettingFile()) {
     LOG(ERROR)
@@ -286,7 +279,6 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities() {
 
   leAudioCodecCapabilities =
       ComposeLeAudioCodecCapabilities(supported_scenarios_);
-  isInvalidFileContent = leAudioCodecCapabilities.empty();
 
   return leAudioCodecCapabilities;
 }
