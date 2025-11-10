@@ -32,11 +32,29 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+ */
 @VintfStability
 interface IEvsUltrasonicsArray {
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   void doneWithDataFrame(in android.hardware.automotive.evs.UltrasonicsDataFrameDesc dataFrameDesc);
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   android.hardware.automotive.evs.UltrasonicsArrayDesc getUltrasonicArrayInfo();
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   void setMaxFramesInFlight(in int bufferCount);
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   void startStream(in android.hardware.automotive.evs.IEvsUltrasonicsArrayStream stream);
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   void stopStream();
 }

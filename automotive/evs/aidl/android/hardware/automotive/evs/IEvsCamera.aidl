@@ -25,6 +25,14 @@ import android.hardware.automotive.evs.ParameterRange;
 
 /**
  * Represents a single camera and is the primary interface for capturing images.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Applications should use the standard Android <a
+ *             href="https://developer.android.com/media/camera/camera2">Camera2 API
+ *             (android.hardware.camera2)</a> for camera access and management. Use either the
+ *             Camera2 NDK APIs (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager">ACameraManager</a>)
+ *             or Camera2 Java APIs ({@link android.hardware.camera2.CameraManager}) instead.
  */
 @VintfStability
 interface IEvsCamera {
@@ -38,6 +46,10 @@ interface IEvsCamera {
      * delivered until a buffer is returned.
      *
      * @param in buffer Buffers to be returned.
+     *
+     * @deprecated EVS functionality and APIs are deprecated. Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/media#aimage_delete">AImage_delete</a>)
+     *             or the Camera2 Java API ({@link android.media.Image#close}) instead.
      */
     void doneWithFrame(in BufferDesc[] buffer);
 
@@ -53,6 +65,8 @@ interface IEvsCamera {
      *                   and therefore allowed to take over a primary client role from
      *                   existing primary client.
      * @throws EvsResult::INVALID_ARG if a given display handle is null or invalid states.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     void forcePrimaryClient(in IEvsDisplay display);
 
@@ -61,6 +75,12 @@ interface IEvsCamera {
      *
      * @return The description of this camera.  This must be the same value as
      *         reported by IEvsEnumerator::getCameraList().
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager_getcameracharacteristics">ACameraManager_getCameraCharacteristics</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraManager#getCameraCharacteristics}) instead.
      */
     CameraDesc getCameraInfo();
 
@@ -75,6 +95,14 @@ interface IEvsCamera {
      * @return Requested information.  Zero-size vector is returned if the driver does
      *         not recognize a given identifier.
      * @throws EvsResult::INVALID_ARG for any unrecognized opaqueIdentifier.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use either the Camera2 NDK APIs or the Camera2 Java APIs instead.
+     *             For the NDK:
+     *             Use vendor tags on <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest">ACaptureRequest</a>.
+     *             For Java:
+     *             Use vendor tags on {@link android.hardware.camera2.CaptureRequest}.
      */
     byte[] getExtendedInfo(in int opaqueIdentifier);
 
@@ -87,6 +115,12 @@ interface IEvsCamera {
      *         backing camera devices.
      * @throws EvsResult::INVALID_ARG for any unrecognized parameter.
      *        EvsResult::UNDERLYING_SERVICE_ERROR for any other failures.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_capturecallback_result">ACameraCaptureSession_captureCallback_result</a>)
+     *             or the Camera2 Java API ({@link android.hardware.camera2.CaptureResult#get})
+     *             instead.
      */
     int[] getIntParameter(in CameraParam id);
 
@@ -95,6 +129,11 @@ interface IEvsCamera {
      *
      * @param in id The identifier of camera parameter, CameraParam enum.
      * @return ParameterRange of a requested CameraParam
+     *
+     * @deprecated EVS functionality and APIs are deprecated. Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acamerametadata_getconstentry">ACameraMetadata_getConstEntry</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCharacteristics#get}) instead.
      */
     ParameterRange getIntParameterRange(in CameraParam id);
 
@@ -102,6 +141,12 @@ interface IEvsCamera {
      * Retrieves a list of parameters this camera supports.
      *
      * @return A list of CameraParam that this camera supports.
+     *
+     * @deprecated EVS functionality and APIs are deprecated. Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_getalltags">ACaptureRequest_getAllTags</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCharacteristics#getAvailableCaptureRequestKeys})
+     *             instead.
      */
     CameraParam[] getParameterList();
 
@@ -118,6 +163,17 @@ interface IEvsCamera {
      * @param in deviceId Physical camera device identifier string.
      * @return The description of a member physical camera device.
      *         This must be the same value as reported by IEvsEnumerator::getCameraList().
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             For logical cameras, call {@link
+     *             android.hardware.camera2.CameraCharacteristics#getPhysicalCameraIds} to retrieve
+     *             the camera IDs of the physical cameras. Then, use these IDs in the following
+     *             Camera2 API calls to access the physical camera information:
+     *             For the NDK:
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager_getcameracharacteristics">ACameraManager_getCameraCharacteristics</a>.
+     *             For Java:
+     *             {@link android.hardware.camera2.CameraManager#getCameraCharacteristics}.
      */
     CameraDesc getPhysicalCameraInfo(in String deviceId);
 
@@ -130,6 +186,13 @@ interface IEvsCamera {
      *                   will use these buffers to capture frames, in addition to
      *                   other buffers already in its buffer pool.
      * @return The amount of buffer pool size changes after importing given buffers.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             In Camera2, buffer management is handled by Surfaces. To pre-allocate buffers,
+     *             use the Camera 2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_preparewindow">ACameraCaptureSession_prepareWindow</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCaptureSession#prepare}) instead.
      */
     int importExternalBuffers(in BufferDesc[] buffers);
 
@@ -138,11 +201,24 @@ interface IEvsCamera {
      *
      * Like stopVideoStream(), events may continue to arrive for some time
      * after this call returns. Delivered frame buffers must be returned.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_stoprepeating">ACameraCaptureSession_stopRepeating</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCaptureSession#stopRepeating}) instead.
      */
     void pauseVideoStream();
 
     /**
      * Requests to resume EVS camera stream.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_setrepeatingrequestv2">ACameraCaptureSession_setRepeatingRequestV2</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCaptureSession#setSingleRepeatingRequest})
+     *             instead.
      */
     void resumeVideoStream();
 
@@ -159,6 +235,15 @@ interface IEvsCamera {
      *                            program.
      *        in opaqueValue A value to program.
      * @throws EvsResult::INVALID_ARG if this call fails to set a parameter.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use either the Camera2 NDK APIs or the Camera2 Java APIs instead, with vendor
+     *             tags to implement custom data.
+     *             For the NDK:
+     *             Use vendor tags on <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest">ACaptureRequest</a>.
+     *             For Java:
+     *             Use vendor tags on {@link android.hardware.camera2.CaptureRequest.Builder}.
      */
     void setExtendedInfo(in int opaqueIdentifier, in byte[] opaqueValue);
 
@@ -179,6 +264,26 @@ interface IEvsCamera {
      *        client, or a requested parameter is not supported.
      *        EvsResult::UNDERLYING_SERVICE_ERROR if it fails to program a value by any
      *        other reason.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use either the Camera2 NDK APIs or the Camera2 Java APIs instead.
+     *             For the NDK:
+     *             Set the parameter based on the type of data using
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_setentry_float">ACaptureRequest_setEntry_float</a>,
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_setentry_double">ACaptureRequest_setEntry_double</a>,
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_setentry_i32">ACaptureRequest_setEntry_i32</a>,
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_setentry_i64">ACaptureRequest_setEntry_i64</a>,
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_setentry_rational">ACaptureRequest_setEntry_rational</a>,
+     *             <a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acapturerequest_setentry_u8">ACaptureRequest_setEntry_u8</a>,
+     *             or similar.
+     *             For Java:
+     *             {@link android.hardware.camera2.CaptureRequest.Builder#set}.
      */
     int[] setIntParameter(in CameraParam id, in int value);
 
@@ -193,6 +298,8 @@ interface IEvsCamera {
      * role.
      *
      * @throws EvsResult::OWNERSHIP_LOST if there is already the primary client.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     void setPrimaryClient();
 
@@ -211,6 +318,17 @@ interface IEvsCamera {
      * @throws EvsResult::BUFFER_NOT_AVAILABLE if the client cannot increase the max frames.
      *        EvsResult::INVALID_ARG if the client cannot decrease the max frames.
      *        EvsResult::OWNERSHIP_LOST if we lost an ownership of a target camera.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use either the Camera2 NDK APIs or the Camera2 Java APIs instead to set the
+     *             maximum number of images the user will want to access simultaneously.
+     *             For the NDK:
+     *             Set in <a
+     *             href="https://developer.android.com/ndk/reference/group/media#aimagereader_new">AImageReader_new</a>
+     *             or <a
+     *             href="https://developer.android.com/ndk/reference/group/media#aimagereader_newwithusage">AImageReader_newWithUsage</a>.
+     *             For Java:
+     *             Set in {@link android.media.ImageReader#newInstance}.
      */
     void setMaxFramesInFlight(in int bufferCount);
 
@@ -226,6 +344,13 @@ interface IEvsCamera {
      *        EvsResult::BUFFER_NOT_AVAILABLE if it fails to secure a minimum number of
      *        buffers to run a video stream.
      *        EvsResult::UNDERLYING_SERVICE_ERROR for all other failures.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_setrepeatingrequestv2">ACameraCaptureSession_setRepeatingRequestV2</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCaptureSession#setSingleRepeatingRequest})
+     *             instead.
      */
     void startVideoStream(in IEvsCameraStream receiver);
 
@@ -236,6 +361,12 @@ interface IEvsCamera {
      * some time after this call returns. Each must be returned until the
      * closure of the stream is signaled to the IEvsCameraStream.
      * This function cannot fail and is simply ignored if the stream isn't running.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use the Camera2 NDK API (<a
+     *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_stoprepeating">ACameraCaptureSession_stopRepeating</a>)
+     *             or the Camera2 Java API ({@link
+     *             android.hardware.camera2.CameraCaptureSession#stopRepeating}) instead.
      */
     void stopVideoStream();
 
@@ -243,6 +374,8 @@ interface IEvsCamera {
      * Retires from the primary client role.
      *
      * @throws EvsResult::INVALID_ARG if the caller client is not a primary client.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     void unsetPrimaryClient();
 }

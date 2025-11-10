@@ -26,6 +26,11 @@ import android.hardware.automotive.evs.UltrasonicSensor;
  * control unit or represent a logical group of sensors like front and back.
  * The HAL is responsible for filling out this structure for each Ultrasonics
  * Array.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use <a
+ *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+ *             VHAL properties</a> instead.
  */
 @VintfStability
 parcelable UltrasonicsArrayDesc {
@@ -34,8 +39,7 @@ parcelable UltrasonicsArrayDesc {
      * physical control device or a string identifying a logical group of sensors forming an array
      * such as "front_array" and "back_array".
      */
-    @utf8InCpp
-    String ultrasonicsArrayId;
+    @utf8InCpp String ultrasonicsArrayId;
     /**
      * Maximum number of readings (points on waveform) provided per sensor in
      * each data frame. Used by client to pre-allocate required memory buffer for

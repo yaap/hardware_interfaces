@@ -18,6 +18,19 @@ package android.hardware.automotive.evs;
 
 /**
  * The status of the devices available through the EVS
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Applications should use the standard Android <a
+ *             href="https://developer.android.com/media/camera/camera2">Camera2 API
+ *             (android.hardware.camera2)</a> for camera access and management.
+ *             For the NDK:
+ *             <a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager_registeravailabilitycallback">ACameraManager_registerAvailabilityCallback</a>
+ *             with <a
+ *             href="https://developer.android.com/ndk/reference/struct/a-camera-manager-availability-listener">ACameraManager_AvailabilityListener</a>.
+ *             For Java:
+ *             {@link android.hardware.camera2.CameraManager#registerAvailabilityCallback} with
+ *             {@link android.hardware.camera2.CameraManager.AvailabilityCallback}.
  */
 @VintfStability
 @Backing(type="int")
