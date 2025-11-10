@@ -39,8 +39,7 @@
 #include "bluetooth_hal/util/logging.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
@@ -307,5 +306,4 @@ std::vector<Coredump> BluetoothActivitiesImpl::Dump() {
 }
 #endif
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

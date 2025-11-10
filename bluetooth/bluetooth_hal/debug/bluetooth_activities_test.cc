@@ -31,8 +31,7 @@
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
 #include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -317,5 +316,4 @@ INSTANTIATE_TEST_SUITE_P(
                           device_1.connection_handle)));
 
 }  // namespace
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

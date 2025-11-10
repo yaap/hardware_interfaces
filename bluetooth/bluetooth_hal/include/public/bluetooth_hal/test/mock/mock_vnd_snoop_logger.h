@@ -20,8 +20,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class MockVndSnoopLogger : public VndSnoopLogger {
  public:
@@ -37,5 +36,4 @@ class MockVndSnoopLogger : public VndSnoopLogger {
   static inline MockVndSnoopLogger* mock_vnd_snoop_logger_{nullptr};
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

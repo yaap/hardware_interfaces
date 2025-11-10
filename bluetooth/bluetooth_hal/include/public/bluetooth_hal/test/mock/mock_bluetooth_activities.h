@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class MockBluetoothActivities : public BluetoothActivities {
  public:
@@ -43,5 +42,4 @@ class MockBluetoothActivities : public BluetoothActivities {
   static inline MockBluetoothActivities* mock_bluetooth_activities_{nullptr};
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

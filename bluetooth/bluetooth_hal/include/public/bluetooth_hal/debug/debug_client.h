@@ -39,8 +39,7 @@
       ClientLog(::android::base::severity, LOG_TAG))
 #endif
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 enum class CoredumpPosition : uint8_t {
   kBegin,
@@ -208,5 +207,4 @@ class DebugClient {
 #endif
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

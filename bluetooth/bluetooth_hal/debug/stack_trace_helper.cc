@@ -20,8 +20,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 using ::bluetooth_hal::bqr::BqrErrorCode;
 
@@ -149,5 +148,4 @@ void LogFatal(BqrErrorCode error_code, std::string extra_info) {
   LOG(FATAL) << msg;
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

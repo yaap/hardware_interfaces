@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class BluetoothActivities {
  public:
@@ -91,5 +90,4 @@ class BluetoothActivities {
   static inline std::mutex mutex_;
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

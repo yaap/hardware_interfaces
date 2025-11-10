@@ -46,8 +46,7 @@
 #include "bluetooth_hal/util/files.h"
 #include "bluetooth_hal/util/worker.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::config::HalConfigLoader;
@@ -435,5 +434,4 @@ void VndSnoopLoggerImpl::StopRecording() {
   LoggerHandler::GetHandler().Post(LoggerTask::StopRecordingTask());
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

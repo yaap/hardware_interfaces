@@ -21,8 +21,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class DebugEventWatcher : public ::bluetooth_hal::hci::HciRouterClient {
  public:
@@ -46,5 +45,4 @@ class DebugEventWatcher : public ::bluetooth_hal::hci::HciRouterClient {
       google_vendor_capability_event_monitor_;
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug
