@@ -36,8 +36,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 namespace {
 
 using ::android::base::GetProperty;
@@ -536,5 +535,4 @@ bool ChipProvisioner::WriteFwPatchramPacket() {
   return true;
 }
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

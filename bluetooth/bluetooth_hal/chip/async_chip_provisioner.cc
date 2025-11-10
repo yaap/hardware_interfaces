@@ -29,8 +29,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/worker.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -146,5 +145,4 @@ void AsyncChipProvisioner::HandleResetFirmware() {
   }
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip
