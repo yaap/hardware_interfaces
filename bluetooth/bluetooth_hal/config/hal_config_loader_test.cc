@@ -30,8 +30,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 namespace {
 
 using ::testing::_;
@@ -387,5 +386,4 @@ TEST_F(ConfigLoaderUtilTest, IsSameSingleton) {
 }
 
 }  // namespace
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

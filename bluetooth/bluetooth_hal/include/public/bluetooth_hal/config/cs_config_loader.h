@@ -22,8 +22,7 @@
 #include "bluetooth_hal/config/config_loader.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class CsConfigLoader : public ConfigLoader {
  public:
@@ -38,5 +37,4 @@ class CsConfigLoader : public ConfigLoader {
   static CsConfigLoader& GetLoader();
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

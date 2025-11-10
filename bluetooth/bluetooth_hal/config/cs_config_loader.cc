@@ -32,8 +32,7 @@
 #include "cs_config.pb.h"
 #include "google/protobuf/util/json_util.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 using ::bluetooth_hal::Property;
 using ::bluetooth_hal::config::proto::CalibrationCommands;
@@ -211,5 +210,4 @@ CsConfigLoader& CsConfigLoader::GetLoader() {
   return loader;
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config
