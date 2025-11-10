@@ -24,8 +24,7 @@
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class AdvanceRfStatsOffsetV7 : uint8_t {
   kAntSwitchCount =
@@ -83,5 +82,4 @@ class BqrAdvanceRfStatsEventV7 : public BqrAdvanceRfStatsEvent {
   uint32_t tx_buf_queue_count_ = 0;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

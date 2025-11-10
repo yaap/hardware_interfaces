@@ -22,8 +22,7 @@
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v5.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class LinkQualityOffsetV6 : uint8_t {
   kRxUnreceivedPackets =
@@ -57,5 +56,4 @@ class BqrLinkQualityEventV6 : public BqrLinkQualityEventV5 {
   uint16_t coex_info_mask_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

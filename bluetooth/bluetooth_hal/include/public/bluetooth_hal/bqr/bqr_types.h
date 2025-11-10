@@ -20,8 +20,7 @@
 #include <string>
 #include <string_view>
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class BqrVersion : uint8_t {
   kNone = 0,
@@ -343,5 +342,4 @@ inline std::string BqrPacketTypeToString(uint8_t packet_type) {
   }
 }
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

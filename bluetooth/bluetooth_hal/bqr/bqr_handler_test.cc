@@ -32,8 +32,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 namespace {
 
 using ::testing::_;
@@ -277,5 +276,4 @@ TEST_F(BqrHandlerTest, HandleUnspecifiedVendorEvent) {
 }
 
 }  // namespace
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

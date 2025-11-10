@@ -22,8 +22,7 @@
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class LinkQualityOffsetV4 : uint8_t {
   kTxTotalPackets = static_cast<uint8_t>(LinkQualityOffsetV1ToV3::kEnd),
@@ -74,5 +73,4 @@ class BqrLinkQualityEventV4 : public BqrLinkQualityEventV1ToV3 {
   uint32_t rx_duplicate_packets_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

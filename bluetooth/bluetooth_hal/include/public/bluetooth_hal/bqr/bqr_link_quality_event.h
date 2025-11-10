@@ -23,8 +23,7 @@
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class LinkQualityOffset : uint8_t {
   // After H4 type(1) + event code(1) + length(1) + sub event(1) + report id(1)
@@ -135,5 +134,4 @@ class BqrLinkQualityEventBase : public BqrEvent {
   uint32_t buffer_underflow_bytes_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

@@ -22,8 +22,7 @@
 #include "bluetooth_hal/bqr/bqr_energy_monitoring_event.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class EnergyMonitoringOffsetV6 : uint8_t {
   kReportTimeDuration =
@@ -72,5 +71,4 @@ class BqrEnergyMonitoringEventV6 : public BqrEnergyMonitoringEvent {
   uint32_t tx_xpa_active_two_chain_time_ = 0;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

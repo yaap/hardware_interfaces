@@ -25,8 +25,7 @@
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 namespace {
 
 using ::bluetooth_hal::hci::HalPacket;
@@ -162,5 +161,4 @@ std::string BqrEnergyMonitoringEvent::ToBqrString() const {
   return ss.str();
 }
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr
