@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,18 +31,10 @@
 // with such a backward incompatible change, it has a high risk of breaking
 // later when a module using the interface is updated, e.g., Mainline modules.
 
-package android.hardware.usb.gadget;
-@VintfStability
-parcelable GadgetFunction {
-  const long NONE = 0;
-  const long ADB = 1;
-  const long ACCESSORY = (1 << 1) /* 2 */;
-  const long MTP = (1 << 2) /* 4 */;
-  const long MIDI = (1 << 3) /* 8 */;
-  const long PTP = (1 << 4) /* 16 */;
-  const long RNDIS = (1 << 5) /* 32 */;
-  const long AUDIO_SOURCE = (1 << 6) /* 64 */;
-  const long UVC = (1 << 7) /* 128 */;
-  const long CTRL = (1 << 8) /* 256 */;
-  const long NCM = (1 << 10) /* 1024 */;
+package android.hardware.security.keymint;
+/* @hide */
+@Backing(type="int") @VintfStability
+enum MlDsaVariant {
+  ML_DSA_65 = 1,
+  ML_DSA_87 = 2,
 }

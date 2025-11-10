@@ -253,9 +253,10 @@ class BluetoothLeAudioCodecsProviderTest
     LeAudioOffloadSetting le_audio_offload_setting(
         scenario_lists, configuration_lists, codec_configuration_lists,
         strategy_configuration_lists);
+    BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
+        std::make_optional(std::move(le_audio_offload_setting)));
     auto le_audio_codec_capabilities =
-        BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities(
-            std::make_optional(le_audio_offload_setting));
+        BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities();
     return le_audio_codec_capabilities;
   }
 
@@ -266,9 +267,10 @@ class BluetoothLeAudioCodecsProviderTest
     LeAudioOffloadSetting le_audio_offload_setting(
         scenario_lists, configuration_lists, codec_configuration_lists,
         strategy_configuration_lists);
+    BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
+        std::make_optional(std::move(le_audio_offload_setting)));
     auto le_audio_codec_capabilities =
-        BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo(
-            std::make_optional(le_audio_offload_setting));
+        BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo();
     return le_audio_codec_capabilities;
   }
 

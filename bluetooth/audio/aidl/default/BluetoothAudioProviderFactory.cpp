@@ -183,7 +183,7 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
       session_type ==
           SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
     std::vector<CodecInfo> db_codec_info =
-        BluetoothAudioCodecs::GetLeAudioOffloadCodecInfo(session_type);
+        BluetoothAudioCodecs::GetCodecInfo(session_type);
     // Return provider info supports without checking db_codec_info
     // This help with various flow implementation for multidirectional support.
     auto& provider_info = _aidl_return->emplace();
@@ -195,7 +195,7 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
 
   if (session_type == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH) {
     std::vector<CodecInfo> db_codec_info =
-        BluetoothAudioCodecs::GetHfpOffloadCodecInfo();
+        BluetoothAudioCodecs::GetCodecInfo(session_type);
     if (!db_codec_info.empty()) {
       auto& provider_info = _aidl_return->emplace();
       provider_info.name = kHfpOffloadProviderName;

@@ -121,7 +121,10 @@ cc_library {
         "-Werror",
         "-Wthread-safety",
         "-DBACKEND_NDK",
-    ],
+    ] + select(release_flag("RELEASE_HARDWARE_AUDIO_USE_CAP_AIDL"), {
+        true: [],
+        default: ["-DDISABLE_CAP_AIDL"],
+    }),
 }
 
 cc_library {

@@ -137,6 +137,11 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::writeProcedureData(
       distance_estimator_->EstimateDistance(in_procedureData);
   ranging_result.confidenceLevel =
       distance_estimator_->GetConfidenceLevel() * 100;
+
+  if (!in_procedureData.initiatorSubeventResultData.empty()) {
+    ranging_result.timestampNanos =
+        in_procedureData.initiatorSubeventResultData[0].timestampNanos;
+  }
   callback_->onResult(ranging_result);
   return ScopedAStatus::ok();
 };

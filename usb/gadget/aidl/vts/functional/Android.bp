@@ -1,5 +1,4 @@
-//
-// Copyright (C) 2020 The Android Open Source Project
+// Copyright (C) 2022 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,33 +14,29 @@
 //
 
 package {
-    default_team: "trendy_team_android_hardware_backed_security",
-    // See: http://go/android-license-faq
-    default_applicable_licenses: ["hardware_interfaces_license"],
+    default_team: "trendy_team_android_usb",
+    default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_test {
-    name: "VtsHalRemotelyProvisionedComponentTargetTest",
-    defaults: [
-        "keymint_vts_defaults",
+java_test_host {
+    name: "VtsHalUsbGadgetV2_0HostTest",
+    libs: [
+        "compatibility-host-util",
+        "tradefed",
     ],
-    srcs: [
-        "VtsRemotelyProvisionedComponentTests.cpp",
-    ],
-    shared_libs: [
-        "libbinder_ndk",
-        "libcrypto",
-    ],
+
     static_libs: [
-        "libcppbor",
-        "libgmock_ndk",
-        "libkeymint_vts_test_utils",
-        "libvendorsupport",
+        "platform-test-annotations-host",
+        "flag-junit-host",
+        "android.hardware.usb.flags-aconfig-java-host",
     ],
-    test_config: "VtsRemotelyProvisionedComponentTests.xml",
+
+    srcs: [
+        "VtsHalUsbGadgetV2_0HostTest.java",
+        "libusb/*.java",
+    ],
     test_suites: [
         "general-tests",
         "vts",
-        "dts",
     ],
 }
