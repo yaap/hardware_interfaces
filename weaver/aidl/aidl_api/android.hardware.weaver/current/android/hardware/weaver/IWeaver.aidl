@@ -37,6 +37,8 @@ interface IWeaver {
   android.hardware.weaver.WeaverConfig getConfig();
   android.hardware.weaver.WeaverReadResponse read(in int slotId, in byte[] key);
   void write(in int slotId, in byte[] key, in byte[] value);
+  oneway void warmUp();
+  long getTimeout(in int slotId);
   const int STATUS_FAILED = 1;
   const int STATUS_INCORRECT_KEY = 2;
   const int STATUS_THROTTLE = 3;

@@ -34,8 +34,8 @@
 package android.hardware.weaver;
 @Backing(type="int") @VintfStability
 enum WeaverReadStatus {
-  OK = 0,
-  FAILED = 1,
-  INCORRECT_KEY = 2,
-  THROTTLE = 3,
+  OK,
+  FAILED,
+  INCORRECT_KEY,
+  THROTTLE,
 }
