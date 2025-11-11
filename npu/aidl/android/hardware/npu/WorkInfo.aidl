@@ -80,4 +80,16 @@ parcelable WorkInfo {
      * 0 is the highest priority.
      */
     int effectivePriority;
+
+    /**
+     * This is the CLOCK_MONOTONIC time in milliseconds at which the event occurred when
+     * this parcelable is sent via IScheduling::onWorkStarted() and similar notifications.
+     */
+    long timestampMs;
+
+    /**
+     * An identifier for the NPU that is involved with the work. The first device must be 0,
+     * and subsequent NPUs (if any) increase serially from there (0, 1, 2, etc.).
+     */
+    int deviceNumber;
 }

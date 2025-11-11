@@ -33,11 +33,6 @@ oneway interface ISchedulingCallback {
     const int DEBOUNCE_DURATION_MS = 50;
 
     /**
-     * Received when the NPU is no longer doing any CPU-initiated execution
-     */
-    void onIdle();
-
-    /**
      * Called when a request for work has been received from an app.
      * This will be suppressed if execution for a prior request from
      * the same UID has been completed within DEBOUNCE_DURATION_MS.
