@@ -22,9 +22,7 @@
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc_util.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCccTimesyncCommand : public ::bluetooth_hal::hci::HalPacket {
  public:
@@ -67,6 +65,4 @@ class BluetoothCccTimesyncCommand : public ::bluetooth_hal::hci::HalPacket {
   static ::bluetooth_hal::hci::HalPacket CreateClearCommand();
 };
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

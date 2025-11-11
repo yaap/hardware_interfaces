@@ -25,9 +25,7 @@
 #include "aidl/hardware/google/bluetooth/ccc/IBluetoothCccCallback.h"
 #include "android/binder_auto_utils.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCcc
     : public ::aidl::hardware::google::bluetooth::ccc::BnBluetoothCcc {
@@ -46,6 +44,4 @@ class BluetoothCcc
       const std::array<uint8_t, 6>& address) override;
 };
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

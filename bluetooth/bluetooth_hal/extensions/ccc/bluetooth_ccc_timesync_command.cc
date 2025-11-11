@@ -24,9 +24,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 namespace {
 using ::bluetooth_hal::hci::BluetoothAddress;
@@ -122,6 +120,4 @@ HalPacket BluetoothCccTimesyncCommand::CreateClearCommand() {
   return packet;
 }
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc
