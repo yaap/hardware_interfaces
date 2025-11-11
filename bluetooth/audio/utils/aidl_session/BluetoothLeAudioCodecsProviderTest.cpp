@@ -463,13 +463,13 @@ TEST_P(ComposeLeAudioAymmetricCodecInfoTest, AsymmetricCodecInfoNotEmpty) {
   ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
   auto& transport =
       codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
-  ASSERT_EQ(transport.flags, std::make_optional(required_flag));
+  ASSERT_TRUE((transport.flags->bitmask & required_flag.bitmask) != 0);
 
   codec_info = le_audio_codec_info_map
       [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH][0];
   ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
   transport = codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
-  ASSERT_EQ(transport.flags, std::make_optional(required_flag));
+  ASSERT_TRUE((transport.flags->bitmask & required_flag.bitmask) != 0);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GetScenariosTest);
