@@ -65,15 +65,6 @@ std::array<struct Slotinfo, 16> slot_array;
     return ::ndk::ScopedAStatus::ok();
 }
 
-::ndk::ScopedAStatus Weaver::warmUp() {
-    return ::ndk::ScopedAStatus::ok();
-}
-
-::ndk::ScopedAStatus Weaver::getTimeout([[maybe_unused]] int32_t in_slotId,
-                                        [[maybe_unused]] int64_t* out_timeout) {
-    return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
-}
-
 } //namespace weaver
 } //namespace hardware
 } //namespace android

@@ -34,8 +34,6 @@ public:
     ::ndk::ScopedAStatus getConfig(WeaverConfig* _aidl_return) override;
     ::ndk::ScopedAStatus read(int32_t in_slotId, const std::vector<uint8_t>& in_key, WeaverReadResponse* _aidl_return) override;
     ::ndk::ScopedAStatus write(int32_t in_slotId, const std::vector<uint8_t>& in_key, const std::vector<uint8_t>& in_value) override;
-    ::ndk::ScopedAStatus warmUp() override;
-    ::ndk::ScopedAStatus getTimeout(int32_t in_slotId, int64_t* out_timeout) override;
 };
 
 }  // namespace weaver
