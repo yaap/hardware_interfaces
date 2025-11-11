@@ -215,31 +215,38 @@ ndk::ScopedAStatus VibratorManager::startHapticGeneratorSession(
 
     const auto& format = config.audioFormat;
     if (format.sampleRate <= 0) {
-        LOG(ERROR) << "Haptic generator session rejected: Invalid sample rate "
+        LOG(ERROR) << "Haptic generator session rejected: Invalid/Unspecified sample rate "
                    << format.sampleRate;
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
-    if (format.format.type != AudioFormatType::PCM) {
-        LOG(ERROR) << "Haptic generator session rejected: Audio format is not PCM.";
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    const auto& channelMask = config.audioFormat.channelMask;
+    bool isChannelMaskInvalid = false;
+
+    switch (channelMask.getTag()) {
+        case AudioChannelLayout::Tag::layoutMask:
+            if (channelMask.get<AudioChannelLayout::Tag::layoutMask>() == 0) {
+                isChannelMaskInvalid = true;
+            }
+            break;
+        case AudioChannelLayout::Tag::indexMask:
+            if (channelMask.get<AudioChannelLayout::Tag::indexMask>() == 0) {
+                isChannelMaskInvalid = true;
+            }
+            break;
+        case AudioChannelLayout::Tag::none:
+            isChannelMaskInvalid = true;
+            break;
+        case AudioChannelLayout::Tag::invalid:
+            isChannelMaskInvalid = true;
+            break;
+        default:
+            // Channel mask is valid
+            break;
     }
 
-    if (format.format.pcm == PcmType::DEFAULT) {
-        LOG(ERROR) << "Haptic generator session rejected: A specific PCM type must be provided.";
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-    }
-
-    if (format.channelMask.getTag() != AudioChannelLayout::Tag::layoutMask) {
-        LOG(ERROR) << "Haptic generator session rejected: Channel mask must be a layout mask.";
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-    }
-    auto layoutMask = format.channelMask.get<AudioChannelLayout::Tag::layoutMask>();
-
-    if ((layoutMask &
-         (AudioChannelLayout::CHANNEL_HAPTIC_A | AudioChannelLayout::CHANNEL_HAPTIC_B)) == 0) {
-        LOG(ERROR) << "Haptic generator session rejected: Channel mask must include "
-                   << "at least one haptic channel (HAPTIC_A or HAPTIC_B).";
+    if (isChannelMaskInvalid) {
+        LOG(ERROR) << "Haptic generator session rejected: Invalid/Empty channel mask";
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 

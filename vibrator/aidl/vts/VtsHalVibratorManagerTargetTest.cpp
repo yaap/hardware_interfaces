@@ -681,46 +681,55 @@ TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithInvalidSampleRate) {
             manager->startHapticGeneratorSession(vibratorIds, config, nullptr, &session));
 }
 
-TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithNonPcmFormat) {
+TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithEmptyChannelMask) {
     if (!(capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) return;
     if (vibratorIds.empty()) return;
 
-    // Create a config that is valid except for the format type.
     HapticGeneratorConfig config = HapticGeneratorUtils::createConfig(
             48000 /* sampleRate */,
-            AudioChannelLayout::make<AudioChannelLayout::Tag::layoutMask>(
-                    AudioChannelLayout::CHANNEL_HAPTIC_A) /* channelMask */,
-            PcmType::INT_16_BIT /* pcmType */, AudioFormatType::NON_PCM /* formatType */);
+            AudioChannelLayout::make<AudioChannelLayout::Tag::layoutMask>(0) /* Empty Mask */);
 
     HapticGeneratorSession session;
     EXPECT_ILLEGAL_ARGUMENT(
             manager->startHapticGeneratorSession(vibratorIds, config, nullptr, &session));
 }
 
-TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithDefaultPcmType) {
+TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithEmptyIndexMask) {
     if (!(capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) return;
     if (vibratorIds.empty()) return;
 
-    // Create a config that is valid except for the PCM type.
     HapticGeneratorConfig config = HapticGeneratorUtils::createConfig(
-            48000 /* sampleRate */,
-            AudioChannelLayout::make<AudioChannelLayout::Tag::layoutMask>(
-                    AudioChannelLayout::CHANNEL_HAPTIC_A) /* channelMask */,
-            PcmType::DEFAULT /* pcmType */);
+            48000,                                                          /* sampleRate */
+            AudioChannelLayout::make<AudioChannelLayout::Tag::indexMask>(0) /* Empty Index Mask */
+    );
 
     HapticGeneratorSession session;
     EXPECT_ILLEGAL_ARGUMENT(
             manager->startHapticGeneratorSession(vibratorIds, config, nullptr, &session));
 }
 
-TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithNonHapticChannelMask) {
+TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithNoneTagChannelMask) {
     if (!(capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) return;
     if (vibratorIds.empty()) return;
 
-    // Create a config that is valid except for the channel mask.
     HapticGeneratorConfig config = HapticGeneratorUtils::createConfig(
-            48000 /* sampleRate */, AudioChannelLayout::make<AudioChannelLayout::Tag::layoutMask>(
-                                            AudioChannelLayout::LAYOUT_STEREO) /* channelMask */);
+            48000,                                                    /* sampleRate */
+            AudioChannelLayout::make<AudioChannelLayout::Tag::none>() /* Invalid Tag */
+    );
+
+    HapticGeneratorSession session;
+    EXPECT_ILLEGAL_ARGUMENT(
+            manager->startHapticGeneratorSession(vibratorIds, config, nullptr, &session));
+}
+
+TEST_P(VibratorManagerAidl, HapticGeneratorSessionFailsWithInvalidTagChannelMask) {
+    if (!(capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) return;
+    if (vibratorIds.empty()) return;
+
+    HapticGeneratorConfig config = HapticGeneratorUtils::createConfig(
+            48000,                                                        /* sampleRate */
+            AudioChannelLayout::make<AudioChannelLayout::Tag::invalid>(0) /* Invalid Tag */
+    );
 
     HapticGeneratorSession session;
     EXPECT_ILLEGAL_ARGUMENT(
