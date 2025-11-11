@@ -59,10 +59,12 @@
 
 using namespace android;
 using aidl::android::hardware::audio::common::AudioOffloadMetadata;
+using aidl::android::hardware::audio::common::durationMsFromFrameCount;
 using aidl::android::hardware::audio::common::getChannelCount;
 using aidl::android::hardware::audio::common::hasMmapFlag;
 using aidl::android::hardware::audio::common::isAnyBitPositionFlagSet;
 using aidl::android::hardware::audio::common::isBitPositionFlagSet;
+using aidl::android::hardware::audio::common::isPcmFormat;
 using aidl::android::hardware::audio::common::isTelephonyDeviceType;
 using aidl::android::hardware::audio::common::isValidAudioMode;
 using aidl::android::hardware::audio::common::PlaybackTrackMetadata;
@@ -266,7 +268,10 @@ std::optional<AudioOffloadInfo> generateOffloadInfoIfNeeded(const AudioPortConfi
     if (portConfig.flags.has_value() &&
         portConfig.flags.value().getTag() == AudioIoFlags::Tag::output &&
         isBitPositionFlagSet(portConfig.flags.value().get<AudioIoFlags::Tag::output>(),
-                             AudioOutputFlags::COMPRESS_OFFLOAD)) {
+                             AudioOutputFlags::COMPRESS_OFFLOAD)
+            // TODO(b/453737884): Uncomment when AIDL and default impls gets updated
+            /*&& portConfig.format.has_value() &&
+              portConfig.format.value().type == AudioFormatType::NON_PCM*/) {
         AudioOffloadInfo offloadInfo;
         offloadInfo.base.sampleRate = portConfig.sampleRate.value().value;
         offloadInfo.base.channelMask = portConfig.channelMask.value();
@@ -1130,7 +1135,8 @@ class StreamCommonLogic : public StreamLogic {
                                      : 0.0),
           mIsCompressOffload(context.getFlags().getTag() == AudioIoFlags::output &&
                              isBitPositionFlagSet(context.getFlags().get<AudioIoFlags::output>(),
-                                                  AudioOutputFlags::COMPRESS_OFFLOAD)),
+                                                  AudioOutputFlags::COMPRESS_OFFLOAD) &&
+                             context.getConfig().format.type == AudioFormatType::NON_PCM),
           mConfig(context.getConfig()) {}
     StreamContext::CommandMQ* getCommandMQ() const { return mCommandMQ; }
     const AudioConfigBase& getConfig() const { return mConfig; }
@@ -1535,24 +1541,30 @@ class DefaultStreamCallback : public ::aidl::android::hardware::audio::core::BnS
   public:
     // To avoid timing out the whole test suite in case no event is received
     // from the HAL, use a local timeout for event waiting.
-    // TODO: The timeout for 'onTransferReady' should depend on the buffer size.
-    static constexpr auto kEventTimeoutMs = std::chrono::milliseconds(3000);
+    static constexpr int32_t kDefaultEventTimeoutMs = 3000;
 
     StreamEventReceiver* getEventReceiver() { return this; }
     std::tuple<int, Event> getLastEvent() const override {
         std::lock_guard l(mLock);
         return getLastEvent_l();
     }
+    void updateCallbackTimeout(int timeoutMs) {
+        if (mEventTimeoutMs.count() != timeoutMs) {
+            LOG(DEBUG) << __func__ << ": " << timeoutMs << "ms";
+        }
+        mEventTimeoutMs = std::chrono::milliseconds(timeoutMs);
+    }
     std::tuple<int, Event> waitForEvent(int clientEventSeq) override {
         std::unique_lock l(mLock);
         android::base::ScopedLockAssertion lock_assertion(mLock);
         LOG(DEBUG) << __func__ << ": client " << clientEventSeq << ", last " << mLastEventSeq;
-        if (mCv.wait_for(l, kEventTimeoutMs, [&]() {
+        if (mCv.wait_for(l, mEventTimeoutMs, [&]() {
                 android::base::ScopedLockAssertion lock_assertion(mLock);
                 return clientEventSeq < mLastEventSeq;
             })) {
         } else {
-            LOG(WARNING) << __func__ << ": timed out waiting for an event";
+            LOG(WARNING) << __func__ << ": timed out waiting for an event (timeout "
+                         << mEventTimeoutMs.count() << ")";
             putLastEvent_l(Event::None);
         }
         return getLastEvent_l();
@@ -1574,6 +1586,7 @@ class DefaultStreamCallback : public ::aidl::android::hardware::audio::core::BnS
         mLastEvent = event;
     }
 
+    std::chrono::milliseconds mEventTimeoutMs = std::chrono::milliseconds(kDefaultEventTimeoutMs);
     mutable std::mutex mLock;
     std::condition_variable mCv;
     int mLastEventSeq GUARDED_BY(mLock) = kEventSeqInit;
@@ -1631,6 +1644,7 @@ class WithStream : public StreamWorkerMethods {
         const auto& config = mPortConfig.get();
         const AudioConfigBase cfg{config.sampleRate->value, *config.channelMask, *config.format};
         mContext.emplace(mDescriptor, cfg, config.flags.value());
+        UpdateCallbackTimeout(*config.format, config.sampleRate->value);
         return mStream->getInterfaceVersion(&mInterfaceVersion);
     }
     void SetUpStream(IModule* module, long bufferSizeFrames) {
@@ -1647,6 +1661,7 @@ class WithStream : public StreamWorkerMethods {
         mContext.emplace(mDescriptor, cfg, config.flags.value());
         ASSERT_NO_FATAL_FAILURE(mContext.value().checkIsValid());
         ASSERT_IS_OK(mStream->getInterfaceVersion(&mInterfaceVersion));
+        UpdateCallbackTimeout(*config.format, config.sampleRate->value);
     }
     void SetUp(IModule* module, long bufferSizeFrames) {
         ASSERT_NO_FATAL_FAILURE(SetUpPortConfig(module));
@@ -1712,6 +1727,18 @@ class WithStream : public StreamWorkerMethods {
     }
 
   private:
+    void UpdateCallbackTimeout(AudioFormatDescription format, int32_t sampleRate) {
+        // Since the HAL/HW implementation may have internal buffering, assume it's not
+        // larger than 4x + some allowance for notification delays due to system load.
+        static constexpr int kMaxHalInternalBuffers = 6;
+        if (isPcmFormat(format) && mStreamCallback) {
+            mStreamCallback->updateCallbackTimeout(
+                    std::max(DefaultStreamCallback::kDefaultEventTimeoutMs,
+                             durationMsFromFrameCount(mDescriptor.bufferSizeFrames, sampleRate) *
+                                     kMaxHalInternalBuffers));
+        }
+    }
+
     static constexpr const char* kCreateMmapBuffer = "aosp.createMmapBuffer";
 
     WithAudioPortConfig mPortConfig;
@@ -3891,6 +3918,7 @@ static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig,
                                      {AudioOutputFlags::VOIP_RX, AudioOutputFlags::INCALL_MUSIC}) ||
              (isBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::output>(),
                                    AudioOutputFlags::COMPRESS_OFFLOAD) &&
+              portConfig.format.value().type == AudioFormatType::NON_PCM &&
               (aidlVersion <= kAidlVersion4 || !getMediaFileInfoForConfig(portConfig)))));
 }
 
@@ -5318,6 +5346,7 @@ TEST_P(AudioStreamOut, UpdateOffloadMetadata) {
 
 static constexpr std::string kReadSeqName = "Read";
 static constexpr std::string kWriteSeqName = "Write";
+static constexpr std::string kNegatePropertySupportPrefix = ";";
 enum {
     NAMED_CMD_NAME,
     NAMED_CMD_MIN_INTERFACE_VERSION,
@@ -5327,7 +5356,7 @@ enum {
     NAMED_CMD_CMDS,
     NAMED_CMD_VALIDATE_POS_INCREASE
 };
-enum class StreamTypeFilter { ANY, SYNC, ASYNC, OFFLOAD };
+enum class StreamTypeFilter { ANY, SYNC, ASYNC, OFFLOAD /*compress offload*/ };
 using NamedCommandSequence =
         std::tuple<std::string, int /*minInterfaceVersion*/, std::string /*featureProperty*/,
                    int /*cmdDelayMs*/, StreamTypeFilter, std::shared_ptr<StateSequence>,
@@ -5348,16 +5377,26 @@ class AudioStreamIo : public AudioCoreModuleBase,
             GTEST_SKIP() << "Skip for audio HAL version lower than " << minVersion;
         }
         // When an associated feature property is defined, need to check that either that the HAL
-        // exposes this property, or it's of the version 'NAMED_CMD_MIN_INTERFACE_VERSION' + 1
-        // which must have this functionality implemented by default.
-        if (const std::string featureProperty =
+        // exposes this property, or it's of the version 'NAMED_CMD_MIN_INTERFACE_VERSION' + 1,
+        // or above, which must have this functionality implemented.
+        //
+        // When the feature property name is negated, that means the test must be skipped if the
+        // conditions above are satisfied (which means that it's a legacy test).
+        if (const std::string featurePropertyRaw =
                     std::get<NAMED_CMD_FEATURE_PROPERTY>(std::get<PARAM_CMD_SEQ>(GetParam()));
-            !featureProperty.empty() && aidlVersion < (minVersion + 1)) {
-            std::vector<VendorParameter> parameters;
-            ScopedAStatus result = module->getVendorParameters({featureProperty}, &parameters);
-            if (!result.isOk() || parameters.size() != 1) {
-                GTEST_SKIP() << "Skip as audio HAL does not support feature \"" << featureProperty
-                             << "\"";
+            !featurePropertyRaw.empty()) {
+            const bool requireSupport = featurePropertyRaw[0] != kNegatePropertySupportPrefix[0];
+            const std::string featureProperty =
+                    requireSupport ? featurePropertyRaw : featurePropertyRaw.substr(1);
+            bool featureSupported = aidlVersion > minVersion;
+            if (!featureSupported) {  // check the property
+                std::vector<VendorParameter> parameters;
+                ScopedAStatus result = module->getVendorParameters({featureProperty}, &parameters);
+                featureSupported = result.isOk() && parameters.size() >= 1;
+            }
+            if (requireSupport != featureSupported) {
+                GTEST_SKIP() << "Skip as audio HAL does " << (featureSupported ? "" : "not ")
+                             << "support feature \"" << featureProperty << "\"";
             }
         }
         ASSERT_NO_FATAL_FAILURE(SetUpModuleConfig());
@@ -5412,18 +5451,19 @@ class AudioStreamIo : public AudioCoreModuleBase,
                             isBitPositionFlagSet(portConfig.flags.value()
                                                          .template get<AudioIoFlags::Tag::output>(),
                                                  AudioOutputFlags::NON_BLOCKING);
-            const bool isOffload =
+            const bool isCompressOffload =
                     IOTraits<Stream>::is_input
                             ? false
                             : isBitPositionFlagSet(
                                       portConfig.flags.value()
                                               .template get<AudioIoFlags::Tag::output>(),
-                                      AudioOutputFlags::COMPRESS_OFFLOAD);
+                                      AudioOutputFlags::COMPRESS_OFFLOAD) &&
+                                      portConfig.format.value().type == AudioFormatType::NON_PCM;
             if (auto streamType =
                         std::get<NAMED_CMD_STREAM_TYPE>(std::get<PARAM_CMD_SEQ>(GetParam()));
                 (isNonBlocking && streamType == StreamTypeFilter::SYNC) ||
                 (!isNonBlocking && streamType == StreamTypeFilter::ASYNC) ||
-                (!isOffload && streamType == StreamTypeFilter::OFFLOAD)) {
+                (!isCompressOffload && streamType == StreamTypeFilter::OFFLOAD)) {
                 continue;
             }
             if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) {
@@ -6041,7 +6081,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyOffloadCommands() {
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyOffloadSeq =
-        std::make_tuple(std::string("DrainEarly"), kAidlVersion3, "aosp.clipTransitionSupport", 0,
+        std::make_tuple(std::string("DrainEarly"), kAidlVersion4, "aosp.clipTransitionSupport", 0,
                         StreamTypeFilter::OFFLOAD, makeDrainEarlyOffloadCommands(),
                         true /*validatePositionIncrease*/);
 
@@ -6073,7 +6113,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyAddSecondClipOffloadCommands() {
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyAddSecondClipOffloadSeq = std::make_tuple(
-        std::string("DrainEarlyAddSecondClip"), kAidlVersion3, "aosp.clipTransitionSupport", 0,
+        std::string("DrainEarlyAddSecondClip"), kAidlVersion4, "aosp.clipTransitionSupport", 0,
         StreamTypeFilter::OFFLOAD, makeDrainEarlyAddSecondClipOffloadCommands(),
         true /*validatePositionIncrease*/);
 
@@ -6094,7 +6134,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyCancelOffloadCommands() {
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyCancelOffloadSeq =
-        std::make_tuple(std::string("DrainEarlyCancel"), kAidlVersion3,
+        std::make_tuple(std::string("DrainEarlyCancel"), kAidlVersion4,
                         "aosp.clipTransitionSupport", 0, StreamTypeFilter::OFFLOAD,
                         makeDrainEarlyOffloadCommands(), true /*validatePositionIncrease*/);
 
@@ -6121,7 +6161,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyPauseBeforeNotifOffloadCommands() {
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyPauseBeforeNotifOffloadSeq = std::make_tuple(
-        std::string("DrainEarlyPauseBeforeNotif"), kAidlVersion3, "aosp.clipTransitionSupport", 0,
+        std::string("DrainEarlyPauseBeforeNotif"), kAidlVersion4, "aosp.clipTransitionSupport", 0,
         StreamTypeFilter::OFFLOAD, makeDrainEarlyPauseBeforeNotifOffloadCommands(),
         true /*validatePositionIncrease*/);
 
@@ -6142,7 +6182,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyPauseBeforeNotifCancelOffloadComman
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyPauseBeforeNotifCancelOffloadSeq = std::make_tuple(
-        std::string("DrainEarlyPauseBeforeNotifCancel"), kAidlVersion3,
+        std::string("DrainEarlyPauseBeforeNotifCancel"), kAidlVersion4,
         "aosp.clipTransitionSupport", 0, StreamTypeFilter::OFFLOAD,
         makeDrainEarlyPauseBeforeNotifCancelOffloadCommands(), true /*validatePositionIncrease*/);
 
@@ -6163,7 +6203,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyPauseBeforeNotifFlushOffloadCommand
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyPauseBeforeNotifFlushOffloadSeq = std::make_tuple(
-        std::string("DrainEarlyPauseBeforeNotifFlush"), kAidlVersion3, "aosp.clipTransitionSupport",
+        std::string("DrainEarlyPauseBeforeNotifFlush"), kAidlVersion4, "aosp.clipTransitionSupport",
         0, StreamTypeFilter::OFFLOAD, makeDrainEarlyPauseBeforeNotifFlushOffloadCommands(),
         true /*validatePositionIncrease*/);
 
@@ -6185,7 +6225,7 @@ std::shared_ptr<StateSequence> makeDrainEarlyPauseAfterNotifFlushOffloadCommands
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyPauseAfterNotifFlushOffloadSeq = std::make_tuple(
-        std::string("DrainEarlyPauseAfterNotifFlush"), kAidlVersion3, "aosp.clipTransitionSupport",
+        std::string("DrainEarlyPauseAfterNotifFlush"), kAidlVersion4, "aosp.clipTransitionSupport",
         0, StreamTypeFilter::OFFLOAD, makeDrainEarlyPauseAfterNotifFlushOffloadCommands(),
         true /*validatePositionIncrease*/);
 
@@ -6219,56 +6259,79 @@ std::shared_ptr<StateSequence> makeDrainEarlyPauseAfterReadyOffloadCommands() {
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainEarlyPauseAfterReadyOffloadSeq = std::make_tuple(
-        std::string("DrainEarlyPauseAfterReady"), kAidlVersion3, "aosp.clipTransitionSupport", 0,
+        std::string("DrainEarlyPauseAfterReady"), kAidlVersion4, "aosp.clipTransitionSupport", 0,
         StreamTypeFilter::OFFLOAD, makeDrainEarlyPauseAfterReadyOffloadCommands(),
         true /*validatePositionIncrease*/);
 
-std::shared_ptr<StateSequence> makeDrainPauseOutCommands(bool isSync) {
+std::shared_ptr<StateSequence> makeDrainPauseOutCommands(bool isSync, bool useBurst, bool useEarly,
+                                                         bool allowLastDrainPaused = false) {
     using State = StreamDescriptor::State;
     auto d = std::make_unique<StateDag>();
-    StateDag::Node draining = d->makeNodes({std::make_pair(State::DRAINING, kPauseCommand),
-                                            std::make_pair(State::DRAIN_PAUSED, kStartCommand),
-                                            std::make_pair(State::DRAINING, kPauseCommand),
-                                            std::make_pair(State::DRAIN_PAUSED, kBurstCommand)},
-                                           isSync ? State::PAUSED : State::TRANSFER_PAUSED);
-    StateDag::Node active = d->makeNode(State::ACTIVE, kDrainOutAllCommand, draining);
+    StateDag::Node lastDraining = d->makeFinalNode(State::DRAINING);
+    StateDag::Node lastIdle = d->makeFinalNode(State::IDLE);
+    StateDag::Node lastPaused = d->makeFinalNode(State::PAUSED);
+    StateDag::Node lastTransferPaused = d->makeFinalNode(State::TRANSFER_PAUSED);
+    StateDag::Node paused =
+            d->makeNode(State::DRAIN_PAUSED, useBurst ? kBurstCommand : kStartCommand,
+                        useBurst ? (isSync ? lastPaused : lastTransferPaused) : lastDraining);
+    if (!isSync && useBurst && useEarly && allowLastDrainPaused) {
+        // Depending on whether the HAL sent 'onDrainReady', it will be one of these:
+        //     DRAIN_PAUSED_en -> TRANSFER_PAUSED [label="burst"]; <-- covered above
+        //     DRAIN_PAUSED_en_sent -> DRAIN_PAUSED_en_sent [label="burst"];
+        paused.children().push_back(d->makeFinalNode(State::DRAIN_PAUSED));
+    }
+    StateDag::Node draining = d->makeNode(State::DRAINING, kPauseCommand, paused);
+    StateDag::Node active = d->makeNode(
+            State::ACTIVE, useEarly ? kDrainOutEarlyCommand : kDrainOutAllCommand, draining);
     StateDag::Node idle = d->makeNode(State::IDLE, kBurstCommand, active);
     if (!isSync) {
-        idle.children().push_back(d->makeNode(State::TRANSFERRING, kDrainOutAllCommand, draining));
+        idle.children().push_back(
+                d->makeNode(State::TRANSFERRING,
+                            useEarly ? kDrainOutEarlyCommand : kDrainOutAllCommand, draining));
     } else {
         // If we get straight into IDLE on drain, no further testing is possible.
-        active.children().push_back(d->makeFinalNode(State::IDLE));
+        active.children().push_back(lastIdle);
     }
     d->makeNode(State::STANDBY, kStartCommand, idle);
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
-static const NamedCommandSequence kDrainPauseOutSyncSeq =
-        std::make_tuple(std::string("DrainPause"), kAidlVersion1, "",
+static const NamedCommandSequence kDrainPauseStartOutSyncSeq =
+        std::make_tuple(std::string("DrainPauseStart"), kAidlVersion1, "",
                         kStreamTransientStateTransitionDelayMs, StreamTypeFilter::SYNC,
-                        makeDrainPauseOutCommands(true), false /*validatePositionIncrease*/);
-static const NamedCommandSequence kDrainPauseOutAsyncSeq =
-        std::make_tuple(std::string("DrainPause"), kAidlVersion1, "",
+                        makeDrainPauseOutCommands(true, false /*useBurst*/, false /*useEarly*/),
+                        false /*validatePositionIncrease*/);
+static const NamedCommandSequence kDrainPauseBurstOutSyncSeq =
+        std::make_tuple(std::string("DrainPauseBurst"), kAidlVersion1, "",
+                        kStreamTransientStateTransitionDelayMs, StreamTypeFilter::SYNC,
+                        makeDrainPauseOutCommands(true, true /*useBurst*/, false /*useEarly*/),
+                        false /*validatePositionIncrease*/);
+static const NamedCommandSequence kDrainPauseStartOutAsyncSeq =
+        std::make_tuple(std::string("DrainPauseStart"), kAidlVersion1, "",
                         kStreamTransientStateTransitionDelayMs, StreamTypeFilter::ASYNC,
-                        makeDrainPauseOutCommands(false), false /*validatePositionIncrease*/);
-
-std::shared_ptr<StateSequence> makeDrainEarlyPauseOutCommands() {
-    using State = StreamDescriptor::State;
-    auto d = std::make_unique<StateDag>();
-    StateDag::Node draining = d->makeNodes({std::make_pair(State::DRAINING, kPauseCommand),
-                                            std::make_pair(State::DRAIN_PAUSED, kStartCommand),
-                                            std::make_pair(State::DRAINING, kPauseCommand),
-                                            std::make_pair(State::DRAIN_PAUSED, kBurstCommand)},
-                                           State::TRANSFER_PAUSED);
-    StateDag::Node active = d->makeNode(State::ACTIVE, kDrainOutEarlyCommand, draining);
-    StateDag::Node idle = d->makeNode(State::IDLE, kBurstCommand, active);
-    idle.children().push_back(d->makeNode(State::TRANSFERRING, kDrainOutEarlyCommand, draining));
-    d->makeNode(State::STANDBY, kStartCommand, idle);
-    return std::make_shared<StateSequenceFollower>(std::move(d));
-}
-static const NamedCommandSequence kDrainEarlyPauseOutAsyncSeq =
-        std::make_tuple(std::string("DrainEarlyPause"), kAidlVersion3, "",
+                        makeDrainPauseOutCommands(false, false /*useBurst*/, false /*useEarly*/),
+                        false /*validatePositionIncrease*/);
+static const NamedCommandSequence kDrainPauseBurstOutAsyncSeq =
+        std::make_tuple(std::string("DrainPauseBurst"), kAidlVersion1, "",
                         kStreamTransientStateTransitionDelayMs, StreamTypeFilter::ASYNC,
-                        makeDrainEarlyPauseOutCommands(), false /*validatePositionIncrease*/);
+                        makeDrainPauseOutCommands(false, true /*useBurst*/, false /*useEarly*/),
+                        false /*validatePositionIncrease*/);
+static const NamedCommandSequence kDrainEarlyPauseStartOutAsyncSeq =
+        std::make_tuple(std::string("DrainEarlyPauseStart"), kAidlVersion3, "",
+                        kStreamTransientStateTransitionDelayMs, StreamTypeFilter::ASYNC,
+                        makeDrainPauseOutCommands(false, false /*useBurst*/, true /*useEarly*/),
+                        false /*validatePositionIncrease*/);
+static const NamedCommandSequence kDrainEarlyPauseBurstOutAsyncSeq =
+        std::make_tuple(std::string("DrainEarlyPauseBurst"), kAidlVersion4,
+                        kNegatePropertySupportPrefix + "aosp.clipTransitionSupport",
+                        kStreamTransientStateTransitionDelayMs, StreamTypeFilter::ASYNC,
+                        makeDrainPauseOutCommands(false, true /*useBurst*/, true /*useEarly*/),
+                        false /*validatePositionIncrease*/);
+static const NamedCommandSequence kDrainEarlyPauseBurstPcmOffloadOutAsyncSeq =
+        std::make_tuple(std::string("DrainEarlyPauseBurst"), kAidlVersion4,
+                        "aosp.clipTransitionSupport", 0, StreamTypeFilter::ASYNC,
+                        makeDrainPauseOutCommands(false, true /*useBurst*/, true /*useEarly*/,
+                                                  true /*allowLastDrainPaused*/),
+                        false /*validatePositionIncrease*/);
 
 // This sequence also verifies that the capture / presentation position is not reset on standby.
 std::shared_ptr<StateSequence> makeStandbyCommands(bool isInput, bool isSync) {
@@ -6461,22 +6524,24 @@ INSTANTIATE_TEST_SUITE_P(
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AudioStreamIoIn);
 INSTANTIATE_TEST_SUITE_P(
         AudioStreamIoOutTest, AudioStreamIoOut,
-        testing::Combine(testing::ValuesIn(android::getAidlHalInstanceNames(IModule::descriptor)),
-                         testing::Values(kWriteSyncSeq, kWriteAsyncSeq, kWriteDrainAsyncSeq,
-                                         kDrainOutSyncSeq, kDrainOutAsyncSeq,
-                                         kDrainEarlyOutAsyncSeq, kDrainPauseOutSyncSeq,
-                                         kDrainPauseOutAsyncSeq, kDrainEarlyPauseOutAsyncSeq,
-                                         kStandbyOutSyncSeq, kStandbyOutAsyncSeq, kPauseOutSyncSeq,
-                                         kPauseOutAsyncSeq, kFlushOutSyncSeq, kFlushOutAsyncSeq,
-                                         kDrainPauseFlushOutSyncSeq, kDrainPauseFlushOutAsyncSeq,
-                                         kDrainEarlyOffloadSeq, kDrainEarlyAddSecondClipOffloadSeq,
-                                         kDrainEarlyCancelOffloadSeq,
-                                         kDrainEarlyPauseBeforeNotifOffloadSeq,
-                                         kDrainEarlyPauseBeforeNotifCancelOffloadSeq,
-                                         kDrainEarlyPauseBeforeNotifFlushOffloadSeq,
-                                         kDrainEarlyPauseAfterNotifFlushOffloadSeq,
-                                         kDrainEarlyPauseAfterReadyOffloadSeq),
-                         testing::Values(false, true)),
+        testing::Combine(
+                testing::ValuesIn(android::getAidlHalInstanceNames(IModule::descriptor)),
+                testing::Values(kWriteSyncSeq, kWriteAsyncSeq, kWriteDrainAsyncSeq,
+                                kDrainOutSyncSeq, kDrainOutAsyncSeq, kDrainEarlyOutAsyncSeq,
+                                kDrainPauseStartOutSyncSeq, kDrainPauseBurstOutSyncSeq,
+                                kDrainPauseStartOutAsyncSeq, kDrainPauseBurstOutAsyncSeq,
+                                kDrainEarlyPauseStartOutAsyncSeq, kDrainEarlyPauseBurstOutAsyncSeq,
+                                kDrainEarlyPauseBurstPcmOffloadOutAsyncSeq, kStandbyOutSyncSeq,
+                                kStandbyOutAsyncSeq, kPauseOutSyncSeq, kPauseOutAsyncSeq,
+                                kFlushOutSyncSeq, kFlushOutAsyncSeq, kDrainPauseFlushOutSyncSeq,
+                                kDrainPauseFlushOutAsyncSeq, kDrainEarlyOffloadSeq,
+                                kDrainEarlyAddSecondClipOffloadSeq, kDrainEarlyCancelOffloadSeq,
+                                kDrainEarlyPauseBeforeNotifOffloadSeq,
+                                kDrainEarlyPauseBeforeNotifCancelOffloadSeq,
+                                kDrainEarlyPauseBeforeNotifFlushOffloadSeq,
+                                kDrainEarlyPauseAfterNotifFlushOffloadSeq,
+                                kDrainEarlyPauseAfterReadyOffloadSeq),
+                testing::Values(false, true)),
         GetStreamIoTestName);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AudioStreamIoOut);
 
