@@ -36,7 +36,7 @@ cc_test {
         "libbase",
     ],
     static_libs: [
-        "android.hardware.weaver-V3-ndk",
+        "android.hardware.weaver-V2-ndk",
         "android.hardware.weaver@1.0",
     ],
     test_suites: [
