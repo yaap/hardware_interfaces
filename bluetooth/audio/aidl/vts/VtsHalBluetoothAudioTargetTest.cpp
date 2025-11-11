@@ -144,6 +144,7 @@ enum class BluetoothAudioHalVersion : int32_t {
   VERSION_AIDL_V3,
   VERSION_AIDL_V4,
   VERSION_AIDL_V5,
+  VERSION_AIDL_V6,
 };
 
 // Some valid configs for HFP PCM configuration (software sessions)
@@ -687,6 +688,8 @@ class BluetoothAudioProviderFactoryAidl
         return BluetoothAudioHalVersion::VERSION_AIDL_V4;
       case 5:
         return BluetoothAudioHalVersion::VERSION_AIDL_V5;
+      case 6:
+        return BluetoothAudioHalVersion::VERSION_AIDL_V6;
       default:
         return BluetoothAudioHalVersion::VERSION_UNAVAILABLE;
     }
