@@ -386,7 +386,8 @@ TEST_P(MlDsaTest, KeyGenerationFailNoVariant) {
                                            .SetDefaultValidity());
     EXPECT_NE(result, ErrorCode::OK);
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                result == ErrorCode::INVALID_ARGUMENT);
+                result == ErrorCode::INVALID_ARGUMENT)
+            << "result=" << result;
 }
 
 TEST_P(MlDsaTest, KeyGenerationFailDualPurpose) {
@@ -403,7 +404,8 @@ TEST_P(MlDsaTest, KeyGenerationFailDualPurpose) {
 TEST_P(MlDsaTest, KeyGenerationFailUnknownVariant) {
     ErrorCode result = GenerateKey(KeyParams(static_cast<MlDsaVariant>(44)));
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                result == ErrorCode::INVALID_ARGUMENT);
+                result == ErrorCode::INVALID_ARGUMENT)
+            << "result=" << result;
 }
 
 TEST_P(MlDsaTest, SignOneShot) {
@@ -504,13 +506,15 @@ TEST_P(MlDsaTest, ImportRawSeedWrongLen) {
         EXPECT_NE(result, ErrorCode::OK);
         EXPECT_TRUE(result == ErrorCode::INVALID_INPUT_LENGTH ||
                     result == ErrorCode::UNSUPPORTED_KEY_SIZE ||
-                    result == ErrorCode::INVALID_ARGUMENT);
+                    result == ErrorCode::INVALID_ARGUMENT)
+                << "result=" << result;
 
         result = ImportKey(KeyParams(variant), KeyFormat::RAW, longSeed);
         EXPECT_NE(result, ErrorCode::OK);
         EXPECT_TRUE(result == ErrorCode::INVALID_INPUT_LENGTH ||
                     result == ErrorCode::UNSUPPORTED_KEY_SIZE ||
-                    result == ErrorCode::INVALID_ARGUMENT);
+                    result == ErrorCode::INVALID_ARGUMENT)
+                << "result=" << result;
     }
 }
 
@@ -527,14 +531,16 @@ TEST_P(MlDsaTest, ImportRawSeedUnspecifiedVariant) {
         ErrorCode result = ImportKey(params, KeyFormat::RAW, kSeed);
         EXPECT_NE(result, ErrorCode::OK);
         EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                    result == ErrorCode::INVALID_ARGUMENT);
+                    result == ErrorCode::INVALID_ARGUMENT)
+                << "result=" << result;
     }
 }
 
 TEST_P(MlDsaTest, ImportRawSeedUnknownVariant) {
     ErrorCode result = ImportKey(KeyParams(static_cast<MlDsaVariant>(44)), KeyFormat::RAW, kSeed);
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                result == ErrorCode::INVALID_ARGUMENT);
+                result == ErrorCode::INVALID_ARGUMENT)
+            << "result=" << result;
 }
 
 TEST_P(MlDsaTest, ImportWrappedRawSeed) {
@@ -613,19 +619,22 @@ TEST_P(MlDsaTest, ImportPkcs8SeedMismatchVariant) {
 TEST_P(MlDsaTest, ImportPkcs8SeedUnsupportedVariant) {
     ErrorCode result = ImportKey(ImportParams(), KeyFormat::PKCS8, kSeed44Pkcs8);
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                result == ErrorCode::INVALID_ARGUMENT);
+                result == ErrorCode::INVALID_ARGUMENT)
+            << "result=" << result;
 }
 
 TEST_P(MlDsaTest, ImportPkcs8ExpandedFails) {
     ErrorCode result = ImportKey(ImportParams(), KeyFormat::PKCS8, kExpanded65Pkcs8);
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                result == ErrorCode::INVALID_ARGUMENT);
+                result == ErrorCode::INVALID_ARGUMENT)
+            << "result=" << result;
 }
 
 TEST_P(MlDsaTest, ImportPkcs8BothFails) {
     ErrorCode result = ImportKey(ImportParams(), KeyFormat::PKCS8, kBoth65Pkcs8);
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
-                result == ErrorCode::INVALID_ARGUMENT);
+                result == ErrorCode::INVALID_ARGUMENT)
+            << "result=" << result;
 }
 
 TEST_P(MlDsaTest, AttestToEcdsaKey) {
