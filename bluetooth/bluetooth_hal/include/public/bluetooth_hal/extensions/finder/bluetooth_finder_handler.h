@@ -52,9 +52,9 @@ class BluetoothFinderHandler : public ::bluetooth_hal::hci::HciRouterClient {
   static BluetoothFinderHandler& GetHandler();
   static bool IsEnabled();
 
- protected:
   BluetoothFinderHandler() = default;
 
+ protected:
   void OnBluetoothChipReady() override {};
   void OnBluetoothChipClosed() override {};
   void OnBluetoothEnabled() override {};

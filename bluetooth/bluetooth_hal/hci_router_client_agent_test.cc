@@ -333,19 +333,6 @@ TEST_F(HciRouterClientAgentTest,
   EXPECT_TRUE(agent_->UnregisterClient(&mock_router_client3));
 }
 
-TEST_F(HciRouterClientAgentTest, HandleRegisterClientWhenEnabled) {
-  MockHciRouterClient mock_router_client;
-  EXPECT_CALL(mock_router_client, OnBluetoothChipReady()).Times(1);
-  EXPECT_CALL(mock_router_client, OnBluetoothChipClosed()).Times(0);
-  EXPECT_CALL(mock_router_client, OnBluetoothEnabled()).Times(1);
-  EXPECT_CALL(mock_router_client, OnBluetoothDisabled()).Times(0);
-
-  EnableBluetooth();
-
-  EXPECT_TRUE(agent_->RegisterClient(&mock_router_client));
-  EXPECT_TRUE(agent_->UnregisterClient(&mock_router_client));
-}
-
 TEST_F(HciRouterClientAgentTest, HandleDispatchPacketFromClient) {
   set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
       true);

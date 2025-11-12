@@ -45,6 +45,15 @@ HciRouterClient::~HciRouterClient() {
   HciRouterClientAgent::GetAgent().UnregisterClient(this);
 }
 
+void HciRouterClient::SyncBluetoothState() {
+  if (IsBluetoothChipReady()) {
+    OnBluetoothChipReady();
+  }
+  if (IsBluetoothEnabled()) {
+    OnBluetoothEnabled();
+  }
+}
+
 MonitorMode HciRouterClient::OnPacketCallback(const HalPacket& packet) {
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   // Find the mode with the highest priority.
