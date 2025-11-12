@@ -101,12 +101,10 @@ impl LocalTa {
 }
 
 impl SerializedChannel for LocalTa {
-    const MAX_SIZE: usize = usize::MAX;
+    const MAX_SIZE: usize = 4000;
 
     fn execute(&mut self, req_data: &[u8]) -> binder::Result<Vec<u8>> {
-        self.in_tx
-            .send(req_data.to_vec())
-            .expect("failed to send in request");
+        self.in_tx.send(req_data.to_vec()).expect("failed to send in request");
         Ok(self.out_rx.recv().expect("failed to receive response"))
     }
 }
