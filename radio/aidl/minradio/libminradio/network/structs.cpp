@@ -101,6 +101,8 @@ aidl::CellInfo makeCellInfo(const aidl::RegStateResult& regState,
                     .signalStrengthNr = signalStrength.nr,
             };
             break;
+        case aidl::CellIdentity::Tag::cdma:
+            break;
     }
     CHECK(ratSpecificInfo.has_value()) << "Cell identity not handled: " << cellId;
 
@@ -129,8 +131,11 @@ aidl::OperatorInfo getOperatorInfo(const aidl::CellIdentity& cellId) {
             return cellId.get<aidl::CellIdentity::Tag::lte>().operatorNames;
         case aidl::CellIdentity::Tag::nr:
             return cellId.get<aidl::CellIdentity::Tag::nr>().operatorNames;
+        case aidl::CellIdentity::Tag::cdma:
+            break;
     }
     LOG(FATAL) << "Cell identity not handled: " << cellId;
+    return {};
 }
 
 int32_t rssiToSignalStrength(int32_t rssi) {
