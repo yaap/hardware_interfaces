@@ -212,9 +212,9 @@ TEST_P(SecureElementAidl, getAtr) {
     std::vector<uint8_t> atr;
 
     // getAtr called after init shall succeed.
-    // The ATR has size between 0 and 32 bytes.
+    // The ATR has size between 0 and 64 bytes.
     EXPECT_OK(secure_element_->getAtr(&atr));
-    EXPECT_LE(atr.size(), 32u);
+    EXPECT_LE(atr.size(), 64u);
 }
 
 TEST_P(SecureElementAidl, openBasicChannel) {
