@@ -144,6 +144,7 @@ enum class BluetoothAudioHalVersion : int32_t {
   VERSION_AIDL_V3,
   VERSION_AIDL_V4,
   VERSION_AIDL_V5,
+  VERSION_AIDL_V6,
 };
 
 // Some valid configs for HFP PCM configuration (software sessions)
@@ -687,6 +688,8 @@ class BluetoothAudioProviderFactoryAidl
         return BluetoothAudioHalVersion::VERSION_AIDL_V4;
       case 5:
         return BluetoothAudioHalVersion::VERSION_AIDL_V5;
+      case 6:
+        return BluetoothAudioHalVersion::VERSION_AIDL_V6;
       default:
         return BluetoothAudioHalVersion::VERSION_UNAVAILABLE;
     }
@@ -2445,6 +2448,34 @@ class BluetoothAudioProviderLeAudioOutputHardwareAidl
     return capability;
   }
 
+  LeAudioDeviceCapabilities GetDsaRemoteSourceCapability() {
+    // Create a capability specifically for DSA 2.0 HeadTracking
+    LeAudioDeviceCapabilities capability;
+
+    auto vendor_codec = CodecId::Vendor();
+    vendor_codec.id = 224;
+    vendor_codec.codecId = 2;
+    capability.codecId = vendor_codec;
+
+    auto pref_context_metadata = MetadataLtv::PreferredAudioContexts();
+    pref_context_metadata.values = GetAudioContext(AudioContext::MEDIA);
+    capability.metadata = {pref_context_metadata};
+
+    auto frame_duration =
+        CodecSpecificCapabilitiesLtv::SupportedFrameDurations();
+    frame_duration.bitmask =
+        CodecSpecificCapabilitiesLtv::SupportedFrameDurations::US7500 |
+        CodecSpecificCapabilitiesLtv::SupportedFrameDurations::US10000 |
+        CodecSpecificCapabilitiesLtv::SupportedFrameDurations::US20000;
+    auto octets = CodecSpecificCapabilitiesLtv::SupportedOctetsPerCodecFrame();
+    octets.min = 0;
+    octets.max = 15;
+    auto frames = CodecSpecificCapabilitiesLtv::SupportedMaxCodecFramesPerSDU();
+    frames.value = 1;
+    capability.codecSpecificCapabilities = {frame_duration, octets, frames};
+    return capability;
+  }
+
   bool IsAseRequirementSatisfiedWithUnknownChannelCount(
       const std::vector<std::optional<AseDirectionRequirement>>&
           ase_requirements,
@@ -3266,6 +3297,45 @@ TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
   ASSERT_TRUE(aidl_retval.isOk());
   if (!configurations.empty()) {
     VerifyIfRequirementsSatisfied(sink_requirements, configurations);
+  }
+}
+
+TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
+       GetDsaAseConfiguration) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V4) {
+    GTEST_SKIP();
+  }
+
+  if (!IsMultidirectionalCapabilitiesEnabled()) {
+    GTEST_SKIP();
+  }
+
+  std::vector<std::optional<LeAudioDeviceCapabilities>> sink_capabilities = {
+      GetOpusRemoteSinkCapability()};
+  std::vector<std::optional<LeAudioDeviceCapabilities>> source_capabilities = {
+      GetDsaRemoteSourceCapability()};
+
+  std::vector<LeAudioAseConfigurationSetting> configurations;
+  std::vector<LeAudioConfigurationRequirement> sink_requirements = {
+      GetOpusUnicastRequirement(AudioContext::MEDIA, true /* sink */,
+                                false /* source */)};
+  ConfigurationFlags configurationFlags;
+  configurationFlags.bitmask |= ConfigurationFlags::SPATIAL_AUDIO;
+  sink_requirements[0].flags = configurationFlags;
+  auto aidl_retval = audio_provider_->getLeAudioAseConfiguration(
+      sink_capabilities, source_capabilities, sink_requirements,
+      &configurations);
+
+  ASSERT_TRUE(aidl_retval.isOk());
+  if (!configurations.empty()) {
+    VerifyIfRequirementsSatisfied(sink_requirements, configurations);
+  }
+  for (auto& configuration : configurations) {
+    ASSERT_TRUE(configuration.sourceAseConfiguration.has_value());
+    ASSERT_TRUE(configuration.flags.has_value());
+    ASSERT_TRUE(configuration.flags.value().bitmask &
+                ConfigurationFlags::SPATIAL_AUDIO);
   }
 }
 
