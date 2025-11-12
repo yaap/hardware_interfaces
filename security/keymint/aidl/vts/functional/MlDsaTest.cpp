@@ -454,6 +454,83 @@ TEST_P(MlDsaTest, SignIncremental) {
     }
 }
 
+// ML-DSA operations involve larger quantities of data than most other algorithms.  Try doing as
+// many signing operations as possible in parallel.
+//
+// The operations are allowed to fail (typically with TOO_MANY_OPERATIONS or
+// MEMORY_ALLOCATION_FAILED) but the KeyMint device should survive the process.
+TEST_P(MlDsaTest, ParallelSign) {
+    const int count = 16;
+    string message = "12345678901234567890123456789012";
+    auto params = AuthorizationSetBuilder().Digest(Digest::NONE);
+
+    for (MlDsaVariant variant : kVariants) {
+        SCOPED_TRACE(testing::Message() << variant);
+
+        // Expect to be able to create the full set of keyblobs.
+        vector<vector<uint8_t>> key_blobs;
+        for (int i = 0; i < count; i++) {
+            vector<uint8_t> key_blob;
+            vector<KeyCharacteristics> chars;
+            ErrorCode result = GenerateKey(KeyParams(variant), &key_blob, &chars);
+            ASSERT_EQ(result, ErrorCode::OK);
+            key_blobs.push_back(key_blob);
+        }
+
+        // However, `begin()`ning an operation with each of the keyblobs might not succeed.
+        vector<std::shared_ptr<IKeyMintOperation>> ops;
+        for (const auto& key_blob : key_blobs) {
+            AuthorizationSet out_params;
+            std::shared_ptr<IKeyMintOperation> op;
+            ErrorCode result = Begin(KeyPurpose::SIGN, key_blob, params, &out_params, op);
+            if (result == ErrorCode::OK) {
+                ops.push_back(op);
+            } else {
+                GTEST_LOG_(INFO) << "Begin failed with: " << result;
+            }
+        }
+        size_t op_count = ops.size();
+
+        // Even if an operation `begin()`s OK, it might not succeed on `update()`.
+        vector<std::shared_ptr<IKeyMintOperation>> updated_ops;
+        for (auto op : ops) {
+            string output;
+            ErrorCode result = Update(&op, message, &output, /* HAT= */ std::nullopt,
+                                      /* timestamp= */ std::nullopt);
+            if (result == ErrorCode::OK) {
+                EXPECT_EQ(output.size(), 0);
+                updated_ops.push_back(op);
+            } else {
+                GTEST_LOG_(INFO) << "Update failed with: " << result;
+            }
+        }
+        size_t updated_op_count = updated_ops.size();
+
+        // An operation that is OK so far might not succeed on `finish()`.
+        int success_count = 0;
+        for (auto& op : updated_ops) {
+            string sig;
+            ErrorCode result = Finish(&op, /* message= */ {}, /* signature= */ {},
+                                      /* output= */ &sig, /* HAT = */ std::nullopt,
+                                      /* timestamp= */ std::nullopt);
+            if (result == ErrorCode::OK) {
+                success_count++;
+            } else {
+                GTEST_LOG_(INFO) << "Finish failed with: " << result;
+            }
+        }
+        GTEST_LOG_(INFO) << "Successful " << variant << " ops: " << success_count << ", "
+                         << "updated ops: " << updated_op_count << ", "
+                         << "started ops: " << op_count << ", "
+                         << "on " << count << " key gens";
+
+        // Tidy up the keyblobs (and as a side effect, confirm that KeyMint is still up).
+        for (auto key_blob : key_blobs) {
+            DeleteKey(&key_blob);
+        }
+    }
+}
+
 TEST_P(MlDsaTest, SignFailWithWrongDigest) {
     for (MlDsaVariant variant : kVariants) {
         SCOPED_TRACE(testing::Message() << variant);
