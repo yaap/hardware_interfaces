@@ -25,7 +25,7 @@ package android.hardware.security.keymint;
 enum KeyFormat {
     /** X.509 certificate format, for public key export. */
     X509 = 0,
-    /** PKCS#8 format, asymmetric (EC/RSA) key pair import. */
+    /** PKCS#8 format, asymmetric (EC/RSA/ML-DSA) key pair import. */
     PKCS8 = 1,
     /**
      * Raw bytes, for symmetric key import, and for import of raw asymmetric keys for curve 25519
