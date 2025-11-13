@@ -51,7 +51,7 @@
     <configuration name="OneChanMono_16_1" codecConfiguration="LC3_16k_1" strategyConfiguration="MONO_ONE_CIS_PER_DEVICE"/>
     <configuration name="TwoChanStereo_16_1" codecConfiguration="LC3_16k_1" strategyConfiguration="STEREO_TWO_CISES_PER_DEVICE"/>
     <configuration name="OneChanStereo_16_1" codecConfiguration="LC3_16k_1" strategyConfiguration="STEREO_ONE_CIS_PER_DEVICE"/>
-    <configuration name="OneChanMono_16_2" codecConfiguration="LC3_16k_2" strategyConfiguration="MONO_ONE_CIS_PER_DEVICE"/>
+    <configuration name="OneChanMono_16_2_ABR" codecConfiguration="LC3_16k_2_ABR" strategyConfiguration="MONO_ONE_CIS_PER_DEVICE"/>
     <configuration name="TwoChanStereo_16_2" codecConfiguration="LC3_16k_2" strategyConfiguration="STEREO_TWO_CISES_PER_DEVICE"/>
     <configuration name="OneChanStereo_16_2" codecConfiguration="LC3_16k_2" strategyConfiguration="STEREO_ONE_CIS_PER_DEVICE"/>
     <configuration name="BcastStereo_16_2" codecConfiguration="LC3_16k_2" strategyConfiguration="BROADCAST_STEREO"/>
@@ -63,6 +63,7 @@
   <codecConfigurationList>
     <codecConfiguration name="LC3_16k_1" codec="LC3" samplingFrequency="16000" frameDurationUs="7500" octetsPerCodecFrame="30"/>
     <codecConfiguration name="LC3_16k_2" codec="LC3" samplingFrequency="16000" frameDurationUs="10000" octetsPerCodecFrame="40"/>
+    <codecConfiguration name="LC3_16k_2_ABR" codec="LC3" samplingFrequency="16000" frameDurationUs="10000" octetsPerCodecFrame="40" maxSdusAbr="20 10"/>
     <codecConfiguration name="APTX_ADAPTIVE_LE_48k" codec="APTX_ADAPTIVE_LE" samplingFrequency="48000" frameDurationUs="10000" octetsPerCodecFrame="816"/>
     <codecConfiguration name="APTX_ADAPTIVE_LE_96k" codec="APTX_ADAPTIVE_LE" samplingFrequency="96000" frameDurationUs="10000" octetsPerCodecFrame="816"/>
     <codecConfiguration name="APTX_ADAPTIVE_LEX_48k" codec="APTX_ADAPTIVE_LEX" samplingFrequency="48000" frameDurationUs="10000" octetsPerCodecFrame="816"/>
@@ -74,4 +75,7 @@
     <strategyConfiguration name="MONO_ONE_CIS_PER_DEVICE" audioLocation="MONO" connectedDevice="1" channelCount="1" audioChannelAllocation="4"/>
     <strategyConfiguration name="BROADCAST_STEREO" audioLocation="STEREO" connectedDevice="0" channelCount="2" audioChannelAllocation="3"/>
   </strategyConfigurationList>
+  <updateLatencySetting defaultLatency="0">
+    <updateLatencyRule latency="400" configChangeConditionFlags="WITH_TRANSPORT_LATENCY_CHANGE WITH_CIS_DIRECTIONS_CHANGE"/>
+  </updateLatencySetting>
 </leAudioOffloadSetting>

@@ -291,6 +291,10 @@ interface IBluetoothAudioProvider {
          * Configure QoS
          */
         int retransmissionNum;
+        /**
+         * bit 0 for S=8 coding, bit 1 for S=2 coding for the codec PHY
+         */
+        int codedRates;
     }
 
     /**

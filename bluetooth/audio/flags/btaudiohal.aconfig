@@ -14,3 +14,10 @@ flag {
     description: "Flag for LE Audio broadcast sink feature related Bluetooth Audio HAL changes"
     bug: "456349066"
 }
+
+flag {
+    name: "leaudio_iso_parameter_update"
+    namespace: "bluetooth"
+    description: "Flag for iso parameter update"
+    bug: "442860011"
+}

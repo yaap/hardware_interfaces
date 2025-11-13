@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,15 +33,20 @@
 
 package android.hardware.bluetooth.audio;
 @VintfStability
-parcelable ConfigurationFlags {
-  int bitmask;
-  const int NONE = 0x0000;
-  const int LOSSLESS = 0x0001;
-  const int LOW_LATENCY = 0x0002;
-  const int ALLOW_ASYMMETRIC_CONFIGURATIONS = 0x0004;
-  const int SPATIAL_AUDIO = 0x0008;
-  const int PROVIDE_ASE_METADATA = 0x0010;
-  const int MONO_MIC_CONFIGURATION = 0x0020;
-  const int ISO_PARAMETER_UPDATE = 0x0040;
-  const int ADAPTER_BIT_RATE = 0x0080;
+parcelable LeAudioUpdateLatencySetting {
+  int defaultSuggestedLatencyMs;
+  @nullable android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting.SuggestedLatencyRule[] suggestedLatencyRules;
+  @VintfStability
+  parcelable ConfigChangeConditionFlags {
+    int bitmask;
+    const int WITH_TRANSPORT_LATENCY_CHANGE = 0;
+    const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 1;
+    const int WITH_CODEC_TYPE_CHANGE = 2;
+    const int WITH_CIS_DIRECTIONS_CHANGE = 3;
+  }
+  @VintfStability
+  parcelable SuggestedLatencyRule {
+    int suggestedLatencyMs;
+    android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting.ConfigChangeConditionFlags configChangeConditionFlags;
+  }
 }

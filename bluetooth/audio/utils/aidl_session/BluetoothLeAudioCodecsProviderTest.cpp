@@ -44,6 +44,8 @@ using aidl::android::hardware::bluetooth::audio::setting::StrategyConfiguration;
 using aidl::android::hardware::bluetooth::audio::setting::
     StrategyConfigurationList;
 
+using aidl::android::hardware::bluetooth::audio::setting::UpdateLatencySetting;
+
 typedef std::tuple<std::vector<ScenarioList>, std::vector<ConfigurationList>,
                    std::vector<CodecConfigurationList>,
                    std::vector<StrategyConfigurationList>>
@@ -74,12 +76,12 @@ static const Configuration kValidConfigOneChanStereo_32_1(
 static const CodecConfiguration kValidCodecLC3_16k_1(
     std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
     std::nullopt, std::make_optional(16000), std::make_optional(7500),
-    std::make_optional(30), std::nullopt);
+    std::make_optional(30), std::nullopt, std::nullopt);
 
 static const CodecConfiguration kValidCodecLC3_32k_1(
     std::make_optional("LC3_32k_1"), std::make_optional(CodecType::LC3),
     std::nullopt, std::make_optional(32000), std::make_optional(7500),
-    std::make_optional(30), std::nullopt);
+    std::make_optional(30), std::nullopt, std::nullopt);
 
 // StrategyConfiguration
 static const StrategyConfiguration kValidStrategyStereoOneCis(
@@ -252,7 +254,7 @@ class BluetoothLeAudioCodecsProviderTest
            strategy_configuration_lists] = GetParam();
     LeAudioOffloadSetting le_audio_offload_setting(
         scenario_lists, configuration_lists, codec_configuration_lists,
-        strategy_configuration_lists);
+        strategy_configuration_lists, std::vector<UpdateLatencySetting>{});
     BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
         std::make_optional(std::move(le_audio_offload_setting)));
     auto le_audio_codec_capabilities =
@@ -266,7 +268,7 @@ class BluetoothLeAudioCodecsProviderTest
            strategy_configuration_lists] = GetParam();
     LeAudioOffloadSetting le_audio_offload_setting(
         scenario_lists, configuration_lists, codec_configuration_lists,
-        strategy_configuration_lists);
+        strategy_configuration_lists, std::vector<UpdateLatencySetting>{});
     BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
         std::make_optional(std::move(le_audio_offload_setting)));
     auto le_audio_codec_capabilities =
@@ -359,31 +361,31 @@ class UpdateCodecConfigurationsToMapTest
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::nullopt, std::make_optional(CodecType::LC3), std::nullopt,
             std::make_optional(16000), std::make_optional(7500),
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::nullopt, std::nullopt,
             std::make_optional(16000), std::make_optional(7500),
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
             std::nullopt, std::nullopt, std::make_optional(7500),
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
             std::nullopt, std::make_optional(16000), std::nullopt,
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
             std::nullopt, std::make_optional(16000), std::make_optional(7500),
-            std::nullopt, std::nullopt)}));
+            std::nullopt, std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(
         CodecConfigurationList(std::vector<CodecConfiguration>{}));

@@ -24,6 +24,8 @@
 #include "aidl_android_hardware_bluetooth_audio_setting_enums.h"
 #define LOG_TAG "BTAudioCodecsProviderAidl"
 
+#include <com_android_btaudio_hal_flags.h>
+
 #include "BluetoothLeAudioCodecsProvider.h"
 
 namespace aidl {
@@ -50,6 +52,7 @@ static const AudioLocation kStereoAudio = static_cast<AudioLocation>(
 static const AudioLocation kMonoAudio = AudioLocation::UNKNOWN;
 
 static std::vector<LeAudioCodecCapabilitiesSetting> leAudioCodecCapabilities;
+static std::optional<LeAudioUpdateLatencySetting> leAudioUpdateLatencySetting;
 
 // TODO: reuse from utils/aidl_session/BluetoothAudioType.h
 /* Vendor codec ID */
@@ -166,6 +169,17 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo() {
         codec_config.getSamplingFrequency());
     // Mapping octetsPerCodecFrame to bitdepth for easier comparison.
     transport.bitdepth.push_back(codec_config.getOctetsPerCodecFrame());
+    if (!transport.maxSdu.has_value()) {
+      transport.maxSdu.emplace();
+    }
+    transport.maxSdu->push_back(codec_config.getOctetsPerCodecFrame());
+    if (com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
+      if (codec_config.hasMaxSdusAbr()) {
+        for (auto octet : codec_config.getMaxSdusAbr()) {
+          transport.maxSdu->push_back(octet);
+        }
+      }
+    }
     transport.frameDurationUs.push_back(codec_config.getFrameDurationUs());
     if (strategy_config.hasAudioLocation()) {
       switch (strategy_config.getAudioLocation()) {
@@ -266,9 +280,8 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecCapabilities() {
   }
 
   if (!ParseFromLeAudioOffloadSettingFile()) {
-    LOG(ERROR)
-        << __func__
-        << ": input le_audio_offload_setting content need to be non empty";
+    LOG(ERROR) << __func__
+               << ": Failed to parse LE audio offload settings file.";
     return {};
   }
 
@@ -290,6 +303,47 @@ void BluetoothLeAudioCodecsProvider::ClearLeAudioCodecCapabilities() {
   strategy_configuration_map_.clear();
   session_codecs_map_.clear();
   supported_scenarios_.clear();
+}
+
+std::optional<LeAudioUpdateLatencySetting>
+BluetoothLeAudioCodecsProvider::GetLeAudioOffloadUpdateLatencySetting() {
+  if (leAudioUpdateLatencySetting) {
+    return leAudioUpdateLatencySetting;
+  }
+
+  if (!ParseFromLeAudioOffloadSettingFile()) {
+    LOG(ERROR) << __func__
+               << ": Failed to parse LE audio offload settings file.";
+    return {};
+  }
+
+  if (!le_audio_offload_setting_->hasUpdateLatencySetting()) {
+    return {};
+  }
+
+  auto& update_latency_setting =
+      le_audio_offload_setting_->getUpdateLatencySetting().at(0);
+  if (!update_latency_setting.hasDefaultLatency()) {
+    return {};
+  }
+  leAudioUpdateLatencySetting.emplace();
+  leAudioUpdateLatencySetting->defaultSuggestedLatencyMs =
+      update_latency_setting.getDefaultLatency();
+  leAudioUpdateLatencySetting->suggestedLatencyRules.emplace();
+
+  for (const auto& update_latency_rule :
+       update_latency_setting.getUpdateLatencyRule()) {
+    if (!update_latency_rule.hasLatency() ||
+        !update_latency_rule.hasConfigChangeConditionFlags()) {
+      continue;
+    }
+    LeAudioUpdateLatencySetting::SuggestedLatencyRule latency_rule;
+    latency_rule.suggestedLatencyMs = update_latency_rule.getLatency();
+    latency_rule.configChangeConditionFlags = ComposeConfigChangeConditionFlags(
+        update_latency_rule.getConfigChangeConditionFlags());
+    leAudioUpdateLatencySetting->suggestedLatencyRules->push_back(latency_rule);
+  }
+  return leAudioUpdateLatencySetting;
 }
 
 std::vector<setting::Scenario> BluetoothLeAudioCodecsProvider::GetScenarios() {
@@ -439,6 +493,41 @@ BluetoothLeAudioCodecsProvider::ComposeLeAudioCodecCapabilities(
          .broadcastCapability = broadcast_capability});
   }
   return le_audio_codec_capabilities;
+}
+
+LeAudioUpdateLatencySetting::ConfigChangeConditionFlags
+BluetoothLeAudioCodecsProvider::ComposeConfigChangeConditionFlags(
+    const std::vector<setting::ConfigChangeConditionFlagMask>& conditionFlags) {
+  LeAudioUpdateLatencySetting::ConfigChangeConditionFlags result;
+  int32_t bitmask = 0;
+  for (auto flag : conditionFlags) {
+    bitmask |= getConditionFlagAidlFormat(flag);
+  }
+  result.bitmask = bitmask;
+  return result;
+}
+
+int32_t BluetoothLeAudioCodecsProvider::getConditionFlagAidlFormat(
+    const setting::ConfigChangeConditionFlagMask& flag) {
+  switch (flag) {
+    case setting::ConfigChangeConditionFlagMask::WITH_TRANSPORT_LATENCY_CHANGE:
+      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+                 WITH_TRANSPORT_LATENCY_CHANGE;
+    case setting::ConfigChangeConditionFlagMask::
+        WITHOUT_TRANSPORT_LATENCY_CHANGE:
+      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+                 WITHOUT_TRANSPORT_LATENCY_CHANGE;
+    case setting::ConfigChangeConditionFlagMask::WITH_CODEC_TYPE_CHANGE:
+      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+                 WITH_CODEC_TYPE_CHANGE;
+    case setting::ConfigChangeConditionFlagMask::WITH_CIS_DIRECTIONS_CHANGE:
+      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+                 WITH_CIS_DIRECTIONS_CHANGE;
+    default:
+      LOG(ERROR) << __func__
+                 << "Unknown ConfigChangeConditionFlag from setting";
+  }
+  return 0;
 }
 
 UnicastCapability BluetoothLeAudioCodecsProvider::GetUnicastCapability(
