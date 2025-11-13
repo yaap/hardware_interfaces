@@ -254,6 +254,16 @@ impl IMediaQuality for MediaQualityService {
         Ok(())
     }
 
+    fn setMutedColor(&self, color: i32) -> binder::Result<()> {
+        println!("setMutedColor called with color: {}", color);
+        Ok(())
+    }
+
+    fn setColorMuteEnabled(&self, enable: bool) -> binder::Result<()> {
+        println!("setColorMuteEnabled called with enable: {}", enable);
+        Ok(())
+    }
+
     fn getSoundProfileListener(&self) -> binder::Result<binder::Strong<dyn ISoundProfileChangedListener>> {
         println!("getSoundProfileListener");
         let listener = self.sound_profile_changed_listener.lock().unwrap();
