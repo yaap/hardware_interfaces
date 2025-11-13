@@ -1677,6 +1677,10 @@ TEST_P(RadioNetworkTest, getDataRegistrationState) {
     } else if (rat == RadioTechnology::NR) {
         ASSERT_TRUE(info.getTag() == AccessTechnologySpecificInfo::ngranNrVopsInfo);
     }
+
+    // As this test won't be run with non-terrestrial network, the expected value is false.
+    ALOGI("isNonTerrestrialNetwork = %d", radioRsp_network->dataRegResp.isNonTerrestrialNetwork);
+    ASSERT_TRUE(radioRsp_network->dataRegResp.isNonTerrestrialNetwork == false);
 }
 
 /*
