@@ -458,13 +458,13 @@ BluetoothAudioCodecs::GetLeAudioAseConfigurationSettings() {
       GetLeAudioAseConfigurationSettings();
 }
 
-IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting
+std::optional<IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting>
 BluetoothAudioCodecs::GetAdvancedSetting(const SessionType& session_type) {
   if (session_type !=
           SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH &&
       session_type !=
           SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
-    return {};
+    return std::nullopt;
   }
 
   IBluetoothAudioProviderFactory::ProviderInfo::LeAudio le_audio_setting;

@@ -57,7 +57,8 @@ class BluetoothAudioCodecs {
   static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
   GetLeAudioAseConfigurationSettings();
 
-  static IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting
+  static std::optional<
+      IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting>
   GetAdvancedSetting(const SessionType& session_type);
 
  private:

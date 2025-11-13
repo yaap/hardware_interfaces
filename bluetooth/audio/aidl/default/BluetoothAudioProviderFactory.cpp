@@ -195,8 +195,10 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
     for (const auto& codec_info : db_codec_info) {
       LOG(INFO) << __func__ << " - Codec Info: " << codec_info.toString();
     }
-    LOG(INFO) << __func__
-              << " - Advanced Setting: " << advanced_setting.toString();
+    if (advanced_setting) {
+      LOG(INFO) << __func__
+                << " - Advanced Setting: " << advanced_setting->toString();
+    }
     return ndk::ScopedAStatus::ok();
   }
 
