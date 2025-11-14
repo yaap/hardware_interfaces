@@ -61,6 +61,9 @@ constexpr uint8_t kCommandCompleteReadLocalCapabilityValueLength = 4;
 constexpr uint8_t kHciVscEnableInlinePctParamLength = 0x02;
 constexpr uint8_t kHciVscEnableInlinePctSubOpCode = 0x02;
 
+constexpr uint8_t kHciVscSetEventMaskForConnectionSubOpCode = 0x03;
+constexpr uint8_t kHciVscSetEventMaskForConnectionParamLength = 0x07;
+
 constexpr uint8_t kHciVscEnableMode0ChannelMapSubOpCode = 0x04;
 constexpr uint8_t kHciVscEnableMode0ChannelMapParamLength = 0x04;
 
@@ -73,6 +76,35 @@ constexpr uint8_t kFakeRasDataLen = 0x18;
 constexpr uint8_t kGattNotification = 0x1b;
 
 constexpr uint16_t kInitialProcedureCounter = 0xffff;
+
+//   Although we support new data format, we still want to backport the old data
+//   format. Otherwise some builds on the phone might fail to run CS.
+//
+//   Example of old format: 01010001
+//    01  ,         01         ,     00     ,           01
+//    Type, Enable 1-sided PCT , Event Mask , Enable mode-0 channel map
+//
+//   When got the event mask (0x00) => Disable all event report
+constexpr uint8_t kOldLengthDataFormat = 4;
+constexpr uint8_t kOldIdxRangingSettingCommandType = 0;
+constexpr uint8_t kOldIdxRangingSettingCommandInlinePct = 1;
+constexpr uint8_t kOldIdxRangingSettingCommandCSSubeventReport = 2;
+constexpr uint8_t kOldIdxRangingSettingCommandMode0ChannelMap = 3;
+
+//   Example of new format: 01010000000001
+//     01 ,         01         , 00 00 00 00 ,           01
+//    Type, Enable 1-sided PCT ,  Event Mask , Enable mode-0 channel map
+//
+//   The event mask (0x00000000) implies
+//      Bit 0: LE CS Subevent Result event
+//      Bit 1: LE CS Subevent Result Continue event
+//      Bit 2: LE CS Procedure Enable Complete event
+//      Bit 3 ~ 31: Reserved for future use
+constexpr uint8_t kLengthDataFormat = 7;
+constexpr uint8_t kLenRangingSettingCommandType = 1;
+constexpr uint8_t kLenRangingSettingCommandInlinePct = 1;
+constexpr uint8_t kLenRangingSettingCommandEventMask = 4;
+constexpr uint8_t kLenRangingSettingCommandMode0ChannelMap = 1;
 
 enum class CsFeature : uint8_t {
   kInlinePct = 0x01,
@@ -91,6 +123,9 @@ bool IsUuidMatched(
 ::bluetooth_hal::hci::HalPacket BuildReadLocalCapabilityCommand();
 
 ::bluetooth_hal::hci::HalPacket BuildEnableInlinePctCommand(uint8_t enable);
+
+::bluetooth_hal::hci::HalPacket BuildSetEventMaskForConnectionCommand(
+    uint16_t connection_handle, uint32_t event_mask);
 
 ::bluetooth_hal::hci::HalPacket BuildEnableMode0ChannelMapCommand(
     uint16_t connection_handle, uint8_t enable);

@@ -135,6 +135,31 @@ HalPacket BuildEnableMode0ChannelMapCommand(uint16_t connection_handle,
   return command;
 }
 
+HalPacket BuildSetEventMaskForConnectionCommand(uint16_t connection_handle,
+                                                uint32_t event_mask) {
+  /* Bit masks format:
+      Bit 0: LE CS Subevent Result event
+      Bit 1: LE CS Subevent Result Continue event
+      Bit 2: LE CS Procedure Enable Complete event
+      Bit 3 ~ 31: Reserved for future use
+  */
+  HalPacket command;
+  command.resize(1 + 3 + kHciVscSetEventMaskForConnectionParamLength);
+  command[0] = static_cast<uint8_t>(HciPacketType::kCommand);
+  command[1] = kHciVscSpecialRangingSettingOpcode & 0xff;
+  command[2] = (kHciVscSpecialRangingSettingOpcode >> 8u) & 0xff;
+  command[3] = kHciVscSetEventMaskForConnectionParamLength;
+  command[4] = kHciVscSetEventMaskForConnectionSubOpCode;
+  command[5] = connection_handle & 0xff;
+  command[6] = (connection_handle >> 8u) & 0xff;
+  command[7] = event_mask & 0xff;
+  command[8] = (event_mask >> 8u) & 0xff;
+  command[9] = (event_mask >> 16u) & 0xff;
+  command[10] = (event_mask >> 24u) & 0xff;
+
+  return command;
+}
+
 HalPacket BuildRasNotification(
     const BluetoothChannelSoundingParameters& parameters,
     int procedure_counter) {

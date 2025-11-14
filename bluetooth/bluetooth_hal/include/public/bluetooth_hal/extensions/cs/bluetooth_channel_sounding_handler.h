@@ -86,6 +86,15 @@ class BluetoothChannelSoundingHandler
       uint16_t connection_handle);
 
  private:
+  void HandleVendorSpecificReply(
+      uint32_t connection_handle,
+      const std::optional<std::vector<std::optional<
+          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+          vendor_specific_data,
+      const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                IBluetoothChannelSoundingSessionCallback>
+          callback);
+
   void HandleCsSubevent(const ::bluetooth_hal::hci::HalPacket& packet);
   void HandleCsProcedureEnableCompleteEvent(
       const ::bluetooth_hal::hci::HalPacket& packet);
