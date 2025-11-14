@@ -119,22 +119,6 @@ HalPacket BuildEnableInlinePctCommand(uint8_t enable) {
   return command;
 }
 
-HalPacket BuildEnableCsSubeventReportCommand(uint16_t connection_handle,
-                                             uint8_t enable) {
-  HalPacket command;
-  command.resize(1 + 3 + kHciVscEnableCsSubeventReportParamLength);
-  command[0] = static_cast<uint8_t>(HciPacketType::kCommand);
-  command[1] = kHciVscSpecialRangingSettingOpcode & 0xff;
-  command[2] = (kHciVscSpecialRangingSettingOpcode >> 8u) & 0xff;
-  command[3] = kHciVscEnableCsSubeventReportParamLength;
-  command[4] = kHciVscEnableCsSubeventReportSubOpCode;
-  command[5] = connection_handle & 0xff;
-  command[6] = (connection_handle >> 8u) & 0xff;
-  command[7] = enable;
-
-  return command;
-}
-
 HalPacket BuildEnableMode0ChannelMapCommand(uint16_t connection_handle,
                                             uint8_t enable) {
   HalPacket command;

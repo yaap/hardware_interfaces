@@ -61,9 +61,6 @@ constexpr uint8_t kCommandCompleteReadLocalCapabilityValueLength = 4;
 constexpr uint8_t kHciVscEnableInlinePctParamLength = 0x02;
 constexpr uint8_t kHciVscEnableInlinePctSubOpCode = 0x02;
 
-constexpr uint8_t kHciVscEnableCsSubeventReportParamLength = 0x04;
-constexpr uint8_t kHciVscEnableCsSubeventReportSubOpCode = 0x03;
-
 constexpr uint8_t kHciVscEnableMode0ChannelMapSubOpCode = 0x04;
 constexpr uint8_t kHciVscEnableMode0ChannelMapParamLength = 0x04;
 
@@ -94,9 +91,6 @@ bool IsUuidMatched(
 ::bluetooth_hal::hci::HalPacket BuildReadLocalCapabilityCommand();
 
 ::bluetooth_hal::hci::HalPacket BuildEnableInlinePctCommand(uint8_t enable);
-
-::bluetooth_hal::hci::HalPacket BuildEnableCsSubeventReportCommand(
-    uint16_t connection_handle, uint8_t enable);
 
 ::bluetooth_hal::hci::HalPacket BuildEnableMode0ChannelMapCommand(
     uint16_t connection_handle, uint8_t enable);
