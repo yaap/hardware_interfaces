@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -240,6 +241,8 @@ void BluetoothChannelSoundingHandler::OnCommandCallback(
       return;
     }
 
+    std::lock_guard<std::mutex> lock(local_cap_mtx_);
+
     local_capabilities_.clear();
     for (int i = 0; i < kCommandCompleteReadLocalCapabilityValueLength; i++) {
       local_capabilities_.push_back(
@@ -322,6 +325,11 @@ BluetoothChannelSoundingHandler::GetTracker(uint16_t connection_handle) {
   }
   return it->second;
 }
+
+void BluetoothChannelSoundingHandler::OnBluetoothDisabled() {
+  std::lock_guard<std::mutex> lock(local_cap_mtx_);
+  local_capabilities_.clear();
+};
 
 }  // namespace cs
 }  // namespace extensions

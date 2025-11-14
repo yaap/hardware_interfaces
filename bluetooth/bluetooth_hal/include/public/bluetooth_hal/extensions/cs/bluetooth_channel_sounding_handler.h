@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -74,7 +75,7 @@ class BluetoothChannelSoundingHandler
   void OnBluetoothChipReady() override {};
   void OnBluetoothChipClosed() override {};
   void OnBluetoothEnabled() override {};
-  void OnBluetoothDisabled() override {};
+  void OnBluetoothDisabled() override;
   void OnCommandCallback(
       const ::bluetooth_hal::hci::HalPacket& packet) override;
   void OnMonitorPacketCallback(
@@ -96,6 +97,8 @@ class BluetoothChannelSoundingHandler
   std::vector<uint8_t> local_capabilities_;
 
   std::unordered_map<uint16_t, SessionTracker> session_trackers_;
+
+  std::mutex local_cap_mtx_;
 };
 
 }  // namespace cs
