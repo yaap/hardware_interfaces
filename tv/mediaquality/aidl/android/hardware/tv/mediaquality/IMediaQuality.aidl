@@ -219,4 +219,19 @@ interface IMediaQuality {
      * Gets vendor capability information of the given parameters.
      */
     void getVendorParamCaps(in VendorParameterIdentifier[] names, out VendorParamCapability[] caps);
+
+    /**
+     * Sets the mute color for the device.
+     *
+     * @param color The color is specified as a 32-bit ARGB integer.
+     *              For example, 0xFFFF0000 for opaque red.
+     */
+    void setMutedColor(int color);
+
+    /**
+     * Enables or disables the color mute feature.
+     *
+     * @param enable True to enable, false to disable.
+     */
+    void setColorMuteEnabled(boolean enable);
 }

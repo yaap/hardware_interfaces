@@ -613,6 +613,20 @@ TEST_P(MediaQualityAidl, TestSendDefaultPictureParameters) {
     ASSERT_OK(mediaquality->sendDefaultPictureParameters(pictureParameters));
 }
 
+TEST_P(MediaQualityAidl, TestSetMutedColor) {
+    int32_t blue = 0xFF0000FF;
+    auto result = mediaquality->setMutedColor(blue);
+    ASSERT_TRUE(result.isOk());
+}
+
+TEST_P(MediaQualityAidl, TestSetColorMuteEnabled) {
+    auto result_enable = mediaquality->setColorMuteEnabled(true);
+    ASSERT_TRUE(result_enable.isOk());
+
+    auto result_disable = mediaquality->setColorMuteEnabled(false);
+    ASSERT_TRUE(result_disable.isOk());
+}
+
 TEST_P(MediaQualityAidl, TestSetSoundProfileAdjustmentListener) {
     std::shared_ptr<SoundProfileAdjustmentListener> listener =
             ndk::SharedRefBase::make<SoundProfileAdjustmentListener>(
