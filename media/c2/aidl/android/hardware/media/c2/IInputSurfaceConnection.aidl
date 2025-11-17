@@ -38,4 +38,18 @@ interface IInputSurfaceConnection {
      *   - `Status::BAD_STATE` - The component is not in running state.
      */
     void signalEndOfStream();
+
+    /**
+     * Query whether this object notifies InputBufferDone to the client or not.
+     *
+     * After an input buffer is done, framework callback InputSurfaceWrapper::onInputBufferDone()
+     * could be notified. This interface queries whether the callback is notified to the client.
+     *
+     * If this interface is not supported due to versioning, the client should assume that
+     * InputBufferDone is notified to the client.
+     *
+     * @return {@code true} if IInputSurfaceConnection notifies InputBufferDone to the client,
+     *         {@code false} otherwise.
+     */
+    boolean notifiesInputBufferDoneToClient();
 }
