@@ -405,6 +405,17 @@ bool isOpusHiResCodec(const LeAudioAseConfiguration& ase) {
   return false;
 }
 
+bool isDsaHeadTrackingCodec(const LeAudioAseConfiguration& ase) {
+  if (ase.codecId.has_value() &&
+      ase.codecId.value().getTag() == CodecId::vendor) {
+    auto cid = ase.codecId.value().get<CodecId::vendor>();
+    if (cid == dsa_headtracker_codec) {
+      return true;
+    }
+  }
+  return false;
+}
+
 LeAudioDataPathConfiguration populateDatapath(
     const CodecLocation& location, const LeAudioAseConfiguration& ase) {
   LeAudioDataPathConfiguration path;
@@ -416,6 +427,13 @@ LeAudioDataPathConfiguration populateDatapath(
     path.dataPathId = kIsoDataPathHciLinkFeedback;
     return path;
   }
+
+  // DSA 2.0 DSA_SW data path logic
+  if (isDsaHeadTrackingCodec(ase)) {
+    path.dataPathId = kIsoDataPathHci;
+    return path;
+  }
+
   // Translate location to data path id
   switch (location) {
     case CodecLocation::ADSP:
@@ -596,6 +614,19 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
             // Already detect asymmetrical config.
             break;
           }
+        }
+      }
+    }
+
+    // Check all the source configuration for DSA 2.0 headtracking codec
+    // and set the SPATIAL_AUDIO flag
+    for (auto& aseDirectionConfiguration : sourceAseConfiguration) {
+      if (aseDirectionConfiguration.has_value()) {
+        if (isDsaHeadTrackingCodec(
+                aseDirectionConfiguration.value().aseConfiguration)) {
+          LOG(INFO) << "Found DSA 2.0 config " << flat_cfg->name()->c_str();
+          configurationFlags.bitmask |= ConfigurationFlags::SPATIAL_AUDIO;
+          break;
         }
       }
     }

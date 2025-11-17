@@ -28,6 +28,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
+#include "bluetooth_hal/hci_router_client.h"
 #include "bluetooth_hal/util/android_base_wrapper.h"
 
 namespace bluetooth_hal {
@@ -41,6 +42,7 @@ using ::bluetooth_hal::hci::EventResultCode;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciConstants;
 using ::bluetooth_hal::hci::HciPacketType;
+using ::bluetooth_hal::hci::HciRouterClient;
 using ::bluetooth_hal::hci::MonitorMode;
 using ::bluetooth_hal::util::AndroidBaseWrapper;
 
@@ -58,8 +60,8 @@ constexpr uint16_t kWaitTimeDefault = 0x5000;               // 20000 ms
 constexpr uint16_t kPrecomputedKeyRotatedInterval = 0x400;  // 1024 s
 
 BluetoothFinderHandler& BluetoothFinderHandler::GetHandler() {
-  static BluetoothFinderHandler handler;
-  return handler;
+  static auto handler = HciRouterClient::Create<BluetoothFinderHandler>();
+  return *handler;
 }
 
 bool BluetoothFinderHandler::IsEnabled() { return is_pof_enabled_; }

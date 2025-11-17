@@ -64,7 +64,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     // Vendor-specific class (0xFF), subclass (0xFF), and protocol (0x00)
     private static final int CTRL_INTERFACE_CLASS = 0xFF;
     private static final int CTRL_INTERFACE_SUBCLASS = 0xFF;
-    private static final int CTRL_INTERFACE_PROTOCOL = 0x00;
+    private static final int CTRL_INTERFACE_PROTOCOL = 0xFF;
 
     private static boolean mHasService;
     private static IUsbNative mUsb;

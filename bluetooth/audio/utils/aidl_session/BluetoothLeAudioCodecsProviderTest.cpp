@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <com_android_btaudio_hal_flags.h>
 #include <gtest/gtest.h>
 
 #include <optional>
@@ -43,6 +44,8 @@ using aidl::android::hardware::bluetooth::audio::setting::ScenarioList;
 using aidl::android::hardware::bluetooth::audio::setting::StrategyConfiguration;
 using aidl::android::hardware::bluetooth::audio::setting::
     StrategyConfigurationList;
+
+using aidl::android::hardware::bluetooth::audio::setting::UpdateLatencySetting;
 
 typedef std::tuple<std::vector<ScenarioList>, std::vector<ConfigurationList>,
                    std::vector<CodecConfigurationList>,
@@ -74,12 +77,12 @@ static const Configuration kValidConfigOneChanStereo_32_1(
 static const CodecConfiguration kValidCodecLC3_16k_1(
     std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
     std::nullopt, std::make_optional(16000), std::make_optional(7500),
-    std::make_optional(30), std::nullopt);
+    std::make_optional(30), std::nullopt, std::nullopt);
 
 static const CodecConfiguration kValidCodecLC3_32k_1(
     std::make_optional("LC3_32k_1"), std::make_optional(CodecType::LC3),
     std::nullopt, std::make_optional(32000), std::make_optional(7500),
-    std::make_optional(30), std::nullopt);
+    std::make_optional(30), std::nullopt, std::nullopt);
 
 // StrategyConfiguration
 static const StrategyConfiguration kValidStrategyStereoOneCis(
@@ -252,7 +255,7 @@ class BluetoothLeAudioCodecsProviderTest
            strategy_configuration_lists] = GetParam();
     LeAudioOffloadSetting le_audio_offload_setting(
         scenario_lists, configuration_lists, codec_configuration_lists,
-        strategy_configuration_lists);
+        strategy_configuration_lists, std::vector<UpdateLatencySetting>{});
     BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
         std::make_optional(std::move(le_audio_offload_setting)));
     auto le_audio_codec_capabilities =
@@ -266,7 +269,7 @@ class BluetoothLeAudioCodecsProviderTest
            strategy_configuration_lists] = GetParam();
     LeAudioOffloadSetting le_audio_offload_setting(
         scenario_lists, configuration_lists, codec_configuration_lists,
-        strategy_configuration_lists);
+        strategy_configuration_lists, std::vector<UpdateLatencySetting>{});
     BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
         std::make_optional(std::move(le_audio_offload_setting)));
     auto le_audio_codec_capabilities =
@@ -359,31 +362,31 @@ class UpdateCodecConfigurationsToMapTest
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::nullopt, std::make_optional(CodecType::LC3), std::nullopt,
             std::make_optional(16000), std::make_optional(7500),
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::nullopt, std::nullopt,
             std::make_optional(16000), std::make_optional(7500),
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
             std::nullopt, std::nullopt, std::make_optional(7500),
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
             std::nullopt, std::make_optional(16000), std::nullopt,
-            std::make_optional(30), std::nullopt)}));
+            std::make_optional(30), std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(CodecConfigurationList(
         std::vector<CodecConfiguration>{CodecConfiguration(
             std::make_optional("LC3_16k_1"), std::make_optional(CodecType::LC3),
             std::nullopt, std::make_optional(16000), std::make_optional(7500),
-            std::nullopt, std::nullopt)}));
+            std::nullopt, std::nullopt, std::nullopt)}));
 
     invalid_codec_configuration_test_cases.push_back(
         CodecConfigurationList(std::vector<CodecConfiguration>{}));
@@ -463,13 +466,13 @@ TEST_P(ComposeLeAudioAymmetricCodecInfoTest, AsymmetricCodecInfoNotEmpty) {
   ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
   auto& transport =
       codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
-  ASSERT_EQ(transport.flags, std::make_optional(required_flag));
+  ASSERT_TRUE((transport.flags->bitmask & required_flag.bitmask) != 0);
 
   codec_info = le_audio_codec_info_map
       [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH][0];
   ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
   transport = codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
-  ASSERT_EQ(transport.flags, std::make_optional(required_flag));
+  ASSERT_TRUE((transport.flags->bitmask & required_flag.bitmask) != 0);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GetScenariosTest);
@@ -522,6 +525,134 @@ INSTANTIATE_TEST_SUITE_P(
         kValidAsymmetricScenarioList, kValidAsymmetricConfigurationList,
         kValidAsymmetricCodecConfigurationList,
         kValidStrategyConfigurationList)));
+
+class GetLeAudioOffloadUpdateLatencySettingTest
+    : public BluetoothLeAudioCodecsProviderTest {
+ public:
+  static aidl::android::hardware::bluetooth::audio::setting::
+      LeAudioOffloadSetting
+      CreateLeAudioOffloadSetting() {
+    // Creates a mock LeAudioOffloadSetting with a specific UpdateLatencyRule
+    // to test latency update settings.
+    std::vector<aidl::android::hardware::bluetooth::audio::setting::
+                    ConfigChangeConditionFlagMask>
+        flags;
+    flags.push_back(
+        aidl::android::hardware::bluetooth::audio::setting::
+            ConfigChangeConditionFlagMask::WITH_TRANSPORT_LATENCY_CHANGE);
+    flags.push_back(
+        aidl::android::hardware::bluetooth::audio::setting::
+            ConfigChangeConditionFlagMask::WITH_CIS_DIRECTIONS_CHANGE);
+    aidl::android::hardware::bluetooth::audio::setting::UpdateLatencyRule rule(
+        400, flags);
+
+    // Create a mock UpdateLatencySetting
+    std::vector<
+        aidl::android::hardware::bluetooth::audio::setting::UpdateLatencyRule>
+        update_latency_rules;
+    update_latency_rules.push_back(rule);
+    UpdateLatencySetting update_latency_setting(update_latency_rules,
+                                                std::make_optional(0));
+
+    // Create a mock LeAudioOffloadSetting
+    LeAudioOffloadSetting le_audio_offload_setting(
+        kValidScenarioList, kValidConfigurationList,
+        kValidCodecConfigurationList, kValidStrategyConfigurationList,
+        std::vector<UpdateLatencySetting>{update_latency_setting});
+    return le_audio_offload_setting;
+  }
+};
+
+TEST_F(GetLeAudioOffloadUpdateLatencySettingTest,
+       GetLeAudioOffloadUpdateLatencySetting) {
+  Initialize();
+  auto le_audio_offload_setting = CreateLeAudioOffloadSetting();
+  BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
+      std::make_optional(std::move(le_audio_offload_setting)));
+  auto update_latency_setting =
+      BluetoothLeAudioCodecsProvider::GetLeAudioOffloadUpdateLatencySetting();
+  ASSERT_TRUE(update_latency_setting.has_value());
+  ASSERT_EQ(update_latency_setting->defaultSuggestedLatencyMs, 0);
+  ASSERT_TRUE(update_latency_setting->suggestedLatencyRules.has_value());
+  ASSERT_EQ(update_latency_setting->suggestedLatencyRules->size(), 1);
+  auto& rule = update_latency_setting->suggestedLatencyRules->at(0);
+  ASSERT_EQ(rule->suggestedLatencyMs, 400);
+  int32_t expected_bitmask =
+      1 << aidl::android::hardware::bluetooth::audio::
+              LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+                  WITH_TRANSPORT_LATENCY_CHANGE |
+      1 << aidl::android::hardware::bluetooth::audio::
+              LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+                  WITH_CIS_DIRECTIONS_CHANGE;
+  ASSERT_EQ(rule->configChangeConditionFlags.bitmask, expected_bitmask);
+}
+
+class ComposeLeAudioCodecInfoWithAbrTest
+    : public BluetoothLeAudioCodecsProviderTest {
+ public:
+  static aidl::android::hardware::bluetooth::audio::setting::
+      LeAudioOffloadSetting
+      CreateLeAudioOffloadSetting() {
+    // Creates a mock LeAudioOffloadSetting with maxSdusAbr to test ABR
+    // functionality.
+    std::vector<int64_t> maxSdusAbr;
+    maxSdusAbr.push_back(20);
+    maxSdusAbr.push_back(10);
+    const CodecConfiguration kValidCodecLC3_16k_2_ABR(
+        std::make_optional("LC3_16k_2_ABR"), std::make_optional(CodecType::LC3),
+        std::nullopt, std::make_optional(16000), std::make_optional(10000),
+        std::make_optional(40), std::make_optional(maxSdusAbr), std::nullopt);
+    const std::vector<CodecConfigurationList> kValidCodecConfigurationListAbr =
+        {CodecConfigurationList(
+            std::vector<CodecConfiguration>{kValidCodecLC3_16k_2_ABR})};
+
+    // Create a mock Configuration
+    const Configuration kValidConfigOneChanMono_16_2_ABR(
+        std::make_optional("OneChanMono_16_2_ABR"),
+        std::make_optional("LC3_16k_2_ABR"),
+        std::make_optional("MONO_ONE_CIS_PER_DEVICE"));
+    const std::vector<ConfigurationList> kValidConfigurationListAbr = {
+        ConfigurationList(
+            std::vector<Configuration>{kValidConfigOneChanMono_16_2_ABR})};
+
+    // Create a mock Scenario
+    const Scenario kValidScenarioAbr(std::make_optional("OneChanMono_16_2_ABR"),
+                                     std::make_optional("invalid"),
+                                     std::nullopt);
+    const std::vector<ScenarioList> kValidScenarioListAbr = {
+        ScenarioList(std::vector<Scenario>{kValidScenarioAbr})};
+
+    // Create a mock LeAudioOffloadSetting
+    LeAudioOffloadSetting le_audio_offload_setting(
+        kValidScenarioListAbr, kValidConfigurationListAbr,
+        kValidCodecConfigurationListAbr, kValidStrategyConfigurationList,
+        std::vector<UpdateLatencySetting>{});
+    return le_audio_offload_setting;
+  }
+};
+
+TEST_F(ComposeLeAudioCodecInfoWithAbrTest, CodecInfoWithAbr) {
+  if (!com::android::btaudio::hal::flags::provider_
+           ->leaudio_iso_parameter_update())
+    return;
+  Initialize();
+  auto le_audio_offload_setting = CreateLeAudioOffloadSetting();
+  BluetoothLeAudioCodecsProvider::SetLeAudioOffloadSettingForTesting(
+      std::make_optional(std::move(le_audio_offload_setting)));
+  auto le_audio_codec_info_map =
+      BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo();
+  ASSERT_TRUE(!le_audio_codec_info_map.empty());
+  auto codec_info = le_audio_codec_info_map
+      [SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH][0];
+  ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::Tag::leAudio);
+  auto& transport =
+      codec_info.transport.get<CodecInfo::Transport::Tag::leAudio>();
+  ASSERT_TRUE(transport.maxSdu.has_value());
+  ASSERT_EQ(transport.maxSdu->size(), 3);
+  EXPECT_EQ(transport.maxSdu->at(0), 40);
+  EXPECT_EQ(transport.maxSdu->at(1), 20);
+  EXPECT_EQ(transport.maxSdu->at(2), 10);
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

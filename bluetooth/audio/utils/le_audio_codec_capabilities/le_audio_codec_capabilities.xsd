@@ -6,6 +6,7 @@
       <xs:element ref="configurationList" minOccurs="1" maxOccurs="1"/>
       <xs:element ref="codecConfigurationList" minOccurs="1" maxOccurs="1"/>
       <xs:element ref="strategyConfigurationList" minOccurs="1" maxOccurs="1"/>
+      <xs:element ref="updateLatencySetting" minOccurs="0" maxOccurs="1"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="scenarioList">
@@ -26,6 +27,12 @@
   <xs:element name="strategyConfigurationList">
     <xs:complexType>
       <xs:element ref="strategyConfiguration" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="updateLatencySetting">
+    <xs:complexType>
+      <xs:attribute name="defaultLatency" type="xs:nonNegativeInteger"/>
+      <xs:element ref="updateLatencyRule" minOccurs="0" maxOccurs="unbounded"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="scenario">
@@ -50,6 +57,7 @@
       <xs:attribute name="samplingFrequency" type="xs:int"/>
       <xs:attribute name="frameDurationUs" type="xs:int"/>
       <xs:attribute name="octetsPerCodecFrame" type="xs:int"/>
+      <xs:attribute name="maxSdusAbr" type="maxSdusAbr" use="optional"/>
       <xs:attribute name="codecFrameBlocksPerSdu" type="xs:unsignedByte"/>
     </xs:complexType>
   </xs:element>
@@ -64,6 +72,12 @@
       <xs:attribute name="audioChannelAllocation" type="xs:int"/>
     </xs:complexType>
   </xs:element>
+  <xs:element name="updateLatencyRule">
+    <xs:complexType>
+      <xs:attribute name="latency" type="xs:int" use="required"/>
+      <xs:attribute name="configChangeConditionFlags" type="configChangeConditionFlags" use="required"/>
+    </xs:complexType>
+  </xs:element>
   <xs:simpleType name="audioLocation">
     <xs:restriction base="xs:string">
       <xs:enumeration value="MONO"/>
@@ -76,6 +90,20 @@
       <xs:enumeration value="APTX_ADAPTIVE_LE"/>
       <xs:enumeration value="APTX_ADAPTIVE_LEX"/>
       <xs:enumeration value="OPUS"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="maxSdusAbr">
+      <xs:list itemType="xs:nonNegativeInteger" />
+  </xs:simpleType>
+  <xs:simpleType name="configChangeConditionFlags">
+      <xs:list itemType="configChangeConditionFlagMask" />
+  </xs:simpleType>
+  <xs:simpleType name="configChangeConditionFlagMask">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="WITH_TRANSPORT_LATENCY_CHANGE"/>
+      <xs:enumeration value="WITHOUT_TRANSPORT_LATENCY_CHANGE"/>
+      <xs:enumeration value="WITH_CODEC_TYPE_CHANGE"/>
+      <xs:enumeration value="WITH_CIS_DIRECTIONS_CHANGE"/>
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>

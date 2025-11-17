@@ -42,4 +42,6 @@ parcelable ConfigurationFlags {
   const int SPATIAL_AUDIO = 0x0008;
   const int PROVIDE_ASE_METADATA = 0x0010;
   const int MONO_MIC_CONFIGURATION = 0x0020;
+  const int ISO_PARAMETER_UPDATE = 0x0040;
+  const int ADAPTER_BIT_RATE = 0x0080;
 }

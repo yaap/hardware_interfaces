@@ -42,12 +42,15 @@ parcelable HwLight {
     LightType type;
 
     /**
-     * Maximum frequency supported for updates.
-     *
+     * Minimum amount of time between light updates supported by this light.
+     * <p>
+     * This corresponds to the inverse of the maximum frames per second supported by the light for
+     * animation purposes.
+     * <p>
      * A value of 0 indicates UNKNOWN and hints clients of the API that fast transitions are not
      * supported by the HAL.
-     *
-     * LightEffects MUST never specify an FPS higher than the maximum update frequency.
+     * <p>
+     * LightEffects MUST never specify an update interval lower than this value.
      */
-    float maxUpdateHz;
+    int minUpdatePeriodMillis;
 }

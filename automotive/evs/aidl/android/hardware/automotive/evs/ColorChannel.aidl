@@ -18,15 +18,24 @@ package android.hardware.automotive.evs;
 
 /**
  * Color channels.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Applications should use the standard Android <a
+ *             href="https://developer.android.com/media/camera/camera2">Camera2 API
+ *             (android.hardware.camera2)</a> for camera access and management. Use either the
+ *             Camera2 NDK APIs
+ *             (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager">ACameraManager</a>)
+ *             or Camera2 Java APIs ({@link android.hardware.camera2.CameraManager}) instead.
  */
 @VintfStability
 @Backing(type="int")
 enum ColorChannel {
     R,
-    G_EVEN,      // The green channel in even lines.
+    G_EVEN, // The green channel in even lines.
     B,
-    G_ODD_OR_Y,  // The green channel in odd lines of
-                 // color formats that have two green (or
-                 // equivalent) channels, or the luminance
-                 // if it exists in associated data.
+    G_ODD_OR_Y, // The green channel in odd lines of
+                // color formats that have two green (or
+                // equivalent) channels, or the luminance
+                // if it exists in associated data.
 }

@@ -55,4 +55,6 @@ interface IMediaQuality {
   void sendDefaultSoundParameters(in android.hardware.tv.mediaquality.SoundParameters soundParameters);
   void getParamCaps(in android.hardware.tv.mediaquality.ParameterName[] paramNames, out android.hardware.tv.mediaquality.ParamCapability[] caps);
   void getVendorParamCaps(in android.hardware.tv.mediaquality.VendorParameterIdentifier[] names, out android.hardware.tv.mediaquality.VendorParamCapability[] caps);
+  void setMutedColor(int color);
+  void setColorMuteEnabled(boolean enable);
 }

@@ -42,5 +42,13 @@ interface IBluetoothAudioProviderFactory {
     String name;
     android.hardware.bluetooth.audio.CodecInfo[] codecInfos;
     boolean supportsMultidirectionalCapabilities;
+    @nullable android.hardware.bluetooth.audio.IBluetoothAudioProviderFactory.ProviderInfo.AdvancedSetting advancedSetting;
+    parcelable LeAudio {
+      boolean supportsMultidirectionalCapabilities;
+      @nullable android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting leAudioUpdateLatencySetting;
+    }
+    union AdvancedSetting {
+      android.hardware.bluetooth.audio.IBluetoothAudioProviderFactory.ProviderInfo.LeAudio leAudio;
+    }
   }
 }

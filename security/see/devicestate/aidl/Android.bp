@@ -15,9 +15,3 @@ aidl_interface {
         },
     },
 }
-
-dirgroup {
-    name: "trusty_dirgroup_hardware_interfaces_security_see_devicestate_aidl",
-    dirs: ["."],
-    visibility: ["//trusty/vendor/google/aosp/scripts"],
-}

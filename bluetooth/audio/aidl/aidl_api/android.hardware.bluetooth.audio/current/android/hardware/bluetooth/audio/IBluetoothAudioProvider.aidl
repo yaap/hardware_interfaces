@@ -84,6 +84,7 @@ interface IBluetoothAudioProvider {
     int maxTransportLatencyMs;
     int maxSdu;
     int retransmissionNum;
+    int codedRates;
   }
   @Backing(type="byte") @VintfStability
   enum Packing {

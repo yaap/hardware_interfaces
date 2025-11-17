@@ -20,6 +20,12 @@ import android.hardware.automotive.evs.EvsEventType;
 
 /**
  * Structure that describes informative events occurred during EVS is streaming
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use the Camera2 NDK API (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_capturecallbacksv2">ACameraCaptureSession_captureCallbacksV2</a>)
+ *             or the Camera2 Java API ({@link
+ *             android.hardware.camera2.CameraCaptureSession.CaptureCallback}) instead.
  */
 @VintfStability
 parcelable EvsEventDesc {
@@ -30,8 +36,7 @@ parcelable EvsEventDesc {
     /**
      * Device identifier
      */
-    @utf8InCpp
-    String deviceId;
+    @utf8InCpp String deviceId;
     /**
      * Possible additional vendor information that is opaque to the EvsManager.
      * The size of the payload must not exceed 16-byte if the HIDL recipients are

@@ -39,6 +39,6 @@ parcelable HwLightEffect {
   int[] colors;
   int iterations;
   boolean preemptive;
-  float frameRateHz;
+  int framePeriodMillis;
   android.hardware.light.InterpolationType interpolationType;
 }

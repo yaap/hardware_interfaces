@@ -32,6 +32,9 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. Applications should use the standard Android <a href="https://developer.android.com/media/camera/camera2">Camera2 API (android.hardware.camera2)</a> for camera access and management. For the NDK: <a href="https://developer.android.com/ndk/reference/group/media#aimage">AImage</a> provides access to the image buffer via <a href="https://developer.android.com/ndk/reference/group/media#aimage_gethardwarebuffer">AImage_getHardwareBuffer</a>, and <a href="https://developer.android.com/ndk/reference/group/camera#acameracapturesession_capturecallback_result">ACameraCaptureSession_captureCallback_result</a> provides information about the metadata of the parameters used for capturing the image. For Java: {@link android.media.Image} provides access to the image buffer via {@link android.media.Image#getHardwareBuffer}, and {@link android.hardware.camera2.CaptureResult#get} provides information about the metadata of the parameters used for capturing the image.
+ */
 @VintfStability
 parcelable BufferDesc {
   android.hardware.graphics.common.HardwareBuffer buffer;

@@ -31,6 +31,7 @@
 #include <aidl/android/hardware/bluetooth/audio/SbcCapabilities.h>
 #include <aidl/android/hardware/bluetooth/audio/SbcChannelMode.h>
 #include <android-base/logging.h>
+#include <com_android_btaudio_hal_flags.h>
 
 #include "BluetoothHfpCodecsProvider.h"
 #include "BluetoothLeAudioAseConfigurationSettingProvider.h"
@@ -455,6 +456,30 @@ std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
 BluetoothAudioCodecs::GetLeAudioAseConfigurationSettings() {
   return AudioSetConfigurationProviderJson::
       GetLeAudioAseConfigurationSettings();
+}
+
+std::optional<IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting>
+BluetoothAudioCodecs::GetAdvancedSetting(const SessionType& session_type) {
+  if (session_type !=
+          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH &&
+      session_type !=
+          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
+    return std::nullopt;
+  }
+
+  IBluetoothAudioProviderFactory::ProviderInfo::LeAudio le_audio_setting;
+  le_audio_setting.supportsMultidirectionalCapabilities = true;
+  if (com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
+    le_audio_setting.leAudioUpdateLatencySetting =
+        BluetoothLeAudioCodecsProvider::GetLeAudioOffloadUpdateLatencySetting();
+  }
+
+  IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting
+      advanced_setting;
+  advanced_setting.set<
+      IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting::leAudio>(
+      le_audio_setting);
+  return advanced_setting;
 }
 
 }  // namespace audio

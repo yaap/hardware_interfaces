@@ -104,13 +104,15 @@ parcelable HwLightEffect {
     boolean preemptive;
 
     /**
-     * Frame rate that should be used for playback. Has a direct effect on the number of steps the
-     * interpolation has and hence the smoothness of the transitions.
-     *
-     * If the framerate is higher than the frame rate the light can support is considered an error
-     * and the implementations should raise a EX_UNSUPPORTED_OPERATION.
+     * Duration of an animation frame for this particular light.
+     * <p>
+     * This value corresponds to the inverse of the desired frame rate for the effect and has a
+     * direct effect on the smoothness of the transitions.
+     * <p>
+     * If this value is lower than {@link HwLight#minUpdatePeriodMillis} it is considered an error
+     * and the implementations should throw an UnsupportedOperationException.
      */
-    float frameRateHz;
+    int framePeriodMillis;
 
     /**
      * The type of interpolation to apply on every frame.

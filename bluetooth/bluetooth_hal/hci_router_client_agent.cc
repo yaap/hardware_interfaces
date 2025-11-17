@@ -68,13 +68,6 @@ bool HciRouterClientAgentImpl::RegisterClient(HciRouterClientCallback* client) {
     return false;
   }
   router_clients_.insert(client);
-
-  if (IsBluetoothChipReady()) {
-    client->OnBluetoothChipReady();
-  }
-  if (IsBluetoothEnabled()) {
-    client->OnBluetoothEnabled();
-  }
   return true;
 }
 

@@ -55,6 +55,7 @@ parcelable CodecInfo {
     int[] frameDurationUs;
     int[] bitdepth;
     @nullable android.hardware.bluetooth.audio.ConfigurationFlags flags;
+    @nullable int[] maxSdu;
   }
   union Transport {
     android.hardware.bluetooth.audio.CodecInfo.LeAudio leAudio;

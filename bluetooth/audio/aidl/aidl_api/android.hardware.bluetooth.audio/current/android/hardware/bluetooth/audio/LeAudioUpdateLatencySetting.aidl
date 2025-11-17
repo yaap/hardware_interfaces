@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,22 @@
 // with such a backward incompatible change, it has a high risk of breaking
 // later when a module using the interface is updated, e.g., Mainline modules.
 
-package android.hardware.automotive.evs;
-/**
- * @deprecated EVS functionality and APIs are deprecated. Applications should use the standard Android <a href="https://developer.android.com/media/camera/camera2">Camera2 API (android.hardware.camera2)</a> for camera access and management. Use either the Camera2 NDK APIs (<a href="https://developer.android.com/ndk/reference/group/camera#acameramanager">ACameraManager</a>) or Camera2 Java APIs ({@link android.hardware.camera2.CameraManager}) instead.
- */
+package android.hardware.bluetooth.audio;
 @VintfStability
-parcelable EmbeddedData {
-  int widthInBytes;
-  int heightInLines;
-  android.hardware.common.Ashmem data;
+parcelable LeAudioUpdateLatencySetting {
+  int defaultSuggestedLatencyMs;
+  @nullable android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting.SuggestedLatencyRule[] suggestedLatencyRules;
+  @VintfStability
+  parcelable ConfigChangeConditionFlags {
+    int bitmask;
+    const int WITH_TRANSPORT_LATENCY_CHANGE = 0;
+    const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 1;
+    const int WITH_CODEC_TYPE_CHANGE = 2;
+    const int WITH_CIS_DIRECTIONS_CHANGE = 3;
+  }
+  @VintfStability
+  parcelable SuggestedLatencyRule {
+    int suggestedLatencyMs;
+    android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting.ConfigChangeConditionFlags configChangeConditionFlags;
+  }
 }

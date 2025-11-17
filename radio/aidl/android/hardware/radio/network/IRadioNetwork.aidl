@@ -733,6 +733,11 @@ oneway interface IRadioNetwork {
      * networks. UE shall make all attempts to acquire terrestrial service prior to camping on
      * satellite LTE service.
      *
+     * The modem should attempt to attach to any non-terrestrial network not defined in
+     * allSatellitePlmnArray and wait for the attach response to confirm if the PLMN is allowed.
+     * One usecase in which modem can identify satellite PLMNs outside of allSatellitePlmnArray
+     * NR NTN Networks
+     *
      * @param serial Serial number of request
      * @param carrierPlmnArray Array of roaming PLMN used for connecting to satellite networks
      *                         supported by user subscription.
@@ -756,6 +761,10 @@ oneway interface IRadioNetwork {
      * Refer setSatellitePlmn for the details of satellite PLMN scanning process. Once modem is
      * disabled, modem should not attach to any of the PLMNs present in allSatellitePlmnArray.
      * If modem is enabled, modem should attach to only PLMNs present in carrierPlmnArray.
+     *
+     * If satellite is disabled, the modem must not attach to any satellite PLMNs. This includes
+     * networks not specified in the allSatellitePlmnArray from the setSatellitPLMN API.
+     * The modem can identify them as a satellite network from the SIB in case of NR NTN networks.
      *
      * @param serial Serial number of request
      * @param satelliteEnabled {@code true} to enable satellite, {@code false} to disable satellite.

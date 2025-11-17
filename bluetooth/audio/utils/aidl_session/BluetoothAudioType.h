@@ -113,9 +113,15 @@ constexpr uint8_t kOctetsPerCodecFrameSubOpcode = 0x04;
 /* Vendor codec ID */
 constexpr uint16_t kLeAudioVendorCompanyIdGoogle = 0x00E0;
 constexpr uint16_t kLeAudioVendorCodecIdOpus = 0x0001;
+constexpr uint16_t kLeAudioVendorCodecIdHeadTracker = 0x0002;
 
 const CodecId::Vendor opus_codec{
     .codecId = kLeAudioVendorCodecIdOpus,
+    .id = kLeAudioVendorCompanyIdGoogle,
+};
+
+const CodecId::Vendor dsa_headtracker_codec{
+    .codecId = kLeAudioVendorCodecIdHeadTracker,
     .id = kLeAudioVendorCompanyIdGoogle,
 };
 

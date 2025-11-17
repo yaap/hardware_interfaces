@@ -11,6 +11,7 @@ package {
 cc_test {
     name: "VtsHalBluetoothAudioTargetTest",
     defaults: [
+        "aconfig_lib_cc_static_link.defaults",
         "latest_android_hardware_audio_common_ndk_static",
         "latest_android_hardware_bluetooth_audio_ndk_static",
         "latest_android_media_audio_common_types_ndk_static",
@@ -22,6 +23,7 @@ cc_test {
     static_libs: [
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
+        "btaudiohal_flags_c_lib",
     ],
     shared_libs: [
         "libbase",
