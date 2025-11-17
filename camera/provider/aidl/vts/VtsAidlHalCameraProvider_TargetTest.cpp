@@ -164,6 +164,28 @@ TEST_P(CameraAidlTest, getResourceCost) {
     }
 }
 
+// Verify that camera devices can be sent a warmUp() call without failures.
+TEST_P(CameraAidlTest, warmUp) {
+    std::vector<std::string> cameraDeviceNames = getCameraDeviceNames(mProvider);
+
+    for (const auto& deviceName : cameraDeviceNames) {
+        std::shared_ptr<ICameraDevice> cameraDevice;
+        ScopedAStatus ret = mProvider->getCameraDeviceInterface(deviceName, &cameraDevice);
+        ALOGI("getCameraDeviceInterface returns: %d:%d", ret.getExceptionCode(),
+              ret.getServiceSpecificError());
+        ASSERT_TRUE(ret.isOk());
+        ASSERT_NE(cameraDevice, nullptr);
+        int32_t interfaceVersion = -1;
+        ret = cameraDevice->getInterfaceVersion(&interfaceVersion);
+        ASSERT_TRUE(ret.isOk());
+        if (interfaceVersion >= CAMERA_DEVICE_API_MINOR_VERSION_4) {
+            ret = cameraDevice->warmUp();
+            ALOGI("warmUp() returns: %d:%d", ret.getExceptionCode(), ret.getServiceSpecificError());
+            ASSERT_TRUE(ret.isOk());
+        }
+    }
+}
+
 // Validate the integrity of manual flash strength control metadata
 TEST_P(CameraAidlTest, validateManualFlashStrengthControlKeys) {
     std::vector<std::string> cameraDeviceNames = getCameraDeviceNames(mProvider);
