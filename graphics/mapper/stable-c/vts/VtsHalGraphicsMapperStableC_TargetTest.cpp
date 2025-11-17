@@ -40,6 +40,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <optional>
+#include <random>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -2014,6 +2015,39 @@ TEST_P(GraphicsMapperStableCTests, GetSmpte2094_40) {
     }
 }
 
+TEST_P(GraphicsMapperStableCTests, GetSetSmpte2094_50) {
+    auto buffer = allocateGeneric();
+    ASSERT_TRUE(buffer);
+    auto bufferHandle = buffer->import();
+    ASSERT_TRUE(bufferHandle);
+    auto value = getStandardMetadata<StandardMetadataType::SMPTE2094_50>(*bufferHandle);
+    if (!value.has_value()) {
+        GTEST_SKIP() << "SMPTE 2094-50 is not supported!";
+        return;
+    }
+    EXPECT_FALSE(value->has_value());
+
+    // Test a 10 KB allocation. In practice the payload should be compressed a bit more, but
+    // ¯\_(ツ)_/¯
+    static constexpr auto sTestSize = 10 * 1028;
+    std::independent_bits_engine<std::default_random_engine, CHAR_BIT, uint8_t> engine;
+    auto payload = std::vector<uint8_t>(sTestSize);
+    std::generate(payload.begin(), payload.end(), engine);
+
+    EXPECT_EQ(AIMAPPER_ERROR_NONE,
+              setStandardMetadata<StandardMetadataType::SMPTE2094_50>(*bufferHandle, payload));
+    value = getStandardMetadata<StandardMetadataType::SMPTE2094_50>(*bufferHandle);
+    ASSERT_TRUE(value.has_value());
+    ASSERT_TRUE(value->has_value());
+    EXPECT_EQ(payload, *value);
+
+    EXPECT_EQ(AIMAPPER_ERROR_NONE,
+              setStandardMetadata<StandardMetadataType::SMPTE2094_50>(*bufferHandle, std::nullopt));
+    value = getStandardMetadata<StandardMetadataType::SMPTE2094_50>(*bufferHandle);
+    ASSERT_TRUE(value.has_value());
+    EXPECT_FALSE(value->has_value());
+}
+
 TEST_P(GraphicsMapperStableCTests, GetStride) {
     auto buffer = allocateGeneric();
     ASSERT_TRUE(buffer);
@@ -2111,6 +2145,7 @@ TEST_P(GraphicsMapperStableCTests, CheckRequiredSettersIfHasGetters) {
             switch (type) {
                 case StandardMetadataType::SMPTE2094_10:
                 case StandardMetadataType::SMPTE2094_40:
+                case StandardMetadataType::SMPTE2094_50:
                     if (it.isGettable) {
                         EXPECT_TRUE(it.isSettable)
                                 << "Type " << toString(type) << " must be settable if gettable";
