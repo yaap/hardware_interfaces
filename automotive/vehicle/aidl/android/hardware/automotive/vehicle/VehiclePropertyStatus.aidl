@@ -21,9 +21,12 @@ package android.hardware.automotive.vehicle;
  *
  * System defined status will have the range from 0x0000 to 0xffff and vendor status will have the
  * range from 0x0001 to 0xffff. The status is formatted as [VENDOR_STATUS] << 16 | [SYSTEM_STATUS].
- * A vendor status code of 0 indicates vendor status is not set.
+ * A vendor status of 0 indicates vendor status is not set.
  *
  * The vendor status is only exposed through property events caused by subscriptions.
+ *
+ * The vendor VehiclePropertyStatus and vendor StatusCode values must map one-to-one so that the
+ * framework can propagate the same vendor error to clients calling getProperty() or subscribe().
  *
  * For get property results, VehiclePropertyStatus should always be AVAILABLE. If the property
  * is not in an available status, GetValueResult.status should be set to an appropriate error
