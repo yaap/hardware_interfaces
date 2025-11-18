@@ -73,6 +73,14 @@ information.  This mechanism is used to provision certificates for KeyMint's sig
 not restricted to that purpose; it can also be used in other scenarios where keys need to be
 provisioned (for example, for [Widevine](https://developers.google.com/widevine/drm/overview)).
 
+## Secure Timestamping
+
+The optional **`ITimeStamper`** HAL (in `hardware/interfaces/security/timestamp`) provides a
+standardized interface for requesting RFC3161 timestamp tokens. This is used to
+obtain a digitally signed token from a trusted time source, typically
+backed by a secure element or TEE, to prove that a piece of data existed at a
+certain point in time.
+
 ## Keymaster
 
 The Keymaster HAL (**`IKeymasterDevice`** in `hardware/interfaces/keymaster/`) is the historical

@@ -582,6 +582,14 @@
             <regex-instance>.*</regex-instance>
         </interface>
     </hal>
+    <hal format="aidl" optional="true">
+        <name>android.hardware.security.timestamp</name>
+        <version>1</version>
+        <interface>
+            <name>ITimeStamper</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
     <hal format="aidl">
         <name>android.hardware.sensors</name>
         <version>2-3</version>
