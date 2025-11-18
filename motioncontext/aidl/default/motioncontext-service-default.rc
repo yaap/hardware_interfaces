@@ -1,0 +1,4 @@
+service vendor.motioncontext-default /vendor/bin/hw/android.hardware.motioncontext-service.default
+    class hal
+    user context_hub
+    group context_hub
