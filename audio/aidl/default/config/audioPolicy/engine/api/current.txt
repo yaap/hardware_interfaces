@@ -267,6 +267,8 @@ package android.audio.policy.engine.configuration {
     enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_NOTIFICATION_COMMUNICATION_REQUEST;
     enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_NOTIFICATION_EVENT;
     enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_NOTIFICATION_TELEPHONY_RINGTONE;
+    enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_NOTIFICATION_VIBRATION;
+    enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_RINGTONE_VIBRATION;
     enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_SAFETY;
     enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_SPEAKER_CLEANUP;
     enum_constant public static final android.audio.policy.engine.configuration.UsageEnumType AUDIO_USAGE_UNKNOWN;
