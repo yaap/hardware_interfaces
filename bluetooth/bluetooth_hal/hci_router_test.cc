@@ -18,7 +18,6 @@
 
 #include <chrono>
 #include <condition_variable>
-#include <cstdint>
 #include <future>
 #include <map>
 #include <memory>
@@ -864,18 +863,20 @@ TEST_F(HciRouterTest, HandleUpdateHalState) {
 TEST_F(HciRouterTest, HandleCleanupAndRxAtTheSameTime) {
   std::mutex m;
   std::condition_variable cv;
+  bool rx_dispatched = false;
 
-  // override CleanupTransport(), force it wait for the next RX to be completed.
+  // Override CleanupTransport(), force it wait for the next RX to be completed.
   ON_CALL(mock_transport_interface_, CleanupTransport())
-      .WillByDefault(Invoke([&m, &cv]() {
+      .WillByDefault(Invoke([&m, &cv, &rx_dispatched]() {
         std::unique_lock<std::mutex> lock(m);
-        auto status = cv.wait_for(lock, std::chrono::seconds(3));
-        EXPECT_EQ(status, std::cv_status::no_timeout);
+        bool result = cv.wait_for(lock, std::chrono::seconds(3),
+                                  [&] { return rx_dispatched; });
+        EXPECT_TRUE(rx_dispatched)
+            << "Timeout: Main thread never signaled rx_dispatched";
       }));
 
   // Start cleaning up the router.
   auto cleanup_thread = std::thread([this]() { router_->Cleanup(); });
-  cleanup_thread.detach();
 
   // Send a RX packet to the router during cleanup. OnTransportPacketReady
   // should return immediately to prevent deadlock.
@@ -884,10 +885,45 @@ TEST_F(HciRouterTest, HandleCleanupAndRxAtTheSameTime) {
 
   // Unlock cleanup thread after RX, also wait for the thread to complete the
   // task.
+  {
+    std::lock_guard<std::mutex> lock(m);
+    rx_dispatched = true;
+  }
   cv.notify_one();
-  std::unique_lock<std::mutex> lock(m);
+  cleanup_thread.join();
 
   // Reset CleanupTransport() for TearDown.
+  ON_CALL(mock_transport_interface_, CleanupTransport())
+      .WillByDefault(Invoke([]() {}));
+}
+
+TEST_F(HciRouterTest, HandleTxAfterAnotherThreadCallingCleanup) {
+  // The `Cleanup` can be called in a different thread than the thread calling
+  // `Send`, `SendCommand`, or `SendCommandNoAck`, e.g. shutdown.
+  std::mutex m;
+  std::condition_variable cv_cleanup_started;
+
+  // Override CleanupTransport(), force it wait for the send to be attempted.
+  ON_CALL(mock_transport_interface_, CleanupTransport())
+      .WillByDefault(Invoke([&]() {
+        std::lock_guard<std::mutex> lock(m);
+        cv_cleanup_started.notify_one();
+      }));
+
+  // Start cleaning up the router.
+  auto cleanup_thread = std::thread([this]() { router_->Cleanup(); });
+
+  // Wait until the cleanup has actually started.
+  {
+    std::unique_lock<std::mutex> lock(m);
+    auto status = cv_cleanup_started.wait_for(lock, std::chrono::seconds(3));
+    EXPECT_EQ(status, std::cv_status::no_timeout);
+  }
+  HalPacket packet({0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
+  router_->Send(packet);
+
+  cleanup_thread.join();
+
   ON_CALL(mock_transport_interface_, CleanupTransport())
       .WillByDefault(Invoke([]() {}));
 }
