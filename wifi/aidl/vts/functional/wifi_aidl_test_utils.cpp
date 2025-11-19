@@ -43,11 +43,25 @@ bool configureChipToSupportConcurrencyTypeInternal(const std::shared_ptr<IWifiCh
     if (!configured_mode_id) {
         return false;
     }
+
+    // Retrieve the initial chip modes
     std::vector<IWifiChip::ChipMode> chip_modes;
     auto status = wifi_chip->getAvailableModes(&chip_modes);
-    if (!status.isOk()) {
+    if (!status.isOk() || chip_modes.empty()) {
         return false;
     }
+
+    // Configure the chip to an initial mode. This will implicitly
+    // retrieve any dynamic interface combinations.
+    int initialMode = chip_modes.front().id;
+    wifi_chip->configureChip(initialMode);
+
+    // Retrieve the refreshed chip modes
+    status = wifi_chip->getAvailableModes(&chip_modes);
+    if (!status.isOk() || chip_modes.empty()) {
+        return false;
+    }
+
     if (!findAnyModeSupportingConcurrencyType(type, chip_modes, configured_mode_id)) {
         return false;
     }
