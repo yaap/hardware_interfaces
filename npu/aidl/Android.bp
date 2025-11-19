@@ -15,5 +15,28 @@ aidl_interface {
     ],
     stability: "vintf",
     frozen: false,
-    min_sdk_version: "36",
+    backend: {
+        java: {
+            sdk_version: "system_current",
+            min_sdk_version: "36",
+
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.npumanager",
+            ],
+        },
+        cpp: {
+            enabled: true,
+        },
+        ndk: {
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.npumanager",
+            ],
+            min_sdk_version: "36",
+        },
+        rust: {
+            enabled: true,
+        },
+    },
 }
