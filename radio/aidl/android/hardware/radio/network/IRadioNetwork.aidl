@@ -25,8 +25,10 @@ import android.hardware.radio.network.IRadioNetworkResponse;
 import android.hardware.radio.network.IndicationFilter;
 import android.hardware.radio.network.NetworkScanRequest;
 import android.hardware.radio.network.NrDualConnectivityState;
+import android.hardware.radio.network.PrioritizedNetworkScanRequest;
 import android.hardware.radio.network.RadioAccessSpecifier;
 import android.hardware.radio.network.RadioBandMode;
+import android.hardware.radio.network.SatelliteNetworkInfo;
 import android.hardware.radio.network.SignalThresholdInfo;
 import android.hardware.radio.network.UsageSetting;
 
@@ -751,6 +753,8 @@ oneway interface IRadioNetwork {
      * Response function is IRadioNetworkResponse.setSatellitePlmnResponse()
      *
      * This is available when android.hardware.telephony.radio.access is defined.
+     *
+     * @deprecated use IRadioNetwork.setSatelliteNetworkInfo
      */
     void setSatellitePlmn(
             in int serial, in String[] carrierPlmnArray, in String[] allSatellitePlmnArray);
@@ -785,6 +789,70 @@ oneway interface IRadioNetwork {
      * This is available when android.hardware.telephony.radio.access is defined.
      */
     void isSatelliteEnabledForCarrier(in int serial);
+
+    /**
+     * Set the satellite network information including PLMNs, supported technologies and
+     * frequencies.
+     *
+     * <p>This API replaces {@link #setSatellitePlmn} to provide more detailed information about
+     * satellite networks, such as satellite technology and frequencies, to help the modem
+     * prioritize network scanning.
+     *
+     * <p>MCC/MNC broadcast by the non-terrestrial networks may not be included in OPLMNwACT file on
+     * SIM profile. Acquisition of satellite based system is lower priority to terrestrial
+     * networks. UE shall make all attempts to acquire terrestrial service prior to camping on
+     * satellite service.
+     *
+     * One usecase in which modem can identify satellite PLMNs outside
+     * of {@code satelliteNetworkInfo.allowedPlmns} and {@code satelliteNetworkInfo.disallowedPlmns}
+     * is NR NTN Networks. The modem shall attempt to attach to any non-terrestrial network not
+     * defined in {@code satelliteNetworkInfo.allowedPlmns} as well as
+     * {@code satelliteNetworkInfo.disallowedPlmns} and wait for the attach response to confirm
+     * whether user is allowed to attach or not.
+     *
+     * @param serial Serial number of request
+     * @param satelliteNetworkInfo Configuration containing allowed and all known satellite PLMNs
+     *        with their respective technologies and frequencies.
+     *
+     * Response function is IRadioNetworkResponse.setSatelliteNetworkInfoResponse()
+     *
+     * This is available when android.hardware.telephony.radio.access is defined.
+     */
+    void setSatelliteNetworkInfo(in int serial, in SatelliteNetworkInfo satelliteNetworkInfo);
+
+    /**
+     * Enable a prioritized scanning mode for specific networks.
+     * This is an optional API. If this API is implemented,
+     * {@link #disablePrioritizedNetworkScan} must also be implemented.
+     *
+     * <p>The modem shall prioritize scanning for the target networks,
+     * overriding standard power-saving back-off timers. This scanning must persist until
+     * an attachment is successful or the mode is explicitly disabled using
+     * {@link disablePrioritizedNetworkScan}. After successful attachment, if the network
+     * is lost, modem must go back to prioritized scanning.
+     *
+     * <p> Note that the cell reselection priority must not be changed based upon scanRequest.
+     *
+     * @param serial Serial number of request.
+     * @param scanRequest The prioritized scan request info.
+     *
+     * Response function is IRadioNetworkResponse.enablePrioritizedNetworkScanResponse()
+     */
+    void enablePrioritizedNetworkScan(in int serial, in PrioritizedNetworkScanRequest scanRequest);
+
+    /**
+     * Disable a prioritized scanning mode for specific networks.
+     * This is an optional API. It must be implemented if
+     * {@link #enablePrioritizedNetworkScan} is implemented.
+     *
+     * <p>If the device is already attached to a prioritized network provided by
+     * {@link enablePrioritizedNetworkScan}, it should detach from it.
+     *
+     * @param serial Serial number of request.
+     *
+     * Response function is IRadioNetworkResponse.disablePrioritizedNetworkScanResponse()
+     */
+    void disablePrioritizedNetworkScan(in int serial);
 
     /**
      * Retrieves the set of alert categories supported by the modem.
