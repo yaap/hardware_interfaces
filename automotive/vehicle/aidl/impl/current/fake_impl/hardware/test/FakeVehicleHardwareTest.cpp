@@ -714,6 +714,24 @@ TEST_F(FakeVehicleHardwareTest, testReadValuesErrorInvalidProp) {
     ASSERT_THAT(getGetValueResults(), ContainerEq(expectedGetValueResults));
 }
 
+TEST_F(FakeVehicleHardwareTest, testGetValueForPropertyStatusTesting) {
+    int32_t prop = toInt(TestVendorProperty::VENDOR_PROPERTY_FOR_PROPERTY_STATUS_TESTING);
+    std::string propIdStr = std::to_string(prop);
+    int64_t timestamp = elapsedRealtimeNano();
+    DumpResult output = getHardware()->dump(
+            {"--inject-event", propIdStr, "-p",
+             std::to_string(toInt(VehiclePropertyStatus::NOT_AVAILABLE_DISABLED)), "-t",
+             std::to_string(timestamp)});
+
+    ASSERT_FALSE(output.callerShouldDumpState);
+    ASSERT_THAT(output.buffer, ContainsRegex("injected"));
+
+    auto result = getValue(VehiclePropValue{.prop = prop});
+
+    ASSERT_TRUE(!result.ok());
+    ASSERT_EQ(getStatus(result), toInt(StatusCode::NOT_AVAILABLE_DISABLED));
+}
+
 TEST_F(FakeVehicleHardwareTest, testReadValuesErrorNotAvailable) {
     std::vector<GetValueRequest> getValueRequests;
     std::vector<GetValueResult> expectedGetValueResults;

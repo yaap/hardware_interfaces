@@ -128,6 +128,7 @@ constexpr char OVERRIDE_PROPERTY[] = "persist.vendor.vhal_init_value_override";
 constexpr char POWER_STATE_REQ_CONFIG_PROPERTY[] = "ro.vendor.fake_vhal.ap_power_state_req.config";
 // The value to be returned if VENDOR_PROPERTY_FOR_ERROR_CODE_TESTING is set as the property
 constexpr int VENDOR_ERROR_CODE = 0x00ab0005;
+constexpr int32_t SYSTEM_PROPERTY_STATUS_MASK = 0xffff;
 // A list of supported options for "--set" command.
 const std::unordered_set<std::string> SET_PROP_OPTIONS = {
         // integer.
@@ -308,6 +309,41 @@ const std::unordered_map<int32_t, int32_t> mLightsSwitchToLightsStateProps = {
         {
                 toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_SWITCH),
                 toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_STATE),
+        },
+};
+
+const std::unordered_map<int32_t, int32_t> mPropertyStatusToStatusCode = {
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_GENERAL),
+                toInt(StatusCode::NOT_AVAILABLE),
+        },
+        {
+                toInt(VehiclePropertyStatus::ERROR),
+                toInt(StatusCode::INTERNAL_ERROR),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_DISABLED),
+                toInt(StatusCode::NOT_AVAILABLE_DISABLED),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SPEED_LOW),
+                toInt(StatusCode::NOT_AVAILABLE_SPEED_LOW),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SPEED_HIGH),
+                toInt(StatusCode::NOT_AVAILABLE_SPEED_HIGH),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_POOR_VISIBILITY),
+                toInt(StatusCode::NOT_AVAILABLE_POOR_VISIBILITY),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SAFETY),
+                toInt(StatusCode::NOT_AVAILABLE_SAFETY),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SUBSYSTEM_NOT_CONNECTED),
+                toInt(StatusCode::NOT_AVAILABLE_SUBSYSTEM_NOT_CONNECTED),
         },
 };
 
@@ -1066,6 +1102,21 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
         case toInt(TestVendorProperty::VENDOR_PROPERTY_FOR_ERROR_CODE_TESTING):
             *isSpecialValue = true;
             return StatusError((StatusCode)VENDOR_ERROR_CODE);
+        case toInt(TestVendorProperty::VENDOR_PROPERTY_FOR_PROPERTY_STATUS_TESTING): {
+            auto readResult = mServerSidePropStore->readValue(value);
+            if (readResult.ok()) {
+                int32_t systemStatus =
+                        toInt(readResult.value()->status) & SYSTEM_PROPERTY_STATUS_MASK;
+                if (mPropertyStatusToStatusCode.count(systemStatus)) {
+                    int32_t vendorStatus =
+                            toInt(readResult.value()->status) & ~SYSTEM_PROPERTY_STATUS_MASK;
+                    int32_t status = vendorStatus | mPropertyStatusToStatusCode.at(systemStatus);
+                    *isSpecialValue = true;
+                    return StatusError((StatusCode)status);
+                }
+            }
+            break;
+        }
         case toInt(VehicleProperty::CRUISE_CONTROL_TARGET_SPEED):
             isAdasPropertyAvailableResult =
                     isAdasPropertyAvailable(toInt(VehicleProperty::CRUISE_CONTROL_STATE));
