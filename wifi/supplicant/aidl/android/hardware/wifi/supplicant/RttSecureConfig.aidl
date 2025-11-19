@@ -1,5 +1,5 @@
-/*
- * Copyright (C) 2021 The Android Open Source Project
+/**
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,31 +16,20 @@
 
 package android.hardware.wifi.supplicant;
 
+import android.hardware.wifi.supplicant.PasnConfig;
+
 /**
- * Possible mask of values for PairwiseCipher param.
- * See /external/wpa_supplicant_8/src/common/defs.h for
- * the historical values (starting at WPA_CIPHER_NONE).
+ * RTT secure configuration.
  */
 @VintfStability
-@Backing(type="int")
-enum PairwiseCipherMask {
-    NONE = 1 << 0,
-    TKIP = 1 << 3,
-    CCMP = 1 << 4,
+parcelable RttSecureConfig {
     /**
-     * GCMP-128 Pairwise Cipher
+     * Pre-Association Security Negotiation (PASN) configuration.
      */
-    GCMP_128 = 1 << 6,
+    PasnConfig pasnConfig;
+
     /**
-     * SMS4 Pairwise Cipher
+     * Enable secure HE-LTF (High Efficiency Long Training Field).
      */
-    SMS4 = 1 << 7,
-    /**
-     * GCMP-256 Pairwise Cipher
-     */
-    GCMP_256 = 1 << 8,
-    /**
-     * CCMP-256 Pairwise Cipher
-     */
-    CCMP_256 = 1 << 9,
+    boolean enableSecureHeLtf;
 }

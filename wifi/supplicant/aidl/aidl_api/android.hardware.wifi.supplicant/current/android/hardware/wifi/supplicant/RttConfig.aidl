@@ -1,5 +1,5 @@
-/*
- * Copyright (C) 2021 The Android Open Source Project
+/**
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,22 +33,25 @@
 
 package android.hardware.wifi.supplicant;
 @VintfStability
-interface ISupplicant {
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantP2pIface addP2pInterface(in String ifName);
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantStaIface addStaInterface(in String ifName);
-  android.hardware.wifi.supplicant.DebugLevel getDebugLevel();
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantP2pIface getP2pInterface(in String ifName);
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantStaIface getStaInterface(in String ifName);
-  boolean isDebugShowKeysEnabled();
-  boolean isDebugShowTimestampEnabled();
-  android.hardware.wifi.supplicant.IfaceInfo[] listInterfaces();
-  void registerCallback(in android.hardware.wifi.supplicant.ISupplicantCallback callback);
-  void removeInterface(in android.hardware.wifi.supplicant.IfaceInfo ifaceInfo);
-  void setConcurrencyPriority(in android.hardware.wifi.supplicant.IfaceType type);
-  void setDebugParams(in android.hardware.wifi.supplicant.DebugLevel level, in boolean showTimestamp, in boolean showKeys);
-  oneway void terminate();
-  void registerNonStandardCertCallback(in android.hardware.wifi.supplicant.INonStandardCertCallback callback);
-  void setCurrentUserIdentity(in int userId);
-  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantWifiRttController createRttController(in String ifName);
-  const int EXT_RADIO_WORK_TIMEOUT_IN_SECS = 10;
+parcelable RttConfig {
+  byte[6] addr;
+  android.hardware.wifi.supplicant.RttType type;
+  android.hardware.wifi.supplicant.RttConfig.RttPeerType peer;
+  int numFramesPerBurst;
+  int numNtbRepetitionsPerMeasurement;
+  int numRetriesPerFtmr;
+  boolean mustRequestLci;
+  boolean mustRequestLcr;
+  android.hardware.wifi.supplicant.RttPreamble preamble;
+  android.hardware.wifi.supplicant.RttBw bw;
+  long ntbMinMeasurementTime;
+  long ntbMaxMeasurementTime;
+  @nullable android.hardware.wifi.common.OuiKeyedData[] vendorData;
+  @nullable android.hardware.wifi.supplicant.RttSecureConfig secureConfig;
+  @nullable android.hardware.wifi.supplicant.ProximityRangingConfig pdConfig;
+  @Backing(type="int") @VintfStability
+  enum RttPeerType {
+    INVALID = 0,
+    STA = 1,
+  }
 }

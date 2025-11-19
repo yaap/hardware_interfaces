@@ -41,4 +41,5 @@ parcelable UsdCapabilities {
   int maxMatchFilterLengthBytes;
   int maxNumPublishSessions;
   int maxNumSubscribeSessions;
+  boolean isProximityRangingSupported;
 }

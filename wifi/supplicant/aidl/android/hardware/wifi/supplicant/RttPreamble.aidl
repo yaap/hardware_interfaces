@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,30 +17,20 @@
 package android.hardware.wifi.supplicant;
 
 /**
- * Possible mask of values for PairwiseCipher param.
- * See /external/wpa_supplicant_8/src/common/defs.h for
- * the historical values (starting at WPA_CIPHER_NONE).
+ * RTT preamble.
  */
 @VintfStability
-@Backing(type="int")
-enum PairwiseCipherMask {
-    NONE = 1 << 0,
-    TKIP = 1 << 3,
-    CCMP = 1 << 4,
-    /**
-     * GCMP-128 Pairwise Cipher
-     */
-    GCMP_128 = 1 << 6,
-    /**
-     * SMS4 Pairwise Cipher
-     */
-    SMS4 = 1 << 7,
-    /**
-     * GCMP-256 Pairwise Cipher
-     */
-    GCMP_256 = 1 << 8,
-    /**
-     * CCMP-256 Pairwise Cipher
-     */
-    CCMP_256 = 1 << 9,
+enum RttPreamble {
+    /** Invalid preamble. */
+    INVALID = 0,
+    /** Legacy preamble. */
+    LEGACY = 1 << 0,
+    /** High-Throughput (HT) preamble. */
+    HT = 1 << 1,
+    /** Very-High-Throughput (VHT) preamble. */
+    VHT = 1 << 2,
+    /** High-Efficiency (HE) preamble. */
+    HE = 1 << 3,
+    /** Extremely-High-Throughput (EHT) preamble. */
+    EHT = 1 << 4,
 }

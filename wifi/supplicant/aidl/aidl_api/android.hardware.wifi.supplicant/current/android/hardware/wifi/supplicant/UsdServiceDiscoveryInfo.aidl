@@ -41,4 +41,6 @@ parcelable UsdServiceDiscoveryInfo {
   android.hardware.wifi.supplicant.UsdServiceProtoType protoType;
   byte[] serviceSpecificInfo;
   boolean isFsd;
+  @nullable android.hardware.wifi.supplicant.ProximityRangingProtocolInfo prInfo;
+  @nullable android.hardware.wifi.supplicant.DeviceIdentityKey peerDevIk;
 }

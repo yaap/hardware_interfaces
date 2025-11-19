@@ -42,4 +42,7 @@ parcelable UsdBaseConfig {
   int ttlSec;
   int defaultFreqMhz;
   int[] freqsMhz;
+  boolean isRangingEnabled;
+  @nullable android.hardware.wifi.supplicant.DeviceIdentityKey selfDevIk;
+  @nullable android.hardware.wifi.supplicant.DeviceIdentityKey[] peerDevIks;
 }
