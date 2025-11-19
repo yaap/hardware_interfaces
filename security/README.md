@@ -115,3 +115,21 @@ functionality, and so involves the use of one of the following HALs (all of whic
   functionality where the user confirms that they have seen a specific message in a secure manner.
   Confirmation tokens produced by this HAL are consumed by KeyMint, validated using the shared HMAC
   key described above.
+
+## Trusted HALs
+
+Clients integrated in Secure Execution Environments (such as AVF pVMs and/or TEE) require some
+specific HALs, which are typically not available in the Android Host.
+
+These HALs are also referenced as "Trusted HALs" since there is an expectation by the client that
+the HAL service typically be integrated in the Trusted Execution Environment (TEE).
+
+Respectively, the clients of Trusted HAL are expected to be authenticated prior to being granted
+access to the Trusted HAL services. This authentication protocol is standardized by
+[AuthMgr](./see/authmgr/aidl/README.md).
+
+The list of Trusted HALs is:
+
+*   **`IDeviceState`**: Allows a KeyMint instance running in a VM to query if the device is
+    currently in its manufacturing phase. This acts as a guardrail, ensuring that sensitive Device
+    ID data is only provisioned to the secure environment while the device is at the factory.
