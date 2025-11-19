@@ -95,6 +95,7 @@ class TestBluetoothChannelSoundingHandler
       uint16_t connection_handle) {
     return GetTracker(connection_handle);
   }
+  void TestOnBluetoothEnabled() { OnBluetoothEnabled(); }
 };
 
 class BluetoothChannelSoundingHandlerTest : public Test {
@@ -578,6 +579,14 @@ TEST_F(BluetoothChannelSoundingSessionTest, HandleIsAbortedProcedureRequired) {
       session->isAbortedProcedureRequired(&is_aborted_procedure_required);
   EXPECT_TRUE(status.isOk());
   EXPECT_FALSE(is_aborted_procedure_required);
+}
+
+TEST_F(BluetoothChannelSoundingHandlerTest,
+       OnBluetoothEnabledSendReadLocalCapabilityCommand) {
+  HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
+  EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _))
+      .Times(1);
+  bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
 }
 
 TEST_F(BluetoothChannelSoundingSessionTest, CloseSession) {

@@ -326,6 +326,10 @@ BluetoothChannelSoundingHandler::GetTracker(uint16_t connection_handle) {
   return it->second;
 }
 
+void BluetoothChannelSoundingHandler::OnBluetoothEnabled() {
+  SendCommand(BuildReadLocalCapabilityCommand());
+};
+
 void BluetoothChannelSoundingHandler::OnBluetoothDisabled() {
   std::lock_guard<std::mutex> lock(local_cap_mtx_);
   local_capabilities_.clear();

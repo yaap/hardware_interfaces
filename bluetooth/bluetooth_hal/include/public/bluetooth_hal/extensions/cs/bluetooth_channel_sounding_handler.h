@@ -74,7 +74,7 @@ class BluetoothChannelSoundingHandler
  protected:
   void OnBluetoothChipReady() override {};
   void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override {};
+  void OnBluetoothEnabled() override;
   void OnBluetoothDisabled() override;
   void OnCommandCallback(
       const ::bluetooth_hal::hci::HalPacket& packet) override;
