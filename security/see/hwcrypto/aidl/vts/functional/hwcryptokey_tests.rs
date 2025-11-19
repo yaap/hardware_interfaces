@@ -36,7 +36,7 @@ use hwcrypto_thal::Error;
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_connection() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey();
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey();
     assert!(hw_crypto_key.is_ok(), "Couldn't get back a hwcryptokey binder object");
 }
 
@@ -66,7 +66,7 @@ fn test_hwcrypto_get_keyslot_data() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_import_clear_key() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes128([0; 16]));
     let mut policy = KeyPolicy {
@@ -76,7 +76,7 @@ fn test_hwcrypto_import_clear_key() {
         keyManagementKey: false,
         keyType: KeyType::AES_128_GCM,
     };
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import key");
     assert!(key.getPublicKey().is_err(), "symmetric keys don't have a public key");
     let imported_policy = key.getKeyPolicy().expect("couldn't get key policy");
     let serialized_policy =
@@ -85,10 +85,10 @@ fn test_hwcrypto_import_clear_key() {
         .expect("couldn't serialize policy");
     assert_eq!(serialized_policy, serialized_impoorted_policy, "policies should match");
     policy.keyLifetime = KeyLifetime::EPHEMERAL;
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy);
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy);
     assert!(key.is_err(), "imported keys should be of type PORTABLE");
     policy.keyLifetime = KeyLifetime::HARDWARE;
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy);
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy);
     assert!(key.is_err(), "imported keys should be of type PORTABLE");
 }
 
@@ -97,7 +97,7 @@ fn test_hwcrypto_import_clear_key() {
 fn test_hwcrypto_token_export_import() {
     // This test is not representative of the complete flow because here the exporter and importer
     // are the same client, which is not something we would usually do
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let clear_key = ExplicitKeyMaterial::Hmac(HmacKey::Sha256([0; 32]));
     let policy = KeyPolicy {
@@ -107,19 +107,19 @@ fn test_hwcrypto_token_export_import() {
         keyManagementKey: false,
         keyType: KeyType::HMAC_SHA256,
     };
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
-    let dice_policy = hw_crypto_key.getCurrentDicePolicy().expect("Couldn't get dice policy back");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
+    let dice_policy = hw_crypto_key.current_dice_policy().expect("Couldn't get dice policy back");
     let token =
         key.getShareableToken(dice_policy.as_slice()).expect("Couldn't get shareable token");
     let imported_key = hw_crypto_key
-        .keyTokenImport(&token, dice_policy.as_slice())
+        .key_token_import(&token, dice_policy.as_slice())
         .expect("Couldn't import shareable token");
 
     let policy = imported_key.getKeyPolicy();
     assert!(policy.is_ok(), "Couldn't get token key policy");
 
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
 
     // Using operations to verify that the keys match
@@ -169,7 +169,7 @@ fn test_hwcrypto_token_export_import() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_android_invalid_calls() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let clear_key = ExplicitKeyMaterial::Hmac(HmacKey::Sha256([0; 32]));
     let policy = KeyPolicy {
@@ -179,7 +179,7 @@ fn test_hwcrypto_android_invalid_calls() {
         keyManagementKey: false,
         keyType: KeyType::HMAC_SHA256,
     };
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
     let protections = Vec::new();
     let res = key.setProtectionId(ProtectionId::WIDEVINE_OUTPUT_BUFFER, &protections);
     assert_eq!(
@@ -188,30 +188,30 @@ fn test_hwcrypto_android_invalid_calls() {
         "wrong error type received"
     );
     let derivation_key = DiceBoundDerivationKey::OpaqueKey(Some(key));
-    let res = hw_crypto_key.deriveCurrentDicePolicyBoundKey(&derivation_key);
+    let res = hw_crypto_key.derive_current_dice_policy_bound_key(&derivation_key);
     assert_eq!(
-        res.err().expect("should not be able to call this function from the host").service_specific_error(),
-        HalErrorCode::UNAUTHORIZED,
+        res.err().expect("should not be able to call this function from the host"),
+        Error::Unauthorized,
         "wrong error type received"
     );
     let fake_policy = Vec::new();
-    let res = hw_crypto_key.deriveDicePolicyBoundKey(&derivation_key, &fake_policy);
+    let res = hw_crypto_key.derive_dice_policy_bound_key(&derivation_key, &fake_policy);
     assert_eq!(
-        res.err().expect("should not be able to call this function from the host").service_specific_error(),
-        HalErrorCode::UNAUTHORIZED,
+        res.err().expect("should not be able to call this function from the host"),
+        Error::Unauthorized,
         "wrong error type received"
     );
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
     let derived_policy = DerivedKeyPolicy::OpaqueKey(Vec::new());
     let derived_parameters = DerivedKeyParameters {
         derivationKey: Some(key),
         keyPolicy: derived_policy,
         context: Vec::new(),
     };
-    let res = hw_crypto_key.deriveKey(&derived_parameters);
+    let res = hw_crypto_key.derive_key(&derived_parameters);
     assert_eq!(
-        res.err().expect("should not be able to call this function from the host").service_specific_error(),
-        HalErrorCode::UNAUTHORIZED,
+        res.err().expect("should not be able to call this function from the host"),
+        Error::Unauthorized,
         "wrong error type received"
     );
 }

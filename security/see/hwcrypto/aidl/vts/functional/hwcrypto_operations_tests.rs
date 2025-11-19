@@ -32,19 +32,19 @@ use rdroidtest::{ignore_if, rdroidtest};
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_operations_connection() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
-    let hw_crypto_operations = hw_crypto_key.getHwCryptoOperations();
+    let hw_crypto_operations = hw_crypto_key.get_hwcrypto_operations();
     assert!(hw_crypto_operations.is_ok(), "Couldn't get back a hwcrypto operations binder object");
 }
 
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_operations_simple_aes_test() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes128([0; 16]));
     let policy = KeyPolicy {
@@ -54,7 +54,7 @@ fn test_hwcrypto_key_operations_simple_aes_test() {
         keyManagementKey: false,
         keyType: KeyType::AES_128_CBC_PKCS7_PADDING,
     };
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
 
     let nonce = [0u8; 16];
     let parameters = SymmetricCryptoParameters::Aes(AesCipherMode::Cbc(CipherModeParameters {
@@ -129,10 +129,10 @@ fn test_hwcrypto_key_operations_simple_aes_test() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_operations_simple_hmac_test() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
     let clear_key = ExplicitKeyMaterial::Hmac(HmacKey::Sha256([0; 32]));
     let policy = KeyPolicy {
@@ -142,7 +142,7 @@ fn test_hwcrypto_key_operations_simple_hmac_test() {
         keyManagementKey: false,
         keyType: KeyType::HMAC_SHA256,
     };
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
 
     let hmac_parameters = HmacOperationParameters { key: Some(key.clone()) };
     let op_parameters = OperationParameters::Hmac(hmac_parameters);
@@ -190,10 +190,10 @@ fn test_hwcrypto_key_operations_simple_hmac_test() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_operations_aes_simple_cbcs_test_non_block_multiple() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
 
     let usage = KeyUse::ENCRYPT_DECRYPT;
@@ -206,7 +206,7 @@ fn test_hwcrypto_key_operations_aes_simple_cbcs_test_non_block_multiple() {
         keyManagementKey: false,
     };
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes128([0; 16]));
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
 
     let nonce = [0u8; 16];
     let parameters = SymmetricCryptoParameters::Aes(AesCipherMode::Cbc(CipherModeParameters {
@@ -288,10 +288,10 @@ fn test_hwcrypto_key_operations_aes_simple_cbcs_test_non_block_multiple() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_operations_aes_simple_all_encrypted_cbcs_test() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
 
     let usage = KeyUse::ENCRYPT_DECRYPT;
@@ -304,7 +304,7 @@ fn test_hwcrypto_key_operations_aes_simple_all_encrypted_cbcs_test() {
         keyManagementKey: false,
     };
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes128([0; 16]));
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
 
     let nonce = [0u8; 16];
     let parameters = SymmetricCryptoParameters::Aes(AesCipherMode::Cbc(CipherModeParameters {
@@ -411,10 +411,10 @@ fn test_hwcrypto_key_operations_aes_simple_all_encrypted_cbcs_test() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn check_cbcs_wrong_key_types() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
 
     let usage = KeyUse::ENCRYPT_DECRYPT;
@@ -427,7 +427,7 @@ fn check_cbcs_wrong_key_types() {
         keyManagementKey: false,
     };
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes128([0; 16]));
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
 
     let nonce = [0u8; 16];
     let parameters = SymmetricCryptoParameters::Aes(AesCipherMode::Cbc(CipherModeParameters {
@@ -458,7 +458,7 @@ fn check_cbcs_wrong_key_types() {
         keyManagementKey: false,
     };
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes256([0; 32]));
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
     let parameters = SymmetricCryptoParameters::Aes(AesCipherMode::Cbc(CipherModeParameters {
         nonce: nonce.into(),
     }));
@@ -483,10 +483,10 @@ fn check_cbcs_wrong_key_types() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn aes_simple_cbcs_test() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
     let hw_crypto_operations = hw_crypto_key
-        .getHwCryptoOperations()
+        .get_hwcrypto_operations()
         .expect("Couldn't get back a hwcryptokey operations binder object");
 
     let usage = KeyUse::ENCRYPT_DECRYPT;
@@ -499,7 +499,7 @@ fn aes_simple_cbcs_test() {
         keyManagementKey: false,
     };
     let clear_key = ExplicitKeyMaterial::Aes(AesKey::Aes128([0; 16]));
-    let key = hw_crypto_key.importClearKey(&clear_key, &policy).expect("couldn't import clear key");
+    let key = hw_crypto_key.import_clear_key(&clear_key, &policy).expect("couldn't import clear key");
 
     let nonce = [0u8; 16];
     let parameters = SymmetricCryptoParameters::Aes(AesCipherMode::Cbc(CipherModeParameters {
