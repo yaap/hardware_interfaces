@@ -71,4 +71,12 @@ enum SupplicantStatusCode {
      * Requested data is not available.
      */
     FAILURE_DATA_NOT_AVAILABLE,
+    /**
+     * |ISupplicantRttController| AIDL interface object is no longer valid.
+     */
+    FAILURE_RTT_CONTROLLER_INVALID,
+    /**
+     * The requested operation is currently not available.
+     */
+    FAILURE_OP_NOT_AVAILABLE,
 }
