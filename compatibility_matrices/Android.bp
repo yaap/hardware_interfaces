@@ -155,7 +155,6 @@ vintf_compatibility_matrix {
         "compatibility_matrix.202404.xml",
     ],
     kernel_configs: [
-        "kernel_config_v_6.1",
         "kernel_config_v_6.6",
     ],
 }
