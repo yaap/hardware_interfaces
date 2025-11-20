@@ -49,11 +49,14 @@ class WeaverAdapter {
   public:
     virtual ~WeaverAdapter() {}
     virtual bool isReady() = 0;
+    virtual ::ndk::ScopedAStatus getInterfaceVersion(int32_t* _aidl_return) = 0;
     virtual ::ndk::ScopedAStatus getConfig(WeaverConfig* _aidl_return) = 0;
     virtual ::ndk::ScopedAStatus read(int32_t in_slotId, const std::vector<uint8_t>& in_key,
                                       WeaverReadResponse* _aidl_return) = 0;
     virtual ::ndk::ScopedAStatus write(int32_t in_slotId, const std::vector<uint8_t>& in_key,
                                        const std::vector<uint8_t>& in_value) = 0;
+    virtual ::ndk::ScopedAStatus warmUp() = 0;
+    virtual ::ndk::ScopedAStatus getTimeout(int32_t in_slotId, int64_t* _aidl_return) = 0;
 };
 
 class WeaverAidlAdapter : public WeaverAdapter {
@@ -64,6 +67,10 @@ class WeaverAidlAdapter : public WeaverAdapter {
     ~WeaverAidlAdapter() {}
 
     bool isReady() { return aidl_weaver_ != nullptr; }
+
+    ::ndk::ScopedAStatus getInterfaceVersion(int32_t* _aidl_return) {
+        return aidl_weaver_->getInterfaceVersion(_aidl_return);
+    }
 
     ::ndk::ScopedAStatus getConfig(WeaverConfig* _aidl_return) {
         return aidl_weaver_->getConfig(_aidl_return);
@@ -79,6 +86,12 @@ class WeaverAidlAdapter : public WeaverAdapter {
         return aidl_weaver_->write(in_slotId, in_key, in_value);
     }
 
+    ::ndk::ScopedAStatus warmUp() { return aidl_weaver_->warmUp(); }
+
+    ::ndk::ScopedAStatus getTimeout(int32_t in_slotId, int64_t* _aidl_return) {
+        return aidl_weaver_->getTimeout(in_slotId, _aidl_return);
+    }
+
   private:
     std::shared_ptr<IWeaver> aidl_weaver_;
 };
@@ -89,6 +102,11 @@ class WeaverHidlAdapter : public WeaverAdapter {
     ~WeaverHidlAdapter() {}
 
     bool isReady() { return hidl_weaver_ != nullptr; }
+
+    ::ndk::ScopedAStatus getInterfaceVersion(int32_t* _aidl_return) {
+        *_aidl_return = 0;
+        return ::ndk::ScopedAStatus::ok();
+    }
 
     ::ndk::ScopedAStatus getConfig(WeaverConfig* _aidl_return) {
         bool callbackCalled = false;
@@ -161,6 +179,13 @@ class WeaverHidlAdapter : public WeaverAdapter {
         }
     }
 
+    ::ndk::ScopedAStatus warmUp() { return ::ndk::ScopedAStatus::ok(); }
+
+    ::ndk::ScopedAStatus getTimeout([[maybe_unused]] int32_t in_slotId,
+                                    [[maybe_unused]] int64_t* _aidl_return) {
+        return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+    }
+
   private:
     android::sp<HidlIWeaver> hidl_weaver_;
 };
@@ -173,6 +198,7 @@ class WeaverTest : public ::testing::TestWithParam<std::tuple<std::string, std::
 
     std::unique_ptr<WeaverAdapter> weaver_;
     WeaverConfig config_;
+    int32_t interface_version_;
     uint32_t first_free_slot_;
     uint32_t last_free_slot_;
 };
@@ -182,12 +208,23 @@ void WeaverTest::SetUp() {
     std::tie(api, instance_name) = GetParam();
     if (api == "hidl") {
         weaver_.reset(new WeaverHidlAdapter(instance_name));
+        ASSERT_TRUE(weaver_->isReady());
+
+        auto ret = weaver_->getInterfaceVersion(&interface_version_);
+        ASSERT_TRUE(ret.isOk());
+        ASSERT_EQ(interface_version_, 0);
+        GTEST_LOG_(INFO) << "Interface version: HIDL";
     } else if (api == "aidl") {
         weaver_.reset(new WeaverAidlAdapter(instance_name));
+        ASSERT_TRUE(weaver_->isReady());
+
+        auto ret = weaver_->getInterfaceVersion(&interface_version_);
+        ASSERT_TRUE(ret.isOk());
+        ASSERT_GE(interface_version_, 1);
+        GTEST_LOG_(INFO) << "Interface version: AIDL v" << interface_version_;
     } else {
         FAIL() << "Bad test parameterization";
     }
-    ASSERT_TRUE(weaver_->isReady());
 
     auto ret = weaver_->getConfig(&config_);
     ASSERT_TRUE(ret.isOk());
@@ -390,6 +427,152 @@ TEST_P(WeaverTest, ReadWithTooLargeKeyFails) {
     EXPECT_TRUE(response.value.empty());
     EXPECT_EQ(response.timeout, 0u);
     EXPECT_EQ(response.status, WeaverReadStatus::FAILED);
+}
+
+TEST_P(WeaverTest, WarmUpReturnsSuccess) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "Test case requires Weaver v3 or later";
+    }
+    // warmUp() is just a hint, and it should always succeed.
+    auto ret = weaver_->warmUp();
+    EXPECT_TRUE(ret.isOk());
+}
+
+TEST_P(WeaverTest, RepeatedWarmUps) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "Test case requires Weaver v3 or later";
+    }
+    // warmUp() is just a hint, and it should always succeed.
+    for (int i = 0; i < 50; i++) {
+        const auto ret = weaver_->warmUp();
+        ASSERT_TRUE(ret.isOk());
+    }
+}
+
+TEST_P(WeaverTest, WriteAndReadAfterWarmUp) {
+    const uint32_t slotId = first_free_slot_;
+
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "Test case requires Weaver v3 or later";
+    }
+
+    {
+        const auto ret = weaver_->warmUp();
+        EXPECT_TRUE(ret.isOk());
+    }
+
+    {
+        const auto ret = weaver_->write(slotId, KEY, VALUE);
+        EXPECT_TRUE(ret.isOk());
+    }
+
+    {
+        WeaverReadResponse response;
+        const auto ret = weaver_->read(slotId, KEY, &response);
+        ASSERT_TRUE(ret.isOk());
+        EXPECT_EQ(response.status, WeaverReadStatus::OK);
+        EXPECT_EQ(response.value, VALUE);
+    }
+}
+
+// Test IWeaver#getTimeout().
+TEST_P(WeaverTest, GetTimeout) {
+    const uint32_t slotId = first_free_slot_;
+    constexpr int kMaxReads = 10;
+    int i;
+
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "Test case requires Weaver v3 or later";
+    }
+
+    // Write to a Weaver slot.
+    {
+        const auto ret = weaver_->write(slotId, KEY, VALUE);
+        EXPECT_TRUE(ret.isOk());
+    }
+
+    // Get the timeout from the slot.  This should either successfully retrieve a timeout of 0, or
+    // it should fail with EX_UNSUPPORTED_OPERATION in which case the rest of the test case is
+    // skipped.
+    {
+        int64_t timeout = -1;
+        const auto ret = weaver_->getTimeout(slotId, &timeout);
+        if (ret.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
+            GTEST_SKIP() << "getTimeout() is unsupported";
+        }
+        EXPECT_TRUE(ret.isOk());
+        EXPECT_EQ(timeout, 0);
+    }
+
+    // Read from the slot using unique wrong keys until reaching the first nonzero timeout.
+    WeaverReadResponse response;
+    auto wrong_key = WRONG_KEY;
+    for (i = 0; i < kMaxReads; i++) {
+        wrong_key[0] = i;
+        const auto ret = weaver_->read(slotId, wrong_key, &response);
+        EXPECT_TRUE(ret.isOk());
+        EXPECT_TRUE(response.value.empty());
+        EXPECT_TRUE(response.status == WeaverReadStatus::INCORRECT_KEY ||
+                    response.status == WeaverReadStatus::THROTTLE);
+        if (response.timeout != 0) break;
+    }
+    EXPECT_LT(i, kMaxReads) << "Rate-limiter never kicked in";
+
+    // Verify that getTimeout() now returns something reasonable: nonzero, and no more than what
+    // read() reported.  We cannot check for exact equality, as the two calls occur at different
+    // times.  But the entire timeout certainly shouldn't have elapsed already.
+    int64_t timeout1 = 0;
+    {
+        const auto ret = weaver_->getTimeout(slotId, &timeout1);
+        EXPECT_TRUE(ret.isOk());
+        EXPECT_NE(timeout1, 0) << "getTimeout() returned zero timeout when nonzero was expected";
+        EXPECT_LE(timeout1, response.timeout)
+                << "getTimeout() returned longer timeout than expected";
+    }
+
+    // Sleep for a second and verify that the timeout has decreased by approximately one second.
+    // Again, it can't be an exact check.  We verify 900ms <= elapsed <= 5000ms, giving more
+    // leniency on the upper bound than the lower bound.
+    sleep(1);
+    int64_t timeout2 = 0;
+    {
+        const auto ret = weaver_->getTimeout(slotId, &timeout2);
+        EXPECT_TRUE(ret.isOk());
+        EXPECT_NE(timeout2, 0);
+        int64_t elapsed = timeout1 - timeout2;
+        EXPECT_GE(elapsed, 900);
+        EXPECT_LE(elapsed, 5000);
+    }
+
+    // Clean up with a write() to reset the timeout.
+    {
+        const auto ret = weaver_->write(slotId, KEY, VALUE);
+        EXPECT_TRUE(ret.isOk());
+    }
+    {
+        int64_t timeout = -1;
+        const auto ret = weaver_->getTimeout(slotId, &timeout);
+        EXPECT_TRUE(ret.isOk());
+        EXPECT_EQ(timeout, 0) << "getTimeout() returned nonzero timeout when zero was expected";
+    }
+}
+
+// If getTimeout() is passed an invalid slot ID, it should fail with EX_ILLEGAL_ARGUMENT.
+// EX_UNSUPPORTED_OPERATION is also okay, if getTimeout() is not supported at all.
+TEST_P(WeaverTest, GetTimeoutOnInvalidSlotFails) {
+    if (interface_version_ < 3) {
+        GTEST_SKIP() << "Test case requires Weaver v3 or later";
+    }
+    int64_t timeout = -1;
+    const auto ret = weaver_->getTimeout(config_.slots, &timeout);
+    ASSERT_FALSE(ret.isOk());
+    if (ret.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
+        const auto ret = weaver_->getTimeout(first_free_slot_, &timeout);
+        ASSERT_EQ(EX_UNSUPPORTED_OPERATION, ret.getExceptionCode());
+        GTEST_SKIP() << "getTimeout() is unsupported";
+    }
+    ASSERT_EQ(EX_ILLEGAL_ARGUMENT, ret.getExceptionCode());
+    ASSERT_EQ(-1, timeout);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WeaverTest);
