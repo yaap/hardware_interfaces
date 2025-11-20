@@ -511,18 +511,18 @@ int32_t BluetoothLeAudioCodecsProvider::getConditionFlagAidlFormat(
     const setting::ConfigChangeConditionFlagMask& flag) {
   switch (flag) {
     case setting::ConfigChangeConditionFlagMask::WITH_TRANSPORT_LATENCY_CHANGE:
-      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-                 WITH_TRANSPORT_LATENCY_CHANGE;
+      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_TRANSPORT_LATENCY_CHANGE;
     case setting::ConfigChangeConditionFlagMask::
         WITHOUT_TRANSPORT_LATENCY_CHANGE:
-      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-                 WITHOUT_TRANSPORT_LATENCY_CHANGE;
+      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITHOUT_TRANSPORT_LATENCY_CHANGE;
     case setting::ConfigChangeConditionFlagMask::WITH_CODEC_TYPE_CHANGE:
-      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-                 WITH_CODEC_TYPE_CHANGE;
+      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_CODEC_TYPE_CHANGE;
     case setting::ConfigChangeConditionFlagMask::WITH_CIS_DIRECTIONS_CHANGE:
-      return 1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-                 WITH_CIS_DIRECTIONS_CHANGE;
+      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_CIS_DIRECTIONS_CHANGE;
     default:
       LOG(ERROR) << __func__
                  << "Unknown ConfigChangeConditionFlag from setting";
