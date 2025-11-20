@@ -87,6 +87,8 @@ struct DspSimulatorState {
     DspClipState clips GUARDED_BY(lock);
     int64_t bufferFramesLeft GUARDED_BY(lock) = 0;
     int64_t bufferNotifyFrames GUARDED_BY(lock) = kSkipBufferNotifyFrames;
+    StreamDescriptor::DrainMode draining GUARDED_BY(lock) =
+            StreamDescriptor::DrainMode::DRAIN_UNSPECIFIED;
 };
 
 class DspSimulatorLogic : public ::android::hardware::audio::common::StreamLogic {
@@ -108,6 +110,11 @@ class DspSimulatorWorker
 
 }  // namespace offload
 
+struct MpegFrameState {
+    bool clipEnded = false;
+    size_t bytesPending = 0;
+};
+
 class DriverOffloadStubImpl : public DriverStubImpl {
   public:
     explicit DriverOffloadStubImpl(const StreamContext& context);
@@ -122,11 +129,17 @@ class DriverOffloadStubImpl : public DriverStubImpl {
 
   private:
     ::android::status_t startWorkerIfNeeded();
+    ::android::status_t handleApeTransfer(void* buffer, size_t frameCount,
+                                          size_t* actualFrameCount);
+    ::android::status_t handleMpegTransfer(void* buffer, size_t frameCount,
+                                           size_t* actualFrameCount);
+    ::android::status_t (DriverOffloadStubImpl::*mTransferHandler)(void*, size_t, size_t*);
 
     const int64_t mBufferNotifyFrames;
     offload::DspSimulatorState mState;
     offload::DspSimulatorWorker mDspWorker;
     bool mDspWorkerStarted = false;
+    MpegFrameState mMpegFrameState;
 };
 
 class StreamOffloadStub : public StreamCommonImpl, public DriverOffloadStubImpl {
