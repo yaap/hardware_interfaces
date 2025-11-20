@@ -39,7 +39,6 @@ namespace hardware {
 namespace usb {
 
 constexpr char kTypecPath[] = "/sys/class/typec/";
-constexpr char kUsbPdPath[] = "/sys/class/usb_power_delivery/";
 
 /*------------------------- Epoll Utility Functions --------------------------*/
 int addEpollFd(int epfd, int fd, uint32_t events) {
@@ -55,7 +54,7 @@ int addEpollFd(int epfd, int fd, uint32_t events) {
     return ret;
 }
 
-int addEpollFile(int epfd, const string& filePath, int fileFd, uint32_t events) {
+int addEpollFile(int epfd, const string& filePath, uint32_t events) {
     struct epoll_event ev;
 
     unique_fd fd(open(filePath.c_str(), O_RDONLY));
@@ -73,9 +72,8 @@ int addEpollFile(int epfd, const string& filePath, int fileFd, uint32_t events) 
         return -1;
     }
 
-    fileFd = std::move(fd);
     ALOGI("epoll registered %s", filePath.c_str());
-    return 0;
+    return fd.get();
 }
 
 int armTimerFd(int fd, int ms) {
@@ -116,6 +114,7 @@ Status getTypeCPortNames(const char* typecPath, std::map<string, bool>* names) {
         struct dirent* ep;
 
         while ((ep = readdir(dp))) {
+            char* dname = ep->d_name;
             if (ep->d_type == DT_LNK) {
                 if (string::npos == string(ep->d_name).find("-partner")) {
                     std::map<string, bool>::const_iterator portName = names->find(ep->d_name);
@@ -123,7 +122,7 @@ Status getTypeCPortNames(const char* typecPath, std::map<string, bool>* names) {
                         names->insert({ep->d_name, false});
                     }
                 } else {
-                    (*names)[std::strtok(ep->d_name, "-")] = true;
+                    (*names)[strtok_r(dname, "-", &dname)] = true;
                 }
             }
         }

@@ -39,10 +39,11 @@ namespace usb {
 int addEpollFd(int epfd, int fd, uint32_t events);
 
 /*
- * addEpollFd - create an fd for the file listed in filePath, move it to fildFd, and then add it
- *              to the epollfd(epfd) with the provided events
+ * addEpollFd - create an fd for the file listed in filePath and then add it to the
+ *              epollfd(epfd) with the provided events. The fd is then returned, or
+ *              -1 if the fd could not be created or be added to the epoll.
  */
-int addEpollFile(int epfd, const string& filePath, int fileFd, uint32_t events);
+int addEpollFile(int epfd, const string& filePath, uint32_t events);
 
 /*
  * armTimerFd - arm a timerFd to expire in the given number of milliseconds. Setting the timer
