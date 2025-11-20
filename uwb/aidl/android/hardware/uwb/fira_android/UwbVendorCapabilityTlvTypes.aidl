@@ -49,7 +49,17 @@ enum UwbVendorCapabilityTlvTypes {
     SUPPORTED_ANTENNA_MODES = 0xC1,
 
     /**
-     * Int value to indicate max supported session count
+     * Int value for maximum number of concurrent sessions of any type.
+     *
+     * This value represents the total limit across all session types.
+     *
+     * See also:
+     *
+     *  - CCC_SUPPORTED_MAX_RANGING_SESSION_NUMBER: The maximum number of CCC
+     *    ranging sessions.
+     *  - SUPPORTED_MAX_RANGING_SESSION_NUMBER: The maximum number of FiRa
+     *    ranging sessions.
+     *
      */
     SUPPORTED_MAX_SESSION_COUNT = 0xEB,
 
@@ -152,7 +162,15 @@ enum UwbVendorCapabilityTlvTypes {
     CCC_SUPPORTED_RAN_MULTIPLIER = 0xA7,
 
     /**
-     * Int value to indicate supported max number of ccc ranging sessions
+     * Int value to indicate supported max number of ccc ranging sessions.
+     *
+     * This is the maximum number of CCC ranging sessions that can be supported
+     * by the device.
+     *
+     * See also:
+     *
+     * - SUPPORTED_MAX_SESSION_COUNT: The maximum number of all ranging sessions
+     *   (FiRa/CCC/Aliro/Radar) that can be supported by UWBS.
      */
     CCC_SUPPORTED_MAX_RANGING_SESSION_NUMBER = 0xA8,
 
@@ -228,7 +246,16 @@ enum UwbVendorCapabilityTlvTypes {
     SUPPORTED_MIN_SLOT_DURATION_RSTU = 0xE8,
 
     /**
-     * Int value to indicate supported max number of fira ranging sessions
+     * Int value to indicate supported max number of fira ranging sessions.
+     *
+     * This is the maximum number of FiRa ranging sessions that can be supported
+     * by the device.
+     *
+     * See also:
+     *
+     *  - SUPPORTED_MAX_SESSION_COUNT : The maximum number of all ranging sessions
+     *    (FiRa/CCC/Aliro/Radar) that can be supported
+     *    by the device.
      */
     SUPPORTED_MAX_RANGING_SESSION_NUMBER = 0xE9,
 
