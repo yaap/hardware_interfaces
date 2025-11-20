@@ -225,6 +225,16 @@ class DebugCentral {
   virtual std::string& GetCoredumpTimestampString() = 0;
 
   /**
+   * @brief Dumps a partial HAL log to logcat.
+   *
+   * This method is used to output a portion of the Bluetooth HAL's internal
+   * log to the Android logcat. This is primarily for debugging and diagnostic
+   * purposes, allowing developers to inspect recent HAL activity.
+   *
+   */
+  virtual void DumpPartialHalLogToLogcat() = 0;
+
+  /**
    * @brief A helper function that returns the std::string format of
    * CoredumpErrorCode.
    *

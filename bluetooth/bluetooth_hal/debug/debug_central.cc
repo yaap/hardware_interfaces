@@ -142,8 +142,11 @@ class DebugCentralImpl : public DebugCentral {
 
   std::string& GetCoredumpTimestampString() override;
 
+  void DumpPartialHalLogToLogcat() override;
+
  private:
   static constexpr int kMaxHalLogLines = 400;
+  static constexpr size_t kMaxPartialLogLines = 50;
   std::string serial_debug_port_;
   std::string crash_timestamp_;
   std::recursive_mutex mutex_;
@@ -344,6 +347,22 @@ bool DebugCentralImpl::OkToGenerateCrashDump(uint8_t error_code) {
       ThreadHandler::GetHandler().IsDaemonRunning();
 
   return is_thread_dispatcher_working || debug_monitor_.IsBluetoothEnabled();
+}
+
+void DebugCentralImpl::DumpPartialHalLogToLogcat() {
+  size_t skip_count = 0;
+  if (hal_log_.size() > kMaxPartialLogLines) {
+    skip_count = hal_log_.size() - kMaxPartialLogLines;
+  }
+
+  auto it = hal_log_.begin();
+  std::advance(it, skip_count);
+
+  for (; it != hal_log_.end(); ++it) {
+    auto timestamp = it->second;
+    auto log = it->first;
+    LOG(INFO) << __func__ << ": " << timestamp << " - " << log;
+  }
 }
 
 std::string DebugCentralImpl::DumpBluetoothHalLog(
