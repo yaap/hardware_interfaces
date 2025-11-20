@@ -26,6 +26,14 @@ class RadioNetwork : public minimal::RadioNetwork {
   protected:
     ::ndk::ScopedAStatus getDataRegistrationState(int32_t serial) override;
     ::ndk::ScopedAStatus getSignalStrength(int32_t serial) override;
+    ::ndk::ScopedAStatus setNetworkSelectionModeAutomatic(int32_t serial) override;
+    ::ndk::ScopedAStatus setNetworkSelectionModeManual(
+            int32_t serial, const std::string& opNumeric,
+            aidl::android::hardware::radio::AccessNetwork ran) override;
+    ::ndk::ScopedAStatus getNetworkSelectionMode(int32_t serial) override;
+
+  private:
+    bool mIsManualNetworkSelectionMode = false;
 };
 
 }  // namespace android::hardware::radio::service
