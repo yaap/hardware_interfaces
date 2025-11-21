@@ -574,6 +574,7 @@ class GraphicsTestsBase {
             case PixelFormat::RAW_OPAQUE:
             case PixelFormat::RAW10:
             case PixelFormat::RAW12:
+            case PixelFormat::RAW14:
             case PixelFormat::Y8:
             case PixelFormat::Y16:
             case PixelFormat::YV12:
@@ -640,6 +641,7 @@ class GraphicsTestsBase {
             case PixelFormat::RAW_OPAQUE:
             case PixelFormat::RAW10:
             case PixelFormat::RAW12:
+            case PixelFormat::RAW14:
             case PixelFormat::Y8:
             case PixelFormat::Y16:
             case PixelFormat::YV12:
@@ -760,6 +762,7 @@ class GraphicsTestsBase {
             case PixelFormat::RAW_OPAQUE:
             case PixelFormat::RAW10:
             case PixelFormat::RAW12:
+            case PixelFormat::RAW14:
             case PixelFormat::Y8:
             case PixelFormat::Y16:
             case PixelFormat::YV12:
@@ -815,6 +818,7 @@ class GraphicsTestsBase {
             case PixelFormat::RAW_OPAQUE:
             case PixelFormat::RAW10:
             case PixelFormat::RAW12:
+            case PixelFormat::RAW14:
             case PixelFormat::Y8:
             case PixelFormat::Y16:
             case PixelFormat::YV12:
@@ -872,6 +876,7 @@ class GraphicsMapperStableCRgbaLockTests
             case PixelFormat::RAW_OPAQUE:
             case PixelFormat::RAW10:
             case PixelFormat::RAW12:
+            case PixelFormat::RAW14:
             case PixelFormat::RGBA_1010102:
             case PixelFormat::Y8:
             case PixelFormat::Y16:
@@ -1412,6 +1417,56 @@ TEST_P(GraphicsMapperStableCTests, Lock_RAW12) {
     if (!buffer) {
         ASSERT_FALSE(isSupported(info));
         GTEST_SUCCEED() << "RAW12 format is unsupported";
+        return;
+    }
+
+    // lock buffer for writing
+    const ARect region{0, 0, info.width, info.height};
+    auto handle = buffer->import();
+    uint8_t* data = nullptr;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.lock(*handle, static_cast<int64_t>(info.usage),
+                                                     region, -1, (void**)&data));
+
+    auto decodeResult = getStandardMetadata<StandardMetadataType::PLANE_LAYOUTS>(*handle);
+    ASSERT_TRUE(decodeResult.has_value());
+    const auto& planeLayouts = *decodeResult;
+
+    ASSERT_EQ(1, planeLayouts.size());
+    auto planeLayout = planeLayouts[0];
+
+    EXPECT_EQ(0, planeLayout.sampleIncrementInBits);
+    EXPECT_EQ(1, planeLayout.horizontalSubsampling);
+    EXPECT_EQ(1, planeLayout.verticalSubsampling);
+
+    ASSERT_EQ(1, planeLayout.components.size());
+    auto planeLayoutComponent = planeLayout.components[0];
+
+    EXPECT_EQ(PlaneLayoutComponentType::RAW,
+              static_cast<PlaneLayoutComponentType>(planeLayoutComponent.type.value));
+    EXPECT_EQ(0, planeLayoutComponent.offsetInBits % 8);
+    EXPECT_EQ(-1, planeLayoutComponent.sizeInBits);
+
+    int releaseFence = -1;
+    ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
+    if (releaseFence != -1) {
+        close(releaseFence);
+    }
+}
+
+TEST_P(GraphicsMapperStableCTests, Lock_RAW14) {
+    BufferDescriptorInfo info{
+            .name = {"VTS_TEMP"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 1,
+            .format = PixelFormat::RAW14,
+            .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
+            .reservedSize = 0,
+    };
+    auto buffer = allocate(info, false);
+    if (!buffer) {
+        ASSERT_FALSE(isSupported(info));
+        GTEST_SUCCEED() << "RAW14 format is unsupported";
         return;
     }
 
