@@ -185,9 +185,10 @@ ndk::ScopedAStatus Module::createStreamContext(
     // Since this is a private method, it is assumed that
     // validity of the portConfigId has already been checked.
     int32_t minimumStreamBufferSizeFrames = 0;
-    if (!calculateBufferSizeFrames(
-                portConfigIt->format.value(), nominalLatencyMs,
-                portConfigIt->sampleRate.value().value, &minimumStreamBufferSizeFrames).isOk()) {
+    if (!calculateBufferSizeFrames(portConfigIt->format.value(), portConfigIt->flags.value(),
+                                   nominalLatencyMs, portConfigIt->sampleRate.value().value,
+                                   &minimumStreamBufferSizeFrames)
+                 .isOk()) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
     if (in_bufferSizeFrames < minimumStreamBufferSizeFrames) {
@@ -392,8 +393,9 @@ int32_t Module::getNominalLatencyMs(const AudioPortConfig&) {
 }
 
 ndk::ScopedAStatus Module::calculateBufferSizeFrames(
-        const ::aidl::android::media::audio::common::AudioFormatDescription &format,
-        int32_t latencyMs, int32_t sampleRateHz, int32_t *bufferSizeFrames) {
+        const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+        const AudioIoFlags& /*flags*/, int32_t latencyMs, int32_t sampleRateHz,
+        int32_t* bufferSizeFrames) {
     if (format.type == AudioFormatType::PCM) {
         *bufferSizeFrames = calculateBufferSizeFramesForPcm(latencyMs, sampleRateHz);
         return ndk::ScopedAStatus::ok();
@@ -1187,8 +1189,9 @@ ndk::ScopedAStatus Module::setAudioPatch(const AudioPatch& in_requested, AudioPa
     auto maxSampleRateIt = std::max_element(sampleRates.begin(), sampleRates.end());
     const int32_t latencyMs = getNominalLatencyMs(*(maxSampleRateIt->second));
     if (!calculateBufferSizeFrames(
-                maxSampleRateIt->second->format.value(), latencyMs, maxSampleRateIt->first,
-                &_aidl_return->minimumStreamBufferSizeFrames).isOk()) {
+                 maxSampleRateIt->second->format.value(), maxSampleRateIt->second->flags.value(),
+                 latencyMs, maxSampleRateIt->first, &_aidl_return->minimumStreamBufferSizeFrames)
+                 .isOk()) {
         if (patchesBackup.has_value()) {
             mPatches = std::move(*patchesBackup);
         }

@@ -54,13 +54,16 @@ ndk::ScopedAStatus ModulePrimary::getTelephony(std::shared_ptr<ITelephony>* _aid
 
 ndk::ScopedAStatus ModulePrimary::calculateBufferSizeFrames(
         const ::aidl::android::media::audio::common::AudioFormatDescription& format,
-        int32_t latencyMs, int32_t sampleRateHz, int32_t* bufferSizeFrames) {
-    if (format.type != ::aidl::android::media::audio::common::AudioFormatType::PCM &&
-        StreamOffloadStub::getSupportedEncodings().count(format.encoding)) {
+        const ::aidl::android::media::audio::common::AudioIoFlags& flags, int32_t latencyMs,
+        int32_t sampleRateHz, int32_t* bufferSizeFrames) {
+    if ((format.type != ::aidl::android::media::audio::common::AudioFormatType::PCM &&
+         StreamOffloadStub::getSupportedEncodings().count(format.encoding)) ||
+        common::isPcmOffload(format, flags)) {
         *bufferSizeFrames = sampleRateHz / 2;  // 1/2 of a second.
         return ndk::ScopedAStatus::ok();
     }
-    return Module::calculateBufferSizeFrames(format, latencyMs, sampleRateHz, bufferSizeFrames);
+    return Module::calculateBufferSizeFrames(format, flags, latencyMs, sampleRateHz,
+                                             bufferSizeFrames);
 }
 
 ndk::ScopedAStatus ModulePrimary::createInputStream(StreamContext&& context,

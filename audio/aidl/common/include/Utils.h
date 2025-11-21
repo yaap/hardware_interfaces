@@ -240,4 +240,20 @@ constexpr bool isAudioMimeType(std::string_view mimeType) {
     return mimeType.starts_with(audioPrefix) && mimeType.size() > audioPrefix.size();
 }
 
+constexpr bool hasNonblockingOffloadFlag(
+        const ::aidl::android::media::audio::common::AudioIoFlags& flags) {
+    return flags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::Tag::output &&
+           areAllBitPositionFlagsSet(
+                   flags.get<::aidl::android::media::audio::common::AudioIoFlags::Tag::output>(),
+                   {::aidl::android::media::audio::common::AudioOutputFlags::COMPRESS_OFFLOAD,
+                    ::aidl::android::media::audio::common::AudioOutputFlags::NON_BLOCKING});
+}
+
+constexpr bool isPcmOffload(
+        const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+        const ::aidl::android::media::audio::common::AudioIoFlags& flags) {
+    return format.type == ::aidl::android::media::audio::common::AudioFormatType::PCM &&
+           hasNonblockingOffloadFlag(flags);
+}
+
 }  // namespace aidl::android::hardware::audio::common
