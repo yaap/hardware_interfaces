@@ -31,7 +31,7 @@ Bluetooth::Bluetooth() {
     mScoConfig.isNrecEnabled = Boolean{false};
     mScoConfig.mode = ScoConfig::Mode::SCO;
     mHfpConfig.isEnabled = Boolean{false};
-    mHfpConfig.sampleRate = Int{8000};
+    mHfpConfig.sampleRate = Int{32000};
     mHfpConfig.volume = Float{HfpConfig::VOLUME_MAX};
 }
 
@@ -51,6 +51,7 @@ ndk::ScopedAStatus Bluetooth::setScoConfig(const ScoConfig& in_config, ScoConfig
     *_aidl_return = mScoConfig;
     LOG(DEBUG) << __func__ << ": received " << in_config.toString() << ", returning "
                << _aidl_return->toString();
+    if (mHandler) return mHandler();
     return ndk::ScopedAStatus::ok();
 }
 
@@ -77,6 +78,7 @@ ndk::ScopedAStatus Bluetooth::setHfpConfig(const HfpConfig& in_config, HfpConfig
     *_aidl_return = mHfpConfig;
     LOG(DEBUG) << __func__ << ": received " << in_config.toString() << ", returning "
                << _aidl_return->toString();
+    if (mHandler) return mHandler();
     return ndk::ScopedAStatus::ok();
 }
 
