@@ -72,4 +72,12 @@ parcelable MloLink {
      * Channel bandwidth
      */
     WifiChannelWidthInMhz channelBandwidth;
+    /**
+     * Max number of Tx spatial streams
+     */
+    int maxNumberTxSpatialStreams;
+    /**
+     * Max number of Rx spatial streams
+     */
+    int maxNumberRxSpatialStreams;
 }
