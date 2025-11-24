@@ -26,6 +26,7 @@ use android_hardware_tv_mediaquality::aidl::android::hardware::tv::mediaquality:
     ParamCapability::ParamCapability,
     ParameterName::ParameterName,
     PictureParameters::PictureParameters,
+    PanelTechnologyType::PanelTechnologyType,
     ISoundProfileAdjustmentListener::ISoundProfileAdjustmentListener,
     ISoundProfileChangedListener::ISoundProfileChangedListener,
     SoundParameters::SoundParameters,
@@ -59,6 +60,7 @@ pub struct MediaQualityService {
     sound_profile_changed_listener: Arc<Mutex<Option<Strong<dyn ISoundProfileChangedListener>>>>,
     equalizer_capabilities: Arc<Mutex<EqualizerCapabilities>>,
     equalizer_settings: Arc<Mutex<EqualizerDetail>>,
+    oled_panel_supported: Arc<Mutex<bool>>,
 }
 
 impl MediaQualityService {
@@ -95,6 +97,7 @@ impl MediaQualityService {
                 band10kHz: 0,
                 bands: vec![],
             })),
+            oled_panel_supported: Arc::new(Mutex::new(true)),
         }
     }
 }
@@ -357,6 +360,25 @@ impl IMediaQuality for MediaQualityService {
         let mut settings = self.equalizer_settings.lock().unwrap();
         *settings = detail.clone();
         Ok(())
+    }
+
+    fn isDisplayTechnologySupported(
+        &self,
+        panel_technology: PanelTechnologyType,
+    ) -> binder::Result<bool> {
+        println!(
+            "isDisplayTechnologySupported called with type: {:?}",
+            panel_technology
+        );
+        match panel_technology {
+            PanelTechnologyType::OLED => {
+                let supported = self.oled_panel_supported.lock().unwrap();
+                Ok(*supported)
+            }
+            _ => {
+                Ok(false)
+            }
+        }
     }
 }
 
