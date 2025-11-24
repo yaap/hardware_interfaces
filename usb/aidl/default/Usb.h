@@ -16,13 +16,15 @@
 
 #pragma once
 
-#include <android-base/file.h>
 #include <aidl/android/hardware/usb/BnUsb.h>
 #include <aidl/android/hardware/usb/BnUsbCallback.h>
+#include <android-base/file.h>
+#include <libusbutils/UsbPowerProfileMonitor.h>
 #include <utils/Log.h>
 
 #define UEVENT_MSG_LEN     2048
 #define UEVENT_MAX_EVENTS  64
+#define EPOLL_MAX_EVENTS 64
 // The type-c stack waits for 4.5 - 5.5 secs before declaring a port non-pd.
 // The -partner directory would not be created until this is done.
 // Having a margin of ~3 secs for the directory and other related bookeeping
@@ -36,9 +38,10 @@ namespace usb {
 
 using ::aidl::android::hardware::usb::IUsbCallback;
 using ::aidl::android::hardware::usb::PortRole;
+using ::aidl::android::hardware::usb::UsbPowerProfileMonitor;
+using ::android::sp;
 using ::android::base::ReadFileToString;
 using ::android::base::WriteStringToFile;
-using ::android::sp;
 using ::ndk::ScopedAStatus;
 using ::std::shared_ptr;
 using ::std::string;
@@ -72,6 +75,9 @@ struct Usb : public BnUsb {
     pthread_mutex_t mPartnerLock;
     // Variable to signal partner coming back online after type switch
     bool mPartnerUp;
+    // UsbPowerProfileMonitor
+    std::unique_ptr<UsbPowerProfileMonitor> mPowerMonitor;
+
   private:
     pthread_t mPoll;
 };

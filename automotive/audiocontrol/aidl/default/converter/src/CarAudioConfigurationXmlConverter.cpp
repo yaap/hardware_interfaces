@@ -285,6 +285,7 @@ std::string outTypeToOutAudioDevice(const std::string& device) {
             {"TYPE_BLE_HEADSET", "AUDIO_DEVICE_OUT_BLE_HEADSET"},
             {"TYPE_BLE_SPEAKER", "AUDIO_DEVICE_OUT_BLE_SPEAKER"},
             {"TYPE_BLE_BROADCAST", "AUDIO_DEVICE_OUT_BLE_BROADCAST"},
+            {"TYPE_BLE_HEARING_AID", "AUDIO_DEVICE_OUT_BLE_HEARING_AID"},
     };
 
     if (!device.starts_with("TYPE_")) {

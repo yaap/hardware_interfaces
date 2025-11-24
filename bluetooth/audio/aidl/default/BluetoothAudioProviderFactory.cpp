@@ -20,6 +20,7 @@
 
 #include <BluetoothAudioCodecs.h>
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 
 #include "A2dpOffloadAudioProvider.h"
 #include "A2dpSoftwareAudioProvider.h"
@@ -162,7 +163,8 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
 
   if (session_type == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
       session_type == SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
-    if (!kEnableA2dpCodecExtensibility) {
+    if (!::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility,
+                                          false)) {
       // Implementing getProviderInfo equates supporting
       // A2dp codec extensibility.
       return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_TRANSACTION);

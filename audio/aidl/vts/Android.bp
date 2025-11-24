@@ -79,7 +79,15 @@ cc_test {
     ],
     data: [
         "data/sine882hz_44100_3s.ape",
+        "data/sine882hz_44100_3s_id3v1.mp3",
+        "data/sine882hz_44100_3s_id3v1_v2.mp3",
+        "data/sine882hz_44100_3s_id3v1_v2_partialID3v1Tag.mp3",
+        "data/sine882hz_44100_3s_id3v2.mp3",
+        "data/sine882hz_44100_3s_id3v2_partialHeader.mp3",
         "data/sine960hz_48000_3s.ape",
+        "data/sine960hz_48000_3s_id3v1.mp3",
+        "data/sine960hz_48000_3s_id3v1_v2.mp3",
+        "data/sine960hz_48000_3s_id3v2.mp3",
     ],
     test_config_template: "VtsHalAudioCoreTargetTestTemplate.xml",
 }

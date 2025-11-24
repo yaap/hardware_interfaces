@@ -21,6 +21,7 @@
 #include <system/graphics.h>
 #include <ui/Rect.h>
 #include <utils/Mutex.h>
+#include <vector>
 
 namespace android {
 namespace hardware {
@@ -60,6 +61,10 @@ class HandleImporter {
     bool isSmpte2086Present(const buffer_handle_t& buf);
     bool isSmpte2094_10Present(const buffer_handle_t& buf);
     bool isSmpte2094_40Present(const buffer_handle_t& buf);
+
+    // Query and set Gralloc5 metadata
+    bool isSmpte2094_50Present(const buffer_handle_t& buf);
+    status_t setSmpte2094_50(const buffer_handle_t& buf, const std::vector<uint8_t>& metadata);
 
   private:
     void initializeLocked();

@@ -127,9 +127,9 @@ func (g *vintfCompatibilityMatrixRule) generateValidateBuildAction(ctx android.M
 
 func (g *vintfCompatibilityMatrixRule) getSchema(ctx android.ModuleContext) android.OptionalPath {
 	schemaModule := ctx.GetDirectDepProxyWithTag(schemaModuleName, schemaTag)
-	sfp, ok := android.OtherModuleProvider(ctx, schemaModule, android.SourceFilesInfoProvider)
+	sfp := android.OtherModulePointerProviderOrDefault(ctx, schemaModule, android.CommonModuleInfoProvider).SourceFiles
 
-	if !ok {
+	if sfp == nil {
 		ctx.ModuleErrorf("Implicit dependency %q has no srcs", ctx.OtherModuleName(schemaModule))
 		return android.OptionalPath{}
 	}

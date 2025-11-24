@@ -416,7 +416,24 @@ bool StreamInWorkerLogic::readMmap(StreamDescriptor::Reply* reply) {
 
 const std::string StreamOutWorkerLogic::kThreadName = "writer";
 
+using StreamOutWorkerLogicCall =
+        ::android::hardware::audio::common::PostponedMethodCall<StreamOutWorkerLogic>;
+
 void StreamOutWorkerLogic::onBufferStateChange(size_t bufferFramesLeft) {
+    // It is assumed that all 'on...StateChange' callbacks originate from the same thread,
+    // thus it is impossible to get one callback while processing another.
+    if (!mCallTasks.tryObtainOrPush(StreamOutWorkerLogicCall::create(
+                this, &StreamOutWorkerLogic::onBufferStateChangeImpl, (size_t)bufferFramesLeft))) {
+        // Call queued, will be executed after 'cycle' ends processing command.
+        return;
+    }
+    onBufferStateChangeImpl(bufferFramesLeft);
+    if (!mCallTasks.release()) {
+        LOG(FATAL) << __func__ << ": call tasks queue release failed";
+    }
+}
+
+void StreamOutWorkerLogic::onBufferStateChangeImpl(size_t bufferFramesLeft) {
     const StreamDescriptor::State state = mState;
     const DrainState drainState = mDrainState;
     LOG(DEBUG) << __func__ << ": state: " << toString(state) << ", drainState: " << drainState
@@ -437,6 +454,19 @@ void StreamOutWorkerLogic::onBufferStateChange(size_t bufferFramesLeft) {
 }
 
 void StreamOutWorkerLogic::onClipStateChange(size_t clipFramesLeft, bool hasNextClip) {
+    if (!mCallTasks.tryObtainOrPush(
+                StreamOutWorkerLogicCall::create(this, &StreamOutWorkerLogic::onClipStateChangeImpl,
+                                                 (size_t)clipFramesLeft, (bool)hasNextClip))) {
+        // Call queued, will be executed after 'cycle' ends processing command.
+        return;
+    }
+    onClipStateChangeImpl(clipFramesLeft, hasNextClip);
+    if (!mCallTasks.release()) {
+        LOG(FATAL) << __func__ << ": call tasks queue release failed";
+    }
+}
+
+void StreamOutWorkerLogic::onClipStateChangeImpl(size_t clipFramesLeft, bool hasNextClip) {
     const DrainState drainState = mDrainState;
     std::shared_ptr<IStreamCallback> asyncCallback = mContext->getAsyncCallback();
     LOG(DEBUG) << __func__ << ": drainState: " << drainState << "; clipFramesLeft "
@@ -499,7 +529,14 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                   << kThreadName;
     StreamDescriptor::Reply reply{};
     reply.status = STATUS_BAD_VALUE;
+    ::android::hardware::audio::common::PostponedMethodsCaller<StreamOutWorkerLogic> caller(
+            mCallTasks);
     using Tag = StreamDescriptor::Command::Tag;
+    // Do not need to obtain the call tasks queue for commands that do not change the state.
+    if (command.getTag() != Tag::halReservedExit && command.getTag() != Tag::getStatus) {
+        // Waits until any ongoing execution of 'on...StateChange' call finishes.
+        caller.obtainQueue();
+    }
     switch (command.getTag()) {
         case Tag::halReservedExit: {
             const int32_t cookie = command.get<Tag::halReservedExit>();

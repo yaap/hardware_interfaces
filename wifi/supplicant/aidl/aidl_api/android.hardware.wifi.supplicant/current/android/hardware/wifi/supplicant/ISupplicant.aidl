@@ -49,5 +49,6 @@ interface ISupplicant {
   oneway void terminate();
   void registerNonStandardCertCallback(in android.hardware.wifi.supplicant.INonStandardCertCallback callback);
   void setCurrentUserIdentity(in int userId);
+  @PropagateAllowBlocking android.hardware.wifi.supplicant.ISupplicantWifiRttController createRttController(in String ifName);
   const int EXT_RADIO_WORK_TIMEOUT_IN_SECS = 10;
 }

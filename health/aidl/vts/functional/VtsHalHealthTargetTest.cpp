@@ -259,22 +259,49 @@ TEST_P(HealthAidl, getChargingPolicy) {
 }
 
 /*
- * Tests that setChargingPolicy() writes the value and compared the returned
+ * Tests that setChargingPolicy() writes LONG_LIFE and compared the returned
  * value by getChargingPolicy() from interface IHealth.
  */
-TEST_P(HealthAidl, setChargingPolicy) {
+TEST_P(HealthAidl, setChargingPolicyLongLife) {
     int32_t version = 0;
     auto status = health->getInterfaceVersion(&version);
     ASSERT_TRUE(status.isOk()) << status;
     if (version < 2) {
         GTEST_SKIP() << "Support in health hal v2 for EU Ecodesign";
     }
-
     BatteryChargingPolicy value;
 
-    /* set ChargingPolicy*/
+    /* set ChargingPolicy LONG_LIFE */
     status = health->setChargingPolicy(BatteryChargingPolicy::LONG_LIFE);
     ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    status = health->getChargingPolicy(&value);
+    ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    ASSERT_EQ(value, BatteryChargingPolicy::LONG_LIFE);
+}
+
+/*
+ * Tests that setChargingPolicy() writes FORCE_FULL_CHARGE and compared the returned
+ * value by getChargingPolicy() from interface IHealth.
+ */
+TEST_P(HealthAidl, setChargingPolicyForceFullCharge) {
+    int32_t version = 0;
+    auto status = health->getInterfaceVersion(&version);
+    ASSERT_TRUE(status.isOk()) << status;
+    if (version < 5) {
+        GTEST_SKIP() << "Support in health hal v5";
+    }
+    BatteryChargingPolicy value;
+
+    /* set ChargingPolicy FORCE_FULL_CHARGE */
+    status = health->setChargingPolicy(BatteryChargingPolicy::FORCE_FULL_CHARGE);
+    ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    status = health->getChargingPolicy(&value);
+    ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    ASSERT_EQ(value, BatteryChargingPolicy::FORCE_FULL_CHARGE);
 }
 
 MATCHER_P(IsValidHealthData, version, "") {

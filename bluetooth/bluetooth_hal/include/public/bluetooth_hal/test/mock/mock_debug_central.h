@@ -53,6 +53,7 @@ class MockDebugCentral : public DebugCentral {
   MOCK_METHOD(void, ResetCoredumpGenerator, (), (override));
   MOCK_METHOD(bool, IsCoredumpGenerated, (), (override));
   MOCK_METHOD(std::string&, GetCoredumpTimestampString, (), (override));
+  MOCK_METHOD(void, DumpPartialHalLogToLogcat, (), (override));
 
   static void SetMockDebugCentral(MockDebugCentral* mock_debug_central);
 

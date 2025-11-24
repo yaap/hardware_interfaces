@@ -39,4 +39,8 @@ enum PairwiseCipherMask {
      * GCMP-256 Pairwise Cipher
      */
     GCMP_256 = 1 << 8,
+    /**
+     * CCMP-256 Pairwise Cipher
+     */
+    CCMP_256 = 1 << 9,
 }

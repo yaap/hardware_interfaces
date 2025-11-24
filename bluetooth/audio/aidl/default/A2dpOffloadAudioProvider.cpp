@@ -21,6 +21,7 @@
 #include <BluetoothAudioCodecs.h>
 #include <BluetoothAudioSessionReport.h>
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 
 #include "A2dpOffloadCodecAac.h"
 #include "A2dpOffloadCodecSbc.h"
@@ -120,7 +121,7 @@ ndk::ScopedAStatus A2dpOffloadAudioProvider::onSessionReady(
 ndk::ScopedAStatus A2dpOffloadAudioProvider::parseA2dpConfiguration(
     const CodecId& codec_id, const std::vector<uint8_t>& configuration,
     CodecParameters* codec_parameters, A2dpStatus* _aidl_return) {
-  if (!kEnableA2dpCodecExtensibility) {
+  if (!::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility, false)) {
     // parseA2dpConfiguration must not be implemented if A2dp codec
     // extensibility is not supported.
     return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_TRANSACTION);
@@ -142,7 +143,7 @@ ndk::ScopedAStatus A2dpOffloadAudioProvider::getA2dpConfiguration(
     const std::vector<A2dpRemoteCapabilities>& remote_a2dp_capabilities,
     const A2dpConfigurationHint& hint,
     std::optional<audio::A2dpConfiguration>* _aidl_return) {
-  if (!kEnableA2dpCodecExtensibility) {
+  if (!::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility, false)) {
     // getA2dpConfiguration must not be implemented if A2dp codec
     // extensibility is not supported.
     return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_TRANSACTION);

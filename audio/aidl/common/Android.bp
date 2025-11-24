@@ -79,6 +79,7 @@ cc_test {
     ],
     srcs: [
         "tests/streamworker_tests.cpp",
+        "tests/synchronoustaskqueue_tests.cpp",
         "tests/utils_tests.cpp",
     ],
     test_suites: [

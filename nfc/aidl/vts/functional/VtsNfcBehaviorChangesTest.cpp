@@ -578,7 +578,9 @@ TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test_pattern) {
         GTEST_SKIP() << "Skipping test for board API level < 202604";
     }
 
-    std::vector<uint8_t> exit_frame = {{0x01, 0x02, 0x03, 0x04}};
+    std::vector<uint8_t> exit_frame = {{0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+                                        0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+                                        0x0d, 0x0e, 0x0f, 0x10}};
     std::vector<uint8_t> mask = {{0xFF, 0xFF, 0x00, 0x00}};
     tNFC_STATUS status = nfaSetPassiveObserverExitFrame(exit_frame, mask);
     ASSERT_EQ(status, NFA_STATUS_OK);
