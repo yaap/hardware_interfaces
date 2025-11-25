@@ -41,4 +41,6 @@ interface IEndpointCallback {
   oneway void onEndpointSessionOpenRequest(int sessionId, in android.hardware.contexthub.EndpointId destination, in android.hardware.contexthub.EndpointId initiator, in @nullable String serviceDescriptor);
   oneway void onCloseEndpointSession(int sessionId, in android.hardware.contexthub.Reason reason);
   oneway void onEndpointSessionOpenComplete(int sessionId);
+  oneway void onDataFlowHostConsumerRegistered(in android.hardware.contexthub.DataFlowConsumerHandle handle, in android.hardware.contexthub.EndpointId producerId, in android.hardware.contexthub.EndpointId consumerId, in @nullable android.hardware.contexthub.Message msg, int sessionId);
+  oneway void onDataFlowOffloadEndpointUnregistered(in android.hardware.contexthub.DataFlowId dataFlowId, in android.hardware.contexthub.EndpointId endpointId, in android.hardware.contexthub.EndpointId[] destinationIds);
 }

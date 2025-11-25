@@ -16,6 +16,8 @@
 
 package android.hardware.contexthub;
 
+import android.hardware.contexthub.DataFlowConsumerHandle;
+import android.hardware.contexthub.DataFlowId;
 import android.hardware.contexthub.EndpointId;
 import android.hardware.contexthub.EndpointInfo;
 import android.hardware.contexthub.Message;
@@ -115,4 +117,45 @@ oneway interface IEndpointCallback {
      *         onEndpointSessionOpenRequest(). This id is assigned by the host.
      */
     void onEndpointSessionOpenComplete(int sessionId);
+
+    /**
+     * Callback delivering a consumer handle for a data flow produced by an offload endpoint. The
+     * client (e.g. the Android framework) must check the endpoint permissions before forwarding
+     * this handle. On failure, the client must call onDataFlowHostConsumerUnregistered() to clean
+     * up HAL resources.
+     *
+     * @param handle The handle used to give the new consumer access to the data flow.
+     * @param producerId The endpoint which is sending the handle.
+     * @param consumerId The endpoint which will consume from the data flow.
+     * @param msg [optional] An optional message sent by the offload endpoint.
+     * @param sessionId [optional] An optional open session id between the data flow producer and
+     *         the destination endpoint to associate this call with. If msg is provided, this
+     *         session can be used to send a MessageDeliveryStatus in response. Ignored if set to
+     *         {@link IEndpointCommunication#SESSION_ID_INVALID}.
+     */
+    void onDataFlowHostConsumerRegistered(in DataFlowConsumerHandle handle,
+            in EndpointId producerId, in EndpointId consumerId, in @nullable Message msg,
+            int sessionId);
+
+    /**
+     * Callback indicating that an offload endpoint has stopped accessing a data flow. This will
+     * only notify a host endpoint that has not unregistered the data flow yet via
+     * IEndpointCommunication::unregisterDataFlowHostProducer() or
+     * IEndpointCommunication::unregisterDataFlowHostConsumer(). The HAL will not call this callback
+     * in the case that the offload endpoint crashed, as that is already communicated via
+     * onEndpointStopped().
+     *
+     * This callback is required to handle the case that an endpoint on the other side of the data
+     * flow has not correctly updated metadata in the shared data region(s) and notified the host
+     * endpoint. For a host consumer, this is a signal that it must immediately stop accessing the
+     * data flow. For a host producer, this is a signal that it should clean up any references to
+     * the consumer endpoint.
+     *
+     * @param dataFlowId The id of the data flow this callback is being sent for.
+     * @param endpointId The id of the endpoint that is no longer accessing the data flow.
+     * @param destinationIds The ids of the endpoints that should be notified. This will only
+     *         contain a single endpoint id for a data flow produced by a host endpoint.
+     */
+    void onDataFlowOffloadEndpointUnregistered(
+            in DataFlowId dataFlowId, in EndpointId endpointId, in EndpointId[] destinationIds);
 }

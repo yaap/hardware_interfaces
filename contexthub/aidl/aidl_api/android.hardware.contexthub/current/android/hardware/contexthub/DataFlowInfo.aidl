@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,14 +33,9 @@
 
 package android.hardware.contexthub;
 @VintfStability
-parcelable HubInfo {
-  long hubId;
-  android.hardware.contexthub.HubInfo.HubDetails hubDetails;
-  @nullable android.hardware.contexthub.SharedDataCapabilities sharedDataCapabilities;
-  const long HUB_ID_INVALID = 0;
-  const long HUB_ID_RESERVED = (-1) /* -1 */;
-  union HubDetails {
-    android.hardware.contexthub.ContextHubInfo contextHubInfo;
-    android.hardware.contexthub.VendorHubInfo vendorHubInfo;
-  }
+parcelable DataFlowInfo {
+  android.hardware.contexthub.SharedDataRegion region;
+  long metadataOffsetBytes;
+  android.hardware.contexthub.DataFlowNotificationFds notificationFds;
+  String debugName;
 }
