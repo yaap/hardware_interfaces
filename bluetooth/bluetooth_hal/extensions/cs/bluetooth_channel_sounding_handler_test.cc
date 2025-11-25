@@ -211,6 +211,13 @@ class BluetoothChannelSoundingHandlerTest : public Test {
 };
 
 TEST_F(BluetoothChannelSoundingHandlerTest, HandleCalibrationCommands) {
+  MockAndroidBaseWrapper mock_android_base_wrapper;
+  MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
+
+  EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _))
+      .Times(1)
+      .WillOnce(Return(true));
+
   const auto calibration_commands = std::vector<HalPacket>{
       HalPacket({0x01, 0x02, 0x03, 0x04}), HalPacket({0x01, 0x05, 0x06, 0x07})};
   EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)

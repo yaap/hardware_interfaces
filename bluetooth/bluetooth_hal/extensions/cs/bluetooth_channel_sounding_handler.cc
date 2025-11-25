@@ -181,8 +181,14 @@ bool BluetoothChannelSoundingHandler::GetVendorSpecificData(
 
   LOG(INFO) << __func__ << ": Send calibration commands.";
 
-  for (const auto& command : calibration_commands) {
-    SendCommand(command);
+  constexpr std::string_view kIsCalibrationEnabled =
+      "persist.vendor.bluetooth.cs_calibration_enabled";
+
+  if (AndroidBaseWrapper::GetWrapper().GetBoolProperty(
+          kIsCalibrationEnabled.data(), true)) {
+    for (const auto& command : calibration_commands) {
+      SendCommand(command);
+    }
   }
 
   *return_value =
