@@ -123,6 +123,19 @@ class ContextHub : public BnContextHub {
             std::unordered_set<int32_t> publishedDataFlowIds;
         };
 
+        struct DataFlow {
+            int32_t id;
+            EndpointId producerId;
+            DataFlowInfo info;
+            std::unordered_set<uint64_t> offloadConsumerIds;
+        };
+
+        struct EchoDataFlow {
+            int32_t id;
+            EndpointId offloadProducerId;
+            EndpointId hostConsumerId;
+        };
+
         //! Finds an endpoint in the range defined by the endpoints
         //! @return whether the endpoint was found
         template <typename Iter>
@@ -152,6 +165,16 @@ class ContextHub : public BnContextHub {
         std::mutex mSharedDataMutex;
         std::unordered_map<int32_t, AllocatedRegion> mAllocatedRegions;
         std::atomic<int32_t> mNextRegionId{1};
+
+        //! DataFlow storage
+        std::unordered_map<int32_t, DataFlow> mDataFlows;
+        std::mutex mEchoDataFlowMutex;
+        std::unordered_map<int32_t, EchoDataFlow> mEchoDataFlows;
+        std::atomic<int32_t> mNextDataFlowId{1};
+
+        // Helper function to create the echo data flow in echo service thread
+        void createEchoDataFlow(const EndpointId& offloadProducerId,
+                                const EndpointId& hostConsumerId, int32_t originalSessionId);
     };
 
     static constexpr uint32_t kMockHubId = 0;

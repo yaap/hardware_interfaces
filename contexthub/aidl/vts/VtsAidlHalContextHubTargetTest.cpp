@@ -32,12 +32,17 @@
 #include <sys/mman.h>
 #include <cerrno>
 
+#include <android-base/unique_fd.h>
+#include <fcntl.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 #include <cinttypes>
 #include <future>
 
 using ::android::ProcessState;
 using ::android::sp;
 using ::android::String16;
+using ::android::base::unique_fd;
 using ::android::binder::Status;
 using ::android::hardware::contexthub::AsyncEventType;
 using ::android::hardware::contexthub::BnEndpointCallback;
@@ -45,6 +50,7 @@ using ::android::hardware::contexthub::ContextHubInfo;
 using ::android::hardware::contexthub::ContextHubMessage;
 using ::android::hardware::contexthub::DataFlowConsumerHandle;
 using ::android::hardware::contexthub::DataFlowId;
+using ::android::hardware::contexthub::DataFlowInfo;
 using ::android::hardware::contexthub::EndpointId;
 using ::android::hardware::contexthub::EndpointInfo;
 using ::android::hardware::contexthub::ErrorCode;
@@ -67,6 +73,7 @@ using ::android::hardware::contexthub::SharedDataRegion;
 using ::android::hardware::contexthub::SharedDataRegionRequirements;
 using ::android::hardware::contexthub::vts_utils::kNonExistentAppId;
 using ::android::hardware::contexthub::vts_utils::waitForCallback;
+using ::android::os::ParcelFileDescriptor;
 
 // 6612b522-b717-41c8-b48d-c0b1cc64e142
 constexpr std::array<uint8_t, 16> kUuid = {0x66, 0x12, 0xb5, 0x22, 0xb7, 0x17, 0x41, 0xc8,
@@ -608,22 +615,6 @@ class TestEndpointCallback : public BnEndpointCallback {
         return Status::ok();
     }
 
-    Status onDataFlowHostConsumerRegistered(const DataFlowConsumerHandle& /*handle*/,
-                                            const EndpointId& /*producerId*/,
-                                            const EndpointId& /*consumerId*/,
-                                            const ::std::optional<Message>& /*msg*/,
-                                            int32_t /*sessionId*/) override {
-        // TODO(b/455420744): implement this for data flow testing.
-        return Status::ok();
-    }
-
-    Status onDataFlowOffloadEndpointUnregistered(
-            const DataFlowId& /*dataFlowId*/, const EndpointId& /*endpointId*/,
-            const std::vector<EndpointId>& /*destinationIds*/) override {
-        // TODO(b/455420744): implement this for data flow testing.
-        return Status::ok();
-    }
-
     bool wasOnEndpointSessionOpenCompleteCalled() {
         return mWasOnEndpointSessionOpenCompleteCalled;
     }
@@ -631,6 +622,89 @@ class TestEndpointCallback : public BnEndpointCallback {
     void resetWasOnEndpointSessionOpenCompleteCalled() {
         mWasOnEndpointSessionOpenCompleteCalled = false;
     }
+
+    DataFlowConsumerHandle deepCopyDataFlowConsumer(const DataFlowConsumerHandle& src) {
+        DataFlowConsumerHandle dst;
+        dst.id = src.id;
+
+        if (src.info.has_value()) {
+            dst.info.emplace();
+            dst.info->region.id = src.info->region.id;
+
+            // Deep copy SharedMemory
+            if (src.info->region.sharedMemory.has_value()) {
+                dst.info->region.sharedMemory.emplace(
+                        unique_fd(dup(src.info->region.sharedMemory->get())));
+            }
+            dst.info->region.permissions = src.info->region.permissions;
+            dst.info->metadataOffset = src.info->metadataOffset;
+
+            // Deep copy EventFDs
+            if (src.info->producerEventFd.get() >= 0) {
+                dst.info->producerEventFd =
+                        ParcelFileDescriptor(unique_fd(dup(src.info->producerEventFd.get())));
+            }
+            if (src.info->producerEventFdNonwake.get() >= 0) {
+                dst.info->producerEventFdNonwake = ParcelFileDescriptor(
+                        unique_fd(dup(src.info->producerEventFdNonwake.get())));
+            }
+        }
+
+        // Deep copy Consumer Region if exists
+        if (src.consumerRegion.has_value()) {
+            dst.consumerRegion.emplace();
+            dst.consumerRegion->id = src.consumerRegion->id;
+            if (src.consumerRegion->sharedMemory.has_value()) {
+                dst.consumerRegion->sharedMemory.emplace(
+                        unique_fd(dup(src.consumerRegion->sharedMemory->get())));
+            }
+            dst.consumerRegion->permissions = src.consumerRegion->permissions;
+        }
+
+        dst.metadataOffset = src.metadataOffset;
+
+        // Deep copy Consumer EventFDs
+        if (src.consumerEventFd.get() >= 0) {
+            dst.consumerEventFd = ParcelFileDescriptor(unique_fd(dup(src.consumerEventFd.get())));
+        }
+        if (src.consumerEventFdNonwake.get() >= 0) {
+            dst.consumerEventFdNonwake =
+                    ParcelFileDescriptor(unique_fd(dup(src.consumerEventFdNonwake.get())));
+        }
+
+        return dst;
+    }
+
+    Status onDataFlowHostConsumerRegistered(const DataFlowConsumerHandle& handle,
+                                            const EndpointId& producerId,
+                                            const EndpointId& consumerId,
+                                            const ::std::optional<Message>& /*msg*/,
+                                            int32_t /*sessionId*/) override {
+        std::unique_lock<std::mutex> lock(mMutex);
+        mDataFlowHandle = deepCopyDataFlowConsumer(handle);
+        mProducerId = producerId;
+        mConsumerId = consumerId;
+        mWasOnDataFlowHostConsumerRegisteredCalled = true;
+        mCondVar.notify_one();
+        return Status::ok();
+    }
+
+    Status onDataFlowOffloadEndpointUnregistered(
+            const DataFlowId& /*dataFlowId*/, const EndpointId& /*endpointId*/,
+            const std::vector<EndpointId>& /*destinationIds*/) override {
+        // VTS tests act as the host side and no need to implement this function.
+        return Status::ok();
+    }
+
+    bool wasOnDataFlowHostConsumerRegisteredCalled() {
+        return mWasOnDataFlowHostConsumerRegisteredCalled;
+    }
+    void resetWasOnDataFlowHostConsumerRegisteredCalled() {
+        mWasOnDataFlowHostConsumerRegisteredCalled = false;
+    }
+    const DataFlowConsumerHandle& getDataFlowHandle() { return mDataFlowHandle; }
+    EndpointId getProducerId() { return mProducerId; }
+    EndpointId getConsumerId() { return mConsumerId; }
 
     std::mutex& getMutex() { return mMutex; }
     std::condition_variable& getCondVar() { return mCondVar; }
@@ -641,6 +715,10 @@ class TestEndpointCallback : public BnEndpointCallback {
     std::mutex mMutex;
     std::condition_variable mCondVar;
     bool mWasOnEndpointSessionOpenCompleteCalled = false;
+    bool mWasOnDataFlowHostConsumerRegisteredCalled = false;
+    DataFlowConsumerHandle mDataFlowHandle;
+    EndpointId mProducerId;
+    EndpointId mConsumerId;
 };
 
 TEST_P(ContextHubEndpointAidlWithTestMode, RegisterHub) {
@@ -995,6 +1073,136 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
     status = mHubInterface->freeSharedDataRegion(allocatedRegionId);
     EXPECT_FALSE(status.isOk());
     EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic) {
+    if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
+    if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
+
+    // Allocate Region
+    SharedDataRegionRequirements requirements;
+    requirements.size = 4096;
+    requirements.targetHubIds = {kDefaultHubId};
+    SharedDataRegion region;
+    ASSERT_TRUE(mHubInterface->allocateSharedDataRegion(requirements, &region).isOk());
+
+    // Register Data Flow
+    EndpointId hostEndpoint;
+    hostEndpoint.hubId = kDefaultHubId;
+    hostEndpoint.id = 0xCAFE;  // Arbitrary host ID
+
+    DataFlowInfo info;
+    info.region.id = region.id;
+    // Mock eventfds
+    int efd = eventfd(0, 0);
+    info.producerEventFd = android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
+    info.producerEventFdNonwake =
+            android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
+    close(efd);
+
+    int32_t dataFlowId = -1;
+    Status status = mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    EXPECT_TRUE(status.isOk());
+    EXPECT_GE(dataFlowId, 0);
+
+    // Unregister Data Flow
+    EXPECT_TRUE(mHubInterface->unregisterDataFlowHostProducer(dataFlowId).isOk());
+
+    // Free Region
+    EXPECT_TRUE(mHubInterface->freeSharedDataRegion(region.id).isOk());
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestHostProducerDataFlowInvalidRegion) {
+    if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
+    if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
+
+    EndpointId hostEndpoint;
+    hostEndpoint.hubId = kDefaultHubId;
+    hostEndpoint.id = 0xCAFE;
+
+    DataFlowInfo info;
+    info.region.id = 99999;  // Invalid Region ID
+    int efd = eventfd(0, 0);
+    info.producerEventFd = ParcelFileDescriptor(unique_fd(dup(efd)));
+    info.producerEventFdNonwake = ParcelFileDescriptor(unique_fd(dup(efd)));
+    close(efd);
+
+    int32_t dataFlowId = -1;
+    Status status = mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestDataFlowEcho) {
+    if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
+    if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
+
+    std::unique_lock<std::mutex> lock(mEndpointCb->getMutex());
+
+    // Get a valid Mock Endpoint ID for the consumer
+    std::vector<EndpointInfo> endpoints;
+    ASSERT_TRUE(mContextHub->getEndpoints(&endpoints).isOk());
+    ASSERT_FALSE(endpoints.empty());
+    EndpointId mockConsumerId = endpoints[0].id;  // Use the first available mock endpoint
+
+    // Setup Host Producer Flow
+    SharedDataRegionRequirements requirements;
+    requirements.size = 4096;
+    requirements.targetHubIds = {kDefaultHubId, mockConsumerId.hubId};
+    SharedDataRegion region;
+    ASSERT_TRUE(mHubInterface->allocateSharedDataRegion(requirements, &region).isOk());
+
+    EndpointId hostEndpoint;
+    hostEndpoint.hubId = kDefaultHubId;
+    hostEndpoint.id = 0xCAFE;
+
+    DataFlowInfo info;
+    info.region.id = region.id;
+    int efd = eventfd(0, 0);
+    info.producerEventFd = android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
+    info.producerEventFdNonwake =
+            android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
+    close(efd);
+
+    int32_t hostFlowId = -1;
+    ASSERT_TRUE(
+            mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &hostFlowId).isOk());
+
+    // Register Offload Consumer (Triggers Echo)
+    DataFlowConsumerHandle consumerHandle;
+    consumerHandle.id.hubId = kDefaultHubId;
+    consumerHandle.id.id = hostFlowId;
+    int consumerEfd = eventfd(0, 0);
+    consumerHandle.consumerEventFd = ParcelFileDescriptor(unique_fd(dup(consumerEfd)));
+    consumerHandle.consumerEventFdNonwake = ParcelFileDescriptor(unique_fd(dup(consumerEfd)));
+    close(consumerEfd);
+
+    mEndpointCb->resetWasOnDataFlowHostConsumerRegisteredCalled();
+    Status status = mHubInterface->registerDataFlowOffloadConsumer(
+            consumerHandle, mockConsumerId, nullptr, std::nullopt,
+            IEndpointCommunication::SESSION_ID_INVALID);
+    ASSERT_TRUE(status.isOk());
+
+    // Wait for Echo Callback
+    // The mock should spawn a thread and call onDataFlowHostConsumerRegistered back to us.
+    bool signaled = mEndpointCb->getCondVar().wait_for(lock, std::chrono::seconds(5), [this] {
+        return mEndpointCb->wasOnDataFlowHostConsumerRegisteredCalled();
+    });
+    ASSERT_TRUE(signaled) << "Timed out waiting for Echo Data Flow callback";
+
+    // Verify Echo Details
+    EXPECT_EQ(mEndpointCb->getProducerId().id, mockConsumerId.id);
+    EXPECT_EQ(mEndpointCb->getConsumerId().id, hostEndpoint.id);
+    const DataFlowConsumerHandle& echoHandle = mEndpointCb->getDataFlowHandle();
+    EXPECT_GT(echoHandle.id.id, 0);
+    ASSERT_TRUE(echoHandle.info.has_value());
+    EXPECT_TRUE(echoHandle.info->region.sharedMemory.has_value());  // Should have valid ashmem fd
+
+    // Cleanup
+    // Unregister the echo flow (Host acts as consumer here)
+    EXPECT_TRUE(mHubInterface->unregisterDataFlowHostConsumer(hostEndpoint, echoHandle.id).isOk());
+    // Unregister original flow
+    EXPECT_TRUE(mHubInterface->unregisterDataFlowHostProducer(hostFlowId).isOk());
+    EXPECT_TRUE(mHubInterface->freeSharedDataRegion(region.id).isOk());
 }
 
 std::string PrintGeneratedTest(const testing::TestParamInfo<ContextHubAidl::ParamType>& info) {
