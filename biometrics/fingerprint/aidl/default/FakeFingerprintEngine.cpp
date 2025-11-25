@@ -257,10 +257,7 @@ bool FakeFingerprintEngine::onAuthenticateFingerDown(ISessionCallback* cb,
     auto enrolls = Fingerprint::cfg().getopt<OptIntVec>("enrollments");
     auto isEnrolled = std::find(enrolls.begin(), enrolls.end(), id) != enrolls.end();
     if (id > 0 && isEnrolled) {
-        AuthenticateSuccess result;
-        result.enrollmentId = id;
-        result.hat = {};
-        cb->onAuthenticationSucceededWithResult(result);
+        cb->onAuthenticationSucceeded(id, {} /* hat */);
         mLockoutTracker.reset();
         return true;
     } else {
