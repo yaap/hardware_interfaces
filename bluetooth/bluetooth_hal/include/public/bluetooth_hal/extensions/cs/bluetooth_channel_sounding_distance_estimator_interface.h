@@ -78,6 +78,13 @@ class ChannelSoundingDistanceEstimatorInterface
    */
   virtual double GetConfidenceLevel() = 0;
 
+  /**
+   * @brief Enable Inline PCT.
+   *
+   * @param is_enabled True to enable Inline PCT, false otherwise.
+   */
+  virtual void SetInlinePCT(bool is_enabled) = 0;
+
  protected:
   virtual double EstimateDistanceImpl(const std::any& data) = 0;
 };

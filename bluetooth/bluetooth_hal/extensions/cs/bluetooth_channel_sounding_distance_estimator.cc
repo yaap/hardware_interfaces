@@ -38,6 +38,8 @@ double ChannelSoundingDistanceEstimator::EstimateDistanceImpl(
 
 double ChannelSoundingDistanceEstimator::GetConfidenceLevel() { return 0; }
 
+void ChannelSoundingDistanceEstimator::SetInlinePCT(bool /*is_enabled*/) {}
+
 }  // namespace cs
 }  // namespace extensions
 }  // namespace bluetooth_hal

@@ -207,6 +207,9 @@ void BluetoothChannelSoundingSessionV2::HandleVendorSpecificData(
     LOG(INFO) << __func__ << ": Do not support Inline PCT.";
     enable_fake_notification_ = false;
   }
+
+  distance_estimator_->SetInlinePCT(enable_fake_notification_);
+
   if ((vendor_specific_data_byte_1 &
        static_cast<uint8_t>(CsFeature::kMode0ChannelMap)) != 0) {
     LOG(INFO) << __func__ << ": Support mode 0 Channel Map.";
