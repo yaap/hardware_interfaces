@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,28 +34,8 @@
 package android.hardware.biometrics.face;
 /* @hide */
 @VintfStability
-interface ISessionCallback {
-  void onChallengeGenerated(in long challenge);
-  void onChallengeRevoked(in long challenge);
-  void onAuthenticationFrame(in android.hardware.biometrics.face.AuthenticationFrame frame);
-  void onEnrollmentFrame(in android.hardware.biometrics.face.EnrollmentFrame frame);
-  void onError(in android.hardware.biometrics.face.Error error, in int vendorCode);
-  void onEnrollmentProgress(in int enrollmentId, int remaining);
-  /**
-   * @deprecated use {@link onAuthenticationSucceededWithResult} instead. Calling this method has the same effect but only allows the enrollmentId and hat to be returned to the framework.
-   */
-  void onAuthenticationSucceeded(in int enrollmentId, in android.hardware.keymaster.HardwareAuthToken hat);
-  void onAuthenticationFailed();
-  void onLockoutTimed(in long durationMillis);
-  void onLockoutPermanent();
-  void onLockoutCleared();
-  void onInteractionDetected();
-  void onEnrollmentsEnumerated(in int[] enrollmentIds);
-  void onFeaturesRetrieved(in android.hardware.biometrics.face.Feature[] features);
-  void onFeatureSet(android.hardware.biometrics.face.Feature feature);
-  void onEnrollmentsRemoved(in int[] enrollmentIds);
-  void onAuthenticatorIdRetrieved(in long authenticatorId);
-  void onAuthenticatorIdInvalidated(in long newAuthenticatorId);
-  void onSessionClosed();
-  void onAuthenticationSucceededWithResult(in android.hardware.biometrics.face.AuthenticateSuccess result);
+parcelable AuthenticateSuccess {
+  int enrollmentId;
+  android.hardware.keymaster.HardwareAuthToken hat;
+  ParcelableHolder metadata;
 }
