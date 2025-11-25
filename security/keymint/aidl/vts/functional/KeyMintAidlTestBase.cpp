@@ -1242,6 +1242,48 @@ void KeyMintAidlTestBase::LocalVerifyMessage(const vector<uint8_t>& der_cert, co
                 break;
             }
 
+            case EVP_PKEY_ML_DSA_65: {
+                ASSERT_EQ(3309, signature.size());
+                uint8_t pub_keydata[1952];
+                size_t pub_len = sizeof(pub_keydata);
+                ASSERT_EQ(1, EVP_PKEY_get_raw_public_key(pub_key.get(), pub_keydata, &pub_len));
+                ASSERT_EQ(sizeof(pub_keydata), pub_len);
+
+                CBS in_cbs;
+                CBS_init(&in_cbs, pub_keydata, pub_len);
+                MLDSA65_public_key mldsa_pubkey;
+                ASSERT_EQ(MLDSA65_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
+
+                ASSERT_EQ(MLDSA65_verify(&mldsa_pubkey,
+                                         reinterpret_cast<const uint8_t*>(signature.data()),
+                                         signature.size(),
+                                         reinterpret_cast<const uint8_t*>(message.data()),
+                                         message.size(), nullptr, 0),
+                          1);
+                break;
+            }
+
+            case EVP_PKEY_ML_DSA_87: {
+                ASSERT_EQ(4627, signature.size());
+                uint8_t pub_keydata[2592];
+                size_t pub_len = sizeof(pub_keydata);
+                ASSERT_EQ(1, EVP_PKEY_get_raw_public_key(pub_key.get(), pub_keydata, &pub_len));
+                ASSERT_EQ(sizeof(pub_keydata), pub_len);
+
+                CBS in_cbs;
+                CBS_init(&in_cbs, pub_keydata, pub_len);
+                MLDSA87_public_key mldsa_pubkey;
+                ASSERT_EQ(MLDSA87_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
+
+                ASSERT_EQ(MLDSA87_verify(&mldsa_pubkey,
+                                         reinterpret_cast<const uint8_t*>(signature.data()),
+                                         signature.size(),
+                                         reinterpret_cast<const uint8_t*>(message.data()),
+                                         message.size(), nullptr, 0),
+                          1);
+                break;
+            }
+
             case EVP_PKEY_EC: {
                 vector<uint8_t> data((EVP_PKEY_bits(pub_key.get()) + 7) / 8);
                 size_t data_size = std::min(data.size(), message.size());
@@ -1323,30 +1365,6 @@ void KeyMintAidlTestBase::LocalVerifyMessage(const vector<uint8_t>& der_cert, co
                                            reinterpret_cast<const uint8_t*>(signature.data()),
                                            signature.size()));
         EVP_MD_CTX_cleanup(&digest_ctx);
-    }
-}
-
-void KeyMintAidlTestBase::LocalVerifyMlDsaRaw(const std::string& message,
-                                              const std::string& signature, MlDsaVariant variant,
-                                              const vector<uint8_t>& pubkey) {
-    CBS in_cbs;
-    CBS_init(&in_cbs, pubkey.data(), pubkey.size());
-    if (variant == MlDsaVariant::ML_DSA_65) {
-        MLDSA65_public_key mldsa_pubkey;
-        ASSERT_EQ(MLDSA65_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
-
-        EXPECT_EQ(MLDSA65_verify(&mldsa_pubkey, reinterpret_cast<const uint8_t*>(signature.data()),
-                                 signature.size(), reinterpret_cast<const uint8_t*>(message.data()),
-                                 message.size(), nullptr, 0),
-                  1);
-    } else {
-        MLDSA87_public_key mldsa_pubkey;
-        ASSERT_EQ(MLDSA87_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
-
-        EXPECT_EQ(MLDSA87_verify(&mldsa_pubkey, reinterpret_cast<const uint8_t*>(signature.data()),
-                                 signature.size(), reinterpret_cast<const uint8_t*>(message.data()),
-                                 message.size(), nullptr, 0),
-                  1);
     }
 }
 
@@ -2364,13 +2382,6 @@ AssertionResult ChainSignaturesAreValid(const vector<Certificate>& chain,
                                       << cert_data.str();
         }
 
-        SubjectPublicKeyInfo info;
-        extract_spki(signing_cert.get(), &info, /* require_no_params= */ false);
-        if (info.is_mldsa()) {
-            // TODO(b/395069628): implement ML-DSA signature checking of certs
-            continue;
-        }
-
         EVP_PKEY_Ptr signing_pubkey(X509_get_pubkey(signing_cert.get()));
         if (!signing_pubkey.get()) return AssertionFailure() << cert_data.str();
 
@@ -2394,29 +2405,6 @@ ErrorCode GetReturnErrorCode(const Status& result) {
     }
 
     return ErrorCode::UNKNOWN_ERROR;
-}
-
-// Retrieve the OID for the public key in a certificate, without attempting
-// to convert the public key into a usable BoringSSL key
-void extract_spki(X509* certificate, SubjectPublicKeyInfo* info, bool require_no_params) {
-    X509_PUBKEY* pubkey = X509_get_X509_PUBKEY(certificate);
-    ASSERT_NE(pubkey, nullptr);
-
-    const uint8_t* pubkey_bytes = nullptr;
-    int pubkey_len = 0;
-    X509_ALGOR* algorithm = nullptr;
-    X509_PUBKEY_get0_param(nullptr, &pubkey_bytes, &pubkey_len, &algorithm, pubkey);
-    info->pubkey = vector(pubkey_bytes, pubkey_bytes + pubkey_len);
-
-    ASSERT_NE(algorithm, nullptr);
-    ASSERT_NE(algorithm->algorithm, nullptr);
-    if (require_no_params) {
-        ASSERT_EQ(algorithm->parameter, nullptr) << "Unexpected parameters found in SPKI";
-    }
-    char oid_chars[1024];
-    int oid_chars_len = OBJ_obj2txt(oid_chars, sizeof(oid_chars), algorithm->algorithm,
-                                    /* use-dotted-form = */ 1);
-    info->oid = string(oid_chars, oid_chars_len);
 }
 
 X509_Ptr parse_cert_blob(const vector<uint8_t>& blob) {
