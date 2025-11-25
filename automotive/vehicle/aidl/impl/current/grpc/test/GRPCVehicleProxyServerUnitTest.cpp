@@ -233,7 +233,7 @@ TEST(GRPCVehicleProxyServerUnitTest, RegisterSupportedValuesChange) {
 
     {
         std::unique_lock lk(m);
-        cv.wait_for(lk, std::chrono::seconds(1),
+        cv.wait_for(lk, kWaitForUpdateDeliveryTime,
                     [&changedPropIdAreaIds] { return !changedPropIdAreaIds.empty(); });
     }
 
