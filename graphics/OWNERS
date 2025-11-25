@@ -1,8 +1,5 @@
 # Bug component: 1075130
+include platform/frameworks/base:/graphics/java/android/graphics/CORE_GRAPHICS_OWNERS
 
-# Graphics team
-adyabr@google.com
-alecmouri@google.com
+# Historical owners for gralloc/loader interaction
 chrisforbes@google.com
-jreck@google.com
-sumir@google.com
