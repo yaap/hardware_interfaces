@@ -33,7 +33,8 @@ cc_test {
         "libbinder",
     ],
     static_libs: [
-        "android.hardware.contexthub-V4-cpp",
+        "android.hardware.contexthub-V5-cpp",
+        "android.hardware.common-V2-cpp",
         "VtsHalContexthubUtils",
     ],
     test_suites: [

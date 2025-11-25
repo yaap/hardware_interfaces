@@ -28,6 +28,9 @@
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
 #include <log/log.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <cerrno>
 
 #include <cinttypes>
 #include <future>
@@ -40,6 +43,8 @@ using ::android::hardware::contexthub::AsyncEventType;
 using ::android::hardware::contexthub::BnEndpointCallback;
 using ::android::hardware::contexthub::ContextHubInfo;
 using ::android::hardware::contexthub::ContextHubMessage;
+using ::android::hardware::contexthub::DataFlowConsumerHandle;
+using ::android::hardware::contexthub::DataFlowId;
 using ::android::hardware::contexthub::EndpointId;
 using ::android::hardware::contexthub::EndpointInfo;
 using ::android::hardware::contexthub::ErrorCode;
@@ -58,6 +63,8 @@ using ::android::hardware::contexthub::NanSessionStateUpdate;
 using ::android::hardware::contexthub::Reason;
 using ::android::hardware::contexthub::Service;
 using ::android::hardware::contexthub::Setting;
+using ::android::hardware::contexthub::SharedDataRegion;
+using ::android::hardware::contexthub::SharedDataRegionRequirements;
 using ::android::hardware::contexthub::vts_utils::kNonExistentAppId;
 using ::android::hardware::contexthub::vts_utils::waitForCallback;
 
@@ -138,6 +145,15 @@ class ContextHubEndpointAidlWithTestMode : public ContextHubEndpointAidl {
     void TearDown() override {
         mContextHub->setTestMode(/* enable= */ false);
         ContextHubEndpointAidl::TearDown();
+    }
+
+    bool areDataFlowsSupported() {
+        EXPECT_NE(mHubInterface, nullptr)
+                << "should call registerDefaultHub() to prepare mHubInterface first";
+        if (!mHubInterface) {
+            return false;
+        }
+        return true;
     }
 };
 
@@ -515,7 +531,7 @@ TEST_P(ContextHubTransactionTest, TestInvalidHostConnection) {
         status.transactionError() == android::UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
-      ASSERT_TRUE(status.isOk());
+        ASSERT_TRUE(status.isOk());
     }
 }
 
@@ -589,6 +605,22 @@ class TestEndpointCallback : public BnEndpointCallback {
             mWasOnEndpointSessionOpenCompleteCalled = true;
         }
         mCondVar.notify_one();
+        return Status::ok();
+    }
+
+    Status onDataFlowHostConsumerRegistered(const DataFlowConsumerHandle& /*handle*/,
+                                            const EndpointId& /*producerId*/,
+                                            const EndpointId& /*consumerId*/,
+                                            const ::std::optional<Message>& /*msg*/,
+                                            int32_t /*sessionId*/) override {
+        // TODO(b/455420744): implement this for data flow testing.
+        return Status::ok();
+    }
+
+    Status onDataFlowOffloadEndpointUnregistered(
+            const DataFlowId& /*dataFlowId*/, const EndpointId& /*endpointId*/,
+            const std::vector<EndpointId>& /*destinationIds*/) override {
+        // TODO(b/455420744): implement this for data flow testing.
         return Status::ok();
     }
 
@@ -853,6 +885,116 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionAndSendMessageEcho
     mEndpointCb->getCondVar().wait(lock);
     EXPECT_FALSE(mEndpointCb->getMessages().empty());
     EXPECT_EQ(mEndpointCb->getMessages().back().content.back(), 42);
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateSharedDataRegionInvalidSize) {
+    if (!registerDefaultHub()) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
+    if (!areDataFlowsSupported()) {
+        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
+    }
+
+    // Test allocateSharedDataRegion with invalid parameter (size=0)
+    SharedDataRegionRequirements badReqs;
+    badReqs.size = 0;  // Invalid size
+    SharedDataRegion badRegion;
+    Status status = mHubInterface->allocateSharedDataRegion(badReqs, &badRegion);
+
+    // Expect failure with EX_ILLEGAL_ARGUMENT
+    EXPECT_FALSE(status.isOk());
+    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSuccess) {
+    if (!registerDefaultHub()) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
+    if (!areDataFlowsSupported()) {
+        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
+    }
+
+    // Test allocateSharedDataRegion with valid parameter
+    SharedDataRegionRequirements requirements;
+    constexpr int32_t kRegionSize = 4096;
+    requirements.size = kRegionSize;
+    requirements.permissions = {::android::String16("com.android.vts.permission.TEST")};
+    requirements.targetHubIds = {kDefaultHubId};
+
+    SharedDataRegion region;
+    Status status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    ASSERT_TRUE(status.isOk());
+
+    // Checks region information.
+    EXPECT_GT(region.id, 0);
+    ASSERT_TRUE(region.sharedMemory.has_value());
+    ASSERT_GE(region.sharedMemory->get(), 0);
+    ASSERT_TRUE(region.permissions.has_value());
+    ASSERT_EQ(region.permissions->size(), 1);
+    EXPECT_EQ(region.permissions->at(0), requirements.permissions[0]);
+
+    int32_t allocatedRegionId = region.id;
+
+    // Validates mmap-ing the returned file descriptor.
+    void* mappedAddr = mmap(NULL, requirements.size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                            region.sharedMemory->get(), 0);
+    ASSERT_NE(mappedAddr, MAP_FAILED) << "mmap failed: " << strerror(errno);
+
+    // Tests mmap region read/write.
+    volatile uint8_t* testPtr = static_cast<volatile uint8_t*>(mappedAddr);
+    testPtr[0] = 0xAB;
+    EXPECT_EQ(testPtr[0], 0xAB) << "Read-back failed at start of region";
+    testPtr[kRegionSize - 1] = 0xCD;
+    EXPECT_EQ(testPtr[kRegionSize - 1], 0xCD) << "Read-back failed at end of region";
+
+    int munmap_status = munmap(mappedAddr, requirements.size);
+    EXPECT_EQ(munmap_status, 0) << "munmap failed: " << strerror(errno);
+
+    // Test freeSharedDataRegion
+    status = mHubInterface->freeSharedDataRegion(allocatedRegionId);
+    EXPECT_TRUE(status.isOk());
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionNonExistent) {
+    if (!registerDefaultHub()) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
+    if (!areDataFlowsSupported()) {
+        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
+    }
+
+    // Test free non-existent region.
+    Status status = mHubInterface->freeSharedDataRegion(-999);  // non-existent region ID
+    EXPECT_FALSE(status.isOk());
+    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+}
+
+TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
+    if (!registerDefaultHub()) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
+    if (!areDataFlowsSupported()) {
+        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
+    }
+
+    // Allocate a valid region
+    SharedDataRegionRequirements requirements;
+    requirements.size = 1024;
+    requirements.targetHubIds = {kDefaultHubId};
+    SharedDataRegion region;
+    Status status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    ASSERT_TRUE(status.isOk());
+    ASSERT_GT(region.id, 0);
+    int32_t allocatedRegionId = region.id;
+
+    // Free it the first time (should succeed)
+    status = mHubInterface->freeSharedDataRegion(allocatedRegionId);
+    EXPECT_TRUE(status.isOk());
+
+    // Free it the second time (should fail)
+    status = mHubInterface->freeSharedDataRegion(allocatedRegionId);
+    EXPECT_FALSE(status.isOk());
+    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
 }
 
 std::string PrintGeneratedTest(const testing::TestParamInfo<ContextHubAidl::ParamType>& info) {

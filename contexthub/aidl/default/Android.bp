@@ -30,6 +30,7 @@ cc_library_static {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libcutils",
         "liblog",
         "android.hardware.contexthub-V5-ndk",
     ],
@@ -52,6 +53,7 @@ cc_binary {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libcutils",
         "liblog",
         "android.hardware.contexthub-V5-ndk",
     ],

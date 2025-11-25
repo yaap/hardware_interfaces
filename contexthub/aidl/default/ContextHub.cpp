@@ -21,8 +21,11 @@
 #define LOG_TAG "CHRE"
 #endif
 
+#include <cutils/ashmem.h>
 #include <inttypes.h>
 #include <log/log.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include <optional>
 #include <thread>
 
@@ -156,8 +159,8 @@ ScopedAStatus ContextHub::setTestMode(bool enable) {
         std::vector<uint64_t> hubsIdsToRemoveList;
         for (auto& [id, hub] : mIdToHostHub) {
             if (id != kServiceHubId) {
-              hubsIdsToRemoveList.push_back(id);
-              hub->mActive = false;
+                hubsIdsToRemoveList.push_back(id);
+                hub->mActive = false;
             }
         }
         for (auto id : hubsIdsToRemoveList) {
@@ -436,7 +439,7 @@ ScopedAStatus ContextHub::HubInterface::sendMessageToEndpoint(int32_t in_session
     }
 
     // Echo the message back
-    std::thread{[callback, in_sessionId, &in_msg]() {
+    std::thread{[callback, in_sessionId, in_msg]() {
         std::unique_lock<std::mutex> lock(gCallbackMutex);
         if (auto cb = callback.lock(); cb != nullptr) {
             cb->onMessageReceived(in_sessionId, in_msg);
@@ -491,13 +494,75 @@ ScopedAStatus ContextHub::HubInterface::unregister() {
 }
 
 ScopedAStatus ContextHub::HubInterface::allocateSharedDataRegion(
-        const SharedDataRegionRequirements& /*in_requirements*/,
-        SharedDataRegion* /*_aidl_return*/) {
-    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+        const SharedDataRegionRequirements& in_requirements, SharedDataRegion* _aidl_return) {
+    if (!mActive) {
+        ALOGE("allocateSharedDataRegion failed: hub is not active");
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    if (in_requirements.size <= 0 || !_aidl_return) {
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+
+    int fd = ashmem_create_region("ContextHubSharedData", in_requirements.size);
+    if (fd < 0) {
+        ALOGE("ashmem_create_region failed, size=%" PRId64, in_requirements.size);
+        return ScopedAStatus::fromServiceSpecificError(static_cast<int32_t>(
+                IEndpointCommunication::SharedDataErrors::EX_INSUFFICIENT_MEMORY));
+    }
+
+    int dupFd = ::dup(fd);
+    if (dupFd < 0) {
+        ALOGE("allocateSharedDataRegion dup FD failed");
+        close(fd);
+        return ScopedAStatus::fromServiceSpecificError(static_cast<int32_t>(
+                IEndpointCommunication::SharedDataErrors::EX_INSUFFICIENT_MEMORY));
+    }
+
+    int32_t regionId = mNextRegionId++;
+
+    AllocatedRegion regionToStore;
+    regionToStore.region.id = regionId;
+    regionToStore.region.sharedMemory.set(fd);
+    regionToStore.permissions = std::move(in_requirements.permissions);
+    regionToStore.size = in_requirements.size;
+    regionToStore.targetHubIds = std::move(in_requirements.targetHubIds);
+
+    {
+        std::lock_guard lock(mSharedDataMutex);
+        mAllocatedRegions[regionId] = std::move(regionToStore);
+    }
+
+    _aidl_return->id = regionId;
+    _aidl_return->sharedMemory.set(dupFd);
+    if (!in_requirements.permissions.empty()) {
+        _aidl_return->permissions.emplace(in_requirements.permissions.begin(),
+                                          in_requirements.permissions.end());
+    }
+
+    return ScopedAStatus::ok();
 }
 
-ScopedAStatus ContextHub::HubInterface::freeSharedDataRegion(int32_t /*in_id*/) {
-    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+ScopedAStatus ContextHub::HubInterface::freeSharedDataRegion(int32_t in_id) {
+    if (!mActive) {
+        ALOGE("freeSharedDataRegion failed: hub is not active");
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+
+    std::lock_guard lock(mSharedDataMutex);
+    auto it = mAllocatedRegions.find(in_id);
+
+    if (it == mAllocatedRegions.end()) {
+        ALOGE("freeSharedDataRegion failed: region %" PRId32 " not found", in_id);
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+
+    if (!it->second.publishedDataFlowIds.empty()) {
+        ALOGE("freeSharedDataRegion failed: region %" PRId32 " is in use", in_id);
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+
+    mAllocatedRegions.erase(it);
+    return ScopedAStatus::ok();
 }
 
 ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(

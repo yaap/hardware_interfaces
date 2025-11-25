@@ -115,6 +115,14 @@ class ContextHub : public BnContextHub {
             std::optional<std::string> serviceDescriptor;
         };
 
+        struct AllocatedRegion {
+            SharedDataRegion region;
+            int32_t size;
+            std::vector<std::string> permissions;
+            std::vector<int64_t> targetHubIds;
+            std::unordered_set<int32_t> publishedDataFlowIds;
+        };
+
         //! Finds an endpoint in the range defined by the endpoints
         //! @return whether the endpoint was found
         template <typename Iter>
@@ -139,6 +147,11 @@ class ContextHub : public BnContextHub {
         std::vector<EndpointSession> mEndpointSessions;
         uint16_t mBaseSessionId;
         uint16_t mMaxSessionId;
+
+        //! SharedDataRegion storage and information
+        std::mutex mSharedDataMutex;
+        std::unordered_map<int32_t, AllocatedRegion> mAllocatedRegions;
+        std::atomic<int32_t> mNextRegionId{1};
     };
 
     static constexpr uint32_t kMockHubId = 0;
