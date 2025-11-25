@@ -21,6 +21,7 @@
 #include <BluetoothAudioCodecs.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
+#include <com_android_btaudio_hal_flags.h>
 
 #include "A2dpOffloadAudioProvider.h"
 #include "A2dpSoftwareAudioProvider.h"
@@ -186,17 +187,22 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
           SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
     std::vector<CodecInfo> db_codec_info =
         BluetoothAudioCodecs::GetCodecInfo(session_type);
-    auto advanced_setting =
-        BluetoothAudioCodecs::GetAdvancedSetting(session_type);
+
     // Return provider info supports without checking db_codec_info
     // This help with various flow implementation for multidirectional support.
     auto& provider_info = _aidl_return->emplace();
     provider_info.name = kLeAudioOffloadProviderName;
     provider_info.codecInfos = db_codec_info;
-    provider_info.advancedSetting = advanced_setting;
     for (const auto& codec_info : db_codec_info) {
       LOG(INFO) << __func__ << " - Codec Info: " << codec_info.toString();
     }
+    if (!com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
+      provider_info.supportsMultidirectionalCapabilities = true;
+      return ndk::ScopedAStatus::ok();
+    }
+    auto advanced_setting =
+        BluetoothAudioCodecs::GetAdvancedSetting(session_type);
+    provider_info.advancedSetting = advanced_setting;
     if (advanced_setting) {
       LOG(INFO) << __func__
                 << " - Advanced Setting: " << advanced_setting->toString();
