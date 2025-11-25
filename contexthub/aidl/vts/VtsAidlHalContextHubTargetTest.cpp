@@ -18,80 +18,256 @@
 
 #include "VtsHalContexthubUtilsCommon.h"
 
-#include <android/hardware/contexthub/BnContextHub.h>
-#include <android/hardware/contexthub/BnContextHubCallback.h>
-#include <android/hardware/contexthub/BnEndpointCallback.h>
-#include <android/hardware/contexthub/IContextHub.h>
-#include <android/hardware/contexthub/IContextHubCallback.h>
-#include <android/hardware/contexthub/IEndpointCallback.h>
-#include <android/hardware/contexthub/IEndpointCommunication.h>
-#include <binder/IServiceManager.h>
-#include <binder/ProcessState.h>
-#include <log/log.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <cerrno>
+#include <aidl/android/hardware/contexthub/BnContextHub.h>
+#include <aidl/android/hardware/contexthub/BnContextHubCallback.h>
+#include <aidl/android/hardware/contexthub/BnEndpointCallback.h>
+#include <aidl/android/hardware/contexthub/IContextHub.h>
+#include <aidl/android/hardware/contexthub/IContextHubCallback.h>
+#include <aidl/android/hardware/contexthub/IEndpointCallback.h>
+#include <aidl/android/hardware/contexthub/IEndpointCommunication.h>
+#include <android/binder_auto_utils.h>
+#include <android/binder_manager.h>
+#include <android/binder_process.h>
 
 #include <android-base/unique_fd.h>
 #include <fcntl.h>
+#include <log/log.h>
+#include <string.h>
+#include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <sys/mman.h>
 #include <unistd.h>
+#include <cerrno>
 #include <cinttypes>
 #include <future>
+#include <optional>
 
-using ::android::ProcessState;
-using ::android::sp;
-using ::android::String16;
-using ::android::base::unique_fd;
-using ::android::binder::Status;
-using ::android::hardware::contexthub::AsyncEventType;
-using ::android::hardware::contexthub::BnEndpointCallback;
-using ::android::hardware::contexthub::ContextHubInfo;
-using ::android::hardware::contexthub::ContextHubMessage;
-using ::android::hardware::contexthub::DataFlowConsumerHandle;
-using ::android::hardware::contexthub::DataFlowId;
-using ::android::hardware::contexthub::DataFlowInfo;
-using ::android::hardware::contexthub::EndpointId;
-using ::android::hardware::contexthub::EndpointInfo;
-using ::android::hardware::contexthub::ErrorCode;
-using ::android::hardware::contexthub::HostEndpointInfo;
-using ::android::hardware::contexthub::HubInfo;
-using ::android::hardware::contexthub::IContextHub;
-using ::android::hardware::contexthub::IContextHubCallbackDefault;
-using ::android::hardware::contexthub::IEndpointCommunication;
-using ::android::hardware::contexthub::Message;
-using ::android::hardware::contexthub::MessageDeliveryStatus;
-using ::android::hardware::contexthub::NanoappBinary;
-using ::android::hardware::contexthub::NanoappInfo;
-using ::android::hardware::contexthub::NanoappRpcService;
-using ::android::hardware::contexthub::NanSessionRequest;
-using ::android::hardware::contexthub::NanSessionStateUpdate;
-using ::android::hardware::contexthub::Reason;
-using ::android::hardware::contexthub::Service;
-using ::android::hardware::contexthub::Setting;
-using ::android::hardware::contexthub::SharedDataRegion;
-using ::android::hardware::contexthub::SharedDataRegionRequirements;
+#include "data_flow/host/notification_manager.h"
+#include "data_flow/host/region_manager.h"
+#include "data_flow/queue.h"
+
+using ::aidl::android::hardware::contexthub::AsyncEventType;
+using ::aidl::android::hardware::contexthub::BnContextHubCallback;
+using ::aidl::android::hardware::contexthub::BnEndpointCallback;
+using ::aidl::android::hardware::contexthub::ContextHubInfo;
+using ::aidl::android::hardware::contexthub::ContextHubMessage;
+using ::aidl::android::hardware::contexthub::DataFlowConsumerHandle;
+using ::aidl::android::hardware::contexthub::DataFlowId;
+using ::aidl::android::hardware::contexthub::DataFlowInfo;
+using ::aidl::android::hardware::contexthub::DataFlowNotificationFds;
+using ::aidl::android::hardware::contexthub::EndpointId;
+using ::aidl::android::hardware::contexthub::EndpointInfo;
+using ::aidl::android::hardware::contexthub::ErrorCode;
+using ::aidl::android::hardware::contexthub::HostEndpointInfo;
+using ::aidl::android::hardware::contexthub::HubInfo;
+using ::aidl::android::hardware::contexthub::IContextHub;
+using ::aidl::android::hardware::contexthub::IContextHubCallbackDefault;
+using ::aidl::android::hardware::contexthub::IEndpointCommunication;
+using ::aidl::android::hardware::contexthub::Message;
+using ::aidl::android::hardware::contexthub::MessageDeliveryStatus;
+using ::aidl::android::hardware::contexthub::NanoappBinary;
+using ::aidl::android::hardware::contexthub::NanoappInfo;
+using ::aidl::android::hardware::contexthub::NanoappRpcService;
+using ::aidl::android::hardware::contexthub::NanSessionRequest;
+using ::aidl::android::hardware::contexthub::NanSessionStateUpdate;
+using ::aidl::android::hardware::contexthub::Reason;
+using ::aidl::android::hardware::contexthub::Service;
+using ::aidl::android::hardware::contexthub::Setting;
+using ::aidl::android::hardware::contexthub::SharedDataRegion;
+using ::aidl::android::hardware::contexthub::SharedDataRegionRequirements;
+using ::android::contexthub::data_flow::AllocatorRegion;
+using ::android::contexthub::data_flow::Consumer;
+using ::android::contexthub::data_flow::ConsumerManager;
+using ::android::contexthub::data_flow::ConsumerPolicyBuilder;
+using ::android::contexthub::data_flow::createQueue;
+using ::android::contexthub::data_flow::DataNotifier;
+using ::android::contexthub::data_flow::NotificationManager;
+using ::android::contexthub::data_flow::Producer;
+using ::android::contexthub::data_flow::queueLayout;
+using ::android::contexthub::data_flow::Region;
+using ::android::contexthub::data_flow::RegionManager;
+using ::android::contexthub::data_flow::RemoteNotifyArgs;
+using ::android::contexthub::data_flow::internal::ProducerBase;
 using ::android::hardware::contexthub::vts_utils::kNonExistentAppId;
 using ::android::hardware::contexthub::vts_utils::waitForCallback;
-using ::android::os::ParcelFileDescriptor;
+using ::ndk::ScopedAStatus;
+using ::ndk::ScopedFileDescriptor;
+using ::ndk::SharedRefBase;
+using ::ndk::SpAIBinder;
 
 // 6612b522-b717-41c8-b48d-c0b1cc64e142
 constexpr std::array<uint8_t, 16> kUuid = {0x66, 0x12, 0xb5, 0x22, 0xb7, 0x17, 0x41, 0xc8,
                                            0xb4, 0x8d, 0xc0, 0xb1, 0xcc, 0x64, 0xe1, 0x42};
 
-const String16 kName{"VtsAidlHalContextHubTargetTest"};
+const std::string kName{"VtsAidlHalContextHubTargetTest"};
 
-const String16 kEchoServiceName{"android.hardware.contexthub.test.EchoService"};
+const std::string kEchoServiceName{"android.hardware.contexthub.test.EchoService"};
 
 constexpr int64_t kDefaultHubId = 1;
 
-class TestEndpointCallback;
+class TestEndpointCallback : public BnEndpointCallback {
+  public:
+    ScopedAStatus onEndpointStarted(const std::vector<EndpointInfo>& /* endpointInfos */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onEndpointStopped(const std::vector<EndpointId>& /* endpointIds */,
+                                    Reason /* reason */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onMessageReceived(int32_t /* sessionId */, const Message& message) override {
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            mMessages.push_back(message);
+        }
+        mCondVar.notify_one();
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onMessageDeliveryStatusReceived(
+            int32_t /* sessionId */, const MessageDeliveryStatus& /* msgStatus */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onEndpointSessionOpenRequest(
+            int32_t /* sessionId */, const EndpointId& /* destination */,
+            const EndpointId& /* initiator */,
+            const std::optional<std::string>& /* serviceDescriptor */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onCloseEndpointSession(int32_t /* sessionId */, Reason /* reason */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onEndpointSessionOpenComplete(int32_t /* sessionId */) override {
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            mWasOnEndpointSessionOpenCompleteCalled = true;
+        }
+        mCondVar.notify_one();
+        return ScopedAStatus::ok();
+    }
+
+    bool wasOnEndpointSessionOpenCompleteCalled() {
+        return mWasOnEndpointSessionOpenCompleteCalled;
+    }
+
+    void resetWasOnEndpointSessionOpenCompleteCalled() {
+        mWasOnEndpointSessionOpenCompleteCalled = false;
+    }
+
+    DataFlowConsumerHandle deepCopyDataFlowConsumerHandle(const DataFlowConsumerHandle& src) {
+        DataFlowConsumerHandle dst;
+        dst.id = src.id;
+
+        if (src.info.has_value()) {
+            dst.info.emplace();
+            dst.info->region.id = src.info->region.id;
+            dst.info->region.sizeBytes = src.info->region.sizeBytes;
+            dst.info->debugName = src.info->debugName;
+
+            // Deep copy SharedMemory
+            if (src.info->region.sharedMemory.get() >= 0) {
+                int dupFd = dup(src.info->region.sharedMemory.get());
+                dst.info->region.sharedMemory = ScopedFileDescriptor(dupFd);
+            }
+            dst.info->region.permissions = src.info->region.permissions;
+            dst.info->metadataOffsetBytes = src.info->metadataOffsetBytes;
+
+            // Deep copy EventFDs
+            auto maybeFds = ::android::contexthub::data_flow::dupEventFds(src.info->notificationFds,
+                                                                          /*needsHalAck=*/false);
+            if (maybeFds.ok()) {
+                dst.info->notificationFds = std::move(*maybeFds);
+            } else {
+                ALOGE("onDataFlowHostConsumerRegistered: failed to dup producer notificationFds");
+            }
+        }
+
+        // Deep copy Consumer Region if exists
+        if (src.consumerRegion.has_value()) {
+            dst.consumerRegion.emplace();
+            dst.consumerRegion->id = src.consumerRegion->id;
+            dst.consumerRegion->sizeBytes = src.consumerRegion->sizeBytes;
+            if (src.consumerRegion->sharedMemory.get() >= 0) {
+                int dupFd = dup(src.consumerRegion->sharedMemory.get());
+                dst.consumerRegion->sharedMemory = ScopedFileDescriptor(dupFd);
+            }
+            dst.consumerRegion->permissions = src.consumerRegion->permissions;
+        }
+
+        dst.metadataOffsetBytes = src.metadataOffsetBytes;
+
+        // Deep copy Consumer EventFDs
+        auto maybeFds = ::android::contexthub::data_flow::dupEventFds(src.notificationFds,
+                                                                      /*needsHalAck=*/true);
+        if (maybeFds.ok()) {
+            dst.notificationFds = std::move(*maybeFds);
+        } else {
+            ALOGE("onDataFlowHostConsumerRegistered: failed to dup consumer notificationFds");
+        }
+
+        return dst;
+    }
+
+    ScopedAStatus onDataFlowHostConsumerRegistered(const DataFlowConsumerHandle& handle,
+                                                   const EndpointId& producerId,
+                                                   const EndpointId& consumerId,
+                                                   const ::std::optional<Message>& /*msg*/,
+                                                   int32_t /*sessionId*/) override {
+        std::unique_lock<std::mutex> lock(mMutex);
+        mDataFlowHandle = deepCopyDataFlowConsumerHandle(handle);
+        // Prepares halAckEventFd in consumer side.
+        // TODO(b/455420744): The HAL should provide this.
+        mDataFlowHandle.notificationFds.halAck =
+                ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
+        mProducerId = producerId;
+        mConsumerId = consumerId;
+        mWasOnDataFlowHostConsumerRegisteredCalled = true;
+        mCondVar.notify_one();
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus onDataFlowOffloadEndpointUnregistered(
+            const DataFlowId& /*dataFlowId*/, const EndpointId& /*endpointId*/,
+            const std::vector<EndpointId>& /*destinationIds*/) override {
+        // VTS tests act as the host side and no need to implement this function.
+        return ScopedAStatus::ok();
+    }
+
+    bool wasOnDataFlowHostConsumerRegisteredCalled() {
+        return mWasOnDataFlowHostConsumerRegisteredCalled;
+    }
+    void resetWasOnDataFlowHostConsumerRegisteredCalled() {
+        mWasOnDataFlowHostConsumerRegisteredCalled = false;
+    }
+    const DataFlowConsumerHandle& getDataFlowHandle() { return mDataFlowHandle; }
+    EndpointId getProducerId() { return mProducerId; }
+    EndpointId getConsumerId() { return mConsumerId; }
+
+    std::mutex& getMutex() { return mMutex; }
+    std::condition_variable& getCondVar() { return mCondVar; }
+    std::vector<Message> getMessages() { return mMessages; }
+
+  private:
+    std::vector<Message> mMessages;
+    std::mutex mMutex;
+    std::condition_variable mCondVar;
+    bool mWasOnEndpointSessionOpenCompleteCalled = false;
+    bool mWasOnDataFlowHostConsumerRegisteredCalled = false;
+    DataFlowConsumerHandle mDataFlowHandle;
+    EndpointId mProducerId;
+    EndpointId mConsumerId;
+};
 
 class ContextHubAidl : public testing::TestWithParam<std::tuple<std::string, int32_t>> {
   public:
     void SetUp() override {
-        mContextHub = android::waitForDeclaredService<IContextHub>(
-                String16(std::get<0>(GetParam()).c_str()));
+        std::string serviceName = std::get<0>(GetParam());
+        SpAIBinder binder(AServiceManager_waitForService(serviceName.c_str()));
+        mContextHub = IContextHub::fromBinder(binder);
         ASSERT_NE(mContextHub, nullptr);
     }
 
@@ -99,34 +275,36 @@ class ContextHubAidl : public testing::TestWithParam<std::tuple<std::string, int
 
     void testSettingChanged(Setting setting);
 
-    sp<IContextHub> mContextHub;
+    std::shared_ptr<IContextHub> mContextHub;
 };
 
 class ContextHubEndpointAidl : public testing::TestWithParam<std::string> {
   public:
     void SetUp() override {
-        mContextHub = android::waitForDeclaredService<IContextHub>(String16(GetParam().c_str()));
+        std::string serviceName = GetParam();
+        SpAIBinder binder(AServiceManager_waitForService(serviceName.c_str()));
+        mContextHub = IContextHub::fromBinder(binder);
         ASSERT_NE(mContextHub, nullptr);
-        mEndpointCb = sp<TestEndpointCallback>::make();
+        mEndpointCb = SharedRefBase::make<TestEndpointCallback>();
     }
 
     void TearDown() override {
         if (mHubInterface) mHubInterface->unregister();
     }
 
-    Status registerHub(int64_t id, sp<IEndpointCommunication>* hubInterface) {
+    ScopedAStatus registerHub(int64_t id, std::shared_ptr<IEndpointCommunication>* hubInterface) {
         HubInfo info;
         info.hubId = id;
         return mContextHub->registerEndpointHub(mEndpointCb, info, hubInterface);
     }
 
     bool registerDefaultHub() {
-        Status status = registerHub(kDefaultHubId, &mHubInterface);
-        if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-            status.transactionError() == android::UNKNOWN_TRANSACTION) {
+        ScopedAStatus status = registerHub(kDefaultHubId, &mHubInterface);
+        if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+            status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
             return false;
         }
-        EXPECT_EQ(status.exceptionCode(), Status::EX_NONE);
+        EXPECT_EQ(status.getExceptionCode(), EX_NONE);
         EXPECT_NE(mHubInterface, nullptr);
         if (!mHubInterface) {
             return false;
@@ -134,9 +312,9 @@ class ContextHubEndpointAidl : public testing::TestWithParam<std::string> {
         return true;
     }
 
-    sp<IContextHub> mContextHub;
-    sp<TestEndpointCallback> mEndpointCb;
-    sp<IEndpointCommunication> mHubInterface;
+    std::shared_ptr<IContextHub> mContextHub;
+    std::shared_ptr<TestEndpointCallback> mEndpointCb;
+    std::shared_ptr<IEndpointCommunication> mHubInterface;
 };
 
 class ContextHubEndpointAidlWithTestMode : public ContextHubEndpointAidl {
@@ -188,9 +366,9 @@ TEST_P(ContextHubEndpointAidl, TestGetHubs) {
 }
 
 TEST_P(ContextHubEndpointAidl, TestEnableTestMode) {
-    Status status = mContextHub->setTestMode(true);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status = mContextHub->setTestMode(true);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         ASSERT_TRUE(status.isOk());
@@ -198,96 +376,104 @@ TEST_P(ContextHubEndpointAidl, TestEnableTestMode) {
 }
 
 TEST_P(ContextHubEndpointAidl, TestDisableTestMode) {
-    Status status = mContextHub->setTestMode(false);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status = mContextHub->setTestMode(false);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         ASSERT_TRUE(status.isOk());
     }
 }
 
-class EmptyContextHubCallback : public android::hardware::contexthub::BnContextHubCallback {
+class EmptyContextHubCallback : public BnContextHubCallback {
   public:
-    Status handleNanoappInfo(const std::vector<NanoappInfo>& /* appInfo */) override {
-        return Status::ok();
+    ScopedAStatus handleNanoappInfo(const std::vector<NanoappInfo>& /* appInfo */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleContextHubMessage(const ContextHubMessage& /* msg */,
-                                   const std::vector<String16>& /* msgContentPerms */) override {
-        return Status::ok();
+    ScopedAStatus handleContextHubMessage(
+            const ContextHubMessage& /* msg */,
+            const std::vector<std::string>& /* msgContentPerms */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleContextHubAsyncEvent(AsyncEventType /* evt */) override { return Status::ok(); }
-
-    Status handleTransactionResult(int32_t /* transactionId */, bool /* success */) override {
-        return Status::ok();
+    ScopedAStatus handleContextHubAsyncEvent(AsyncEventType /* evt */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleNanSessionRequest(const NanSessionRequest& /* request */) override {
-        return Status::ok();
+    ScopedAStatus handleTransactionResult(int32_t /* transactionId */,
+                                          bool /* success */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleMessageDeliveryStatus(
+    ScopedAStatus handleNanSessionRequest(const NanSessionRequest& /* request */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus handleMessageDeliveryStatus(
             char16_t /* hostEndPointId */,
             const MessageDeliveryStatus& /* messageDeliveryStatus */) override {
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status getUuid(std::array<uint8_t, 16>* out_uuid) override {
+    ScopedAStatus getUuid(std::array<uint8_t, 16>* out_uuid) override {
         *out_uuid = kUuid;
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status getName(::android::String16* out_name) override {
+    ScopedAStatus getName(std::string* out_name) override {
         *out_name = kName;
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 };
 
 TEST_P(ContextHubAidl, TestRegisterCallback) {
-    sp<EmptyContextHubCallback> cb = sp<EmptyContextHubCallback>::make();
+    std::shared_ptr<EmptyContextHubCallback> cb = SharedRefBase::make<EmptyContextHubCallback>();
     ASSERT_TRUE(mContextHub->registerCallback(getHubId(), cb).isOk());
 }
 
 // Helper callback that puts the async appInfo callback data into a promise
-class QueryAppsCallback : public android::hardware::contexthub::BnContextHubCallback {
+class QueryAppsCallback : public BnContextHubCallback {
   public:
-    Status handleNanoappInfo(const std::vector<NanoappInfo>& appInfo) override {
+    ScopedAStatus handleNanoappInfo(const std::vector<NanoappInfo>& appInfo) override {
         ALOGD("Got app info callback with %zu apps", appInfo.size());
         promise.set_value(appInfo);
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status handleContextHubMessage(const ContextHubMessage& /* msg */,
-                                   const std::vector<String16>& /* msgContentPerms */) override {
-        return Status::ok();
+    ScopedAStatus handleContextHubMessage(
+            const ContextHubMessage& /* msg */,
+            const std::vector<std::string>& /* msgContentPerms */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleContextHubAsyncEvent(AsyncEventType /* evt */) override { return Status::ok(); }
-
-    Status handleTransactionResult(int32_t /* transactionId */, bool /* success */) override {
-        return Status::ok();
+    ScopedAStatus handleContextHubAsyncEvent(AsyncEventType /* evt */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleNanSessionRequest(const NanSessionRequest& /* request */) override {
-        return Status::ok();
+    ScopedAStatus handleTransactionResult(int32_t /* transactionId */,
+                                          bool /* success */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleMessageDeliveryStatus(
+    ScopedAStatus handleNanSessionRequest(const NanSessionRequest& /* request */) override {
+        return ScopedAStatus::ok();
+    }
+
+    ScopedAStatus handleMessageDeliveryStatus(
             char16_t /* hostEndPointId */,
             const MessageDeliveryStatus& /* messageDeliveryStatus */) override {
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status getUuid(std::array<uint8_t, 16>* out_uuid) override {
+    ScopedAStatus getUuid(std::array<uint8_t, 16>* out_uuid) override {
         *out_uuid = kUuid;
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status getName(::android::String16* out_name) override {
+    ScopedAStatus getName(std::string* out_name) override {
         *out_name = kName;
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
     std::promise<std::vector<NanoappInfo>> promise;
@@ -295,7 +481,7 @@ class QueryAppsCallback : public android::hardware::contexthub::BnContextHubCall
 
 // Calls queryApps() and checks the returned metadata
 TEST_P(ContextHubAidl, TestQueryApps) {
-    sp<QueryAppsCallback> cb = sp<QueryAppsCallback>::make();
+    std::shared_ptr<QueryAppsCallback> cb = SharedRefBase::make<QueryAppsCallback>();
     ASSERT_TRUE(mContextHub->registerCallback(getHubId(), cb).isOk());
     ASSERT_TRUE(mContextHub->queryNanoapps(getHubId()).isOk());
 
@@ -318,9 +504,9 @@ TEST_P(ContextHubAidl, TestQueryApps) {
 // Calls getPreloadedNanoappsIds() and verifies there are preloaded nanoapps
 TEST_P(ContextHubAidl, TestGetPreloadedNanoappIds) {
     std::vector<int64_t> preloadedNanoappIds;
-    Status status = mContextHub->getPreloadedNanoappIds(getHubId(), &preloadedNanoappIds);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status = mContextHub->getPreloadedNanoappIds(getHubId(), &preloadedNanoappIds);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         ASSERT_TRUE(status.isOk());
@@ -329,47 +515,50 @@ TEST_P(ContextHubAidl, TestGetPreloadedNanoappIds) {
 
 // Helper callback that puts the TransactionResult for the expectedTransactionId into a
 // promise
-class TransactionResultCallback : public android::hardware::contexthub::BnContextHubCallback {
+class TransactionResultCallback : public BnContextHubCallback {
   public:
-    Status handleNanoappInfo(const std::vector<NanoappInfo>& /* appInfo */) override {
-        return Status::ok();
+    ScopedAStatus handleNanoappInfo(const std::vector<NanoappInfo>& /* appInfo */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleContextHubMessage(const ContextHubMessage& /* msg */,
-                                   const std::vector<String16>& /* msgContentPerms */) override {
-        return Status::ok();
+    ScopedAStatus handleContextHubMessage(
+            const ContextHubMessage& /* msg */,
+            const std::vector<std::string>& /* msgContentPerms */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleContextHubAsyncEvent(AsyncEventType /* evt */) override { return Status::ok(); }
+    ScopedAStatus handleContextHubAsyncEvent(AsyncEventType /* evt */) override {
+        return ScopedAStatus::ok();
+    }
 
-    Status handleTransactionResult(int32_t transactionId, bool success) override {
+    ScopedAStatus handleTransactionResult(int32_t transactionId, bool success) override {
         ALOGD("Got transaction result callback for transactionId %" PRIu32 " (expecting %" PRIu32
               ") with success %d",
               transactionId, expectedTransactionId, success);
         if (transactionId == expectedTransactionId) {
             promise.set_value(success);
         }
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status handleNanSessionRequest(const NanSessionRequest& /* request */) override {
-        return Status::ok();
+    ScopedAStatus handleNanSessionRequest(const NanSessionRequest& /* request */) override {
+        return ScopedAStatus::ok();
     }
 
-    Status handleMessageDeliveryStatus(
+    ScopedAStatus handleMessageDeliveryStatus(
             char16_t /* hostEndPointId */,
             const MessageDeliveryStatus& /* messageDeliveryStatus */) override {
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status getUuid(std::array<uint8_t, 16>* out_uuid) override {
+    ScopedAStatus getUuid(std::array<uint8_t, 16>* out_uuid) override {
         *out_uuid = kUuid;
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
-    Status getName(::android::String16* out_name) override {
+    ScopedAStatus getName(std::string* out_name) override {
         *out_name = kName;
-        return Status::ok();
+        return ScopedAStatus::ok();
     }
 
     uint32_t expectedTransactionId = 0;
@@ -384,7 +573,8 @@ class ContextHubTransactionTest : public ContextHubAidl {
         ASSERT_TRUE(mContextHub->registerCallback(getHubId(), cb).isOk());
     }
 
-    sp<TransactionResultCallback> cb = sp<TransactionResultCallback>::make();
+    std::shared_ptr<TransactionResultCallback> cb =
+            SharedRefBase::make<TransactionResultCallback>();
 };
 
 TEST_P(ContextHubTransactionTest, TestSendMessageToNonExistentNanoapp) {
@@ -462,7 +652,7 @@ TEST_P(ContextHubTransactionTest, TestDisableNonexistentNanoapp) {
 void ContextHubAidl::testSettingChanged(Setting setting) {
     // In VTS, we only test that sending the values doesn't cause things to blow up - GTS tests
     // verify the expected E2E behavior in CHRE
-    sp<EmptyContextHubCallback> cb = sp<EmptyContextHubCallback>::make();
+    std::shared_ptr<EmptyContextHubCallback> cb = SharedRefBase::make<EmptyContextHubCallback>();
     ASSERT_TRUE(mContextHub->registerCallback(getHubId(), cb).isOk());
 
     ASSERT_TRUE(mContextHub->onSettingChanged(setting, true /* enabled */).isOk());
@@ -504,7 +694,8 @@ std::vector<std::tuple<std::string, int32_t>> generateContextHubMapping() {
 
     for (int i = 0; i < contextHubAidlNames.size(); i++) {
         auto contextHubName = contextHubAidlNames[i].c_str();
-        auto contextHub = android::waitForDeclaredService<IContextHub>(String16(contextHubName));
+        SpAIBinder binder(AServiceManager_waitForService(contextHubName));
+        auto contextHub = IContextHub::fromBinder(binder);
         if (contextHub->getContextHubs(&contextHubInfos).isOk()) {
             for (auto& info : contextHubInfos) {
                 tuples.push_back(std::make_tuple(contextHubName, info.id));
@@ -521,9 +712,9 @@ TEST_P(ContextHubTransactionTest, TestHostConnection) {
     hostEndpointInfo.type = HostEndpointInfo::Type::NATIVE;
     hostEndpointInfo.hostEndpointId = kHostEndpointId;
 
-    Status status = mContextHub->onHostEndpointConnected(hostEndpointInfo);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status = mContextHub->onHostEndpointConnected(hostEndpointInfo);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         ASSERT_TRUE(status.isOk());
@@ -533,9 +724,9 @@ TEST_P(ContextHubTransactionTest, TestHostConnection) {
 
 TEST_P(ContextHubTransactionTest, TestInvalidHostConnection) {
     constexpr char16_t kHostEndpointId = 1;
-    Status status = mContextHub->onHostEndpointDisconnected(kHostEndpointId);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status = mContextHub->onHostEndpointDisconnected(kHostEndpointId);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         ASSERT_TRUE(status.isOk());
@@ -545,9 +736,9 @@ TEST_P(ContextHubTransactionTest, TestInvalidHostConnection) {
 TEST_P(ContextHubTransactionTest, TestNanSessionStateChange) {
     NanSessionStateUpdate update;
     update.state = true;
-    Status status = mContextHub->onNanSessionStateChanged(update);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status = mContextHub->onNanSessionStateChanged(update);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         ASSERT_TRUE(status.isOk());
@@ -561,178 +752,28 @@ TEST_P(ContextHubAidl, TestSendMessageDeliveryStatusToHub) {
     messageDeliveryStatus.messageSequenceNumber = 123;
     messageDeliveryStatus.errorCode = ErrorCode::OK;
 
-    Status status = mContextHub->sendMessageDeliveryStatusToHub(getHubId(), messageDeliveryStatus);
-    if (status.exceptionCode() == Status::EX_UNSUPPORTED_OPERATION ||
-        status.transactionError() == android::UNKNOWN_TRANSACTION) {
+    ScopedAStatus status =
+            mContextHub->sendMessageDeliveryStatusToHub(getHubId(), messageDeliveryStatus);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     } else {
         EXPECT_TRUE(status.isOk());
     }
 }
 
-class TestEndpointCallback : public BnEndpointCallback {
-  public:
-    Status onEndpointStarted(const std::vector<EndpointInfo>& /* endpointInfos */) override {
-        return Status::ok();
-    }
-
-    Status onEndpointStopped(const std::vector<EndpointId>& /* endpointIds */,
-                             Reason /* reason */) override {
-        return Status::ok();
-    }
-
-    Status onMessageReceived(int32_t /* sessionId */, const Message& message) override {
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            mMessages.push_back(message);
-        }
-        mCondVar.notify_one();
-        return Status::ok();
-    }
-
-    Status onMessageDeliveryStatusReceived(int32_t /* sessionId */,
-                                           const MessageDeliveryStatus& /* msgStatus */) override {
-        return Status::ok();
-    }
-
-    Status onEndpointSessionOpenRequest(
-            int32_t /* sessionId */, const EndpointId& /* destination */,
-            const EndpointId& /* initiator */,
-            const std::optional<String16>& /* serviceDescriptor */) override {
-        return Status::ok();
-    }
-
-    Status onCloseEndpointSession(int32_t /* sessionId */, Reason /* reason */) override {
-        return Status::ok();
-    }
-
-    Status onEndpointSessionOpenComplete(int32_t /* sessionId */) override {
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            mWasOnEndpointSessionOpenCompleteCalled = true;
-        }
-        mCondVar.notify_one();
-        return Status::ok();
-    }
-
-    bool wasOnEndpointSessionOpenCompleteCalled() {
-        return mWasOnEndpointSessionOpenCompleteCalled;
-    }
-
-    void resetWasOnEndpointSessionOpenCompleteCalled() {
-        mWasOnEndpointSessionOpenCompleteCalled = false;
-    }
-
-    DataFlowConsumerHandle deepCopyDataFlowConsumer(const DataFlowConsumerHandle& src) {
-        DataFlowConsumerHandle dst;
-        dst.id = src.id;
-
-        if (src.info.has_value()) {
-            dst.info.emplace();
-            dst.info->region.id = src.info->region.id;
-
-            // Deep copy SharedMemory
-            if (src.info->region.sharedMemory.has_value()) {
-                dst.info->region.sharedMemory.emplace(
-                        unique_fd(dup(src.info->region.sharedMemory->get())));
-            }
-            dst.info->region.permissions = src.info->region.permissions;
-            dst.info->metadataOffset = src.info->metadataOffset;
-
-            // Deep copy EventFDs
-            if (src.info->producerEventFd.get() >= 0) {
-                dst.info->producerEventFd =
-                        ParcelFileDescriptor(unique_fd(dup(src.info->producerEventFd.get())));
-            }
-            if (src.info->producerEventFdNonwake.get() >= 0) {
-                dst.info->producerEventFdNonwake = ParcelFileDescriptor(
-                        unique_fd(dup(src.info->producerEventFdNonwake.get())));
-            }
-        }
-
-        // Deep copy Consumer Region if exists
-        if (src.consumerRegion.has_value()) {
-            dst.consumerRegion.emplace();
-            dst.consumerRegion->id = src.consumerRegion->id;
-            if (src.consumerRegion->sharedMemory.has_value()) {
-                dst.consumerRegion->sharedMemory.emplace(
-                        unique_fd(dup(src.consumerRegion->sharedMemory->get())));
-            }
-            dst.consumerRegion->permissions = src.consumerRegion->permissions;
-        }
-
-        dst.metadataOffset = src.metadataOffset;
-
-        // Deep copy Consumer EventFDs
-        if (src.consumerEventFd.get() >= 0) {
-            dst.consumerEventFd = ParcelFileDescriptor(unique_fd(dup(src.consumerEventFd.get())));
-        }
-        if (src.consumerEventFdNonwake.get() >= 0) {
-            dst.consumerEventFdNonwake =
-                    ParcelFileDescriptor(unique_fd(dup(src.consumerEventFdNonwake.get())));
-        }
-
-        return dst;
-    }
-
-    Status onDataFlowHostConsumerRegistered(const DataFlowConsumerHandle& handle,
-                                            const EndpointId& producerId,
-                                            const EndpointId& consumerId,
-                                            const ::std::optional<Message>& /*msg*/,
-                                            int32_t /*sessionId*/) override {
-        std::unique_lock<std::mutex> lock(mMutex);
-        mDataFlowHandle = deepCopyDataFlowConsumer(handle);
-        mProducerId = producerId;
-        mConsumerId = consumerId;
-        mWasOnDataFlowHostConsumerRegisteredCalled = true;
-        mCondVar.notify_one();
-        return Status::ok();
-    }
-
-    Status onDataFlowOffloadEndpointUnregistered(
-            const DataFlowId& /*dataFlowId*/, const EndpointId& /*endpointId*/,
-            const std::vector<EndpointId>& /*destinationIds*/) override {
-        // VTS tests act as the host side and no need to implement this function.
-        return Status::ok();
-    }
-
-    bool wasOnDataFlowHostConsumerRegisteredCalled() {
-        return mWasOnDataFlowHostConsumerRegisteredCalled;
-    }
-    void resetWasOnDataFlowHostConsumerRegisteredCalled() {
-        mWasOnDataFlowHostConsumerRegisteredCalled = false;
-    }
-    const DataFlowConsumerHandle& getDataFlowHandle() { return mDataFlowHandle; }
-    EndpointId getProducerId() { return mProducerId; }
-    EndpointId getConsumerId() { return mConsumerId; }
-
-    std::mutex& getMutex() { return mMutex; }
-    std::condition_variable& getCondVar() { return mCondVar; }
-    std::vector<Message> getMessages() { return mMessages; }
-
-  private:
-    std::vector<Message> mMessages;
-    std::mutex mMutex;
-    std::condition_variable mCondVar;
-    bool mWasOnEndpointSessionOpenCompleteCalled = false;
-    bool mWasOnDataFlowHostConsumerRegisteredCalled = false;
-    DataFlowConsumerHandle mDataFlowHandle;
-    EndpointId mProducerId;
-    EndpointId mConsumerId;
-};
-
 TEST_P(ContextHubEndpointAidlWithTestMode, RegisterHub) {
     if (!registerDefaultHub()) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     }
 
-    sp<IEndpointCommunication> hub2;
-    Status status = registerHub(kDefaultHubId + 1, &hub2);
+    std::shared_ptr<IEndpointCommunication> hub2;
+    ScopedAStatus status = registerHub(kDefaultHubId + 1, &hub2);
     EXPECT_TRUE(status.isOk());
 
-    sp<IEndpointCommunication> hub3;
+    std::shared_ptr<IEndpointCommunication> hub3;
     status = registerHub(kDefaultHubId + 1, &hub3);
-    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_STATE);
+    EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_STATE);
 
     hub2->unregister();
     status = registerHub(kDefaultHubId + 1, &hub3);
@@ -749,11 +790,11 @@ TEST_P(ContextHubEndpointAidlWithTestMode, RegisterEndpoint) {
     endpointInfo.id.id = 1;
     endpointInfo.id.hubId = kDefaultHubId;
     endpointInfo.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo.name = String16("Test host endpoint 1");
+    endpointInfo.name = std::string("Test host endpoint 1");
     endpointInfo.version = 42;
 
-    Status status = mHubInterface->registerEndpoint(endpointInfo);
-    EXPECT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(endpointInfo);
+    EXPECT_EQ(status.getExceptionCode(), EX_NONE);
 }
 
 TEST_P(ContextHubEndpointAidlWithTestMode, RegisterEndpointForDifferentHub) {
@@ -765,11 +806,11 @@ TEST_P(ContextHubEndpointAidlWithTestMode, RegisterEndpointForDifferentHub) {
     endpointInfo.id.id = 1;
     endpointInfo.id.hubId = kDefaultHubId + 1;
     endpointInfo.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo.name = String16("Test host endpoint 1");
+    endpointInfo.name = std::string("Test host endpoint 1");
     endpointInfo.version = 42;
 
-    Status status = mHubInterface->registerEndpoint(endpointInfo);
-    EXPECT_NE(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(endpointInfo);
+    EXPECT_NE(status.getExceptionCode(), EX_NONE);
 }
 
 TEST_P(ContextHubEndpointAidlWithTestMode, RegisterEndpointSameNameFailure) {
@@ -781,18 +822,18 @@ TEST_P(ContextHubEndpointAidlWithTestMode, RegisterEndpointSameNameFailure) {
     endpointInfo.id.id = 2;
     endpointInfo.id.hubId = kDefaultHubId;
     endpointInfo.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo.name = String16("Test host endpoint 2");
+    endpointInfo.name = std::string("Test host endpoint 2");
     endpointInfo.version = 42;
 
     EndpointInfo endpointInfo2;
     endpointInfo2.id.id = 3;
     endpointInfo2.id.hubId = kDefaultHubId;
     endpointInfo2.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo2.name = String16("Test host endpoint 2");
+    endpointInfo2.name = std::string("Test host endpoint 2");
     endpointInfo2.version = 42;
 
-    Status status = mHubInterface->registerEndpoint(endpointInfo);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(endpointInfo);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
     EXPECT_FALSE(mHubInterface->registerEndpoint(endpointInfo2).isOk());
 }
 
@@ -805,18 +846,18 @@ TEST_P(ContextHubEndpointAidlWithTestMode, RegisterEndpointSameIdFailure) {
     endpointInfo.id.id = 4;
     endpointInfo.id.hubId = kDefaultHubId;
     endpointInfo.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo.name = String16("Test host endpoint 4");
+    endpointInfo.name = std::string("Test host endpoint 4");
     endpointInfo.version = 42;
 
     EndpointInfo endpointInfo2;
     endpointInfo2.id.id = 4;
     endpointInfo2.id.hubId = kDefaultHubId;
     endpointInfo2.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo2.name = String16("Test host endpoint - same ID test");
+    endpointInfo2.name = std::string("Test host endpoint - same ID test");
     endpointInfo2.version = 42;
 
-    Status status = mHubInterface->registerEndpoint(endpointInfo);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(endpointInfo);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
     EXPECT_FALSE(mHubInterface->registerEndpoint(endpointInfo2).isOk());
 }
 
@@ -829,13 +870,13 @@ TEST_P(ContextHubEndpointAidlWithTestMode, UnregisterEndpoint) {
     endpointInfo.id.id = 6;
     endpointInfo.id.hubId = kDefaultHubId;
     endpointInfo.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo.name = String16("Test host endpoint 6");
+    endpointInfo.name = std::string("Test host endpoint 6");
     endpointInfo.version = 42;
 
-    Status status = mHubInterface->registerEndpoint(endpointInfo);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(endpointInfo);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
     status = mHubInterface->unregisterEndpoint(endpointInfo);
-    EXPECT_EQ(status.exceptionCode(), Status::EX_NONE);
+    EXPECT_EQ(status.getExceptionCode(), EX_NONE);
 }
 
 TEST_P(ContextHubEndpointAidlWithTestMode, UnregisterEndpointNonexistent) {
@@ -847,7 +888,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, UnregisterEndpointNonexistent) {
     endpointInfo.id.id = 100;
     endpointInfo.id.hubId = kDefaultHubId;
     endpointInfo.type = EndpointInfo::EndpointType::NATIVE;
-    endpointInfo.name = String16("Test host endpoint 100");
+    endpointInfo.name = std::string("Test host endpoint 100");
     endpointInfo.version = 42;
 
     EXPECT_FALSE(mHubInterface->unregisterEndpoint(endpointInfo).isOk());
@@ -863,10 +904,10 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionInvalidRange) {
     initiatorEndpoint.id.id = 7;
     initiatorEndpoint.id.hubId = kDefaultHubId;
     initiatorEndpoint.type = EndpointInfo::EndpointType::NATIVE;
-    initiatorEndpoint.name = String16("Test host endpoint 7");
+    initiatorEndpoint.name = std::string("Test host endpoint 7");
     initiatorEndpoint.version = 42;
-    Status status = mHubInterface->registerEndpoint(initiatorEndpoint);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(initiatorEndpoint);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
 
     // Find the destination, if it exists
     std::vector<EndpointInfo> endpoints;
@@ -888,7 +929,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionInvalidRange) {
     constexpr int32_t requestedRange = 100;
     std::array<int32_t, 2> range;
     status = mHubInterface->requestSessionIdRange(requestedRange, &range);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
     EXPECT_EQ(range.size(), 2);
     EXPECT_GE(range[1] - range[0] + 1, requestedRange);
 
@@ -912,10 +953,10 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionAndSendMessageEcho
     initiatorEndpoint.id.id = 8;
     initiatorEndpoint.id.hubId = kDefaultHubId;
     initiatorEndpoint.type = EndpointInfo::EndpointType::NATIVE;
-    initiatorEndpoint.name = String16("Test host endpoint 7");
+    initiatorEndpoint.name = std::string("Test host endpoint 7");
     initiatorEndpoint.version = 42;
-    Status status = mHubInterface->registerEndpoint(initiatorEndpoint);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ScopedAStatus status = mHubInterface->registerEndpoint(initiatorEndpoint);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
 
     // Find the destination, if it exists
     std::vector<EndpointInfo> endpoints;
@@ -937,7 +978,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionAndSendMessageEcho
     constexpr int32_t requestedRange = 100;
     std::array<int32_t, 2> range;
     status = mHubInterface->requestSessionIdRange(requestedRange, &range);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
     EXPECT_EQ(range.size(), 2);
     EXPECT_GE(range[1] - range[0] + 1, requestedRange);
 
@@ -947,7 +988,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionAndSendMessageEcho
     status = mHubInterface->openEndpointSession(sessionId, destinationEndpoint->id,
                                                 initiatorEndpoint.id,
                                                 /* in_serviceDescriptor= */ kEchoServiceName);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
     mEndpointCb->getCondVar().wait(lock);
     EXPECT_TRUE(mEndpointCb->wasOnEndpointSessionOpenCompleteCalled());
 
@@ -957,7 +998,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, OpenEndpointSessionAndSendMessageEcho
     message.sequenceNumber = 0;
     message.content.push_back(42);
     status = mHubInterface->sendMessageToEndpoint(sessionId, message);
-    ASSERT_EQ(status.exceptionCode(), Status::EX_NONE);
+    ASSERT_EQ(status.getExceptionCode(), EX_NONE);
 
     // Check for echo
     mEndpointCb->getCondVar().wait(lock);
@@ -975,13 +1016,13 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateSharedDataRegionInvalidSi
 
     // Test allocateSharedDataRegion with invalid parameter (size=0)
     SharedDataRegionRequirements badReqs;
-    badReqs.size = 0;  // Invalid size
+    badReqs.sizeBytes = 0;  // Invalid size
     SharedDataRegion badRegion;
-    Status status = mHubInterface->allocateSharedDataRegion(badReqs, &badRegion);
+    ScopedAStatus status = mHubInterface->allocateSharedDataRegion(badReqs, &badRegion);
 
     // Expect failure with EX_ILLEGAL_ARGUMENT
     EXPECT_FALSE(status.isOk());
-    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+    EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
 
 TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSuccess) {
@@ -995,18 +1036,17 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSu
     // Test allocateSharedDataRegion with valid parameter
     SharedDataRegionRequirements requirements;
     constexpr int32_t kRegionSize = 4096;
-    requirements.size = kRegionSize;
-    requirements.permissions = {::android::String16("com.android.vts.permission.TEST")};
+    requirements.sizeBytes = kRegionSize;
+    requirements.permissions = {std::string("com.android.vts.permission.TEST")};
     requirements.targetHubIds = {kDefaultHubId};
 
     SharedDataRegion region;
-    Status status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    ScopedAStatus status = mHubInterface->allocateSharedDataRegion(requirements, &region);
     ASSERT_TRUE(status.isOk());
 
     // Checks region information.
     EXPECT_GT(region.id, 0);
-    ASSERT_TRUE(region.sharedMemory.has_value());
-    ASSERT_GE(region.sharedMemory->get(), 0);
+    ASSERT_GE(region.sharedMemory.get(), 0);
     ASSERT_TRUE(region.permissions.has_value());
     ASSERT_EQ(region.permissions->size(), 1);
     EXPECT_EQ(region.permissions->at(0), requirements.permissions[0]);
@@ -1014,8 +1054,8 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSu
     int32_t allocatedRegionId = region.id;
 
     // Validates mmap-ing the returned file descriptor.
-    void* mappedAddr = mmap(NULL, requirements.size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                            region.sharedMemory->get(), 0);
+    void* mappedAddr = mmap(NULL, requirements.sizeBytes, PROT_READ | PROT_WRITE, MAP_SHARED,
+                            region.sharedMemory.get(), 0);
     ASSERT_NE(mappedAddr, MAP_FAILED) << "mmap failed: " << strerror(errno);
 
     // Tests mmap region read/write.
@@ -1025,7 +1065,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSu
     testPtr[kRegionSize - 1] = 0xCD;
     EXPECT_EQ(testPtr[kRegionSize - 1], 0xCD) << "Read-back failed at end of region";
 
-    int munmap_status = munmap(mappedAddr, requirements.size);
+    int munmap_status = munmap(mappedAddr, requirements.sizeBytes);
     EXPECT_EQ(munmap_status, 0) << "munmap failed: " << strerror(errno);
 
     // Test freeSharedDataRegion
@@ -1042,9 +1082,9 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionNonExistent) 
     }
 
     // Test free non-existent region.
-    Status status = mHubInterface->freeSharedDataRegion(-999);  // non-existent region ID
+    ScopedAStatus status = mHubInterface->freeSharedDataRegion(-999);  // non-existent region ID
     EXPECT_FALSE(status.isOk());
-    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+    EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
 
 TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
@@ -1057,10 +1097,10 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
 
     // Allocate a valid region
     SharedDataRegionRequirements requirements;
-    requirements.size = 1024;
+    requirements.sizeBytes = 1024;
     requirements.targetHubIds = {kDefaultHubId};
     SharedDataRegion region;
-    Status status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    ScopedAStatus status = mHubInterface->allocateSharedDataRegion(requirements, &region);
     ASSERT_TRUE(status.isOk());
     ASSERT_GT(region.id, 0);
     int32_t allocatedRegionId = region.id;
@@ -1072,7 +1112,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
     // Free it the second time (should fail)
     status = mHubInterface->freeSharedDataRegion(allocatedRegionId);
     EXPECT_FALSE(status.isOk());
-    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+    EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
 
 TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic) {
@@ -1081,7 +1121,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic
 
     // Allocate Region
     SharedDataRegionRequirements requirements;
-    requirements.size = 4096;
+    requirements.sizeBytes = 4096;
     requirements.targetHubIds = {kDefaultHubId};
     SharedDataRegion region;
     ASSERT_TRUE(mHubInterface->allocateSharedDataRegion(requirements, &region).isOk());
@@ -1095,13 +1135,13 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic
     info.region.id = region.id;
     // Mock eventfds
     int efd = eventfd(0, 0);
-    info.producerEventFd = android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
-    info.producerEventFdNonwake =
-            android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
+    info.notificationFds.waking = ScopedFileDescriptor(dup(efd));
+    info.notificationFds.nonWaking = ScopedFileDescriptor(dup(efd));
     close(efd);
 
     int32_t dataFlowId = -1;
-    Status status = mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    ScopedAStatus status =
+            mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
     EXPECT_TRUE(status.isOk());
     EXPECT_GE(dataFlowId, 0);
 
@@ -1123,86 +1163,253 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestHostProducerDataFlowInvalidRegion
     DataFlowInfo info;
     info.region.id = 99999;  // Invalid Region ID
     int efd = eventfd(0, 0);
-    info.producerEventFd = ParcelFileDescriptor(unique_fd(dup(efd)));
-    info.producerEventFdNonwake = ParcelFileDescriptor(unique_fd(dup(efd)));
+    info.notificationFds.waking = ScopedFileDescriptor(dup(efd));
+    info.notificationFds.nonWaking = ScopedFileDescriptor(dup(efd));
     close(efd);
 
     int32_t dataFlowId = -1;
-    Status status = mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
-    EXPECT_EQ(status.exceptionCode(), Status::EX_ILLEGAL_ARGUMENT);
+    ScopedAStatus status =
+            mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
 
-TEST_P(ContextHubEndpointAidlWithTestMode, TestDataFlowEcho) {
+// VtsEpollWaiter for NotificationManager
+class VtsEpollWaiter : public NotificationManager::EpollWaiter {
+  public:
+    VtsEpollWaiter() { mEpollFd = epoll_create1(EPOLL_CLOEXEC); }
+    ~VtsEpollWaiter() {
+        if (mEpollFd >= 0) close(mEpollFd);
+    }
+
+    void addFd(int fd) override {
+        ALOGD("VTS: Adding FD %d to epoll", fd);
+        epoll_event ev{};
+        ev.events = EPOLLIN;
+        ev.data.fd = fd;
+        epoll_ctl(mEpollFd, EPOLL_CTL_ADD, fd, &ev);
+    }
+
+    void removeFd(int fd) override { epoll_ctl(mEpollFd, EPOLL_CTL_DEL, fd, nullptr); }
+
+    void waitAndDispatch(int timeoutMs) {
+        epoll_event events[4];
+        int nfds = epoll_wait(mEpollFd, events, 4, timeoutMs);
+        for (int i = 0; i < nfds; i++) {
+            handleNotification(events[i].data.fd, false);
+        }
+    }
+
+  private:
+    int mEpollFd = -1;
+};
+
+class ContextHubDataFlowEchoTest : public ContextHubEndpointAidlWithTestMode {
+  public:
+    void SetUp() override {
+        ContextHubEndpointAidlWithTestMode::SetUp();
+        mRegionManager = std::make_unique<RegionManager>();
+        auto waiter = std::make_unique<VtsEpollWaiter>();
+        mWaiterPtr = waiter.get();
+
+        mNotificationManager = NotificationManager::create(
+                std::move(waiter), [this](DataFlowId flowId, bool /*waking*/) {
+                    std::lock_guard<std::mutex> lock(mEventMutex);
+                    mReceivedEvents.push_back(flowId);
+                });
+    }
+
+    void TearDown() override { ContextHubEndpointAidlWithTestMode::TearDown(); }
+
+    std::unique_ptr<RegionManager> mRegionManager;
+    std::shared_ptr<NotificationManager> mNotificationManager;
+    VtsEpollWaiter* mWaiterPtr;
+
+    std::mutex mEventMutex;
+    std::vector<DataFlowId> mReceivedEvents;
+};
+
+TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
     if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
 
-    std::unique_lock<std::mutex> lock(mEndpointCb->getMutex());
-
-    // Get a valid Mock Endpoint ID for the consumer
     std::vector<EndpointInfo> endpoints;
-    ASSERT_TRUE(mContextHub->getEndpoints(&endpoints).isOk());
-    ASSERT_FALSE(endpoints.empty());
-    EndpointId mockConsumerId = endpoints[0].id;  // Use the first available mock endpoint
+    mContextHub->getEndpoints(&endpoints);
+    if (endpoints.empty()) {
+        FAIL() << "No endpoints returned by HAL";
+    }
+    EndpointId halEndpointId = endpoints[0].id;
 
-    // Setup Host Producer Flow
-    SharedDataRegionRequirements requirements;
-    requirements.size = 4096;
-    requirements.targetHubIds = {kDefaultHubId, mockConsumerId.hubId};
-    SharedDataRegion region;
-    ASSERT_TRUE(mHubInterface->allocateSharedDataRegion(requirements, &region).isOk());
+    // 1. Allocate shared data region and act as producer.
+    SharedDataRegionRequirements reqs;
+    reqs.sizeBytes = 16384;  // 16KB
+    reqs.targetHubIds = {kDefaultHubId, halEndpointId.hubId};
 
+    SharedDataRegion regionInfo;
+    auto status = mHubInterface->allocateSharedDataRegion(reqs, &regionInfo);
+    ASSERT_TRUE(status.isOk()) << "Allocation failed: " << status.getDescription();
+
+    // Save region ID for later usage.
+    auto regionId = regionInfo.id;
+
+    // 2. Map Region
+    pw::Result<AllocatorRegion> hostProdRegionRes =
+            mRegionManager->mapHostProducerRegion(std::move(regionInfo));
+    ASSERT_TRUE(hostProdRegionRes.ok())
+            << "mapHostProducerRegion failed: " << hostProdRegionRes.status().str();
+    AllocatorRegion& hostRegion = hostProdRegionRes.value();
+
+    // 3. Initialize Queue
+    DataNotifier dataNotifier;
+
+    constexpr size_t kQueueBlockCapacity = 1024;
+    pw::Result<void*> queueRes =
+            createQueue<uint8_t, kQueueBlockCapacity>(*hostRegion.allocator, /*local=*/false);
+
+    ASSERT_TRUE(queueRes.ok()) << "Queue creation failed with status: "
+                               << static_cast<int>(queueRes.status().code());
+    void* queuePtr = queueRes.value();
+
+    // Calculate offset for HAL
+    size_t queueOffset = reinterpret_cast<uintptr_t>(queuePtr) - hostRegion.base;
+    ALOGD("VTS: Queue allocated at offset: %zu", queueOffset);
+
+    // 4. Create Producer
+    auto producerRes = Producer<uint8_t>::createRemote(hostRegion, queuePtr,
+                                                       16,  // max blocks
+                                                       1,   // min blocks
+                                                       dataNotifier,
+                                                       RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+    ASSERT_TRUE(producerRes.ok()) << "Producer createRemote failed with status: "
+                                  << producerRes.status().str();
+    std::optional<Producer<uint8_t>> producerOpt;
+    producerOpt.emplace(std::move(producerRes.value()));
+
+    // 5. Setup Notifications
+    auto prepRes = mNotificationManager->prepareHostProducerDataFlowInfo();
+    ASSERT_TRUE(prepRes.ok());
+    auto [dfInfo, notifyHandle] = std::move(prepRes.value());
+    // Only set region ID and leave other fields null according to the API description.
+    dfInfo.region.id = regionId;
+    dfInfo.metadataOffsetBytes = queueOffset;
+
+    // 6. Register Producer
     EndpointId hostEndpoint;
     hostEndpoint.hubId = kDefaultHubId;
-    hostEndpoint.id = 0xCAFE;
-
-    DataFlowInfo info;
-    info.region.id = region.id;
-    int efd = eventfd(0, 0);
-    info.producerEventFd = android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
-    info.producerEventFdNonwake =
-            android::os::ParcelFileDescriptor(android::base::unique_fd(dup(efd)));
-    close(efd);
-
-    int32_t hostFlowId = -1;
+    hostEndpoint.id = 0x1234;
+    int32_t flowIdVal = -1;
     ASSERT_TRUE(
-            mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &hostFlowId).isOk());
+            mHubInterface->registerDataFlowHostProducer(hostEndpoint, dfInfo, &flowIdVal).isOk());
+    ALOGD("VTS: Host Producer Registered (FlowID=%d)", flowIdVal);
 
-    // Register Offload Consumer (Triggers Echo)
-    DataFlowConsumerHandle consumerHandle;
-    consumerHandle.id.hubId = kDefaultHubId;
-    consumerHandle.id.id = hostFlowId;
-    int consumerEfd = eventfd(0, 0);
-    consumerHandle.consumerEventFd = ParcelFileDescriptor(unique_fd(dup(consumerEfd)));
-    consumerHandle.consumerEventFdNonwake = ParcelFileDescriptor(unique_fd(dup(consumerEfd)));
-    close(consumerEfd);
+    ASSERT_TRUE(mNotificationManager->activateHostProducerDataFlow(flowIdVal, notifyHandle).ok());
+    ASSERT_TRUE(mRegionManager->linkHostProducerDataFlowToRegion(regionId, flowIdVal).ok());
+    ALOGD("VTS: Host Producer Activated and Linked");
+
+    // 7. Register Consumer (HAL)
+    ALOGD("VTS: Attempting to add consumer");
+    ConsumerPolicyBuilder policy;
+    policy.setStreaming();
+
+    const char* kConsumerName = "HalEchoConsumer";
+    pw::ConstByteSpan nameSpan(reinterpret_cast<const std::byte*>(kConsumerName), 15);
+    pw::Result<uint32_t> consDescOffsetRes =
+            producerOpt->getConsumerManager().addConsumer(nameSpan, policy, &hostRegion);
+    ASSERT_TRUE(consDescOffsetRes.ok()) << "addConsumer failed with status: "
+                                        << static_cast<int>(consDescOffsetRes.status().code());
+    ALOGD("VTS: Consumer Descriptor Added at offset: %u", consDescOffsetRes.value());
+
+    pw::Result<DataFlowConsumerHandle> halConsHandleRes =
+            mNotificationManager->addOffloadConsumerAndCreateHandle(flowIdVal, halEndpointId);
+    ASSERT_TRUE(halConsHandleRes.ok());
+    halConsHandleRes.value().id.hubId = kDefaultHubId;
+    halConsHandleRes.value().id.id = flowIdVal;
+    halConsHandleRes.value().metadataOffsetBytes = consDescOffsetRes.value();
 
     mEndpointCb->resetWasOnDataFlowHostConsumerRegisteredCalled();
-    Status status = mHubInterface->registerDataFlowOffloadConsumer(
-            consumerHandle, mockConsumerId, nullptr, std::nullopt,
-            IEndpointCommunication::SESSION_ID_INVALID);
-    ASSERT_TRUE(status.isOk());
+    ASSERT_TRUE(mHubInterface
+                        ->registerDataFlowOffloadConsumer(std::move(halConsHandleRes).value(),
+                                                          halEndpointId, nullptr, std::nullopt, -1)
+                        .isOk());
 
-    // Wait for Echo Callback
-    // The mock should spawn a thread and call onDataFlowHostConsumerRegistered back to us.
-    bool signaled = mEndpointCb->getCondVar().wait_for(lock, std::chrono::seconds(5), [this] {
-        return mEndpointCb->wasOnDataFlowHostConsumerRegisteredCalled();
-    });
-    ASSERT_TRUE(signaled) << "Timed out waiting for Echo Data Flow callback";
+    // 8. Wait for Echo Setup
+    ALOGD("VTS: Waiting for Echo Callback...");
+    {
+        std::unique_lock<std::mutex> lock(mEndpointCb->getMutex());
+        bool signaled = mEndpointCb->getCondVar().wait_for(lock, std::chrono::seconds(5), [&] {
+            return mEndpointCb->wasOnDataFlowHostConsumerRegisteredCalled();
+        });
+        ASSERT_TRUE(signaled) << "Timeout waiting for HAL to register echo consumer";
+    }
+    ALOGD("VTS: Received Echo Callback");
 
-    // Verify Echo Details
-    EXPECT_EQ(mEndpointCb->getProducerId().id, mockConsumerId.id);
-    EXPECT_EQ(mEndpointCb->getConsumerId().id, hostEndpoint.id);
+    // Setup consumer
     const DataFlowConsumerHandle& echoHandle = mEndpointCb->getDataFlowHandle();
-    EXPECT_GT(echoHandle.id.id, 0);
     ASSERT_TRUE(echoHandle.info.has_value());
-    EXPECT_TRUE(echoHandle.info->region.sharedMemory.has_value());  // Should have valid ashmem fd
+
+    ALOGD("VTS: FDs Check - ConsWake: %d, ConsNonWake: %d, Ack: %d, ProdWake: %d, ProdNonWake: %d",
+          echoHandle.notificationFds.waking.get(), echoHandle.notificationFds.nonWaking.get(),
+          echoHandle.notificationFds.halAck.get(), echoHandle.info->notificationFds.waking.get(),
+          echoHandle.info->notificationFds.nonWaking.get());
+
+    RegionManager::RegionToMap regionToMap;
+    regionToMap.id = echoHandle.info->region.id;
+    regionToMap.size = echoHandle.info->region.sizeBytes;
+    regionToMap.fd = ScopedFileDescriptor(dup(echoHandle.info->region.sharedMemory.get()));
+
+    auto mapConsRes = mRegionManager->mapHostConsumerRegions(std::move(regionToMap), std::nullopt,
+                                                             echoHandle.id);
+    ASSERT_TRUE(mapConsRes.ok());
+    auto [echoRegion, _] = std::move(mapConsRes.value());
+
+    // Enables host consumer on the echo data flow.
+    ASSERT_TRUE(mNotificationManager->enableHostConsumerFromHandle(echoHandle).ok());
+
+    auto consumerRes = Consumer<uint8_t>::createRemote(
+            echoRegion, std::nullopt, echoHandle.info->metadataOffsetBytes,
+            echoHandle.metadataOffsetBytes, RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+    ASSERT_TRUE(consumerRes.ok()) << "failed to create remote consumer: "
+                                  << consumerRes.status().str();
+    std::optional<Consumer<uint8_t>> consumerOpt;
+    consumerOpt.emplace(std::move(consumerRes.value()));
+
+    // 9. Verify Echo
+    uint8_t testVal = 0x42;
+    producerOpt->push(testVal);
+    mNotificationManager->notifyOffloadConsumer(halEndpointId, true);
+
+    bool received = false;
+    mWaiterPtr->waitAndDispatch(5000);
+    std::lock_guard<std::mutex> lock(mEventMutex);
+    for (auto& ev : mReceivedEvents) {
+        ALOGD("VTS: Received Event for Flow ID: %d", ev.id);
+        if (ev.id == echoHandle.id.id) {
+            received = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(received) << "Did not receive echo notification";
+
+    auto popRes = consumerOpt->pop();
+    ASSERT_TRUE(popRes.ok());
+    EXPECT_EQ(popRes.value(), testVal);
 
     // Cleanup
-    // Unregister the echo flow (Host acts as consumer here)
-    EXPECT_TRUE(mHubInterface->unregisterDataFlowHostConsumer(hostEndpoint, echoHandle.id).isOk());
-    // Unregister original flow
-    EXPECT_TRUE(mHubInterface->unregisterDataFlowHostProducer(hostFlowId).isOk());
-    EXPECT_TRUE(mHubInterface->freeSharedDataRegion(region.id).isOk());
+    consumerOpt->disable();
+    // Reset the std::optional to explicitly deconstruct consumer and producer.
+    // This should happen before the queue deallocation, or else if will have segmentation fault.
+    consumerOpt.reset();
+    producerOpt.reset();
+    if (hostRegion.allocator) {
+        hostRegion.allocator->Deallocate(queuePtr, queueLayout());
+        ALOGD("VTS: Queue memory deallocated successfully");
+    }
+    mNotificationManager->disableHostConsumer(echoHandle.id);
+    mRegionManager->unlinkHostConsumerDataFlow(echoHandle.id);
+    mHubInterface->unregisterDataFlowHostConsumer(hostEndpoint, echoHandle.id);
+    mNotificationManager->removeHostProducerDataFlow(flowIdVal);
+    mHubInterface->unregisterDataFlowHostProducer(flowIdVal);
+    mRegionManager->unmapHostProducerRegion(regionId);
+    mHubInterface->freeSharedDataRegion(regionId);
 }
 
 std::string PrintGeneratedTest(const testing::TestParamInfo<ContextHubAidl::ParamType>& info) {
@@ -1225,13 +1432,19 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(android::getAidlHalInstanceNames(IContextHub::descriptor)),
         android::PrintInstanceNameToString);
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ContextHubDataFlowEchoTest);
+INSTANTIATE_TEST_SUITE_P(
+        ContextHub, ContextHubDataFlowEchoTest,
+        testing::ValuesIn(android::getAidlHalInstanceNames(IContextHub::descriptor)),
+        android::PrintInstanceNameToString);
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ContextHubTransactionTest);
 INSTANTIATE_TEST_SUITE_P(ContextHub, ContextHubTransactionTest,
                          testing::ValuesIn(generateContextHubMapping()), PrintGeneratedTest);
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ProcessState::self()->setThreadPoolMaxThreadCount(2);
-    ProcessState::self()->startThreadPool();
+    ABinderProcess_setThreadPoolMaxThreadCount(2);
+    ABinderProcess_startThreadPool();
     return RUN_ALL_TESTS();
 }

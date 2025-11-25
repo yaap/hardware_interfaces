@@ -28,6 +28,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "data_flow/host/region_manager.h"
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -134,6 +136,7 @@ class ContextHub : public BnContextHub {
             int32_t id;
             EndpointId offloadProducerId;
             EndpointId hostConsumerId;
+            int stopFd;
         };
 
         //! Finds an endpoint in the range defined by the endpoints
@@ -172,9 +175,12 @@ class ContextHub : public BnContextHub {
         std::unordered_map<int32_t, EchoDataFlow> mEchoDataFlows;
         std::atomic<int32_t> mNextDataFlowId{1};
 
+        ::android::contexthub::data_flow::RegionManager mRegionManager;
+
         // Helper function to create the echo data flow in echo service thread
-        void createEchoDataFlow(const EndpointId& offloadProducerId,
-                                const EndpointId& hostConsumerId, int32_t originalSessionId);
+        void createEchoDataFlow(const DataFlowConsumerHandle& in_handle,
+                                const EndpointId& in_consumerId, const EndpointId& hostProducerId,
+                                const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow);
     };
 
     static constexpr uint32_t kMockHubId = 0;

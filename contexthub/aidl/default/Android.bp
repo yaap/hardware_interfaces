@@ -34,6 +34,13 @@ cc_library_static {
         "liblog",
         "android.hardware.contexthub-V5-ndk",
     ],
+    static_libs: [
+        "contexthub_data_flow",
+        "pw_allocator",
+        "pw_bytes",
+        "pw_containers",
+        "pw_status",
+    ],
     export_include_dirs: ["include"],
     srcs: [
         "ContextHub.cpp",
@@ -59,6 +66,11 @@ cc_binary {
     ],
     static_libs: [
         "libcontexthubexampleimpl",
+        "contexthub_data_flow",
+        "pw_allocator",
+        "pw_bytes",
+        "pw_containers",
+        "pw_status",
     ],
     srcs: ["main.cpp"],
 }

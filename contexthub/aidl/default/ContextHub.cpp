@@ -24,17 +24,34 @@
 #include <cutils/ashmem.h>
 #include <inttypes.h>
 #include <log/log.h>
+#include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <optional>
 #include <thread>
 
-using ::ndk::ScopedAStatus;
+#include "data_flow/host/notification_manager.h"
+#include "data_flow/host/region_manager.h"
+#include "data_flow/queue.h"
 
 namespace aidl::android::hardware::contexthub {
 
 namespace {
+
+using ::android::contexthub::data_flow::AllocatorRegion;
+using ::android::contexthub::data_flow::Consumer;
+using ::android::contexthub::data_flow::ConsumerPolicyBuilder;
+using ::android::contexthub::data_flow::createQueue;
+using ::android::contexthub::data_flow::DataNotifier;
+using ::android::contexthub::data_flow::NotificationManager;
+using ::android::contexthub::data_flow::Producer;
+using ::android::contexthub::data_flow::queueLayout;
+using ::android::contexthub::data_flow::RegionManager;
+using ::android::contexthub::data_flow::RemoteNotifyArgs;
+using ::android::contexthub::data_flow::internal::ProducerBase;
+using ::ndk::ScopedAStatus;
+using ::ndk::ScopedFileDescriptor;
 
 constexpr uint64_t kMockVendorHubId = 0x1234567812345678;
 constexpr uint64_t kMockVendorHub2Id = 0x0EADBEEFDEADBEEF;
@@ -500,15 +517,15 @@ ScopedAStatus ContextHub::HubInterface::allocateSharedDataRegion(
         ALOGE("allocateSharedDataRegion failed: hub is not active");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
-    if (in_requirements.size <= 0 || !_aidl_return) {
+    if (in_requirements.sizeBytes <= 0 || !_aidl_return) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
-    int fd = ashmem_create_region("ContextHubSharedData", in_requirements.size);
+    int fd = ashmem_create_region("ContextHubSharedData", in_requirements.sizeBytes);
     if (fd < 0) {
-        ALOGE("ashmem_create_region failed, size=%" PRId64, in_requirements.size);
+        ALOGE("ashmem_create_region failed, size=%" PRId64, in_requirements.sizeBytes);
         return ScopedAStatus::fromServiceSpecificError(static_cast<int32_t>(
-                IEndpointCommunication::SharedDataErrors::EX_INSUFFICIENT_MEMORY));
+                IEndpointCommunication::SharedDataErrors::ERR_INSUFFICIENT_MEMORY));
     }
 
     int dupFd = ::dup(fd);
@@ -516,7 +533,7 @@ ScopedAStatus ContextHub::HubInterface::allocateSharedDataRegion(
         ALOGE("allocateSharedDataRegion dup FD failed");
         close(fd);
         return ScopedAStatus::fromServiceSpecificError(static_cast<int32_t>(
-                IEndpointCommunication::SharedDataErrors::EX_INSUFFICIENT_MEMORY));
+                IEndpointCommunication::SharedDataErrors::ERR_INSUFFICIENT_MEMORY));
     }
 
     int32_t regionId = mNextRegionId++;
@@ -525,7 +542,7 @@ ScopedAStatus ContextHub::HubInterface::allocateSharedDataRegion(
     regionToStore.region.id = regionId;
     regionToStore.region.sharedMemory.set(fd);
     regionToStore.permissions = std::move(in_requirements.permissions);
-    regionToStore.size = in_requirements.size;
+    regionToStore.size = in_requirements.sizeBytes;
     regionToStore.targetHubIds = std::move(in_requirements.targetHubIds);
 
     {
@@ -534,6 +551,7 @@ ScopedAStatus ContextHub::HubInterface::allocateSharedDataRegion(
     }
 
     _aidl_return->id = regionId;
+    _aidl_return->sizeBytes = in_requirements.sizeBytes;
     _aidl_return->sharedMemory.set(dupFd);
     if (!in_requirements.permissions.empty()) {
         _aidl_return->permissions.emplace(in_requirements.permissions.begin(),
@@ -592,28 +610,21 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(const Endpo
     flow.id = dataFlowId;
     flow.producerId = in_endpoint;
     flow.info.region.id = in_info.region.id;
-    flow.info.metadataOffset = in_info.metadataOffset;
-    if (in_info.producerEventFd.get() < 0) {
-        ALOGE("registerDataFlowHostProducer: invalid producerEventFd");
+    flow.info.metadataOffsetBytes = in_info.metadataOffsetBytes;
+    if (in_info.notificationFds.waking.get() < 0) {
+        ALOGE("registerDataFlowHostProducer: invalid notificationFds.waking");
+        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    } else if (in_info.notificationFds.nonWaking.get() < 0) {
+        ALOGE("registerDataFlowHostProducer: invalid notificationFds.nonWaking");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
-    int dupFd = dup(in_info.producerEventFd.get());
-    if (dupFd < 0) {
-        ALOGE("registerDataFlowHostProducer: failed to dup producerEventFd");
+    auto maybeFds = ::android::contexthub::data_flow::dupEventFds(in_info.notificationFds,
+                                                                  /*needsHalAck=*/true);
+    if (!maybeFds.ok()) {
+        ALOGE("registerDataFlowHostProducer: failed to dup notificationFds");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
-    flow.info.producerEventFd.set(dupFd);
-
-    if (in_info.producerEventFdNonwake.get() < 0) {
-        ALOGE("registerDataFlowHostProducer: invalid producerEventFdNonwake");
-        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-    }
-    int dupNonwakeFd = dup(in_info.producerEventFdNonwake.get());
-    if (dupNonwakeFd < 0) {
-        ALOGE("registerDataFlowHostProducer: failed to dup producerEventFdNonwake");
-        return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-    }
-    flow.info.producerEventFdNonwake.set(dupNonwakeFd);
+    flow.info.notificationFds = std::move(*maybeFds);
 
     mDataFlows[dataFlowId] = std::move(flow);
 
@@ -655,7 +666,7 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
         const DataFlowConsumerHandle& in_handle, const EndpointId& in_consumerId,
         const std::shared_ptr<
                 IEndpointCommunication::IRegisterOffloadConsumerCallback>& /*in_callback*/,
-        const std::optional<Message>& /*in_msg*/, int32_t in_sessionId) {
+        const std::optional<Message>& /*in_msg*/, int32_t /*in_sessionId*/) {
     if (!mActive) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
@@ -703,13 +714,10 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
 
         flowIt->second.offloadConsumerIds.insert(in_consumerId.id);
         hostProducerId = flowIt->second.producerId;
-    }
 
-    // Starts thread for echo data flow
-    std::thread([this, offloadProducerId = in_consumerId, hostConsumerId = hostProducerId,
-                 sessionId = in_sessionId]() {
-        this->createEchoDataFlow(offloadProducerId, hostConsumerId, sessionId);
-    }).detach();
+        createEchoDataFlow(in_handle, in_consumerId, hostProducerId, regionIt->second,
+                           flowIt->second);
+    }
 
     return ScopedAStatus::ok();
 }
@@ -735,6 +743,10 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostConsumer(
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
+    // Writes stop signal
+    uint64_t stopVal = 1;
+    write(it->second.stopFd, &stopVal, sizeof(stopVal));
+
     // Remove echo data flow record.
     mEchoDataFlows.erase(it);
     ALOGD("Unregistered Host Consumer %" PRIu64 " from DataFlow %d", in_consumerId.id,
@@ -743,86 +755,300 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostConsumer(
     return ScopedAStatus::ok();
 }
 
-void ContextHub::HubInterface::createEchoDataFlow(const EndpointId& offloadProducerId,
-                                                  const EndpointId& hostConsumerId,
-                                                  int32_t /* originalSessionId */) {
-    // Allocates a new shared memory region
-    constexpr int32_t kEchoRegionSize = 4096;
-    int fd = ashmem_create_region("ContextHubEchoSharedData", kEchoRegionSize);
-    if (fd < 0) {
-        ALOGE("Echo: ashmem_create_region failed");
+// EchoEpollWaiter for NotificationManager
+class EchoEpollWaiter : public NotificationManager::EpollWaiter {
+  public:
+    EchoEpollWaiter() { mEpollFd = epoll_create1(EPOLL_CLOEXEC); }
+    ~EchoEpollWaiter() {
+        if (mEpollFd >= 0) close(mEpollFd);
+    }
+
+    void addFd(int fd) override {
+        ALOGD("Echo: Adding FD %d to epoll", fd);
+        epoll_event ev{};
+        ev.events = EPOLLIN;
+        ev.data.fd = fd;
+        epoll_ctl(mEpollFd, EPOLL_CTL_ADD, fd, &ev);
+    }
+
+    void addStopFd(int fd) {
+        ALOGD("Echo: Adding stop FD %d to epoll", fd);
+        mStopFd = fd;
+        addFd(fd);
+    }
+
+    void removeFd(int fd) override { epoll_ctl(mEpollFd, EPOLL_CTL_DEL, fd, nullptr); }
+
+    void waitAndDispatch() {
+        epoll_event events[4];
+        int nfds = epoll_wait(mEpollFd, events, 4, -1);
+        for (int i = 0; i < nfds; i++) {
+            if (events[i].data.fd == mStopFd) {
+                mStopped = true;
+                break;
+            }
+            handleNotification(events[i].data.fd, false);
+        }
+    }
+
+    bool isStopped() { return mStopped; }
+
+  private:
+    int mEpollFd = -1;
+    int mStopFd = -1;
+    std::atomic<bool> mStopped{false};
+};
+
+void ContextHub::HubInterface::createEchoDataFlow(const DataFlowConsumerHandle& in_handle,
+                                                  const EndpointId& in_consumerId,
+                                                  const EndpointId& hostProducerId,
+                                                  const AllocatedRegion& allocatedRegion,
+                                                  const DataFlow& dataFlow) {
+    // ========================================================================
+    // Setup notification manager
+    // ========================================================================
+    auto waiter = std::make_unique<EchoEpollWaiter>();
+    auto waiterPtr = waiter.get();
+    auto receivedEvents = std::make_unique<std::queue<DataFlowId>>();
+    auto notificationManager = NotificationManager::create(
+            std::move(waiter), [](DataFlowId /*flowId*/, bool /*waking*/) {});
+
+    // ========================================================================
+    // Setup consumer (host -> HAL)
+    // ========================================================================
+    RegionManager::RegionToMap regionToMap;
+    regionToMap.id = dataFlow.info.region.id;
+    regionToMap.size = allocatedRegion.size;
+    regionToMap.fd = ScopedFileDescriptor(dup(allocatedRegion.region.sharedMemory.get()));
+
+    auto mapConsRes = mRegionManager.mapHostConsumerRegions(std::move(regionToMap), std::nullopt,
+                                                            in_handle.id);
+    if (!mapConsRes.ok()) {
+        ALOGE("Echo: mapHostConsumerRegions failed, status: %s", mapConsRes.status().str());
+        return;
+    }
+    auto [echoRegion, _] = std::move(mapConsRes.value());
+
+    // Enables host consumer on the echo data flow.
+    auto consumerHandleId = in_handle.id;
+
+    DataFlowNotificationFds notifyHostFds, notifyOffloadFds;
+    notifyOffloadFds.waking = ScopedFileDescriptor(dup(dataFlow.info.notificationFds.waking.get()));
+    notifyOffloadFds.nonWaking =
+            ScopedFileDescriptor(dup(dataFlow.info.notificationFds.nonWaking.get()));
+    notifyOffloadFds.halAck = ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
+
+    notifyHostFds.waking = ScopedFileDescriptor(dup(in_handle.notificationFds.waking.get()));
+    notifyHostFds.nonWaking = ScopedFileDescriptor(dup(in_handle.notificationFds.nonWaking.get()));
+    notifyHostFds.halAck = ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
+
+    auto status = notificationManager->enableHostConsumerFromEventFds(
+            consumerHandleId, std::move(notifyHostFds), std::move(notifyOffloadFds));
+    if (!status.ok()) {
+        ALOGE("Echo: enableHostConsumerFromHandle failed, status: %s", status.str());
         return;
     }
 
-    // Creates 4 distinct event FDs for full separation of signaling directions
-    int efd_prod_wake = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    int efd_prod_nonwake = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    int efd_cons_wake = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    int efd_cons_nonwake = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    auto consumerRes = Consumer<uint8_t>::createRemote(
+            echoRegion, std::nullopt, dataFlow.info.metadataOffsetBytes,
+            in_handle.metadataOffsetBytes, RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+    if (!consumerRes.ok()) {
+        ALOGE("Echo: Consumer<uint8_t>::createRemote failed, status: %s",
+              consumerRes.status().str());
+        return;
+    }
+    std::optional<Consumer<uint8_t>> consumerOpt;
+    consumerOpt.emplace(std::move(consumerRes.value()));
 
-    if (efd_prod_wake < 0 || efd_prod_nonwake < 0 || efd_cons_wake < 0 || efd_cons_nonwake < 0) {
-        ALOGE("Echo: eventfd creation failed");
-        if (efd_prod_wake >= 0) close(efd_prod_wake);
-        if (efd_prod_nonwake >= 0) close(efd_prod_nonwake);
-        if (efd_cons_wake >= 0) close(efd_cons_wake);
-        if (efd_cons_nonwake >= 0) close(efd_cons_nonwake);
-        close(fd);
+    // ========================================================================
+    // Setup producer (HAL -> Host)
+    // ========================================================================
+
+    // Init ashmem and region.
+    constexpr int32_t kEchoRegionSize = 16384;
+    int outputFd = ashmem_create_region("ContextHubEchoSharedData", kEchoRegionSize);
+    if (outputFd < 0) {
+        ALOGE("Echo: ashmem failed");
         return;
     }
 
-    int32_t echoFlowIdValue = mNextDataFlowId++;
+    // Dup the region FD used to fill in the dfInfo afterwards.
+    int dupRegionFd = dup(outputFd);
+    if (dupRegionFd < 0) {
+        ALOGE("Echo: failed to dup ashmem fd for VTS");
+        close(outputFd);
+        return;
+    }
 
-    // Records echo data flow.
+    int32_t outputSharedRegionId = mNextRegionId++;  // Allocate a new region ID
+    SharedDataRegion outputSharedRegion;
+    outputSharedRegion.id = outputSharedRegionId;
+    outputSharedRegion.sizeBytes = kEchoRegionSize;
+    outputSharedRegion.sharedMemory.set(outputFd);  // Take outputFd's ownership
+    outputSharedRegion.permissions = {};
+
+    // Map Region
+    pw::Result<AllocatorRegion> hostProdRegionRes =
+            mRegionManager.mapHostProducerRegion(std::move(outputSharedRegion));
+    if (!hostProdRegionRes.ok()) {
+        ALOGE("Echo: mapHostProducerRegion failed");
+        return;
+    }
+    AllocatorRegion& hostRegion = hostProdRegionRes.value();
+
+    // Initialize Queue
+    DataNotifier dataNotifier;
+
+    constexpr size_t kQueueBlockCapacity = 1024;
+    pw::Result<void*> queueRes =
+            createQueue<uint8_t, kQueueBlockCapacity>(*hostRegion.allocator, /*local=*/false);
+    if (!queueRes.ok()) {
+        ALOGE("Echo: createQueue failed");
+        return;
+    }
+    void* queuePtr = queueRes.value();
+
+    // Calculate offset for HAL
+    size_t queueOffset = reinterpret_cast<uintptr_t>(queuePtr) - hostRegion.base;
+    ALOGD("Echo: Queue allocated at offset: %zu", queueOffset);
+
+    // Create Producer
+    auto producerRes = Producer<uint8_t>::createRemote(hostRegion, queuePtr,
+                                                       16,  // max blocks
+                                                       1,   // min blocks
+                                                       dataNotifier,
+                                                       RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+    if (!producerRes.ok()) {
+        ALOGE("Echo: Producer<uint8_t>::createRemote failed");
+        return;
+    }
+    std::optional<Producer<uint8_t>> producerOpt;
+    producerOpt.emplace(std::move(producerRes.value()));
+
+    // ========================================================================
+    // Setup the consumer and send back to VTS
+    // ========================================================================
+
+    auto prepRes = notificationManager->prepareHostProducerDataFlowInfo();
+    if (!prepRes.ok()) {
+        ALOGE("Echo: prepareHostProducerDataFlowInfo failed");
+        return;
+    }
+    auto [dfInfo, notifyHandle] = std::move(prepRes.value());
+    dfInfo.region.id = outputSharedRegionId;
+    dfInfo.region.sizeBytes = kEchoRegionSize;
+    dfInfo.region.sharedMemory.set(dupRegionFd);
+    dfInfo.metadataOffsetBytes = queueOffset;
+
+    // Register Producer
+    int32_t flowIdVal = mNextDataFlowId++;
+    ALOGD("Echo: Producer Registered (FlowID=%d)", flowIdVal);
+
+    if (!notificationManager->activateHostProducerDataFlow(flowIdVal, notifyHandle).ok()) {
+        ALOGE("Echo: activateHostProducerDataFlow failed");
+        return;
+    }
+    if (!mRegionManager.linkHostProducerDataFlowToRegion(outputSharedRegionId, flowIdVal).ok()) {
+        ALOGE("Echo: linkHostProducerDataFlowToRegion failed");
+        return;
+    }
+    ALOGD("Echo: Host Producer Activated and Linked");
+
+    // Register Consumer sending back to VTS
+    ALOGD("Echo: Attempting to add consumer");
+    ConsumerPolicyBuilder policy;
+    policy.setStreaming();
+
+    const char* kConsumerName = "VtsEchoConsumer";
+    pw::ConstByteSpan nameSpan(reinterpret_cast<const std::byte*>(kConsumerName), 15);
+    pw::Result<uint32_t> consDescOffsetRes =
+            producerOpt->getConsumerManager().addConsumer(nameSpan, policy, &hostRegion);
+    if (!consDescOffsetRes.ok()) {
+        ALOGE("Echo: addConsumer failed");
+        return;
+    }
+    ALOGD("Echo: Consumer Descriptor Added at offset: %u", consDescOffsetRes.value());
+
+    pw::Result<DataFlowConsumerHandle> consumerHandleRes =
+            notificationManager->addOffloadConsumerAndCreateHandle(flowIdVal, hostProducerId);
+    if (!consumerHandleRes.ok()) {
+        ALOGE("Echo: addOffloadConsumerAndCreateHandle failed");
+        return;
+    }
+    consumerHandleRes.value().id.hubId = in_consumerId.hubId;
+    consumerHandleRes.value().id.id = flowIdVal;
+    consumerHandleRes.value().metadataOffsetBytes = consDescOffsetRes.value();
+    consumerHandleRes.value().info = std::move(dfInfo);
+
+    // Callback to send the consumer DataFlowConsumerHandle back to VTS.
+    if (mEndpointCallback != nullptr) {
+        mEndpointCallback->onDataFlowHostConsumerRegistered(
+                std::move(consumerHandleRes).value(), in_consumerId, hostProducerId, std::nullopt,
+                IEndpointCommunication::SESSION_ID_INVALID);
+        ALOGD("Echo: called onDataFlowHostConsumerRegistered callback function");
+    }
+
+    // Register flow locally
+    int stopFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (stopFd < 0) {
+        ALOGE("Echo: Failed to create stopFd");
+        return;
+    }
     {
         std::lock_guard lock(mEchoDataFlowMutex);
         EchoDataFlow echoFlow;
-        echoFlow.id = echoFlowIdValue;
-        echoFlow.offloadProducerId = offloadProducerId;
-        echoFlow.hostConsumerId = hostConsumerId;
-        mEchoDataFlows[echoFlowIdValue] = echoFlow;
+        echoFlow.id = flowIdVal;
+        echoFlow.offloadProducerId = in_consumerId;
+        echoFlow.hostConsumerId = hostProducerId;
+        echoFlow.stopFd = stopFd;
+        mEchoDataFlows[flowIdVal] = echoFlow;
     }
 
-    // Prepares callback parameters
-    DataFlowId echoFlowId;
-    echoFlowId.hubId = offloadProducerId.hubId;
-    echoFlowId.id = echoFlowIdValue;
+    // ========================================================================
+    // Starts thread for echo data flow
+    // ========================================================================
 
-    DataFlowConsumerHandle consumerHandle;
-    consumerHandle.id = echoFlowId;
-    // Sets DataFlow Info (for Host consumer)
-    consumerHandle.info = std::optional<DataFlowInfo>(DataFlowInfo{});
-    consumerHandle.info->region.id = mNextRegionId++;
-    consumerHandle.info->region.sharedMemory.set(dup(fd));
-    consumerHandle.info->region.permissions.emplace();
-    consumerHandle.info->metadataOffset = 0;
+    auto* allocatorPtr = hostRegion.allocator;
 
-    // Set distinct eventfds for Producer (signals sent to offload producer)
-    consumerHandle.info->producerEventFd.set(dup(efd_prod_wake));
-    consumerHandle.info->producerEventFdNonwake.set(dup(efd_prod_nonwake));
+    ALOGE("Echo: starting echo thread");
+    std::shared_ptr<HubInterface> lifebuoy = ref<HubInterface>();
+    std::thread([this, lifebuoy, producerOpt = std::move(producerOpt),
+                 consumerOpt = std::move(consumerOpt), notificationManager, waiterPtr,
+                 hostProducerId, flowIdVal, consumerHandleId, outputSharedRegionId, allocatorPtr,
+                 queuePtr]() mutable {
+        while (!waiterPtr->isStopped()) {
+            waiterPtr->waitAndDispatch();
 
-    consumerHandle.consumerRegion = std::nullopt;
-    consumerHandle.metadataOffset = 0;
+            if (waiterPtr->isStopped()) {
+                break;
+            }
 
-    // Set distinct eventfds for Consumer (signals sent to host consumer)
-    consumerHandle.consumerEventFd.set(dup(efd_cons_wake));
-    consumerHandle.consumerEventFdNonwake.set(dup(efd_cons_nonwake));
+            while (true) {
+                auto popRes = consumerOpt->pop();
+                if (!popRes.ok()) {
+                    break;
+                }
+                auto value = popRes.value();
+                producerOpt->push(value);
+                notificationManager->notifyOffloadConsumer(hostProducerId, true);
+            }
+        }
 
-    // Calls Host callback function.
-    std::shared_ptr<IEndpointCallback> callback = mEndpointCallback;
-    if (callback != nullptr) {
-        callback->onDataFlowHostConsumerRegistered(consumerHandle, offloadProducerId,
-                                                   hostConsumerId, std::nullopt,
-                                                   IEndpointCommunication::SESSION_ID_INVALID);
-        ALOGD("Created Echo DataFlow %d from Offload %" PRIu64 " to Host %" PRIu64, echoFlowId.id,
-              offloadProducerId.id, hostConsumerId.id);
-    }
-
-    // Clean up local FDs
-    close(efd_prod_wake);
-    close(efd_prod_nonwake);
-    close(efd_cons_wake);
-    close(efd_cons_nonwake);
-    close(fd);
+        // Clean up
+        consumerOpt->disable();
+        // Reset the std::optional to explicitly deconstruct consumer and producer.
+        // This should happen before the queue deallocation, or else if will have segmentation
+        // fault.
+        consumerOpt.reset();
+        producerOpt.reset();
+        if (allocatorPtr) {
+            allocatorPtr->Deallocate(queuePtr, queueLayout());
+        }
+        notificationManager->disableHostConsumer(consumerHandleId);
+        mRegionManager.unlinkHostConsumerDataFlow(consumerHandleId);
+        notificationManager->removeHostProducerDataFlow(flowIdVal);
+        mRegionManager.unmapHostProducerRegion(outputSharedRegionId);
+    }).detach();
 }
 
 }  // namespace aidl::android::hardware::contexthub
