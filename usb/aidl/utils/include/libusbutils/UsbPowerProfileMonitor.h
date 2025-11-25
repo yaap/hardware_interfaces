@@ -56,14 +56,25 @@ class UsbPowerProfileMonitor {
 
     unique_fd mTimerDebounceFd;
 
+    int setupEpoll(int epfd);
+    bool isPowerProfileMonitorFd(int fd);
     void queryPowerProfileStatus(std::vector<PortStatus>* currentPortStatus);
 
   private:
     struct UsbPortInfo {
         string portPdName;
         string partnerPdName;
+        /**
+         * File descriptor to track "/sys/class/typec/<portId>/power_operation_mode"
+         * for a given port.
+         */
+        int mPowerOpModeFd;
     };
 
+    /*
+     * Map from port name in typec class to UsbPortInfo
+     * e.g. {"port0": UsbPortInfo }
+     */
     std::map<string, UsbPortInfo> mUsbPortInfo;
 
     /*

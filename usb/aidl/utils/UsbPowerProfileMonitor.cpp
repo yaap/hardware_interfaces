@@ -61,9 +61,9 @@ static std::map<Bc12Type, string> bc12_strings = {
 };
 
 static std::map<string, int> power_operation_mode_strings = {
-        {"default", 500},
-        {"1.5A", 1500},
-        {"3.0A", 3000},
+        {"default\n", 500},
+        {"1.5A\n", 1500},
+        {"3.0A\n", 3000},
 };
 
 /*---------- File Utilities ----------*/
@@ -457,7 +457,8 @@ void UsbPowerProfileMonitor::populateTypecProfiles(string portName,
             return;
         }
 
-        if (power_operation_mode_strings.find(powerOp) == power_operation_mode_strings.end()) {
+        if (power_operation_mode_strings.find(powerOp.c_str()) ==
+            power_operation_mode_strings.end()) {
             ALOGW("power_operation_mode for port %s is PD", portName.c_str());
             return;
         }
@@ -584,6 +585,7 @@ void UsbPowerProfileMonitor::updatePowerProfiles(string portName, PortStatus* po
 UsbPowerProfileMonitor::UsbPowerProfileMonitor(bool supportsPartnerBc12Reporting,
                                                bool supportPowerProfiles) {
     std::map<string, bool> names;
+    string powerOpModePath;
 
     mSupportsPartnerBc12Reporting = supportsPartnerBc12Reporting;
     mSupportsPowerProfiles = supportPowerProfiles;
@@ -592,6 +594,11 @@ UsbPowerProfileMonitor::UsbPowerProfileMonitor(bool supportsPartnerBc12Reporting
     for (std::pair<string, bool> port : names) {
         mUsbPortInfo[port.first].portPdName = "";
         mUsbPortInfo[port.first].partnerPdName = "";
+        powerOpModePath = kTypecPath + port.first + "/power_operation_mode";
+        mUsbPortInfo[port.first].mPowerOpModeFd = open(powerOpModePath.c_str(), O_RDONLY);
+        if (mUsbPortInfo[port.first].mPowerOpModeFd == -1) {
+            ALOGE("init: Cannot open %s", powerOpModePath.c_str());
+        }
     }
 
     unique_fd timerDebounceFd(timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK));
@@ -601,6 +608,73 @@ UsbPowerProfileMonitor::UsbPowerProfileMonitor(bool supportsPartnerBc12Reporting
     }
 
     mTimerDebounceFd = std::move(timerDebounceFd);
+}
+
+/**
+ * setupEpoll - callback used by the USB HAL to register UsbPowerProfileMonitor file descriptors to
+ *              the provided epoll
+ *
+ * This function will register the following files to the epoll:
+ *      - mTimerDebounceFd
+ *      - mUsbPortInfo.mPowerOpModeFd for all ports
+ *
+ * @param epfd            The epoll file to register power profile files to
+ *
+ * @return 0 if all files are successfully added to the epoll fd, a negative error code otherwise.
+ */
+int UsbPowerProfileMonitor::setupEpoll(int epfd) {
+    int ret;
+
+    ret = addEpollFd(epfd, mTimerDebounceFd, EPOLLIN);
+    if (ret < 0) {
+        return ret;
+    }
+
+    for (std::pair<string, UsbPortInfo> portInfo : mUsbPortInfo) {
+        if (portInfo.second.mPowerOpModeFd == -1) {
+            continue;
+        }
+        ret = addEpollFd(epfd, portInfo.second.mPowerOpModeFd, EPOLLIN | EPOLLET);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+    ALOGI("%s: epolls added", __func__);
+
+    return 0;
+}
+
+/**
+ * isPowerProfileMonitorFd - callback determine if a given file descriptor belongs to this
+ *                           UsbPowerProfileMonitor object, excluding mTimerDebounceFd.
+ *
+ * If the USB HAL had previously registered UsbPowerProfileMonitor file descriptors to an epoll via
+ * setupEpoll, it will call this function when epoll events arrive to determine if the
+ * epoll event fd fd belongs to the following files belonging to UsbPortInfo:
+ *      - mUsbPortInfo.mPowerOpModeFd
+ * This function will read the file to prevent continuous epoll events from arriving.
+ *
+ * @param fd         The file descriptor that triggered an epoll event on the USB HAL
+ */
+bool UsbPowerProfileMonitor::isPowerProfileMonitorFd(int fd) {
+    int ret;
+    unsigned long res;
+
+    for (std::pair<string, UsbPortInfo> portInfo : mUsbPortInfo) {
+        if (portInfo.second.mPowerOpModeFd == -1) {
+            continue;
+        }
+        if (portInfo.second.mPowerOpModeFd == fd) {
+            ret = read(portInfo.second.mPowerOpModeFd, &res, sizeof(res));
+            if (ret < 0) {
+                ALOGW("port (%s) powerOpModeFd read errno %d", portInfo.first.c_str(), errno);
+            } else {
+                ALOGI("port (%s) powerOpModeFd triggered", portInfo.first.c_str());
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 /**

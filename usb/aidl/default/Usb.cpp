@@ -708,6 +708,10 @@ void *work(void *param) {
         goto error;
     }
 
+    if (usb_flags::enable_power_profile_reporting()) {
+        usb->mPowerMonitor->setupEpoll(epoll_fd);
+    }
+
     while (!destroyThread) {
         struct epoll_event events[UEVENT_MAX_EVENTS + EPOLL_MAX_EVENTS];
 
@@ -720,17 +724,20 @@ void *work(void *param) {
         }
 
         for (int n = 0; n < nevents; ++n) {
-            if (events[n].data.fd == uevent_fd) {
-                if (events[n].data.ptr) {
-                    (*(void (*)(int, struct data* payload))events[n].data.ptr)(events[n].events,
-                                                                               &payload);
-                }
-            } else if (events[n].data.fd == usb->mPowerMonitor->mTimerDebounceFd.get()) {
+            if (events[n].data.fd == usb->mPowerMonitor->mTimerDebounceFd.get()) {
                 ret = read(usb->mPowerMonitor->mTimerDebounceFd.get(), &res, sizeof(res));
                 if (ret < 0) {
-                    ALOGW("mTimerDebounceFd debounce read errno %d", errno);
+                    ALOGW("mPowerMonitor->mTimerDebounceFd debounce read errno %d", errno);
+                } else {
+                    ALOGI("mPowerMonitor->mTimerDebounceFd debounce triggered");
+                    updatePortStatus(usb);
                 }
-                updatePortStatus(usb);
+            } else if (usb->mPowerMonitor->isPowerProfileMonitorFd(events[n].data.fd)) {
+                armTimerFd(usb->mPowerMonitor->mTimerDebounceFd, POWER_MONITOR_DEBOUNCE_MS);
+                continue;
+            } else if (events[n].data.ptr) {
+                (*(void (*)(int, struct data* payload))events[n].data.ptr)(events[n].events,
+                                                                           &payload);
             }
         }
     }
