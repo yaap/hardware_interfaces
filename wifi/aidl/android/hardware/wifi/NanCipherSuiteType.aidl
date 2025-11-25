@@ -40,9 +40,13 @@ enum NanCipherSuiteType {
      */
     PUBLIC_KEY_2WDH_256_MASK = 1 << 3,
     /**
-     * bit 4 and bit 5 are reserved for NCS-GTK-CCMP-128 and NCS-GTK-CCMP-256. Which are not used
-     * from framework
+     *  NCS-GTK-CCMP-128
      */
+    GROUP_KEY_CCMP_128_MASK = 1 << 4,
+    /**
+     *  NCS-GTK-GCMP-256
+     */
+    GROUP_KEY_GCMP_256_MASK = 1 << 5,
     /**
      *  NCS-PK-PASN-128
      */
