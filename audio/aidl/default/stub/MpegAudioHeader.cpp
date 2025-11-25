@@ -203,7 +203,7 @@ std::optional<MpegFrame> findMpegFrame(const uint8_t** currBuff, const uint8_t* 
                 const int bitrateInKbps = bitrateOpt.value();
                 const int sampleRate = sampleRateOpt.value();
                 const int paddingBit = ((*currBuff)[2] >> kPaddingBitShift) & kPaddingBitMask;
-                const int channelIdx = ((*currBuff)[3] >> kPaddingBitMask) & kChannelIdxMask;
+                const int channelIdx = ((*currBuff)[3] >> kChannelIdxShift) & kChannelIdxMask;
                 frame.sampleRate = sampleRate;
 
                 int channelCount = (channelIdx == kMonoChannelIdx) ? 1 : 2;
