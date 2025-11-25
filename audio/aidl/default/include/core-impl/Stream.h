@@ -601,9 +601,7 @@ class StreamOut : virtual public StreamCommonInterface, public BnStreamOut {
     }
     ndk::ScopedAStatus updateMetadata(
             const ::aidl::android::hardware::audio::common::SourceMetadata& in_sourceMetadata)
-            override {
-        return updateMetadataCommon(in_sourceMetadata);
-    }
+            override;
     ndk::ScopedAStatus updateOffloadMetadata(
             const ::aidl::android::hardware::audio::common::AudioOffloadMetadata&
                     in_offloadMetadata) override;
@@ -632,6 +630,8 @@ class StreamOut : virtual public StreamCommonInterface, public BnStreamOut {
     StreamOut(StreamContext&& context,
               const std::optional<::aidl::android::media::audio::common::AudioOffloadInfo>&
                       offloadInfo);
+    ndk::ScopedAStatus validateMetadata(
+            const ::aidl::android::hardware::audio::common::SourceMetadata& sourceMetadata);
 
     StreamContext mContextInstance;
     const std::optional<::aidl::android::media::audio::common::AudioOffloadInfo> mOffloadInfo;

@@ -40,4 +40,5 @@ parcelable PlaybackTrackMetadata {
   android.media.audio.common.AudioChannelLayout channelMask;
   @nullable android.media.audio.common.AudioDevice sourceDevice;
   @utf8InCpp String[] tags;
+  @nullable @utf8InCpp String codecProvenance;
 }

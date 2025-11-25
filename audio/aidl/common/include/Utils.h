@@ -20,6 +20,7 @@
 #include <array>
 #include <initializer_list>
 #include <regex>
+#include <string_view>
 #include <type_traits>
 
 #include <aidl/android/media/audio/common/AudioChannelLayout.h>
@@ -232,6 +233,11 @@ constexpr bool hasMmapFlag(const ::aidl::android::media::audio::common::AudioIoF
             isBitPositionFlagSet(
                     flags.get<::aidl::android::media::audio::common::AudioIoFlags::Tag::output>(),
                     ::aidl::android::media::audio::common::AudioOutputFlags::MMAP_NOIRQ));
+}
+
+constexpr bool isAudioMimeType(std::string_view mimeType) {
+    constexpr std::string_view audioPrefix = "audio/";
+    return mimeType.starts_with(audioPrefix) && mimeType.size() > audioPrefix.size();
 }
 
 }  // namespace aidl::android::hardware::audio::common
