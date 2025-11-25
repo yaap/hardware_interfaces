@@ -38,7 +38,6 @@
 #include "bluetooth_hal/extensions/thread/thread_handler.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 #include "bluetooth_hal/transport/transport_interface.h"
@@ -482,9 +481,6 @@ void HciRouterImpl::Cleanup() {
 
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   HAL_LOG(INFO) << "Shutting down the HciRouter";
-  if (tx_handler_) {
-    tx_handler_.reset();
-  }
 
   // Cleanup Thread manager.
   if (ThreadHandler::IsHandlerRunning()) {
