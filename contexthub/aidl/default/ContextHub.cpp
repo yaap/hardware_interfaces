@@ -436,7 +436,7 @@ ScopedAStatus ContextHub::HubInterface::sendMessageToEndpoint(int32_t in_session
     }
 
     // Echo the message back
-    std::thread{[callback, in_sessionId, in_msg]() {
+    std::thread{[callback, in_sessionId, &in_msg]() {
         std::unique_lock<std::mutex> lock(gCallbackMutex);
         if (auto cb = callback.lock(); cb != nullptr) {
             cb->onMessageReceived(in_sessionId, in_msg);
@@ -488,6 +488,39 @@ ScopedAStatus ContextHub::HubInterface::unregister() {
     std::lock_guard lock(mHal.mHostHubsLock);
     mHal.mIdToHostHub.erase(kInfo.hubId);
     return ScopedAStatus::ok();
+}
+
+ScopedAStatus ContextHub::HubInterface::allocateSharedDataRegion(
+        const SharedDataRegionRequirements& /*in_requirements*/,
+        SharedDataRegion* /*_aidl_return*/) {
+    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ScopedAStatus ContextHub::HubInterface::freeSharedDataRegion(int32_t /*in_id*/) {
+    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(
+        const EndpointId& /*in_endpoint*/, const DataFlowInfo& /*in_info*/,
+        int32_t* /*_aidl_return*/) {
+    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostProducer(int32_t /*in_id*/) {
+    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
+        const DataFlowConsumerHandle& /*in_handle*/, const EndpointId& /*in_consumerId*/,
+        const std::shared_ptr<
+                IEndpointCommunication::IRegisterOffloadConsumerCallback>& /*in_callback*/,
+        const std::optional<Message>& /*in_msg*/, int32_t /*in_sessionId*/) {
+    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostConsumer(
+        const EndpointId& /*in_consumerId*/, const DataFlowId& /*in_dataFlowId*/) {
+    return ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
 }  // namespace aidl::android::hardware::contexthub

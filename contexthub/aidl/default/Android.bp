@@ -31,7 +31,7 @@ cc_library_static {
         "libbase",
         "libbinder_ndk",
         "liblog",
-        "android.hardware.contexthub-V4-ndk",
+        "android.hardware.contexthub-V5-ndk",
     ],
     export_include_dirs: ["include"],
     srcs: [
@@ -53,7 +53,7 @@ cc_binary {
         "libbase",
         "libbinder_ndk",
         "liblog",
-        "android.hardware.contexthub-V4-ndk",
+        "android.hardware.contexthub-V5-ndk",
     ],
     static_libs: [
         "libcontexthubexampleimpl",

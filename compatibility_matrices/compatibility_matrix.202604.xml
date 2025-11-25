@@ -211,7 +211,7 @@
     </hal>
     <hal format="aidl">
         <name>android.hardware.contexthub</name>
-        <version>3-4</version>
+        <version>3-5</version>
         <interface>
             <name>IContextHub</name>
             <instance>default</instance>

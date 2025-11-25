@@ -18,6 +18,7 @@ package android.hardware.contexthub;
 
 import android.hardware.contexthub.EndpointId;
 import android.hardware.contexthub.Service;
+import android.hardware.contexthub.SharedDataRegion;
 
 /* This structure is a unified superset of NanoAppInfo and HostEndpointInfo. */
 @VintfStability
@@ -78,6 +79,9 @@ parcelable EndpointInfo {
      */
     Service[] services;
 
+    /** The latest version of the shared data flow implementation this endpoint supports. */
+    @nullable SharedDataSupportVersion sharedDataSupportVersion;
+
     @VintfStability
     @Backing(type="int")
     enum EndpointType {
@@ -97,5 +101,29 @@ parcelable EndpointInfo {
 
         /** This endpoint is a generic endpoint (not from a nanoapp). */
         GENERIC = 5,
+    }
+
+    /**
+     * Represents a version of support for shared data flows. The major, minor, and patch versions
+     * are determined by the version of shared memory support library used by the endpoint (see
+     * /system/chre/data_flow:contexthub_data_flow). minimumCompatibleMajorVersion is used
+     * to determine whether the endpoint uses any capabilities that require a minimum version of
+     * the support library.
+     *
+     * NOTE: The support library will be backwards-compatible with all previous versions of the
+     * library. The definitions of shared memory structures (see the descriptions in {@link
+     * #SharedDataRegion}) enable the library to determine the version of the other endpoints and
+     * enable/disable newer features accordingly. Where maximum structure size is constrained,
+     * structures include reserved fields to enable future expansion without major version bumps.
+     * Where this is no longer sufficient, new structures are defined and are used based on the
+     * highest major version supported by the endpoints.
+     */
+    @VintfStability
+    parcelable SharedDataSupportVersion {
+        /** This endpoint's version of the shared data flow implementation. */
+        SharedDataRegion.Version version;
+
+        /** Minimum major version the endpoint can interact with. */
+        int minimumCompatibleMajorVersion;
     }
 }

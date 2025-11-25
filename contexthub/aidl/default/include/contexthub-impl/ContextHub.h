@@ -89,6 +89,21 @@ class ContextHub : public BnContextHub {
         ::ndk::ScopedAStatus closeEndpointSession(int32_t in_sessionId, Reason in_reason) override;
         ::ndk::ScopedAStatus endpointSessionOpenComplete(int32_t in_sessionId) override;
         ::ndk::ScopedAStatus unregister() override;
+        ::ndk::ScopedAStatus allocateSharedDataRegion(
+                const SharedDataRegionRequirements& in_requirements,
+                SharedDataRegion* _aidl_return) override;
+        ::ndk::ScopedAStatus freeSharedDataRegion(int32_t in_id) override;
+        ::ndk::ScopedAStatus registerDataFlowHostProducer(const EndpointId& in_endpoint,
+                                                          const DataFlowInfo& in_info,
+                                                          int32_t* _aidl_return) override;
+        ::ndk::ScopedAStatus unregisterDataFlowHostProducer(int32_t in_id) override;
+        ::ndk::ScopedAStatus registerDataFlowOffloadConsumer(
+                const DataFlowConsumerHandle& in_handle, const EndpointId& in_consumerId,
+                const std::shared_ptr<IEndpointCommunication::IRegisterOffloadConsumerCallback>&
+                        in_callback,
+                const std::optional<Message>& in_msg, int32_t in_sessionId) override;
+        ::ndk::ScopedAStatus unregisterDataFlowHostConsumer(
+                const EndpointId& in_consumerId, const DataFlowId& in_dataFlowId) override;
 
       private:
         friend class ContextHub;
