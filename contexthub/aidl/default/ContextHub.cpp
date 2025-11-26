@@ -15,6 +15,7 @@
  */
 
 #include "contexthub-impl/ContextHub.h"
+#include <cstddef>
 #include "aidl/android/hardware/contexthub/IContextHubCallback.h"
 
 #ifndef LOG_TAG
@@ -664,8 +665,8 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostProducer(int32_t i
 
 ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
         const DataFlowConsumerHandle& in_handle, const EndpointId& in_consumerId,
-        const std::shared_ptr<
-                IEndpointCommunication::IRegisterOffloadConsumerCallback>& /*in_callback*/,
+        const std::shared_ptr<IEndpointCommunication::IRegisterOffloadConsumerCallback>&
+                in_callback,
         const std::optional<Message>& /*in_msg*/, int32_t /*in_sessionId*/) {
     if (!mActive) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
@@ -715,8 +716,31 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
         flowIt->second.offloadConsumerIds.insert(in_consumerId.id);
         hostProducerId = flowIt->second.producerId;
 
-        createEchoDataFlow(in_handle, in_consumerId, hostProducerId, regionIt->second,
-                           flowIt->second);
+        // Prepares metadata region if exists
+        std::optional<SharedDataRegion> metadataRegion;
+        constexpr int32_t kEchoMetadataRegionSize = 16384;
+        int outputFd = ashmem_create_region("ContextHubEchoMetadata", kEchoMetadataRegionSize);
+        if (outputFd < 0) {
+            ALOGE("Echo: ashmem failed");
+            return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+            ;
+        }
+
+        int32_t outputSharedRegionId = mNextRegionId++;  // Allocate a new region ID
+        metadataRegion.emplace();
+        metadataRegion->id = outputSharedRegionId;
+        metadataRegion->sizeBytes = kEchoMetadataRegionSize;
+        metadataRegion->sharedMemory.set(outputFd);  // Take outputFd's ownership
+        metadataRegion->permissions = {};
+        int64_t consumerMetadataOffset;
+        auto status = in_callback->addConsumerInRegion(metadataRegion, &consumerMetadataOffset);
+        if (!status.isOk()) {
+            ALOGE("registerDataFlowOffloadConsumer: callback addConsumerInRegion failed");
+            return status;
+        }
+
+        createEchoDataFlow(in_handle, consumerMetadataOffset, in_consumerId, hostProducerId,
+                           regionIt->second, flowIt->second, metadataRegion);
     }
 
     return ScopedAStatus::ok();
@@ -799,11 +823,11 @@ class EchoEpollWaiter : public NotificationManager::EpollWaiter {
     std::atomic<bool> mStopped{false};
 };
 
-void ContextHub::HubInterface::createEchoDataFlow(const DataFlowConsumerHandle& in_handle,
-                                                  const EndpointId& in_consumerId,
-                                                  const EndpointId& hostProducerId,
-                                                  const AllocatedRegion& allocatedRegion,
-                                                  const DataFlow& dataFlow) {
+void ContextHub::HubInterface::createEchoDataFlow(
+        const DataFlowConsumerHandle& in_handle, int64_t consumerMetadataOffset,
+        const EndpointId& in_consumerId, const EndpointId& hostProducerId,
+        const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
+        const std::optional<SharedDataRegion>& metadataRegion) {
     // ========================================================================
     // Setup notification manager
     // ========================================================================
@@ -821,13 +845,21 @@ void ContextHub::HubInterface::createEchoDataFlow(const DataFlowConsumerHandle& 
     regionToMap.size = allocatedRegion.size;
     regionToMap.fd = ScopedFileDescriptor(dup(allocatedRegion.region.sharedMemory.get()));
 
-    auto mapConsRes = mRegionManager.mapHostConsumerRegions(std::move(regionToMap), std::nullopt,
-                                                            in_handle.id);
+    std::optional<RegionManager::RegionToMap> metadataRegionToMap;
+    if (metadataRegion.has_value()) {
+        metadataRegionToMap.emplace();
+        metadataRegionToMap->id = metadataRegion->id;
+        metadataRegionToMap->size = metadataRegion->sizeBytes;
+        metadataRegionToMap->fd = ScopedFileDescriptor(dup(metadataRegion->sharedMemory.get()));
+    }
+
+    auto mapConsRes = mRegionManager.mapHostConsumerRegions(
+            std::move(regionToMap), std::move(metadataRegionToMap), in_handle.id);
     if (!mapConsRes.ok()) {
         ALOGE("Echo: mapHostConsumerRegions failed, status: %s", mapConsRes.status().str());
         return;
     }
-    auto [echoRegion, _] = std::move(mapConsRes.value());
+    auto [echoRegion, echoMetadataRegion] = std::move(mapConsRes.value());
 
     // Enables host consumer on the echo data flow.
     auto consumerHandleId = in_handle.id;
@@ -850,8 +882,8 @@ void ContextHub::HubInterface::createEchoDataFlow(const DataFlowConsumerHandle& 
     }
 
     auto consumerRes = Consumer<uint8_t>::createRemote(
-            echoRegion, std::nullopt, dataFlow.info.metadataOffsetBytes,
-            in_handle.metadataOffsetBytes, RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+            echoRegion, echoMetadataRegion, dataFlow.info.metadataOffsetBytes,
+            consumerMetadataOffset, RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
     if (!consumerRes.ok()) {
         ALOGE("Echo: Consumer<uint8_t>::createRemote failed, status: %s",
               consumerRes.status().str());
@@ -979,6 +1011,8 @@ void ContextHub::HubInterface::createEchoDataFlow(const DataFlowConsumerHandle& 
     consumerHandleRes.value().id.id = flowIdVal;
     consumerHandleRes.value().metadataOffsetBytes = consDescOffsetRes.value();
     consumerHandleRes.value().info = std::move(dfInfo);
+    consumerHandleRes.value().notificationFds.halAck =
+            ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
 
     // Callback to send the consumer DataFlowConsumerHandle back to VTS.
     if (mEndpointCallback != nullptr) {

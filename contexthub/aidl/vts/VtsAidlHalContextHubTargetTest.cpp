@@ -219,10 +219,6 @@ class TestEndpointCallback : public BnEndpointCallback {
                                                    int32_t /*sessionId*/) override {
         std::unique_lock<std::mutex> lock(mMutex);
         mDataFlowHandle = deepCopyDataFlowConsumerHandle(handle);
-        // Prepares halAckEventFd in consumer side.
-        // TODO(b/455420744): The HAL should provide this.
-        mDataFlowHandle.notificationFds.halAck =
-                ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
         mProducerId = producerId;
         mConsumerId = consumerId;
         mWasOnDataFlowHostConsumerRegisteredCalled = true;
@@ -1137,6 +1133,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic
     int efd = eventfd(0, 0);
     info.notificationFds.waking = ScopedFileDescriptor(dup(efd));
     info.notificationFds.nonWaking = ScopedFileDescriptor(dup(efd));
+    info.notificationFds.halAck = ScopedFileDescriptor(dup(efd));
     close(efd);
 
     int32_t dataFlowId = -1;
@@ -1165,6 +1162,7 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestHostProducerDataFlowInvalidRegion
     int efd = eventfd(0, 0);
     info.notificationFds.waking = ScopedFileDescriptor(dup(efd));
     info.notificationFds.nonWaking = ScopedFileDescriptor(dup(efd));
+    info.notificationFds.halAck = ScopedFileDescriptor(dup(efd));
     close(efd);
 
     int32_t dataFlowId = -1;
@@ -1228,6 +1226,59 @@ class ContextHubDataFlowEchoTest : public ContextHubEndpointAidlWithTestMode {
     std::vector<DataFlowId> mReceivedEvents;
 };
 
+class RegisterOffloadConsumerCallback
+    : public IEndpointCommunication::BnRegisterOffloadConsumerCallback {
+  public:
+    explicit RegisterOffloadConsumerCallback(AllocatorRegion& hostRegion,
+                                             RegionManager* regionManager, EndpointId halEndpointId,
+                                             int32_t flowId, Producer<uint8_t>* producer)
+        : mHostRegion(&hostRegion),
+          mRegionManager(regionManager),
+          mHalEndpointId(halEndpointId),
+          mFlowId(flowId),
+          mProducer(producer) {}
+
+    ScopedAStatus addConsumerInRegion(const std::optional<SharedDataRegion>& region,
+                                      int64_t* _aidl_return) override {
+        AllocatorRegion* customerRegion = mHostRegion;
+        if (region.has_value()) {
+            auto metadataRegionRes = mRegionManager->mapOffloadConsumerRegion(
+                    region.value(), mHalEndpointId, mFlowId);
+            if (!metadataRegionRes.ok()) {
+                ALOGE("VTS: mRegionManager->mapOffloadConsumerRegion failed with status: %s",
+                      metadataRegionRes.status().str());
+                return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+            }
+            customerRegion = &metadataRegionRes.value();
+        }
+
+        ConsumerPolicyBuilder policy;
+        policy.setStreaming();
+        const char* kConsumerName = "HalEchoConsumer";
+        pw::ConstByteSpan nameSpan(reinterpret_cast<const std::byte*>(kConsumerName), 15);
+        pw::Result<uint32_t> consDescOffsetRes;
+        consDescOffsetRes =
+                mProducer->getConsumerManager().addConsumer(nameSpan, policy, customerRegion);
+        if (!consDescOffsetRes.ok()) {
+            ALOGE("VTS: mProducer->getConsumerManager().addConsumer() failed with status: %s",
+                  consDescOffsetRes.status().str());
+        }
+
+        ALOGD("VTS: Consumer Descriptor Added at offset: %u", consDescOffsetRes.value());
+
+        *_aidl_return = consDescOffsetRes.value();
+
+        return ScopedAStatus::ok();
+    }
+
+  private:
+    AllocatorRegion* mHostRegion;
+    RegionManager* mRegionManager;
+    EndpointId mHalEndpointId;
+    int32_t mFlowId;
+    Producer<uint8_t>* mProducer;
+};
+
 TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
     if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
@@ -1269,6 +1320,14 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
                                << static_cast<int>(queueRes.status().code());
     void* queuePtr = queueRes.value();
 
+    auto queueDeleter = [&](void* ptr) {
+        if (hostRegion.allocator && ptr) {
+            hostRegion.allocator->Deallocate(ptr, queueLayout());
+            ALOGD("VTS: Queue memory deallocated via RAII");
+        }
+    };
+    std::unique_ptr<void, decltype(queueDeleter)> queueGuard(queuePtr, queueDeleter);
+
     // Calculate offset for HAL
     size_t queueOffset = reinterpret_cast<uintptr_t>(queuePtr) - hostRegion.base;
     ALOGD("VTS: Queue allocated at offset: %zu", queueOffset);
@@ -1307,28 +1366,18 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
 
     // 7. Register Consumer (HAL)
     ALOGD("VTS: Attempting to add consumer");
-    ConsumerPolicyBuilder policy;
-    policy.setStreaming();
-
-    const char* kConsumerName = "HalEchoConsumer";
-    pw::ConstByteSpan nameSpan(reinterpret_cast<const std::byte*>(kConsumerName), 15);
-    pw::Result<uint32_t> consDescOffsetRes =
-            producerOpt->getConsumerManager().addConsumer(nameSpan, policy, &hostRegion);
-    ASSERT_TRUE(consDescOffsetRes.ok()) << "addConsumer failed with status: "
-                                        << static_cast<int>(consDescOffsetRes.status().code());
-    ALOGD("VTS: Consumer Descriptor Added at offset: %u", consDescOffsetRes.value());
-
     pw::Result<DataFlowConsumerHandle> halConsHandleRes =
             mNotificationManager->addOffloadConsumerAndCreateHandle(flowIdVal, halEndpointId);
     ASSERT_TRUE(halConsHandleRes.ok());
     halConsHandleRes.value().id.hubId = kDefaultHubId;
     halConsHandleRes.value().id.id = flowIdVal;
-    halConsHandleRes.value().metadataOffsetBytes = consDescOffsetRes.value();
 
     mEndpointCb->resetWasOnDataFlowHostConsumerRegisteredCalled();
+    auto callback = SharedRefBase::make<RegisterOffloadConsumerCallback>(
+            hostRegion, mRegionManager.get(), halEndpointId, flowIdVal, &producerOpt.value());
     ASSERT_TRUE(mHubInterface
                         ->registerDataFlowOffloadConsumer(std::move(halConsHandleRes).value(),
-                                                          halEndpointId, nullptr, std::nullopt, -1)
+                                                          halEndpointId, callback, std::nullopt, -1)
                         .isOk());
 
     // 8. Wait for Echo Setup
@@ -1399,10 +1448,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     // This should happen before the queue deallocation, or else if will have segmentation fault.
     consumerOpt.reset();
     producerOpt.reset();
-    if (hostRegion.allocator) {
-        hostRegion.allocator->Deallocate(queuePtr, queueLayout());
-        ALOGD("VTS: Queue memory deallocated successfully");
-    }
+
     mNotificationManager->disableHostConsumer(echoHandle.id);
     mRegionManager->unlinkHostConsumerDataFlow(echoHandle.id);
     mHubInterface->unregisterDataFlowHostConsumer(hostEndpoint, echoHandle.id);
