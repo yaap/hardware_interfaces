@@ -179,8 +179,10 @@ class ContextHub : public BnContextHub {
 
         // Helper function to create the echo data flow in echo service thread
         void createEchoDataFlow(const DataFlowConsumerHandle& in_handle,
-                                const EndpointId& in_consumerId, const EndpointId& hostProducerId,
-                                const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow);
+                                int64_t consumerMetadataOffset, const EndpointId& in_consumerId,
+                                const EndpointId& hostProducerId,
+                                const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
+                                const std::optional<SharedDataRegion>& metadataRegion);
     };
 
     static constexpr uint32_t kMockHubId = 0;
