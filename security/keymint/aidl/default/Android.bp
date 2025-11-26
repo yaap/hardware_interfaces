@@ -25,12 +25,6 @@ vintf_fragment {
     vendor: true,
 }
 
-vintf_fragment {
-    name: "android.hardware.security.factory_reset_protection-service.xml",
-    src: "android.hardware.security.factory_reset_protection-service.xml",
-    vendor: true,
-}
-
 // The following target has an insecure implementation of KeyMint where the
 // trusted application (TA) code runs in-process alongside the HAL service
 // code.
@@ -108,7 +102,6 @@ rust_binary {
         "android.hardware.security.keymint-service.xml",
         "android.hardware.security.sharedsecret-service.xml",
         "android.hardware.security.secureclock-service.xml",
-        "android.hardware.security.factory_reset_protection-service.xml",
     ],
 }
 

@@ -20,9 +20,9 @@ use android_hardware_security_factory_reset_protection::aidl::android::hardware:
     IFactoryResetProtection, STATUS_FRP_IS_ACTIVE
 };
 
-use binder::{check_interface, is_declared, StatusCode, Strong};
-use rdroidtest::{ignore_if, rdroidtest};
-use std::sync::{Mutex, MutexGuard};
+use binder::{check_interface, StatusCode, Strong};
+use rdroidtest::rdroidtest;
+use std::sync::Mutex;
 
 /// `GLOBAL_LOCK` is acquired at the beginning of each test and released at the end.  Its purpose
 /// is to ensure the tests are serialized even if the testrunner tries to run them concurrently.
@@ -51,7 +51,7 @@ struct FrpWrapperState {
 impl FrpWrapper {
     /// Create a new FrpWrapper.  Also returns a [`MutexGuard`] referencing [`GLOBAL_LOCK`], which
     /// the calling test should hold until the end of the test, to ensure tests are serialized.
-    fn new() -> (Self, MutexGuard<'static, ()>) {
+    fn new() -> Self {
         let frp: std::result::Result<Strong<dyn IFactoryResetProtection>, StatusCode> =
             check_interface(FRP_SERVICE);
         let frp = frp.expect("Failed to get IFactoryResetProtection interface");
@@ -70,8 +70,7 @@ impl FrpWrapper {
         let is_active = frp.isActive().unwrap();
         let state = Mutex::new(FrpWrapperState { old_secret, new_secret: None, is_active });
 
-        (Self { frp, state }, GLOBAL_LOCK.lock().unwrap())
-
+        Self { frp, state }
     }
 
     fn is_active(&self) -> bool {
@@ -171,25 +170,19 @@ impl Drop for FrpWrapper {
     }
 }
 
-/// Return true if the FRP service isn't declared.  This is used to ignore the FRP tests on devices
-/// without the FRP HAL.
-fn frp_service_not_declared() -> bool {
-    !is_declared(FRP_SERVICE).expect("Failed to check for FRP service declaration.")
-}
-
 /// FRP should always be inactive when the tests start.
 #[rdroidtest]
-#[ignore_if(frp_service_not_declared())]
 fn frp_is_inactive() {
-    let (frp, _lock) = FrpWrapper::new();
+    let _lock = GLOBAL_LOCK.lock().unwrap();
+    let frp = FrpWrapper::new();
     assert!(!frp.isActive().unwrap(), "FRP should not be active");
 }
 
 /// Test that deactivation works with the correct secret and doesn't work with the wrong secret.
 #[rdroidtest]
-#[ignore_if(frp_service_not_declared())]
 fn deactivate_with_secret() {
-    let (frp, _lock) = FrpWrapper::new();
+    let _lock = GLOBAL_LOCK.lock().unwrap();
+    let frp = FrpWrapper::new();
     assert!(!frp.isActive().unwrap(), "FRP should not be active");
 
     let new_secret =
@@ -198,22 +191,22 @@ fn deactivate_with_secret() {
 
     // Activate
     frp.activate().unwrap();
-    assert!(frp.isActive().unwrap(), "FRP should be active after activate");
+    assert!(frp.isActive().unwrap(), "FRP should be active");
 
     // Attempt to deactivate with old secret, should fail.
-    assert!(!frp.deactivate(&frp.old_secret()).unwrap(), "Deactivation should have failed");
-    assert!(frp.isActive().unwrap(), "FRP should be active after incorrect deactivate");
+    assert!(!frp.deactivate(&frp.old_secret()).unwrap());
+    assert!(frp.isActive().unwrap(), "FRP should be active");
 
     // Attempt to deactivate with new secret, should succeed.
     assert!(frp.deactivate(&new_secret).unwrap());
-    assert!(!frp.isActive().unwrap(), "FRP should not be active after correct deactivate");
+    assert!(!frp.isActive().unwrap(), "FRP should not be active");
 }
 
 /// Verify that the secret cannot be read while FRP is active.
 #[rdroidtest]
-#[ignore_if(frp_service_not_declared())]
 fn get_secret_while_active() {
-    let (frp, _lock) = FrpWrapper::new();
+    let _lock = GLOBAL_LOCK.lock().unwrap();
+    let frp = FrpWrapper::new();
     assert!(!frp.isActive().unwrap(), "FRP should not be active");
 
     frp.activate().unwrap();
@@ -228,9 +221,9 @@ fn get_secret_while_active() {
 
 /// Verify that the secret cannot be changed while FRP is active.
 #[rdroidtest]
-#[ignore_if(frp_service_not_declared())]
 fn update_secret_while_active() {
-    let (frp, _lock) = FrpWrapper::new();
+    let _lock = GLOBAL_LOCK.lock().unwrap();
+    let frp = FrpWrapper::new();
     assert!(!frp.isActive().unwrap(), "FRP should not be active");
 
     frp.activate().unwrap();
