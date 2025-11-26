@@ -174,7 +174,6 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             // Packages without top level interfaces (including types-only packages) are exempted.
             "android.hardware.audio.common@",
             "android.hardware.biometrics.common@",
-            "android.hardware.biometrics.fingerprint.location@",
             "android.hardware.camera.metadata@",
             "android.hardware.camera.device@",
             "android.hardware.camera.common@",

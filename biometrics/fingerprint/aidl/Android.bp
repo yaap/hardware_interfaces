@@ -12,7 +12,6 @@ aidl_interface {
     vendor_available: true,
     srcs: [
         "android/hardware/biometrics/fingerprint/*.aidl",
-        "android/hardware/biometrics/fingerprint/location/*.aidl",
     ],
     imports: [
         "android.hardware.biometrics.common-V4",
