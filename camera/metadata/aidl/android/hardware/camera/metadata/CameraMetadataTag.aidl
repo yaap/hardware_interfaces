@@ -1380,6 +1380,12 @@ enum CameraMetadataTag {
      */
     ANDROID_SCALER_RAW_CROP_REGION,
     /**
+     * android.scaler.concurrentMultiResolutionFormats [static, int32[], ndk_public]
+     *
+     * <p>The MultiResolutionImageReader formats supporting concurrent readers.</p>
+     */
+    ANDROID_SCALER_CONCURRENT_MULTI_RESOLUTION_FORMATS,
+    /**
      * android.sensor.exposureTime [dynamic, int64, public]
      *
      * <p>Duration each pixel is exposed to

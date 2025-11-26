@@ -1667,6 +1667,24 @@ void CameraAidlTest::verifyLogicalOrUltraHighResCameraMetadata(
         ASSERT_GT(numMultiResFormats, 0);
     }
 
+    // Check multi-resolution concurrency support is consistent with multi-resolution
+    // stream configuration
+    retcode = find_camera_metadata_ro_entry(
+            metadata, ANDROID_SCALER_CONCURRENT_MULTI_RESOLUTION_FORMATS, &entry);
+    bool supportConcurrentMultiResReaders = (0 == retcode && entry.count > 0);
+    if (supportConcurrentMultiResReaders) {
+        ASSERT_TRUE(multiResolutionStreamSupported);
+        std::set<int32_t> concurrencyFormats;
+        for (size_t i = 0; i < entry.count; i++) {
+            concurrencyFormats.insert(entry.data.i32[i]);
+        }
+        ASSERT_EQ(concurrencyFormats.size(), entry.count);
+
+        for (int32_t format : concurrencyFormats) {
+            ASSERT_TRUE(multiResOutputFormatCounterMap.count(format));
+        }
+    }
+
     // Make sure ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_ID is available in
     // result keys.
     if (isMultiCamera) {
