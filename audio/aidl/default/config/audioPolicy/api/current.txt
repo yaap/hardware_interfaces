@@ -91,6 +91,8 @@ package android.audio.policy.configuration {
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_ANLG_DOCK_HEADSET;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_AUX_DIGITAL;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_BACK_MIC;
+    enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_BLE_CENTRAL;
+    enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_BLE_CENTRAL_BROADCAST;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_BLE_HEADSET;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_BLUETOOTH_A2DP;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_IN_BLUETOOTH_BLE;
@@ -124,6 +126,7 @@ package android.audio.policy.configuration {
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_AUX_DIGITAL;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_AUX_LINE;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_BROADCAST;
+    enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_CENTRAL;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_HEADSET;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_HEARING_AID;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_SPEAKER;
