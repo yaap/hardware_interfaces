@@ -2133,6 +2133,13 @@ enum CameraMetadataTag {
      */
     ANDROID_INFO_DEVICE_STATE_ORIENTATIONS,
     /**
+     * android.info.deviceType [dynamic, enum, public]
+     *
+     * <p>A classification of the underlying hardware and source of image data for this
+     * camera device, or for a specific camera output frame.</p>
+     */
+    ANDROID_INFO_DEVICE_TYPE = 1376262,
+    /**
      * android.blackLevel.lock [dynamic, enum, public]
      *
      * <p>Whether black-level compensation is locked
