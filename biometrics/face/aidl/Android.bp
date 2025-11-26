@@ -77,7 +77,7 @@ aidl_interface {
         },
 
     ],
-    frozen: false,
+    frozen: true,
 }
 
 aidl_interface {
@@ -88,7 +88,7 @@ aidl_interface {
     imports: [
         "android.hardware.biometrics.common-V4",
         "android.hardware.keymaster-V4",
-        "android.hardware.biometrics.face-V5",
+        "android.hardware.biometrics.face-V4",
     ],
     vendor_available: true,
     unstable: true,

@@ -263,10 +263,7 @@ void FakeFaceEngine::authenticateImpl(ISessionCallback* cb, int64_t /*operationI
 
     if (id > 0 && isEnrolled) {
         mLockoutTracker.reset();
-        AuthenticateSuccess result;
-        result.enrollmentId = id;
-        result.hat = {};
-        cb->onAuthenticationSucceededWithResult(result);
+        cb->onAuthenticationSucceeded(id, {} /* hat */);
         return;
     } else {
         LOG(ERROR) << "Fail: face not enrolled";

@@ -51,10 +51,6 @@ class TestSessionCallback : public BnSessionCallback {
                                                    const keymaster::HardwareAuthToken&) override {
         return ndk::ScopedAStatus::ok();
     };
-    ::ndk::ScopedAStatus onAuthenticationSucceededWithResult(
-            const AuthenticateSuccess& result) override {
-        return onAuthenticationSucceeded(result.enrollmentId, result.hat);
-    };
     ::ndk::ScopedAStatus onAuthenticationFailed() override { return ndk::ScopedAStatus::ok(); };
     ::ndk::ScopedAStatus onInteractionDetected() override { return ndk::ScopedAStatus::ok(); };
     ndk::ScopedAStatus onAcquired(AcquiredInfo /*info*/, int32_t /*vendorCode*/) override {

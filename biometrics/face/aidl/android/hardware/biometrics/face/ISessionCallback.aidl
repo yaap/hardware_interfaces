@@ -17,7 +17,6 @@
 package android.hardware.biometrics.face;
 
 import android.hardware.biometrics.face.AcquiredInfo;
-import android.hardware.biometrics.face.AuthenticateSuccess;
 import android.hardware.biometrics.face.AuthenticationFrame;
 import android.hardware.biometrics.face.EnrollmentFrame;
 import android.hardware.biometrics.face.Error;
@@ -99,10 +98,6 @@ interface ISessionCallback {
      *
      * Used to notify the framework about a successful authentication. This ends the authentication
      * lifecycle.
-     *
-     * @deprecated use {@link onAuthenticationSucceededWithResult} instead. Calling this method
-     *             has the same effect but only allows the enrollmentId and hat to be returned to
-     *             the framework.
      *
      * @param enrollmentId Face that was accepted.
      * @param hat If the sensor is configured as SensorStrength::STRONG, a non-null attestation that
@@ -237,17 +232,4 @@ interface ISessionCallback {
      * The client must not make any more calls to this session.
      */
     void onSessionClosed();
-
-    /**
-     * This method must only be used to notify the framework during ISession#authenticate.
-     *
-     * Used to notify the framework about a successful authentication. This ends the authentication
-     * lifecycle.
-     *
-     * Calling {@link onAuthenticationSucceeded} has the same effect, but this method allows
-     * additional optional information to be returned to the framework.
-     *
-     * @param result A successful authentication result.
-     */
-    void onAuthenticationSucceededWithResult(in AuthenticateSuccess result);
 }
