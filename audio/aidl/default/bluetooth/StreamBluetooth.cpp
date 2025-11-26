@@ -218,8 +218,8 @@ bool StreamBluetooth::checkConfigParams(const PcmConfiguration& pcmConfig,
     const int8_t bitsPerSample =
             aidl::android::hardware::audio::common::getPcmSampleSizeInBytes(config.format.pcm) * 8;
     if (bitsPerSample != pcmConfig.bitsPerSample) {
-        LOG(ERROR) << __func__ << ": bits per sample mismatch, stream value=" << bitsPerSample
-                   << ", BT HAL value=" << pcmConfig.bitsPerSample;
+        LOG(ERROR) << __func__ << ": bits per sample mismatch, stream value=" << (int)bitsPerSample
+                   << ", BT HAL value=" << (int)pcmConfig.bitsPerSample;
         return false;
     }
     return true;
