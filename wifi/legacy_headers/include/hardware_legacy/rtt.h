@@ -206,7 +206,8 @@ typedef struct {
     byte retry_after_duration;    // When status == RTT_STATUS_FAIL_BUSY_TRY_LATER,
                                   // this will be the time provided by the responder as to
                                   // when the request can be tried again. Applies to 2-sided
-                                  // RTT only. In sec, 1-31sec.
+                                  // RTT only. The unit is 128 milliseconds. e.g. a value of 1
+                                  // means 128 ms.
     wifi_rtt_type type;           // RTT type
     wifi_rssi rssi;               // average rssi in 0.5 dB steps e.g. 143 implies -71.5 dB
     wifi_rssi rssi_spread;        // rssi spread in 0.5 dB steps e.g. 5 implies 2.5 dB spread (optional)
