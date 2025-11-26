@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -73,8 +74,8 @@ class BluetoothChannelSoundingHandler
  protected:
   void OnBluetoothChipReady() override {};
   void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override {};
-  void OnBluetoothDisabled() override {};
+  void OnBluetoothEnabled() override;
+  void OnBluetoothDisabled() override;
   void OnCommandCallback(
       const ::bluetooth_hal::hci::HalPacket& packet) override;
   void OnMonitorPacketCallback(
@@ -85,6 +86,15 @@ class BluetoothChannelSoundingHandler
       uint16_t connection_handle);
 
  private:
+  void HandleVendorSpecificReply(
+      uint32_t connection_handle,
+      const std::optional<std::vector<std::optional<
+          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+          vendor_specific_data,
+      const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                IBluetoothChannelSoundingSessionCallback>
+          callback);
+
   void HandleCsSubevent(const ::bluetooth_hal::hci::HalPacket& packet);
   void HandleCsProcedureEnableCompleteEvent(
       const ::bluetooth_hal::hci::HalPacket& packet);
@@ -96,6 +106,8 @@ class BluetoothChannelSoundingHandler
   std::vector<uint8_t> local_capabilities_;
 
   std::unordered_map<uint16_t, SessionTracker> session_trackers_;
+
+  std::mutex local_cap_mtx_;
 };
 
 }  // namespace cs

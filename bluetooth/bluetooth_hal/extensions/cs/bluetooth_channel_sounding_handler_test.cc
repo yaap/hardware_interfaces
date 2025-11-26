@@ -95,6 +95,7 @@ class TestBluetoothChannelSoundingHandler
       uint16_t connection_handle) {
     return GetTracker(connection_handle);
   }
+  void TestOnBluetoothEnabled() { OnBluetoothEnabled(); }
 };
 
 class BluetoothChannelSoundingHandlerTest : public Test {
@@ -210,6 +211,13 @@ class BluetoothChannelSoundingHandlerTest : public Test {
 };
 
 TEST_F(BluetoothChannelSoundingHandlerTest, HandleCalibrationCommands) {
+  MockAndroidBaseWrapper mock_android_base_wrapper;
+  MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
+
+  EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _))
+      .Times(1)
+      .WillOnce(Return(true));
+
   const auto calibration_commands = std::vector<HalPacket>{
       HalPacket({0x01, 0x02, 0x03, 0x04}), HalPacket({0x01, 0x05, 0x06, 0x07})};
   EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
@@ -245,7 +253,8 @@ TEST_F(BluetoothChannelSoundingHandlerTest, GetVendorSpecificDataReturnEmpty) {
 
   EXPECT_TRUE(
       bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
-  EXPECT_FALSE(data.has_value());
+  EXPECT_TRUE(data.has_value());
+  EXPECT_TRUE(data.value().empty());
 }
 
 TEST_F(BluetoothChannelSoundingHandlerTest,
@@ -285,6 +294,7 @@ TEST_F(BluetoothChannelSoundingHandlerTest,
   std::shared_ptr<IBluetoothChannelSoundingSession> session;
 
   EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
+  EXPECT_CALL(*mock_session_callback_, onOpenFailed(_)).Times(1);
   EXPECT_CALL(*mock_session_callback_, onOpened(_)).Times(0);
   EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
       param, mock_session_callback_, &session));
@@ -580,6 +590,14 @@ TEST_F(BluetoothChannelSoundingSessionTest, HandleIsAbortedProcedureRequired) {
   EXPECT_FALSE(is_aborted_procedure_required);
 }
 
+TEST_F(BluetoothChannelSoundingHandlerTest,
+       OnBluetoothEnabledSendReadLocalCapabilityCommand) {
+  HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
+  EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _))
+      .Times(1);
+  bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
+}
+
 TEST_F(BluetoothChannelSoundingSessionTest, CloseSession) {
   bool is_fake_notification_enabled = true;
   bool is_mode_0_channel_map_enabled = false;
@@ -594,6 +612,156 @@ TEST_F(BluetoothChannelSoundingSessionTest, CloseSession) {
   ScopedAStatus status = session->close(Reason::LOCAL_STACK_REQUEST);
   EXPECT_TRUE(status.isOk());
 }
+
+class BluetoothChannelSoundingHandlerVendorReplyTest
+    : public BluetoothChannelSoundingHandlerTest {
+ protected:
+  void SetUp() override { BluetoothChannelSoundingHandlerTest::SetUp(); }
+
+  BluetoothChannelSoundingParameters BuildReplyParam(
+      const std::vector<uint8_t>& command_value) {
+    BluetoothChannelSoundingParameters param;
+    param.aclHandle = kDefaultAclHandle;
+    param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
+    param.vendorSpecificData->resize(2);
+    param.vendorSpecificData->at(0) = VendorSpecificData{
+        .characteristicUuid = kUuidSpecialRangingSettingCapability,
+        .opaqueValue = {kDataTypeReply, 0, 0, 0, 0}};
+    param.vendorSpecificData->at(1) = VendorSpecificData{
+        .characteristicUuid = kUuidSpecialRangingSettingCommand,
+        .opaqueValue = command_value};
+    return param;
+  }
+};
+
+TEST_F(BluetoothChannelSoundingHandlerVendorReplyTest, WrongDataFormatLength) {
+  std::vector<uint8_t> wrong_length_data = {0x01, 0x02, 0x03};
+  auto param = BuildReplyParam(wrong_length_data);
+  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+
+  EXPECT_CALL(*mock_session_callback_,
+              onOpenFailed(Reason::LOCAL_STACK_REQUEST))
+      .Times(1);
+  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
+      param, mock_session_callback_, &session));
+}
+
+TEST_F(BluetoothChannelSoundingHandlerVendorReplyTest, InvalidDataType) {
+  // Use kDataTypeData instead of kDataTypeReply
+  std::vector<uint8_t> invalid_type_data = {kDataTypeData, 0, 0, 0};
+  auto param = BuildReplyParam(invalid_type_data);
+  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+
+  EXPECT_CALL(*mock_session_callback_,
+              onOpenFailed(Reason::LOCAL_STACK_REQUEST))
+      .Times(1);
+  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
+      param, mock_session_callback_, &session));
+}
+
+struct HandleVendorSpecificReplyTestParams {
+  std::string test_name;
+  std::vector<uint8_t> command_value;
+  bool expect_open_failed = false;
+  std::optional<uint8_t> inline_pct_cmd;
+  std::optional<uint32_t> event_mask_cmd;
+  std::optional<uint8_t> mode_0_map_cmd;
+};
+
+class HandleVendorSpecificReplyParameterizedTest
+    : public BluetoothChannelSoundingHandlerVendorReplyTest,
+      public WithParamInterface<HandleVendorSpecificReplyTestParams> {};
+
+TEST_P(HandleVendorSpecificReplyParameterizedTest, VariousReplies) {
+  const auto& params = GetParam();
+  auto param = BuildReplyParam(params.command_value);
+  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+
+  if (params.expect_open_failed) {
+    EXPECT_CALL(*mock_session_callback_,
+                onOpenFailed(Reason::LOCAL_STACK_REQUEST))
+        .Times(1);
+    EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
+  } else {
+    EXPECT_CALL(*mock_session_callback_, onOpened(Reason::LOCAL_STACK_REQUEST))
+        .Times(1);
+  }
+
+  if (params.inline_pct_cmd.has_value()) {
+    HalPacket packet =
+        BuildEnableInlinePctCommand(params.inline_pct_cmd.value());
+    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+  }
+
+  if (params.event_mask_cmd.has_value() && params.inline_pct_cmd.has_value() &&
+      params.inline_pct_cmd.value() == kCommandValueEnable) {
+    HalPacket packet = BuildSetEventMaskForConnectionCommand(
+        kDefaultAclHandle, params.event_mask_cmd.value());
+    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+  }
+
+  if (params.mode_0_map_cmd.has_value()) {
+    HalPacket packet = BuildEnableMode0ChannelMapCommand(
+        kDefaultAclHandle, params.mode_0_map_cmd.value());
+    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+  }
+
+  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
+      param, mock_session_callback_, &session));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    VendorReplyTests, HandleVendorSpecificReplyParameterizedTest,
+    Values(
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "EnableAll_NewFormat",
+            .command_value = {kDataTypeReply, kCommandValueEnable, 0, 0, 0,
+                              0b111, kCommandValueEnable},
+            .inline_pct_cmd = kCommandValueEnable,
+            .event_mask_cmd = 0b111,
+            .mode_0_map_cmd = kCommandValueEnable},
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "DisableAll_NewFormat",
+            .command_value = {kDataTypeReply, kCommandValueDisable, 0, 0, 0, 0,
+                              kCommandValueDisable},
+            .inline_pct_cmd = kCommandValueDisable,
+            .event_mask_cmd = 0,
+            .mode_0_map_cmd = kCommandValueDisable},
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "IgnoreAll_NewFormat",
+            .command_value = {kDataTypeReply, kCommandValueIgnore, 0, 0, 0, 0,
+                              kCommandValueIgnore},
+        },
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "EnableAll_OldFormat",
+            .command_value = {kDataTypeReply, kCommandValueEnable,
+                              kCommandValueEnable, kCommandValueEnable},
+            .inline_pct_cmd = kCommandValueEnable,
+            .event_mask_cmd = 0b111,
+            .mode_0_map_cmd = kCommandValueEnable},
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "DisableAll_OldFormat",
+            .command_value = {kDataTypeReply, kCommandValueDisable,
+                              kCommandValueDisable, kCommandValueDisable},
+            .inline_pct_cmd = kCommandValueDisable,
+            .event_mask_cmd = 0,
+            .mode_0_map_cmd = kCommandValueDisable},
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "EventMaskIgnoredWhenPctDisabled",
+            .command_value = {kDataTypeReply, kCommandValueDisable, 0, 0, 0,
+                              0b111, kCommandValueIgnore},
+            .inline_pct_cmd = kCommandValueDisable,
+            // event_mask_cmd is not set, so SendCommand is not expected
+        },
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "InvalidPctValue",
+            .command_value = {kDataTypeReply, 0x03, 0, 0, 0, 0, 0},
+            .expect_open_failed = true},
+        HandleVendorSpecificReplyTestParams{
+            .test_name = "InvalidMode0MapValue",
+            .command_value = {kDataTypeReply, 0x02, 0, 0, 0, 0x02, 0x03},
+            .expect_open_failed = true}),
+    [](const auto& info) { return info.param.test_name; });
 
 }  // namespace
 }  // namespace cs

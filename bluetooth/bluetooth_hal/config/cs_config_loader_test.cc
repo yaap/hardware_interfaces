@@ -84,7 +84,7 @@ TEST_F(CsConfigLoaderTest, ParseValidContentAndGetCsCalibrationCommands) {
 }
 
 TEST_F(CsConfigLoaderTest, ParseEmptyContent) {
-  EXPECT_TRUE(CsConfigLoader::GetLoader().LoadConfigFromString(kEmptyContent));
+  EXPECT_FALSE(CsConfigLoader::GetLoader().LoadConfigFromString(kEmptyContent));
 
   const std::vector<HalPacket>& commands =
       CsConfigLoader::GetLoader().GetCsCalibrationCommands();

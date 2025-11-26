@@ -73,11 +73,10 @@ bool CsConfigLoaderImpl::LoadConfig() {
       Property::kCsConfigFile, std::string(kDefaultCsConfigFile));
 
   if (LoadConfigFromFile(file_path)) {
+    LOG(INFO) << __func__ << ": Successfully load calibration config from "
+              << file_path << ".";
     return true;
   }
-
-  LOG(INFO) << __func__ << ": Failed to load " << file_path
-            << ", trying product specific file.";
 
   std::string product_name =
       AndroidBaseWrapper::GetWrapper().GetProperty(Property::kProductName, "");
@@ -138,7 +137,7 @@ bool CsConfigLoaderImpl::LoadConfigFromString(std::string_view content) {
 
   LOG(INFO) << DumpConfigToString();
 
-  return true;
+  return !cs_calibration_commands_.empty();
 }
 
 const std::vector<HalPacket>& CsConfigLoaderImpl::GetCsCalibrationCommands()
