@@ -4562,6 +4562,7 @@ class AudioStream : public AudioCoreModule {
         ExecuteDebugDump([&stream](int fd) { return stream.getStream()->dump(fd, {}, 0); });
     }
     const std::vector<std::string> invalidTagValues = {{}, "", "INVALID_TAG", "VX_AB"};
+    const std::vector<std::string> invalidCodecStrings = {"video/avc", "audio/", "aud"};
 };
 
 namespace {
@@ -4938,6 +4939,24 @@ TEST_P(AudioStreamOut, UpdateSourceMetadataWithInvalidTags) {
     }));
 }
 
+TEST_P(AudioStreamOut, UpdateSourceMetadataWithInvalidCodecProvenance) {
+    if (aidlVersion < kAidlVersion4) {
+        GTEST_SKIP() << "Current HAL version less than 4. Skipping the test.";
+    }
+    ASSERT_NO_FATAL_FAILURE(forEachValidOutputStream(this, [&](StreamFixture<IStreamOut>& stream,
+                                                               const AudioPortConfig& portConfig) {
+        auto sourceMetadata = GenerateSourceMetadata(portConfig);
+        for (const std::string& codec : invalidCodecStrings) {
+            for (auto& track : sourceMetadata.tracks) {
+                track.codecProvenance = codec;
+            }
+            EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, stream.getStream()->updateMetadata(sourceMetadata))
+                    << "Updating SourceMetadata with invalid codec provenance \"" << codec
+                    << "\" should be rejected.";
+        }
+    }));
+}
+
 TEST_P(AudioStreamOut, OpenTwicePrimary) {
     const auto mixPorts =
             moduleConfig->getPrimaryMixPorts(true /*connectedOnly*/, true /*singlePort*/);
@@ -5101,6 +5120,42 @@ TEST_P(AudioStreamOut, OpenOutputStreamWithInvalidTags) {
             EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, module->openOutputStream(args, &ret))
                     << "Opening output streams with invalid tags should be rejected."
                     << args.toString();
+            if (ret.stream != nullptr) {
+                (void)WithStream<IStreamOut>::callClose(ret.stream);
+            }
+        }
+    }
+    if (!atLeastOnePort) {
+        GTEST_SKIP() << "No output mix ports could be tested.";
+    }
+}
+
+TEST_P(AudioStreamOut, OpenOutputStreamWithInvalidCodecProvenance) {
+    if (aidlVersion < kAidlVersion4) {
+        GTEST_SKIP() << "Current HAL version less than " << kAidlVersion4 << ". Skipping the test.";
+    }
+    const auto ports = moduleConfig->getOutputMixPorts(true /*connectedOnly*/);
+    if (ports.empty()) {
+        GTEST_SKIP() << "No output mix ports for attached devices";
+    }
+    bool atLeastOnePort = false;
+    for (const AudioPort& port : ports) {
+        StreamFixture<IStreamOut> stream;
+        ASSERT_NO_FATAL_FAILURE(stream.SetUpPortConfigForMixPortOrConfig(
+                module.get(), moduleConfig.get(), port, true /*connectedOnly*/));
+        if (!stream.skipTestReason().empty()) continue;
+        atLeastOnePort = true;
+        OpenOutputStreamArguments args = fillOutputStreamArgs(
+                stream.getPortConfig(), stream.getMinimumStreamBufferSizeFrames(),
+                ndk::SharedRefBase::make<DefaultStreamCallback>());
+        for (const std::string& codec : invalidCodecStrings) {
+            for (auto& track : args.sourceMetadata.tracks) {
+                track.codecProvenance = codec;
+            }
+            aidl::android::hardware::audio::core::IModule::OpenOutputStreamReturn ret;
+            EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, module->openOutputStream(args, &ret))
+                    << "Opening output streams with invalid codec provenance should be rejected: \""
+                    << codec << "\"";
             if (ret.stream != nullptr) {
                 (void)WithStream<IStreamOut>::callClose(ret.stream);
             }

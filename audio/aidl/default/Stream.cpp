@@ -1135,6 +1135,11 @@ void StreamOut::defaultOnClose() {
     mContextInstance.reset();
 }
 
+ndk::ScopedAStatus StreamOut::updateMetadata(const SourceMetadata& in_sourceMetadata) {
+    RETURN_STATUS_IF_ERROR(validateMetadata(in_sourceMetadata));
+    return updateMetadataCommon(in_sourceMetadata);
+}
+
 ndk::ScopedAStatus StreamOut::updateOffloadMetadata(
         const AudioOffloadMetadata& in_offloadMetadata) {
     LOG(DEBUG) << __func__;
@@ -1229,6 +1234,19 @@ ndk::ScopedAStatus StreamOut::selectPresentation(int32_t in_presentationId, int3
     LOG(DEBUG) << __func__ << ": presentationId " << in_presentationId << ", programId "
                << in_programId;
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ndk::ScopedAStatus StreamOut::validateMetadata(const SourceMetadata& sourceMetadata) {
+    for (const auto& track : sourceMetadata.tracks) {
+        if (const auto& codecMime = track.codecProvenance;
+            codecMime.has_value() && !codecMime->empty()) {
+            if (!aidl::android::hardware::audio::common::isAudioMimeType(*codecMime)) {
+                LOG(ERROR) << __func__ << ": invalid audio MIME type: \"" << *codecMime << "\"";
+                return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+            }
+        }
+    }
+    return ndk::ScopedAStatus::ok();
 }
 
 StreamOutHwVolumeHelper::StreamOutHwVolumeHelper(const StreamContext* context)
