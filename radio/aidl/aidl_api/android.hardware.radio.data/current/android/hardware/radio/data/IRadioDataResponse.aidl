@@ -53,4 +53,5 @@ interface IRadioDataResponse {
   oneway void setUserDataEnabledResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void setUserDataRoamingEnabledResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void notifyImsDataNetworkResponse(in android.hardware.radio.RadioResponseInfo info);
+  oneway void dataCallListUpdated(in android.hardware.radio.RadioIndicationType type, in android.hardware.radio.data.SetupDataCallResult[] dcList);
 }
