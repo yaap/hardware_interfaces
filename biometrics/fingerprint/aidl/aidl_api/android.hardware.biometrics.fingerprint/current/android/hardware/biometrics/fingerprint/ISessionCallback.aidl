@@ -40,6 +40,9 @@ interface ISessionCallback {
   void onAcquired(in android.hardware.biometrics.fingerprint.AcquiredInfo info, in int vendorCode);
   void onError(in android.hardware.biometrics.fingerprint.Error error, in int vendorCode);
   void onEnrollmentProgress(in int enrollmentId, int remaining);
+  /**
+   * @deprecated use {@link onAuthenticationSucceededWithResult} instead. Calling this method has the same effect but only allows the enrollmentId and hat to be returned to the framework.
+   */
   void onAuthenticationSucceeded(in int enrollmentId, in android.hardware.keymaster.HardwareAuthToken hat);
   void onAuthenticationFailed();
   void onLockoutTimed(in long durationMillis);
@@ -51,4 +54,5 @@ interface ISessionCallback {
   void onAuthenticatorIdRetrieved(in long authenticatorId);
   void onAuthenticatorIdInvalidated(in long newAuthenticatorId);
   void onSessionClosed();
+  void onAuthenticationSucceededWithResult(in android.hardware.biometrics.fingerprint.AuthenticateSuccess result);
 }
