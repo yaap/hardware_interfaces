@@ -216,10 +216,6 @@ TransportType TransportInterface::GetTransportType() {
   return current_transport_type_;
 }
 
-void TransportInterface::SetHciRouterBusy(bool is_busy) {
-  is_hci_router_busy_ = is_busy;
-}
-
 void TransportInterface::NotifyHalStateChange(HalState hal_state) {
   if (hal_state_ == hal_state) {
     return;
