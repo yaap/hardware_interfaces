@@ -392,6 +392,114 @@ TEST_F(HciMonitorTest, BluetoothPacketThreadWithOffsetEqual) {
   EXPECT_FALSE(wrong_data_packet == monitor);
 }
 
+TEST_F(HciMonitorTest, MonitorOffsetExclusionRejectPacket) {
+  // Test exclusive data should be false
+  uint16_t code = 0x1234;
+  HciMonitor monitor(MonitorType::kCommand, code,
+                     PacketDestination::kController);
+  HalPacket packet({0x01, 0x34, 0x12, 0x30, 0xFF, 0xFF});
+  monitor.MonitorOffsetExclusion(4, 0xFF);
+  EXPECT_FALSE(packet == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorOffsetExclusionAcceptPacket) {
+  // Test no exclusive packet for offset should be pass
+  uint16_t code = 0x1234;
+  HciMonitor monitor(MonitorType::kCommand, code,
+                     PacketDestination::kController);
+  HalPacket packet({0x01, 0x34, 0x12, 0xFF, 0x00, 0x00, 0x30});
+  monitor.MonitorOffsetExclusion(2, 0xFF);
+  EXPECT_TRUE(packet == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorOffsetExclusionIgnoreOOBPacket) {
+  // Test exclusion offset out of packet size will be ignored
+  uint16_t code = 0x1234;
+  HciMonitor monitor(MonitorType::kCommand, code,
+                     PacketDestination::kController);
+  HalPacket packet({0x01, 0x34, 0x12, 0xFF, 0x00});
+  monitor.MonitorOffsetExclusion(10, 0xFF);
+  EXPECT_FALSE(packet == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorEqualityWithExclusion) {
+  // Test the operator== correctly compare the exclusion map
+  uint16_t code = 0x01;
+  HciMonitor monitor1(MonitorType::kCommand, code,
+                      PacketDestination::kController);
+  HciMonitor monitor2(MonitorType::kCommand, code,
+                      PacketDestination::kController);
+  monitor1.MonitorOffsetExclusion(1, 0xFE);
+  monitor2.MonitorOffsetExclusion(1, 0xFE);
+  EXPECT_TRUE(monitor1 == monitor2);
+
+  monitor2.MonitorOffsetExclusion(1, 0xFF);
+  EXPECT_FALSE(monitor1 == monitor2);
+}
+
+TEST_F(HciMonitorTest, MonitorLessThanWithExclusion) {
+  // Test the operator< correctly compare the exclusion map
+  uint16_t code = 0x01;
+  HciMonitor monitor1(MonitorType::kCommand, code,
+                      PacketDestination::kController);
+  HciMonitor monitor2(MonitorType::kCommand, code,
+                      PacketDestination::kController);
+  monitor1.MonitorOffsetExclusion(1, 0x00);
+  monitor2.MonitorOffsetExclusion(1, 0x10);
+  EXPECT_TRUE(monitor1 < monitor2);
+  EXPECT_FALSE(monitor2 < monitor1);
+}
+
+TEST_F(HciMonitorTest, MonitorOffetAndExclusionConflict) {
+  // Test same offset with same value of MonitorOffset
+  // and MonitorOffsetEdxclusion
+  uint16_t code = 0x0123;
+  HciMonitor monitor(MonitorType::kCommand, code,
+                     PacketDestination::kController);
+  monitor.MonitorOffset(3, 0x01);
+  monitor.MonitorOffsetExclusion(3, 0x01);
+  HalPacket packet1({0x01, 0x23, 0x01, 0x01});
+  EXPECT_FALSE(packet1 == monitor);
+
+  HalPacket packet2({0x01, 0x23, 0x01, 0x01});
+  EXPECT_FALSE(packet2 == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorOffsetAndExclusionRedundant) {
+  // Test same offset with different values of MonitorOffset
+  // and MonitorOffsetEdxclusion
+  uint16_t code = 0x1234;
+  HciMonitor monitor(MonitorType::kCommand, code,
+                     PacketDestination::kController);
+  monitor.MonitorOffset(3, 0x01);
+  monitor.MonitorOffsetExclusion(3, 0xFF);
+  HalPacket packet1({0x01, 0x34, 0x12, 0x01});
+  EXPECT_TRUE(packet1 == monitor);
+
+  HalPacket packet2({0x01, 0x34, 0x12, 0x02});
+  EXPECT_FALSE(packet2 == monitor);
+
+  HalPacket packet3({0x01, 0x34, 0x12, 0xFF});
+  EXPECT_FALSE(packet3 == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorAndExclusionDifferentOffset) {
+  // Test different offsets with different values of
+  // MonitorOffset and MonitorOffsetEdxclusion
+  uint16_t code = 0x0123;
+  HciMonitor monitor(MonitorType::kCommand, code,
+                     PacketDestination::kController);
+  monitor.MonitorOffset(4, 0x01);
+  monitor.MonitorOffsetExclusion(3, 0xFF);
+  HalPacket packet1({0x01, 0x23, 0x01, 0xFE, 0x01});
+  EXPECT_TRUE(packet1 == monitor);
+
+  HalPacket packet2({0x01, 0x23, 0x01, 0x00, 0x02});
+  EXPECT_FALSE(packet2 == monitor);
+
+  HalPacket packet3({0x01, 0x23, 0x01, 0xFF, 0x01});
+  EXPECT_FALSE(packet3 == monitor);
+}
 }  // namespace
 }  // namespace hci
 }  // namespace bluetooth_hal
