@@ -18,7 +18,7 @@
 
 #include <aidl/android/hardware/bluetooth/audio/BnBluetoothAudioProviderFactory.h>
 
-#include "A2dpOffloadCodecFactory.h"
+#include "../../utils/aidl_session/a2dp/A2dpOffloadCodecFactory.h"
 
 namespace aidl {
 namespace android {

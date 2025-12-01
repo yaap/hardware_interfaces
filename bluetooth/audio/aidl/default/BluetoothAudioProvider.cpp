@@ -21,7 +21,7 @@
 #include <BluetoothAudioSessionReport.h>
 #include <android-base/logging.h>
 
-#include "A2dpOffloadCodecFactory.h"
+#include "a2dp/A2dpOffloadCodecFactory.h"
 
 namespace aidl {
 namespace android {

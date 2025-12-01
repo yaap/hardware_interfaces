@@ -23,8 +23,8 @@
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 
-#include "A2dpOffloadCodecAac.h"
-#include "A2dpOffloadCodecSbc.h"
+#include "a2dp/A2dpOffloadCodecAac.h"
+#include "a2dp/A2dpOffloadCodecSbc.h"
 
 namespace aidl {
 namespace android {
