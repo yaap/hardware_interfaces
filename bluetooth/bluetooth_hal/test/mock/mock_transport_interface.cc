@@ -69,11 +69,6 @@ bool TransportInterface::UnregisterVendorTransport(TransportType type) {
       ->UnregisterVendorTransport(type);
 }
 
-void TransportInterface::SetHciRouterBusy(bool is_busy) {
-  CheckMockTransportOrFatal();
-  MockTransportInterface::mock_transport_interface_->SetHciRouterBusy(is_busy);
-}
-
 void TransportInterface::NotifyHalStateChange(HalState hal_state) {
   CheckMockTransportOrFatal();
   MockTransportInterface::mock_transport_interface_->NotifyHalStateChange(

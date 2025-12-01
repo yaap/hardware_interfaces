@@ -36,6 +36,7 @@ package android.hardware.contexthub;
 parcelable HubInfo {
   long hubId;
   android.hardware.contexthub.HubInfo.HubDetails hubDetails;
+  @nullable android.hardware.contexthub.SharedDataCapabilities sharedDataCapabilities;
   const long HUB_ID_INVALID = 0;
   const long HUB_ID_RESERVED = (-1) /* -1 */;
   union HubDetails {

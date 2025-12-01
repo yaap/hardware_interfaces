@@ -41,6 +41,7 @@ parcelable EndpointInfo {
   @nullable String tag;
   String[] requiredPermissions;
   android.hardware.contexthub.Service[] services;
+  @nullable android.hardware.contexthub.EndpointInfo.SharedDataSupportVersion sharedDataSupportVersion;
   @Backing(type="int") @VintfStability
   enum EndpointType {
     FRAMEWORK = 1,
@@ -48,5 +49,10 @@ parcelable EndpointInfo {
     NATIVE = 3,
     NANOAPP = 4,
     GENERIC = 5,
+  }
+  @VintfStability
+  parcelable SharedDataSupportVersion {
+    android.hardware.contexthub.SharedDataRegion.Version version;
+    int minimumCompatibleMajorVersion;
   }
 }

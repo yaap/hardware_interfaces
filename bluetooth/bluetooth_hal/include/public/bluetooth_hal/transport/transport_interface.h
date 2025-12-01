@@ -130,6 +130,19 @@ class TransportInterface {
    */
   virtual TransportType GetInstanceTransportType() const = 0;
 
+  /**
+   * @brief Updates the busy state of the hci router.
+   *
+   * This function is called to indicate whether the hci router is currently
+   * busy. The base implementation does nothing. Derived classes can override
+   * this to handle the busy state change. This should be called by hci router.
+   *
+   * @param is_busy A boolean indicating the new busy state of the hci router.
+   * Pass true if the hci router is busy, or false otherwise.
+   *
+   */
+  virtual void SetHciRouterBusy(bool /*is_busy*/) {}
+
   static TransportInterface& GetTransport();
 
   /**
@@ -203,18 +216,6 @@ class TransportInterface {
   static bool UnregisterVendorTransport(TransportType type);
 
   /**
-   * @brief Updates the busy state of the hci router.
-   *
-   * This function sets the internal state to indicate whether the hci router is
-   * currently busy. This should be called by hci router.
-   *
-   * @param is_busy A boolean indicating the new busy state of the hci router.
-   * Pass true if the hci router is busy, or false otherwise.
-   *
-   */
-  static void SetHciRouterBusy(bool is_busy);
-
-  /**
    * @brief Notifies the transport layer of a change in the HAL state.
    *
    * This function should be called whenever the HAL transitions to a new state.
@@ -251,7 +252,6 @@ class TransportInterface {
   static void Unsubscribe(Subscriber& subscriber);
 
  protected:
-  static inline std::atomic<bool> is_hci_router_busy_{false};
   static inline std::atomic<::bluetooth_hal::HalState> hal_state_{
       ::bluetooth_hal::HalState::kInit};
   static inline std::vector<std::reference_wrapper<Subscriber>> subscribers_;

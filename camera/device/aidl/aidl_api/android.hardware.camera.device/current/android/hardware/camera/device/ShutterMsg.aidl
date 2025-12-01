@@ -37,4 +37,5 @@ parcelable ShutterMsg {
   int frameNumber;
   long timestamp;
   long readoutTimestamp;
+  android.hardware.camera.device.StreamGroupState[] streamGroupState = {};
 }

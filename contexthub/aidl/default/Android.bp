@@ -30,8 +30,16 @@ cc_library_static {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libcutils",
         "liblog",
-        "android.hardware.contexthub-V4-ndk",
+        "android.hardware.contexthub-V5-ndk",
+    ],
+    static_libs: [
+        "contexthub_data_flow",
+        "pw_allocator",
+        "pw_bytes",
+        "pw_containers",
+        "pw_status",
     ],
     export_include_dirs: ["include"],
     srcs: [
@@ -52,11 +60,17 @@ cc_binary {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libcutils",
         "liblog",
-        "android.hardware.contexthub-V4-ndk",
+        "android.hardware.contexthub-V5-ndk",
     ],
     static_libs: [
         "libcontexthubexampleimpl",
+        "contexthub_data_flow",
+        "pw_allocator",
+        "pw_bytes",
+        "pw_containers",
+        "pw_status",
     ],
     srcs: ["main.cpp"],
 }

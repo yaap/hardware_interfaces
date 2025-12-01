@@ -43,11 +43,16 @@ class HciMonitor {
     monitor_offset_map_[offset] = data;
   }
 
+  void MonitorOffsetExclusion(int offset, uint8_t data) {
+    exclude_offset_map_[offset] = data;
+  }
+
   bool operator==(const HciMonitor& other) const {
     return type_ == other.GetType() &&
            primary_code_ == other.GetPrimaryCode() &&
            direction_ == other.GetDestination() &&
-           monitor_offset_map_ == other.monitor_offset_map_;
+           monitor_offset_map_ == other.monitor_offset_map_ &&
+           exclude_offset_map_ == other.exclude_offset_map_;
   }
 
   bool operator==(const ::bluetooth_hal::hci::HalPacket& packet) const {
@@ -85,6 +90,16 @@ class HciMonitor {
       return false;
     }
 
+    for (const auto& pair : exclude_offset_map_) {
+      int offset = pair.first;
+      uint8_t excluded_data = pair.second;
+
+      if (offset < 0 || static_cast<size_t>(offset) >= packet.size() ||
+          packet[offset] == excluded_data) {
+        return false;
+      }
+    }
+
     for (const auto& pair : monitor_offset_map_) {
       int offset = pair.first;
       uint8_t expected_data = pair.second;
@@ -105,7 +120,10 @@ class HciMonitor {
     if (primary_code_ != other.primary_code_) {
       return primary_code_ < other.primary_code_;
     }
-    return monitor_offset_map_ < other.monitor_offset_map_;
+    if (monitor_offset_map_ != other.monitor_offset_map_) {
+      return monitor_offset_map_ < other.monitor_offset_map_;
+    }
+    return exclude_offset_map_ < other.exclude_offset_map_;
   }
 
  protected:
@@ -116,12 +134,16 @@ class HciMonitor {
   const std::map<int, uint8_t>& GetMonitorOffsets() const {
     return monitor_offset_map_;
   }
+  const std::map<int, uint8_t>& GetMonitorOffsetExclusion() const {
+    return exclude_offset_map_;
+  }
 
  private:
   MonitorType type_;
   uint16_t primary_code_;
   PacketDestination direction_;
   std::map<int, uint8_t> monitor_offset_map_;
+  std::map<int, uint8_t> exclude_offset_map_;
 };
 
 class HciEventMonitor : public HciMonitor {

@@ -48,4 +48,13 @@ parcelable PlaybackTrackMetadata {
      * namespace.
      */
     @utf8InCpp String[] tags;
+    /**
+     * The MIME type for the original codec (Atmos, IAMF), which is preserved
+     * even when the AudioTrack format is PCM. The provenance may be used for
+     * selecting the best spatial processing implementation and the renderer.
+     *
+     * Both 'null' and an empty value can be used to indicate that this field is
+     * not set. If set, must be a MIME type starting with 'audio/' prefix.
+     */
+    @nullable @utf8InCpp String codecProvenance;
 }

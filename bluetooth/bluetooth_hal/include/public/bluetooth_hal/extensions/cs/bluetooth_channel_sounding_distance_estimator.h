@@ -30,6 +30,8 @@ class ChannelSoundingDistanceEstimator
 
   double GetConfidenceLevel() override;
 
+  void SetInlinePCT(bool is_enabled) override;
+
  protected:
   double EstimateDistanceImpl(const std::any& data) override;
 };

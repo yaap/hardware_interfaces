@@ -43,4 +43,20 @@ interface IEndpointCommunication {
   void closeEndpointSession(int sessionId, in android.hardware.contexthub.Reason reason);
   void endpointSessionOpenComplete(int sessionId);
   void unregister();
+  android.hardware.contexthub.SharedDataRegion allocateSharedDataRegion(in android.hardware.contexthub.SharedDataRegionRequirements requirements);
+  void freeSharedDataRegion(int id);
+  int registerDataFlowHostProducer(in android.hardware.contexthub.EndpointId endpoint, in android.hardware.contexthub.DataFlowInfo info);
+  void unregisterDataFlowHostProducer(int id);
+  void registerDataFlowOffloadConsumer(in android.hardware.contexthub.DataFlowConsumerHandle handle, in android.hardware.contexthub.EndpointId consumerId, in android.hardware.contexthub.IEndpointCommunication.IRegisterOffloadConsumerCallback callback, in @nullable android.hardware.contexthub.Message msg, int sessionId);
+  void unregisterDataFlowHostConsumer(in android.hardware.contexthub.EndpointId consumerId, in android.hardware.contexthub.DataFlowId dataFlowId);
+  const int SESSION_ID_INVALID = (-1) /* -1 */;
+  @VintfStability
+  enum SharedDataErrors {
+    ERR_INSUFFICIENT_MEMORY = 1,
+    ERR_INVALID_CONFIGURATION = 2,
+  }
+  @VintfStability
+  interface IRegisterOffloadConsumerCallback {
+    long addConsumerInRegion(in @nullable android.hardware.contexthub.SharedDataRegion region);
+  }
 }

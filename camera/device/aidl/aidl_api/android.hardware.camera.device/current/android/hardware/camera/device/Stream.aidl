@@ -49,4 +49,5 @@ parcelable Stream {
   android.hardware.camera.metadata.RequestAvailableDynamicRangeProfilesMap dynamicRangeProfile;
   android.hardware.camera.metadata.ScalerAvailableStreamUseCases useCase;
   int colorSpace;
+  boolean concurrentGroup;
 }

@@ -962,6 +962,12 @@ TEST_P(RadioDataTest, notifyImsDataNetwork) {
     EXPECT_EQ(serial, radioRsp_data->rspInfo.serial);
 
     if (cardStatus.cardState == CardStatus::STATE_ABSENT) {
-        EXPECT_EQ(RadioError::NONE, radioRsp_data->rspInfo.error);
+        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_data->rspInfo.error,
+                                     {RadioError::SIM_ABSENT, RadioError::RADIO_NOT_AVAILABLE,
+                                      RadioError::REQUEST_NOT_SUPPORTED}));
+    } else if (cardStatus.cardState == CardStatus::STATE_PRESENT) {
+        ASSERT_TRUE(CheckAnyOfErrors(radioRsp_data->rspInfo.error,
+                                     {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                                      RadioError::REQUEST_NOT_SUPPORTED}));
     }
 }

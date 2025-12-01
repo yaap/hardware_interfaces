@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -80,6 +81,13 @@ using ::bluetooth_hal::util::AndroidBaseWrapper;
 
 using ::ndk::SharedRefBase;
 
+struct RangingSettingCommand {
+  uint8_t type = 0;
+  uint8_t inline_pct = 0;
+  uint32_t event_mask = 0;
+  uint8_t mode_0_channel_map = 0;
+};
+
 // Factory function to create a session object based on the version.
 std::shared_ptr<BluetoothChannelSoundingSessionInterface> CreateSession(
     [[maybe_unused]] std::shared_ptr<IBluetoothChannelSoundingSessionCallback>
@@ -103,6 +111,47 @@ void SendFakeRasNotification(
   HciRouter::GetRouter().SendPacketToStack(packet);
 }
 
+RangingSettingCommand HandleOldData(const std::vector<uint8_t>& raw_data) {
+  RangingSettingCommand data;
+
+  data.type = raw_data[kOldIdxRangingSettingCommandType];
+  data.inline_pct = raw_data[kOldIdxRangingSettingCommandInlinePct];
+  data.event_mask = raw_data[kOldIdxRangingSettingCommandCSSubeventReport];
+  data.mode_0_channel_map =
+      raw_data[kOldIdxRangingSettingCommandMode0ChannelMap];
+
+  return data;
+}
+
+RangingSettingCommand HandleData(const std::vector<uint8_t>& raw_data) {
+  RangingSettingCommand data;
+
+  int idx = -1;
+  idx += kLenRangingSettingCommandType;
+  data.type = raw_data[idx];
+
+  idx += kLenRangingSettingCommandInlinePct;
+  data.inline_pct = raw_data[idx];
+
+  // Merge bytes into event_mask. For example, if raw_data is [..., 0x12, 0x34,
+  // 0x56, 0x78, ...], event_mask will become 0x12345678.
+  data.event_mask = 0;  // Initialize to ensure no garbage values
+  for (int i = 0; i < kLenRangingSettingCommandEventMask; ++i) {
+    idx += 1;
+    data.event_mask |= static_cast<uint32_t>(raw_data[idx])
+                       << (8 * (kLenRangingSettingCommandEventMask - 1 - i));
+  }
+
+  idx += kLenRangingSettingCommandMode0ChannelMap;
+  data.mode_0_channel_map = raw_data[idx];
+
+  return data;
+}
+
+bool IsBitSet(uint32_t value, int bitIndex) {
+  return (bitIndex >= 0 && bitIndex <= 31) && ((value >> bitIndex) & 1);
+}
+
 }  // namespace
 
 BluetoothChannelSoundingHandler::BluetoothChannelSoundingHandler()
@@ -120,8 +169,6 @@ BluetoothChannelSoundingHandler::~BluetoothChannelSoundingHandler() {
 bool BluetoothChannelSoundingHandler::GetVendorSpecificData(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*
         return_value) {
-  *return_value = std::nullopt;
-
   // When the ranging HAL is bound, it first acquires vendor-specific data. Set
   // up all vendor-related components here.
   auto& cs_loader = CsConfigLoader::GetLoader();
@@ -130,14 +177,42 @@ bool BluetoothChannelSoundingHandler::GetVendorSpecificData(
 
   if (calibration_commands.empty()) {
     LOG(WARNING) << __func__ << ": No calibration commands are found.";
-    return true;
   }
 
   LOG(INFO) << __func__ << ": Send calibration commands.";
 
-  for (const auto& command : calibration_commands) {
-    SendCommand(command);
+  constexpr std::string_view kIsCalibrationEnabled =
+      "persist.vendor.bluetooth.cs_calibration_enabled";
+
+  if (AndroidBaseWrapper::GetWrapper().GetBoolProperty(
+          kIsCalibrationEnabled.data(), true)) {
+    for (const auto& command : calibration_commands) {
+      SendCommand(command);
+    }
   }
+
+  *return_value =
+      std::make_optional<std::vector<std::optional<VendorSpecificData>>>();
+
+  if (local_capabilities_.size() <
+      kCommandCompleteReadLocalCapabilityValueLength) {
+    LOG(INFO) << __func__
+              << ": Didn't get the current value. Return default value.";
+    return true;
+  }
+
+  VendorSpecificData capability;
+  capability.characteristicUuid = kUuidSpecialRangingSettingCapability;
+  capability.opaqueValue = {kDataTypeData};
+  for (int i = 0; i < kCommandCompleteReadLocalCapabilityValueLength; i++) {
+    capability.opaqueValue.push_back(local_capabilities_[i]);
+  }
+  (*return_value)->push_back(capability);
+
+  VendorSpecificData command;
+  command.characteristicUuid = kUuidSpecialRangingSettingCommand;
+  command.opaqueValue = {kDataTypeData};
+  (*return_value)->push_back(command);
 
   return true;
 }
@@ -170,7 +245,8 @@ bool BluetoothChannelSoundingHandler::OpenSession(
   if (IsUuidMatched(in_params.vendorSpecificData) &&
       in_params.vendorSpecificData.value()[0].value().opaqueValue[0] ==
           kDataTypeReply) {
-    // Ignore vendor specific reply.
+    HandleVendorSpecificReply(in_params.aclHandle, in_params.vendorSpecificData,
+                              in_callback);
     return true;
   }
 
@@ -208,6 +284,143 @@ bool BluetoothChannelSoundingHandler::OpenSession(
   return true;
 }
 
+void BluetoothChannelSoundingHandler::HandleVendorSpecificReply(
+    uint32_t connection_handle,
+    const std::optional<std::vector<std::optional<VendorSpecificData>>>
+        vendor_specific_data,
+    const std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback) {
+  LOG(INFO) << __func__ << ": connection_handle: 0x" << std::hex << std::setw(4)
+            << std::setfill('0') << connection_handle;
+
+  for (auto& data : vendor_specific_data.value()) {
+    if (data.value().characteristicUuid != kUuidSpecialRangingSettingCommand) {
+      continue;
+    }
+
+    LOG(INFO) << __func__ << ": Found command uuid for ranging setting.";
+
+    bool is_old_format = false;
+    RangingSettingCommand command_data;
+
+    switch (data.value().opaqueValue.size()) {
+      case kOldLengthDataFormat:
+        command_data = HandleOldData(data.value().opaqueValue);
+        is_old_format = true;
+        break;
+      case kLengthDataFormat:
+        command_data = HandleData(data.value().opaqueValue);
+        is_old_format = false;
+        break;
+      default:
+        LOG(ERROR) << __func__ << ": Wrong length of the data format.";
+        callback->onOpenFailed(Reason::LOCAL_STACK_REQUEST);
+        return;
+    }
+
+    if (command_data.type != kDataTypeReply) {
+      LOG(ERROR) << __func__ << ": Invalid data.";
+      callback->onOpenFailed(Reason::LOCAL_STACK_REQUEST);
+      return;
+    }
+
+    bool is_inline_pct_enabled = false;
+    if (command_data.inline_pct != kCommandValueIgnore) {
+      HalPacket command;
+      switch (command_data.inline_pct) {
+        case kCommandValueEnable:
+          LOG(INFO) << __func__ << ": Send EnableInlinePctCommand.";
+          command = BuildEnableInlinePctCommand(kCommandValueEnable);
+          is_inline_pct_enabled = true;
+          break;
+        case kCommandValueDisable:
+          LOG(INFO) << __func__ << ": Send DisableInlinePctCommand.";
+          command = BuildEnableInlinePctCommand(kCommandValueDisable);
+          is_inline_pct_enabled = false;
+          break;
+        default:
+          LOG(ERROR) << __func__
+                     << ": Invalid command value: " << command_data.inline_pct;
+          callback->onOpenFailed(Reason::LOCAL_STACK_REQUEST);
+          return;
+      }
+      SendCommand(command);
+    }
+
+    if (command_data.event_mask != kCommandValueIgnore) {
+      HalPacket command;
+      if (is_old_format) {
+        switch (command_data.event_mask) {
+          case kCommandValueEnable:
+            LOG(INFO) << __func__
+                      << ": Send EnableEventMaskForConnectionCommand.";
+            command = BuildSetEventMaskForConnectionCommand(
+                connection_handle,
+                static_cast<uint32_t>(0b0111));  // Enable all 3 events.
+            break;
+          case kCommandValueDisable:
+            LOG(INFO) << __func__
+                      << ": Send DisableEventMaskForConnectionCommand.";
+            command = BuildSetEventMaskForConnectionCommand(
+                connection_handle,
+                static_cast<uint32_t>(0b0000));  // Disable all 3 events.
+            break;
+          default:
+            LOG(ERROR) << __func__ << ": Invalid command value: "
+                       << command_data.event_mask;
+            callback->onOpenFailed(Reason::LOCAL_STACK_REQUEST);
+            return;
+        }
+      } else {
+        command = BuildSetEventMaskForConnectionCommand(
+            connection_handle, command_data.event_mask);
+      }
+
+      if (is_inline_pct_enabled) {
+        bool enable_subevent_result_event =
+            IsBitSet(command_data.event_mask, 0);
+        bool enable_subevent_result_continue_event =
+            IsBitSet(command_data.event_mask, 1);
+        bool enable_procedure_enable_complete_event =
+            IsBitSet(command_data.event_mask, 2);
+        LOG(INFO)
+            << __func__
+            << ": Send SetEventMaskForConnectionCommand: Subevent Result event("
+            << enable_subevent_result_event
+            << "), Subevent Result Continue event("
+            << enable_subevent_result_continue_event
+            << "), Procedure Enable Complete event("
+            << enable_procedure_enable_complete_event << ")";
+        SendCommand(command);
+      }
+    }
+
+    if (command_data.mode_0_channel_map != kCommandValueIgnore) {
+      HalPacket command;
+      switch (command_data.mode_0_channel_map) {
+        case kCommandValueEnable:
+          LOG(INFO) << __func__ << ": Send EnableMode0ChannelMapCommand.";
+
+          command = BuildEnableMode0ChannelMapCommand(connection_handle,
+                                                      kCommandValueEnable);
+          break;
+        case kCommandValueDisable:
+          LOG(INFO) << __func__ << ": Send DisableMode0ChannelMapCommand.";
+          command = BuildEnableMode0ChannelMapCommand(connection_handle,
+                                                      kCommandValueDisable);
+          break;
+        default:
+          LOG(ERROR) << __func__ << ": Invalid command value: "
+                     << command_data.mode_0_channel_map;
+          callback->onOpenFailed(Reason::LOCAL_STACK_REQUEST);
+          return;
+      }
+      SendCommand(command);
+    }
+  }
+
+  callback->onOpened(Reason::LOCAL_STACK_REQUEST);
+}
+
 void BluetoothChannelSoundingHandler::OnCommandCallback(
     const HalPacket& packet) {
   // Currently, two command types are supported:
@@ -239,6 +452,8 @@ void BluetoothChannelSoundingHandler::OnCommandCallback(
       LOG(WARNING) << __func__ << ": Invalid event size.";
       return;
     }
+
+    std::lock_guard<std::mutex> lock(local_cap_mtx_);
 
     local_capabilities_.clear();
     for (int i = 0; i < kCommandCompleteReadLocalCapabilityValueLength; i++) {
@@ -322,6 +537,15 @@ BluetoothChannelSoundingHandler::GetTracker(uint16_t connection_handle) {
   }
   return it->second;
 }
+
+void BluetoothChannelSoundingHandler::OnBluetoothEnabled() {
+  SendCommand(BuildReadLocalCapabilityCommand());
+};
+
+void BluetoothChannelSoundingHandler::OnBluetoothDisabled() {
+  std::lock_guard<std::mutex> lock(local_cap_mtx_);
+  local_capabilities_.clear();
+};
 
 }  // namespace cs
 }  // namespace extensions

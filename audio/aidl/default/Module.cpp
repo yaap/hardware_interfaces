@@ -1034,6 +1034,13 @@ ndk::ScopedAStatus Module::openOutputStream(const OpenOutputStreamArguments& in_
                << in_args.bufferSizeFrames << " frames";
     for (const auto& track : in_args.sourceMetadata.tracks) {
         RETURN_STATUS_IF_ERROR(validateMetadataAttributeTags(track.tags));
+        if (const auto& codecMime = track.codecProvenance;
+            codecMime.has_value() && !codecMime->empty()) {
+            if (!aidl::android::hardware::audio::common::isAudioMimeType(*codecMime)) {
+                LOG(ERROR) << __func__ << ": invalid audio MIME type: \"" << *codecMime << "\"";
+                return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+            }
+        }
     }
     AudioPort* port = nullptr;
     RETURN_STATUS_IF_ERROR(findPortIdForNewStream(in_args.portConfigId, &port));

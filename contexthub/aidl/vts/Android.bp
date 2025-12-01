@@ -30,11 +30,17 @@ cc_test {
     ],
     srcs: ["VtsAidlHalContextHubTargetTest.cpp"],
     shared_libs: [
-        "libbinder",
+        "libbinder_ndk",
     ],
     static_libs: [
-        "android.hardware.contexthub-V4-cpp",
+        "android.hardware.contexthub-V5-ndk",
+        "android.hardware.common-V2-cpp",
         "VtsHalContexthubUtils",
+        "contexthub_data_flow",
+        "pw_allocator",
+        "pw_bytes",
+        "pw_containers",
+        "pw_status",
     ],
     test_suites: [
         "general-tests",

@@ -467,6 +467,11 @@ void DebugCentralImpl::GenerateCoredump(CoredumpErrorCode error_code,
   WakelockWatchdog::GetWatchdog().Pause();
   is_coredump_generated_ = true;
 
+  // Create the timestamp string as soon as a crash is detected,
+  // To ensure the coredump timestamp is generated and available
+  // before any debug clients are notified.
+  GetOrCreateCoredumpTimestampString();
+
   HAL_LOG(ERROR) << __func__ << ": Reason: "
                  << CoredumpErrorCodeToString(error_code, sub_error_code);
 
