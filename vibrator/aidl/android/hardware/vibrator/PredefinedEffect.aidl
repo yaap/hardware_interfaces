@@ -19,6 +19,11 @@ package android.hardware.vibrator;
 import android.hardware.vibrator.Effect;
 import android.hardware.vibrator.EffectStrength;
 
+/**
+ * Represents a predefined effect.
+ *
+ * <p>This defines a specific {@link Effect} to be played, modified by an {@link EffectStrength}.
+ */
 @VintfStability
 @FixedSize
 parcelable PredefinedEffect {

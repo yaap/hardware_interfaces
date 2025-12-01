@@ -16,6 +16,12 @@
 
 package android.hardware.vibrator;
 
+/**
+ * Represents a one-shot vibration.
+ *
+ * <p>One-shot vibrations will vibrate constantly for the specified period of time at the
+ * specified amplitude, and then stop.
+ */
 @VintfStability
 @FixedSize
 parcelable OneShotPrimitive {
