@@ -31,6 +31,7 @@ use android_hardware_security_see_hwcrypto::aidl::android::hardware::security::s
 };
 use hwcryptohal_common;
 use rdroidtest::{ignore_if, rdroidtest};
+use hwcrypto_thal::Error;
 
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
@@ -42,23 +43,22 @@ fn test_hwcrypto_key_connection() {
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_key_get_current_dice_policy() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
-    let dice_policy = hw_crypto_key.getCurrentDicePolicy().expect("Couldn't get dice policy back");
+    let dice_policy = hw_crypto_key.current_dice_policy().expect("Couldn't get dice policy back");
     assert!(!dice_policy.is_empty(), "received empty dice policy");
 }
 
 #[rdroidtest]
 #[ignore_if(hwcryptohal_vts_test::ignore_test())]
 fn test_hwcrypto_get_keyslot_data() {
-    let hw_crypto_key = hwcryptohal_vts_test::get_hwcryptokey()
+    let hw_crypto_key = hwcryptohal_vts_test::new_hwcryptokey()
         .expect("Couldn't get back a hwcryptokey binder object");
-    let key = hw_crypto_key.getKeyslotData(KeySlot::KEYMINT_SHARED_HMAC_KEY);
+    let key = hw_crypto_key.get_keyslot_data(KeySlot::KEYMINT_SHARED_HMAC_KEY);
     assert_eq!(
         key.err()
-            .expect("should not be able to access this keylost from the host")
-            .service_specific_error(),
-        HalErrorCode::UNAUTHORIZED,
+            .expect("should not be able to access this keylost from the host"),
+        Error::Unauthorized,
         "wrong error type received"
     );
 }
