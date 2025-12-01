@@ -142,6 +142,9 @@ class Module : public BnModule {
     ndk::ScopedAStatus supportsVariableLatency(bool* _aidl_return) override;
     ndk::ScopedAStatus getAAudioMixerBurstCount(int32_t* _aidl_return) override;
     ndk::ScopedAStatus getAAudioHardwareBurstMinUsec(int32_t* _aidl_return) override;
+    ndk::ScopedAStatus getFlushFromFrameSupport(
+            const ::aidl::android::media::audio::common::AudioPortConfig& in_config,
+            ::aidl::android::media::audio::common::FlushFromFrameSupport* _aidl_return) override;
 
     // The maximum stream buffer size is 1 GiB = 2 ** 30 bytes;
     static constexpr int32_t kMaximumStreamBufferSizeBytes = 1 << 30;

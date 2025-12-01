@@ -39,6 +39,7 @@ parcelable StreamDescriptor {
   int frameSizeBytes;
   long bufferSizeFrames;
   android.hardware.audio.core.StreamDescriptor.AudioBuffer audio;
+  const int FLUSH_FROM_FRAME_POSITION_BITS = 28;
   const int LATENCY_UNKNOWN = (-1) /* -1 */;
   @FixedSize @VintfStability
   parcelable Position {
@@ -74,6 +75,7 @@ parcelable StreamDescriptor {
     android.media.audio.common.Void standby;
     android.media.audio.common.Void pause;
     android.media.audio.common.Void flush;
+    int flushFromFrame;
   }
   @FixedSize @VintfStability
   parcelable Reply {
@@ -84,6 +86,7 @@ parcelable StreamDescriptor {
     int latencyMs;
     int xrunFrames;
     android.hardware.audio.core.StreamDescriptor.State state = android.hardware.audio.core.StreamDescriptor.State.STANDBY;
+    int flushFromPosition;
   }
   @VintfStability
   union AudioBuffer {

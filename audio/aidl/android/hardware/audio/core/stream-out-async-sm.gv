@@ -36,23 +36,29 @@ digraph stream_out_async_state_machine {
     ACTIVE -> DRAINING_en [label="drain(EARLY_NOTIFY)"];  // prepare for clip transition
     ACTIVE -> TRANSFERRING [label="burst"];           // early unblocking
     ACTIVE -> ACTIVE [label="burst"];                 // full write
+    ACTIVE -> ACTIVE [label="flushFromFrame"];        // see IStreamDescriptor.Command.flushFromFrame
     TRANSFERRING -> ACTIVE [label="←IStreamCallback.onTransferReady"];
     TRANSFERRING -> TRANSFER_PAUSED [label="pause"];  // consumer -> passive (not consuming)
     TRANSFERRING -> DRAINING [label="drain(ALL)"];    // producer -> passive
     TRANSFERRING -> DRAINING_en [label="drain(EARLY_NOTIFY)"]; // prepare for clip transition
+    TRANSFERRING -> TRANSFERRING [label="flushFromFrame"];  // see IStreamDescriptor.Command.flushFromFrame
     TRANSFER_PAUSED -> TRANSFERRING [label="start"];  // consumer -> active
     TRANSFER_PAUSED -> DRAIN_PAUSED [label="drain(ALL)"];  // producer -> passive
     TRANSFER_PAUSED -> IDLE [label="flush"];          // buffer is cleared
+    TRANSFER_PAUSED -> TRANSFER_PAUSED [label="flushFromFrame"];  // see IStreamDescriptor.Command.flushFromFrame
     PAUSED -> PAUSED [label="burst"];
     PAUSED -> ACTIVE [label="start"];                 // consumer -> active
     PAUSED -> IDLE [label="flush"];                   // producer -> passive, buffer is cleared
+    PAUSED -> PAUSED [label="flushFromFrame"];        // see IStreamDescriptor.Command.flushFromFrame
     DRAINING -> IDLE [label="←IStreamCallback.onDrainReady"];
     DRAINING -> TRANSFERRING [label="burst"];         // producer -> active
     DRAINING -> ACTIVE [label="burst"];               // full write
     DRAINING -> DRAIN_PAUSED [label="pause"];         // consumer -> passive (not consuming)
+    DRAINING -> DRAINING [label="flushFromFrame"];    // see IStreamDescriptor.Command.flushFromFrame
     DRAIN_PAUSED -> DRAINING [label="start"];         // consumer -> active
     DRAIN_PAUSED -> TRANSFER_PAUSED [label="burst"];  // producer -> active
     DRAIN_PAUSED -> IDLE [label="flush"];             // buffer is cleared
+    DRAIN_PAUSED -> DRAIN_PAUSED [label="flushFromFrame"];  // see IStreamDescriptor.Command.flushFromFrame
 
     // IMPORTANT: The behavior below is only expected from the HAL when
     // it exposes 'aosp.clipTransitionSupport' vendor property. It will be
