@@ -18,6 +18,9 @@ package android.hardware.wifi;
 
 /**
  * NAN Periodic Ranging Interval in Time Units.
+ *
+ * For more information, see the Wi-Fi Aware Spec 4.0, Table 97, Bits 3-5. From the 802.11 spec,
+ * one Time Unit (TU) is equal to 1024 microseconds (approx. 1 ms).
  */
 @VintfStability
 @Backing(type="int")
