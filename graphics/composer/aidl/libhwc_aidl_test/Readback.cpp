@@ -16,8 +16,7 @@
 
 #include "Readback.h"
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
-#include <renderengine/impl/ExternalTexture.h>
-#include "RenderEngine.h"
+#include <ui/GraphicBuffer.h>
 #include "android-base/stringprintf.h"
 
 namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test {
@@ -103,34 +102,8 @@ DisplayProperties ReadbackHelper::setupDisplayProperty(
     EXPECT_TRUE(composerClient->setPowerMode(displayId, PowerMode::ON).isOk());
     const auto format = readbackStatus.isOk() ? mapFromXBits(readBackBufferAttributes.format)
                                               : common::PixelFormat::RGBA_8888;
-    std::unique_ptr<TestRenderEngine> testRenderEngine;
-    EXPECT_NO_FATAL_FAILURE(
-            testRenderEngine = std::unique_ptr<TestRenderEngine>(new TestRenderEngine(
-                    ::android::renderengine::RenderEngineCreationArgs::Builder()
-                            .setPixelFormat(static_cast<int>(format))
-                            .setImageCacheSize(TestRenderEngine::sMaxFrameBufferAcquireBuffers)
-                            .setEnableProtectedContext(false)
-                            .setPrecacheToneMapperShaderOnly(false)
-                            .setContextPriority(
-                                    ::android::renderengine::RenderEngine::ContextPriority::High)
-                            .build())));
 
-    ::android::renderengine::DisplaySettings clientCompositionDisplaySettings;
-    clientCompositionDisplaySettings.physicalDisplay =
-            ::android::Rect(display.getDisplayWidth(), display.getDisplayHeight());
-    clientCompositionDisplaySettings.clip = clientCompositionDisplaySettings.physicalDisplay;
-
-    testRenderEngine->initGraphicBuffer(
-            static_cast<uint32_t>(display.getDisplayWidth()),
-            static_cast<uint32_t>(display.getDisplayHeight()),
-            /*layerCount*/ 1U,
-            static_cast<uint64_t>(static_cast<uint64_t>(common::BufferUsage::CPU_READ_OFTEN) |
-                                  static_cast<uint64_t>(common::BufferUsage::CPU_WRITE_OFTEN) |
-                                  static_cast<uint64_t>(common::BufferUsage::GPU_RENDER_TARGET)));
-    testRenderEngine->setDisplaySettings(clientCompositionDisplaySettings);
-
-    DisplayProperties displayProperties(displayId, testColorModes, std::move(testRenderEngine),
-                                        std::move(clientCompositionDisplaySettings),
+    DisplayProperties displayProperties(displayId, testColorModes,
                                         std::move(readBackBufferAttributes.format),
                                         std::move(readBackBufferAttributes.dataspace));
     return displayProperties;
@@ -356,73 +329,6 @@ void ReadbackHelper::compareColorBuffers(const std::vector<Color>& expectedColor
     }
 }
 
-void ReadbackHelper::compareColorBuffers(void* expectedBuffer, void* actualBuffer,
-                                         const uint32_t stride, int32_t bytesPerPixel,
-                                         const uint32_t width, const uint32_t height,
-                                         common::PixelFormat pixelFormat) {
-    int32_t bitsPerChannel = GetBitsPerChannel(pixelFormat);
-    int32_t alphaBits = GetAlphaBits(pixelFormat);
-    int32_t tolerance = GetTolerance(bitsPerChannel);
-    ASSERT_GT(bytesPerPixel, 0);
-    ASSERT_NE(-1, alphaBits);
-    ASSERT_NE(-1, bitsPerChannel);
-    ASSERT_GE(tolerance, 0);
-    uint32_t maxValue = (1 << bitsPerChannel) - 1;
-    uint32_t maxAlphaValue = (1 << alphaBits) - 1;
-    for (uint32_t row = 0; row < height; row++) {
-        for (uint32_t col = 0; col < width; col++) {
-            uint32_t offset = (row * stride + col) * static_cast<uint32_t>(bytesPerPixel);
-            uint32_t* expectedStart = (uint32_t*)((uint8_t*)expectedBuffer + offset);
-            uint32_t* actualStart = (uint32_t*)((uint8_t*)actualBuffer + offset);
-
-            // Boo we're not word aligned so special case this.
-            if (pixelFormat == common::PixelFormat::RGB_888) {
-                uint8_t* expectedPixel = (uint8_t*)expectedStart;
-                uint8_t* actualPixel = (uint8_t*)actualStart;
-                ASSERT_EQ(actualPixel[0], expectedPixel[0])
-                        << "Red channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_EQ(actualPixel[1], expectedPixel[1])
-                        << "Green channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_EQ(actualPixel[2], expectedPixel[2])
-                        << "Blue channel mismatch at (" << row << ", " << col << ")";
-            } else {
-                bool bgraSwizzle = pixelFormat == common::PixelFormat::BGRA_1010102 ||
-                                   pixelFormat == common::PixelFormat::BGRX_1010102;
-
-                uint32_t actualRed = (*actualStart >>
-                                      (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 1 : 3))) &
-                                     maxValue;
-                uint32_t actualGreen =
-                        (*actualStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
-                uint32_t actualBlue = (*actualStart >>
-                                       (32 - alphaBits - bitsPerChannel * (bgraSwizzle ? 3 : 1))) &
-                                      maxValue;
-                uint32_t actualAlpha = (*actualStart >> (32 - alphaBits)) & maxAlphaValue;
-
-                // RenderEngine may swizzle itself, so we need to lookup renderengine's swizzling
-                // for the expected format
-                auto expectedFormat = mapFromXBits(pixelFormat);
-                bgraSwizzle = expectedFormat == common::PixelFormat::BGRA_1010102 ||
-                              expectedFormat == common::PixelFormat::BGRX_1010102;
-                uint32_t expectedRed =
-                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 3)) & maxValue;
-                uint32_t expectedGreen =
-                        (*expectedStart >> (32 - alphaBits - bitsPerChannel * 2)) & maxValue;
-                uint32_t expectedBlue =
-                        (*expectedStart >> (32 - alphaBits - bitsPerChannel)) & maxValue;
-                uint32_t expectedAlpha = (*expectedStart >> (32 - alphaBits)) & maxAlphaValue;
-
-                ASSERT_APPROX_EQ(expectedRed, actualRed, tolerance)
-                        << "Red channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_APPROX_EQ(expectedGreen, actualGreen, tolerance)
-                        << "Green channel mismatch at (" << row << ", " << col << ")";
-                ASSERT_APPROX_EQ(expectedBlue, actualBlue, tolerance)
-                        << "Blue channel mismatch at (" << row << ", " << col << ")";
-            }
-        }
-    }
-}
-
 ReadbackBuffer::ReadbackBuffer(int64_t display,
                                const std::shared_ptr<ComposerClientWrapper>& client, int32_t width,
                                int32_t height, common::PixelFormat pixelFormat,
@@ -508,19 +414,10 @@ void TestColorLayer::write(ComposerClientWriter& writer) {
     writer.setLayerColor(mDisplay, mLayer, mColor);
 }
 
-LayerSettings TestColorLayer::toRenderEngineLayerSettings() {
-    LayerSettings layerSettings = TestLayer::toRenderEngineLayerSettings();
-
-    layerSettings.source.solidColor = ::android::half3(mColor.r, mColor.g, mColor.b);
-    layerSettings.alpha = mAlpha * mColor.a;
-    return layerSettings;
-}
-
-TestBufferLayer::TestBufferLayer(ComposerClientWrapper& client, TestRenderEngine& renderEngine,
-                                 int64_t display, uint32_t width, uint32_t height,
-                                 common::PixelFormat format, ComposerClientWriter& writer,
-                                 Composition composition)
-    : TestLayer{client, display, writer}, mRenderEngine(renderEngine) {
+TestBufferLayer::TestBufferLayer(ComposerClientWrapper& client, int64_t display, uint32_t width,
+                                 uint32_t height, common::PixelFormat format,
+                                 ComposerClientWriter& writer, Composition composition)
+    : TestLayer{client, display, writer} {
     mComposition = composition;
     mWidth = width;
     mHeight = height;
@@ -546,27 +443,6 @@ void TestBufferLayer::write(ComposerClientWriter& writer) {
     if (mGraphicBuffer) {
         writer.setLayerBuffer(mDisplay, mLayer, /*slot*/ 0, mGraphicBuffer->handle, mFillFence);
     }
-}
-
-LayerSettings TestBufferLayer::toRenderEngineLayerSettings() {
-    LayerSettings layerSettings = TestLayer::toRenderEngineLayerSettings();
-    layerSettings.source.buffer.buffer =
-            std::make_shared<::android::renderengine::impl::ExternalTexture>(
-                    mGraphicBuffer, mRenderEngine.getInternalRenderEngine(),
-                    ::android::renderengine::impl::ExternalTexture::Usage::READABLE);
-
-    layerSettings.source.buffer.usePremultipliedAlpha = mBlendMode == BlendMode::PREMULTIPLIED;
-
-    const float scaleX = (mSourceCrop.right - mSourceCrop.left) / (static_cast<float>(mWidth));
-    const float scaleY = (mSourceCrop.bottom - mSourceCrop.top) / (static_cast<float>(mHeight));
-    const float translateX = mSourceCrop.left / (static_cast<float>(mWidth));
-    const float translateY = mSourceCrop.top / (static_cast<float>(mHeight));
-
-    layerSettings.source.buffer.textureTransform =
-            ::android::mat4::translate(::android::vec4(translateX, translateY, 0.0f, 1.0f)) *
-            ::android::mat4::scale(::android::vec4(scaleX, scaleY, 1.0f, 1.0f));
-
-    return layerSettings;
 }
 
 void TestBufferLayer::fillBuffer(std::vector<Color>& expectedColors) {
