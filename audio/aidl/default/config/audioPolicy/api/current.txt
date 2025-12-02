@@ -200,6 +200,7 @@ package android.audio.policy.configuration {
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APE;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE;
+    enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE_PLUS;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE_QLEA;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE_R4;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_HD;
