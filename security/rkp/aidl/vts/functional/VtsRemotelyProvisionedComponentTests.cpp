@@ -380,6 +380,14 @@ TEST(NonParameterizedTests, componentNameInConfigurationDescriptorForPrimaryKeyM
     auto result = verifyComponentNameInKeyMintDiceChain(csr);
     ASSERT_TRUE(result) << result.message();
     ASSERT_TRUE(*result);
+
+    const bool keymint_in_vm =
+            ::android::base::GetBoolProperty("trusty.security_vm.keymint.enabled", false);
+    if (keymint_in_vm) {
+        auto componentName = getLeafComponentNameFromDiceChain(csr, DEFAULT_INSTANCE_NAME);
+        ASSERT_TRUE(componentName) << componentName.message();
+        EXPECT_EQ(*componentName, "keymint");
+    }
 }
 
 /**
