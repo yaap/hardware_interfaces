@@ -209,8 +209,9 @@ class Module : public BnModule {
     virtual int32_t getNominalLatencyMs(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig);
     virtual ndk::ScopedAStatus calculateBufferSizeFrames(
-            const ::aidl::android::media::audio::common::AudioFormatDescription &format,
-            int32_t latencyMs, int32_t sampleRateHz, int32_t *bufferSizeFrames);
+            const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+            const ::aidl::android::media::audio::common::AudioIoFlags& flags, int32_t latencyMs,
+            int32_t sampleRateHz, int32_t* bufferSizeFrames);
     virtual ndk::ScopedAStatus createMmapBuffer(
             const ::aidl::android::media::audio::common::AudioPortConfig& portConfig,
             int32_t bufferSizeFrames, int32_t frameSizeBytes, MmapBufferDescriptor* desc);

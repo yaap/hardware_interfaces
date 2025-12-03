@@ -30,7 +30,8 @@ class ModulePrimary final : public Module {
 
     ndk::ScopedAStatus calculateBufferSizeFrames(
             const ::aidl::android::media::audio::common::AudioFormatDescription& format,
-            int32_t latencyMs, int32_t sampleRateHz, int32_t* bufferSizeFrames) override;
+            const ::aidl::android::media::audio::common::AudioIoFlags& flags, int32_t latencyMs,
+            int32_t sampleRateHz, int32_t* bufferSizeFrames) override;
     ndk::ScopedAStatus createInputStream(
             StreamContext&& context,
             const ::aidl::android::hardware::audio::common::SinkMetadata& sinkMetadata,
