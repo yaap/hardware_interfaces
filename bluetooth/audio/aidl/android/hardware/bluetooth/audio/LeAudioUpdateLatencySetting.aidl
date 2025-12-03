@@ -39,19 +39,19 @@ parcelable LeAudioUpdateLatencySetting {
         /**
          * Set for the update with transport latency change
          */
-        const int WITH_TRANSPORT_LATENCY_CHANGE = 0;
+        const int WITH_TRANSPORT_LATENCY_CHANGE = 0x0001;
         /**
          * Set for the update with codec configuration change
          */
-        const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 1;
+        const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 0x0002;
         /**
          * Set for the update with codec type change
          */
-        const int WITH_CODEC_TYPE_CHANGE = 2;
+        const int WITH_CODEC_TYPE_CHANGE = 0x0004;
         /**
          * Set for the update with CIS direction change
          */
-        const int WITH_CIS_DIRECTIONS_CHANGE = 3;
+        const int WITH_CIS_DIRECTIONS_CHANGE = 0x0008;
 
         int bitmask;
     }

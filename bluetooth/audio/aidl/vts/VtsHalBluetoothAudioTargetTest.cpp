@@ -796,14 +796,14 @@ bool SuggestedLatencyRulesValidated(
         std::optional<LeAudioUpdateLatencySetting::SuggestedLatencyRule>>&
         rules) {
   const auto kSupportedFlags =
-      (1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-           WITH_TRANSPORT_LATENCY_CHANGE) |
-      (1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-           WITHOUT_TRANSPORT_LATENCY_CHANGE) |
-      (1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-           WITH_CODEC_TYPE_CHANGE) |
-      (1 << LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-           WITH_CIS_DIRECTIONS_CHANGE);
+      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_TRANSPORT_LATENCY_CHANGE |
+      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITHOUT_TRANSPORT_LATENCY_CHANGE |
+      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_CODEC_TYPE_CHANGE |
+      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_CIS_DIRECTIONS_CHANGE;
 
   for (const auto& rule_opt : rules) {
     if (!rule_opt.has_value()) {

@@ -39,10 +39,10 @@ parcelable LeAudioUpdateLatencySetting {
   @VintfStability
   parcelable ConfigChangeConditionFlags {
     int bitmask;
-    const int WITH_TRANSPORT_LATENCY_CHANGE = 0;
-    const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 1;
-    const int WITH_CODEC_TYPE_CHANGE = 2;
-    const int WITH_CIS_DIRECTIONS_CHANGE = 3;
+    const int WITH_TRANSPORT_LATENCY_CHANGE = 0x0001;
+    const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 0x0002;
+    const int WITH_CODEC_TYPE_CHANGE = 0x0004;
+    const int WITH_CIS_DIRECTIONS_CHANGE = 0x0008;
   }
   @VintfStability
   parcelable SuggestedLatencyRule {
