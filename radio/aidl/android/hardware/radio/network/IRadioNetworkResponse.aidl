@@ -19,7 +19,6 @@ package android.hardware.radio.network;
 import android.hardware.radio.RadioResponseInfo;
 import android.hardware.radio.RadioTechnology;
 import android.hardware.radio.RadioTechnologyFamily;
-import android.hardware.radio.network.AlertCategory;
 import android.hardware.radio.network.BarringInfo;
 import android.hardware.radio.network.CdmaRoamingType;
 import android.hardware.radio.network.CellIdentity;
@@ -874,19 +873,4 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:INVALID_STATE
      */
     void isSatelliteEnabledForCarrierResponse(in RadioResponseInfo info, boolean isEnabled);
-
-    /**
-     * Response of getSupportedNetworkAlertCategories.
-     *
-     * @param info Response info struct containing response type, serial no. and error.
-     * @param alertCategories List of supported alert categories.
-     *
-     * Valid errors returned:
-     *   RadioError:NONE
-     *   RadioError:RADIO_NOT_AVAILABLE
-     *   RadioError:INTERNAL_ERR
-     *   RadioError:REQUEST_NOT_SUPPORTED
-     *   RadioError:INVALID_STATE
-     */
-    void getSupportedNetworkAlertCategoriesResponse(in RadioResponseInfo info, in AlertCategory[] alertCategories);
 }
