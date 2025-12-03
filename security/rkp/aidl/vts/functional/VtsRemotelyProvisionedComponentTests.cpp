@@ -471,6 +471,40 @@ TEST(NonParameterizedTests, unlockedBootloaderStatesImpliesNonNormalKeyMintInAVm
     unlockedBootloaderStatesImpliesNonNormalDiceChain(DEFAULT_INSTANCE_NAME, rpc);
 }
 
+/**
+ * Verify that the DICE chains for the primary (default) HAL instance have the
+ * correct number of trailing RKP VM markers.
+ */
+TEST(NonParameterizedTests, DefaultKeyMintInstanceHasZeroRkpVmMarkers) {
+    if (!AServiceManager_isDeclared(DEFAULT_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "Default instance is not present on this device.";
+    }
+
+    if (!AServiceManager_isDeclared(KEYMINT_STRONGBOX_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "Strongbox is not present on this device.";
+    }
+
+    int vendorApiLevel = get_vendor_api_level();
+    if (vendorApiLevel < __ANDROID_API_V__) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 202404. This "
+                     << "device has vendor API level: " << vendorApiLevel;
+    }
+
+    auto defaultRpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
+    ASSERT_NE(defaultRpc, nullptr);
+
+    bytevec challenge = randomBytes(64);
+    bytevec csr;
+    auto defaultInstanceStatus =
+            defaultRpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &csr);
+    ASSERT_TRUE(defaultInstanceStatus.isOk()) << defaultInstanceStatus.getDescription();
+
+    auto markerCount = countTrailingRkpVmMarkersInCsr(csr, DEFAULT_INSTANCE_NAME);
+    ASSERT_TRUE(markerCount) << markerCount.message();
+
+    ASSERT_EQ(*markerCount, 0) << "For KeyMint in TEE, expected 0 RKP VM markers.";
+}
+
 using GetHardwareInfoTests = VtsRemotelyProvisionedComponentTests;
 
 INSTANTIATE_REM_PROV_AIDL_TEST(GetHardwareInfoTests);
