@@ -136,14 +136,14 @@ class EraserTestHelper : public EffectHelper {
         return true;
     }
 
-    static bool readWavFile(const std::string& aacFilePath, std::vector<float>* wavData) {
-        if (aacFilePath.empty() || !wavData) {
+    static bool readWavFile(const std::string& filePath, std::vector<float>* wavData) {
+        if (filePath.empty() || !wavData) {
             return false;
         }
         SF_INFO sfinfo;
-        SNDFILE* sndfile = sf_open(aacFilePath.c_str(), SFM_READ, &sfinfo);
+        SNDFILE* sndfile = sf_open(filePath.c_str(), SFM_READ, &sfinfo);
         if (!sndfile) {
-            LOG(ERROR) << "Could not open wav file " << aacFilePath;
+            LOG(ERROR) << "Could not open wav file " << filePath;
             return false;
         }
         if (sfinfo.channels > 2) {
