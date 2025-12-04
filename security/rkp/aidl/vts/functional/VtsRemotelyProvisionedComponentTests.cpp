@@ -391,6 +391,41 @@ TEST(NonParameterizedTests, componentNameInConfigurationDescriptorForPrimaryKeyM
 }
 
 /**
+ * This test verifies the component name in the configuration descriptor of the
+ * leaf certificate in the DICE chain for the AVF ("avf") instance.
+ *
+ * For RKP VM (instance name "avf"), a strict `== "rkp_vm"` check is enforced.
+ */
+TEST(NonParameterizedTests, leafComponentNameInDICEisValidForAvfInstance) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "AVF is not present on this device.";
+    }
+
+    int vendorApiLevel = get_vendor_api_level();
+    if (vendorApiLevel < __ANDROID_API_V__) {
+        GTEST_SKIP() << "AVF instance is supported only on vendor API level >= 202404. This "
+                     << "device has vendor API level: " << vendorApiLevel;
+    }
+
+    if (!::android::base::GetBoolProperty("ro.boot.hypervisor.protected_vm.supported", false)) {
+        GTEST_SKIP() << "Protected VMs are not supported on this device.";
+    }
+
+    auto rkpVmRpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rkpVmRpc, nullptr);
+
+    bytevec challenge = randomBytes(64);
+    bytevec rkpVmCsr;
+    auto rkpVmStatus =
+            rkpVmRpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &rkpVmCsr);
+    ASSERT_TRUE(rkpVmStatus.isOk()) << rkpVmStatus.getDescription();
+
+    auto rkpVmComponentName = getLeafComponentNameFromDiceChain(rkpVmCsr, RKPVM_INSTANCE_NAME);
+    ASSERT_TRUE(rkpVmComponentName) << rkpVmComponentName.message();
+    EXPECT_EQ(*rkpVmComponentName, "rkp_vm");
+}
+
+/**
  * Check that ro.boot.vbmeta.device_state is not "locked" or ro.boot.verifiedbootstate
  * is not "green" if and only if the mode on at least one certificate in the DICE chain
  * is non-normal.
