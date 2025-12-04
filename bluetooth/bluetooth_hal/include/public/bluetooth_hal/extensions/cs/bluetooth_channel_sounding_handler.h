@@ -62,6 +62,10 @@ class BluetoothChannelSoundingHandler
   bool GetMaxSupportedCsSecurityLevel(
       ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel*
           return_value);
+  bool GetSupportedCsSecurityLevels(
+      std::vector<
+          ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel>*
+          return_value);
   bool OpenSession(
       const ::aidl::android::hardware::bluetooth::ranging::
           BluetoothChannelSoundingParameters& in_params,
