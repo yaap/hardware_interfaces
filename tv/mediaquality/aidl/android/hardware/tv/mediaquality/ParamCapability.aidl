@@ -16,6 +16,7 @@
 
 package android.hardware.tv.mediaquality;
 
+import android.hardware.tv.mediaquality.CommonParamCapability;
 import android.hardware.tv.mediaquality.ParameterDefaultValue;
 import android.hardware.tv.mediaquality.ParameterName;
 import android.hardware.tv.mediaquality.ParameterRange;
@@ -39,4 +40,9 @@ parcelable ParamCapability {
      * The supported range of this parameter. null if there is no specific range.
      */
     @nullable ParameterRange range;
+
+    /**
+     * Common capabilities shared between ParamCapability and VendorParamCapability.
+     */
+    @nullable CommonParamCapability commonParamCapability;
 }

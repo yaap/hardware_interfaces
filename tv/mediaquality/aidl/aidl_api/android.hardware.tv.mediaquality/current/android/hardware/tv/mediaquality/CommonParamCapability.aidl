@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,6 @@
 
 package android.hardware.tv.mediaquality;
 @VintfStability
-parcelable ParamCapability {
-  android.hardware.tv.mediaquality.ParameterName name;
-  boolean isSupported;
-  @nullable android.hardware.tv.mediaquality.ParameterDefaultValue defaultValue;
-  @nullable android.hardware.tv.mediaquality.ParameterRange range;
-  @nullable android.hardware.tv.mediaquality.CommonParamCapability commonParamCapability;
+parcelable CommonParamCapability {
+  boolean isMutable;
 }
