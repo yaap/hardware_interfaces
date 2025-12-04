@@ -722,6 +722,36 @@ TEST_P(MediaQualityAidl, TestGetParamCaps) {
     }
 }
 
+TEST_P(MediaQualityAidl, TestSendInvalidPictureParameters) {
+    PictureParameters pictureParameters;
+    std::vector<PictureParameter> picParams;
+    PictureParameter deblurParam;
+
+    deblurParam.set<PictureParameter::Tag::memcDeblur>(11);
+    picParams.push_back(deblurParam);
+    pictureParameters.pictureParameters = picParams;
+
+    auto result = mediaquality->sendDefaultPictureParameters(pictureParameters);
+
+    ASSERT_FALSE(result.isOk());
+    EXPECT_EQ(result.getExceptionCode(), EX_TRANSACTION_FAILED);
+}
+
+TEST_P(MediaQualityAidl, TestSendInvalidSoundParameters) {
+    SoundParameters soundParameters;
+    std::vector<SoundParameter> soundParams;
+    SoundParameter soundParam;
+
+    soundParam.set<SoundParameter::Tag::mtLatencyUs>(-51);
+    soundParams.push_back(soundParam);
+
+    soundParameters.soundParameters = soundParams;
+    auto result = mediaquality->sendDefaultSoundParameters(soundParameters);
+
+    ASSERT_FALSE(result.isOk());
+    EXPECT_EQ(result.getExceptionCode(), EX_TRANSACTION_FAILED);
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MediaQualityAidl);
 
 INSTANTIATE_TEST_SUITE_P(

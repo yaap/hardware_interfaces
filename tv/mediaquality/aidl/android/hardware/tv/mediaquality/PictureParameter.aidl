@@ -20,9 +20,11 @@ import android.hardware.tv.mediaquality.ColorRange;
 import android.hardware.tv.mediaquality.ColorSpace;
 import android.hardware.tv.mediaquality.ColorTemperature;
 import android.hardware.tv.mediaquality.Gamma;
+import android.hardware.tv.mediaquality.MemcEffect;
 import android.hardware.tv.mediaquality.PictureQualityEventType;
 import android.hardware.tv.mediaquality.QualityLevel;
 import android.hardware.tv.mediaquality.StreamStatus;
+import android.hardware.tv.mediaquality.ThreeDMode;
 
 /**
  * The parameters for Picture Profile.
@@ -455,4 +457,41 @@ union PictureParameter {
      * the framework understand the nature of the content being processed.
      */
     StreamStatus streamStatus;
+
+    /**
+     * Controls the level of Motion Estimation and Motion Compensation (MEMC), also known as motion
+     * smoothing. It inserts intermediate frames to make motion appear more fluid, which is
+     * especially noticeable for low-frame-rate content.
+     */
+    MemcEffect memcEffect;
+
+    /**
+     * Adjusts the 'Deblur' component of MEMC, which reduces the streaking or blurring of
+     * fast-moving objects on screen. The range is from 0 to 10.
+     */
+    int memcDeblur;
+
+    /**
+     * Adjusts the 'De-judder' component of MEMC, which reduces stuttering from frame rate
+     * mismatches (e.g., 24fps film on a 60Hz TV). The range is from 0 to 10.
+     */
+    int memcDejudder;
+
+    /**
+     * Enables a mode to play content at its original frame rate for a cinematic experience.
+     * This typically disables motion smoothing (MEMC) to preserve the film's natural cadence.
+     */
+    boolean realCinema;
+
+    /**
+     * Selects the 3D display mode based on the source format (e.g., Side-by-Side).
+     * This allows the TV to correctly process and display the 3D content.
+     */
+    ThreeDMode threeDMode;
+
+    /**
+     * Controls the conversion from a 3D source to a 2D image. It uses the source
+     * format to correctly extract a single 2D frame for display.
+     */
+    ThreeDMode threeDToTwoD;
 }
