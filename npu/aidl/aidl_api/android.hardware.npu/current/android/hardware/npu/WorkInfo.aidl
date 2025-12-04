@@ -32,7 +32,7 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.npu;
-@VintfStability
+@RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
 parcelable WorkInfo {
   int id;
   @nullable android.hardware.npu.Uuid groupId;

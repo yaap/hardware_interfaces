@@ -16,12 +16,14 @@
 
 package android.hardware.npu;
 
+import android.hardware.npu.SchedulingConfig;
 import android.hardware.npu.Uuid;
 
 /**
  * A simple Parcelable containing details related to how a given UID is prioritized.
  */
 @VintfStability
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable WorkInfo {
     /**
      * An identifier for this work. This must be monotonically increasing.
@@ -70,14 +72,15 @@ parcelable WorkInfo {
     @nullable String debugFeatureId;
 
     /**
-     * The priority for this specific work, ranging 0-1000, where 0 is the highest priority.
+     * The priority for this specific work, ranging from {@link SchedulingConfig#MIN_PRIORITY}
+     * to {@link SchedulingConfig#MAX_PRIORITY}.
      */
     int jobPriority;
 
     /**
-     * The effective priority for this work, combining the UID priority supplied via
-     * {@link IScheduling#setSchedulingConfigs} and 'jobPriority'. This ranges 0-2000, where
-     * 0 is the highest priority.
+     * The effective priority for this work, combining (via addition) the UID priority supplied via
+     * {@link IScheduling#setSchedulingConfigs} and 'jobPriority'. This ranges from
+     * {@link SchedulingConfig#MIN_PRIORITY} to {@link SchedulingConfig#MAX_PRIORITY} * 2.
      */
     int effectivePriority;
 

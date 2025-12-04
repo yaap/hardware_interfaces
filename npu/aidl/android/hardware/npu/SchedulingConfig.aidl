@@ -20,6 +20,7 @@ package android.hardware.npu;
  * A simple Parcelable containing details related to how a given UID is prioritized.
  */
 @VintfStability
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable SchedulingConfig {
     // The minimum priority value, representing the HIGHEST priority
     const int MIN_PRIORITY = 0;

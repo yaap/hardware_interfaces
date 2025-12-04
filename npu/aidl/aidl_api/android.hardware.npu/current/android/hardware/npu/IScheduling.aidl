@@ -36,5 +36,5 @@ package android.hardware.npu;
 interface IScheduling {
   void setSchedulingConfigs(in android.hardware.npu.SchedulingConfig[] schedulingConfigs);
   void updateSchedulingConfigs(in android.hardware.npu.SchedulingConfig[] configs);
-  void setCallback(in android.hardware.npu.ISchedulingCallback callback);
+  void setCallback(in @nullable android.hardware.npu.ISchedulingCallback callback);
 }

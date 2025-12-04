@@ -1,0 +1,12 @@
+cc_binary {
+    name: "run-test-inference-scaffold",
+    srcs: ["RunTestInference.cpp"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+    shared_libs: [
+        "libbase",
+        "liblog",
+    ],
+}
