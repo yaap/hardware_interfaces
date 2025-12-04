@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "TestUtils.h"
+#include <TestUtils.h>
 
-#define LOG_TAG "VtsHalAudio_TestUtils"
+#define LOG_TAG "TestUtils"
 
 #include <android-base/logging.h>
 
@@ -39,5 +39,6 @@ void TestExecutionTracer::TraceTestState(const std::string& state,
                                          const ::testing::TestInfo& test_info) {
     LOG(INFO) << state << " " << test_info.test_suite_name() << "::" << test_info.name();
 }
-}
-}
+
+}  // namespace detail
+}  // namespace android::hardware::audio::common::testing
