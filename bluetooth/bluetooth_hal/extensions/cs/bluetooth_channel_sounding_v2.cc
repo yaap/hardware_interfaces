@@ -119,8 +119,12 @@ ScopedAStatus BluetoothChannelSoundingV2::openSession(
 }
 
 ScopedAStatus BluetoothChannelSoundingV2::getSupportedCsSecurityLevels(
-    [[maybe_unused]] std::vector<CsSecurityLevel>* _aidl_return) {
-  return ScopedAStatus::ok();
+    std::vector<CsSecurityLevel>* _aidl_return) {
+  bool status =
+      bluetooth_channel_sounding_handler_.GetSupportedCsSecurityLevels(
+          _aidl_return);
+  return status ? ScopedAStatus::ok()
+                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 };
 
 }  // namespace cs
