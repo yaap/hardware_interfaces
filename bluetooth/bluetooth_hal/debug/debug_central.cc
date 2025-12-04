@@ -348,6 +348,7 @@ bool DebugCentralImpl::OkToGenerateCrashDump(uint8_t error_code) {
 
 std::string DebugCentralImpl::DumpBluetoothHalLog(
     const std::vector<Coredump>& client_dumps) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
   std::stringstream anchor_log;
   for (auto it = anchor_log_.begin(); it != anchor_log_.end(); ++it) {
     std::string log = it->second.first;
