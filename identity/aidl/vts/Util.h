@@ -34,6 +34,8 @@ using ::std::vector;
 using ::android::sp;
 using ::android::binder::Status;
 
+const int GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL = 202604;
+
 struct AttestationData {
     AttestationData(sp<IWritableIdentityCredential>& writableCredential, string challenge,
                     vector<uint8_t> attestationAppId)
