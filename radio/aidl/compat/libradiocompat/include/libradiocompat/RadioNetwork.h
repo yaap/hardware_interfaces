@@ -120,7 +120,6 @@ class RadioNetwork : public RadioCompatBase,
     ::ndk::ScopedAStatus setSatelliteEnabledForCarrier(int32_t serial,
                                                        bool satelliteEnabled) override;
     ::ndk::ScopedAStatus isSatelliteEnabledForCarrier(int32_t serial) override;
-    ::ndk::ScopedAStatus getSupportedNetworkAlertCategories(int32_t serial) override;
 
   protected:
     std::shared_ptr<::aidl::android::hardware::radio::network::IRadioNetworkResponse> respond();
