@@ -377,10 +377,12 @@ bool KeyMintAidlTestBase::isSecondImeiIdAttestationRequired() {
 }
 
 std::optional<bool> KeyMintAidlTestBase::isRkpOnly() {
-    // GSI replaces the values for remote_prov_prop properties (since they’re system_internal_prop
-    // properties), so on GSI the properties are not reliable indicators of whether StrongBox/TEE is
-    // RKP-only or not.
-    if (is_gsi_image()) {
+    // BEFORE 26Q2: GSI replaces the values for remote_prov_prop properties (since they’re
+    // system_internal_prop properties), so on GSI the properties are not reliable indicators of
+    // whether StrongBox/TEE is RKP-only or not.
+    // 26Q2 ONWARD: CL ag/37165459 allows vendor init to set the remote provisioning
+    // properties. This change enables Remote Key Provisioning (RKP) functionality on GSI.
+    if (is_gsi_image() && get_vendor_api_level() < 202604) {
         return std::nullopt;
     }
     if (SecLevel() == SecurityLevel::STRONGBOX) {
