@@ -102,7 +102,6 @@ constexpr std::string_view kBtLogPathPrefix =
     "/data/vendor/bluetooth/btsnoop_hci_vnd";
 constexpr int kMaxLogFileCount = 10;
 
-constexpr std::string kBtLogModeFull = "full";
 constexpr std::string kBtLogModeFiltered = "filtered";
 constexpr std::string kBtLogModeDisabled = "disabled";
 // Truncate to certain length for packet types that need to be filtered.
