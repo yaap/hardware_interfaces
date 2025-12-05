@@ -2165,6 +2165,20 @@ std::string FakeVehicleHardware::dumpSetMinMaxValue(const std::vector<std::strin
     int32_t propId = maybeInfo->propId;
     int32_t areaId = maybeInfo->areaId;
 
+    auto configResult = mServerSidePropStore->getPropConfig(propId);
+    auto areaConfig = std::find_if(
+            configResult.value().areaConfigs.begin(), configResult.value().areaConfigs.end(),
+            [areaId](const auto& areaConfig) { return areaConfig.areaId == areaId; });
+    if (areaConfig == configResult.value().areaConfigs.end()) {
+        return "Failed to set min/max supported value: areaId not supported\n";
+    }
+    if (!areaConfig->hasSupportedValueInfo.has_value() ||
+        !areaConfig->hasSupportedValueInfo->hasMinSupportedValue ||
+        !areaConfig->hasSupportedValueInfo->hasMaxSupportedValue) {
+        return "Failed to set min/max supported value: property does not support min/max"
+               " supported value\n";
+    }
+
     Result<void> parseAndSetValueResult = {};
     switch (propId & toInt(VehiclePropertyType::MASK)) {
         case toInt(VehiclePropertyType::INT32):
@@ -2206,6 +2220,20 @@ std::string FakeVehicleHardware::dumpSetSupportedValues(const std::vector<std::s
     }
     int32_t propId = maybeInfo->propId;
     int32_t areaId = maybeInfo->areaId;
+
+    auto configResult = mServerSidePropStore->getPropConfig(propId);
+    auto areaConfig = std::find_if(
+            configResult.value().areaConfigs.begin(), configResult.value().areaConfigs.end(),
+            [areaId](const auto& areaConfig) { return areaConfig.areaId == areaId; });
+    if (areaConfig == configResult.value().areaConfigs.end()) {
+        return "Failed to set supported values list: areaId not supported\n";
+    }
+    if (!areaConfig->hasSupportedValueInfo.has_value() ||
+        !areaConfig->hasSupportedValueInfo->hasSupportedValuesList) {
+        return "Failed to set supported values list: property does not support supported"
+               " values\n";
+    }
+
     Result<std::vector<RawPropValues>> maybeSupportedValues;
     switch (propId & toInt(VehiclePropertyType::MASK)) {
         case toInt(VehiclePropertyType::INT32):
