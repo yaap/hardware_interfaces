@@ -17,32 +17,24 @@
 #pragma once
 
 #include <map>
+#include <memory>
 
 #include "core-impl/Bluetooth.h"
-#include "core-impl/DevicePortProxy.h"
+#include "core-impl/BluetoothAudioPort.h"
 #include "core-impl/Module.h"
 
 namespace aidl::android::hardware::audio::core {
 
-class ModuleBluetooth final : public Module {
+class ModuleBluetoothBase : public Module {
   public:
     enum BtInterface : int { BTSCO, BTA2DP, BTLE };
     typedef std::tuple<std::weak_ptr<IBluetooth>, std::weak_ptr<IBluetoothA2dp>,
                        std::weak_ptr<IBluetoothLe>>
             BtProfileHandles;
 
-    ModuleBluetooth(std::unique_ptr<Configuration>&& config);
+    ModuleBluetoothBase(std::unique_ptr<Configuration>&& config);
 
-  private:
-    struct CachedProxy {
-        std::shared_ptr<::android::bluetooth::audio::aidl::BluetoothAudioPortAidl> ptr;
-        ::aidl::android::hardware::bluetooth::audio::PcmConfiguration pcmConfig;
-    };
-
-    ChildInterface<BluetoothA2dp>& getBtA2dp();
-    ChildInterface<BluetoothLe>& getBtLe();
-    BtProfileHandles getBtProfileManagerHandles();
-
+  protected:
     ndk::ScopedAStatus getBluetoothA2dp(std::shared_ptr<IBluetoothA2dp>* _aidl_return) override;
     ndk::ScopedAStatus getBluetoothLe(std::shared_ptr<IBluetoothLe>* _aidl_return) override;
     ndk::ScopedAStatus getMicMute(bool* _aidl_return) override;
@@ -82,12 +74,25 @@ class ModuleBluetooth final : public Module {
 
     binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
 
+    // Must be implemented by derived classes.
+    virtual std::shared_ptr<::android::bluetooth::audio::aidl::BluetoothAudioPort>
+    createProxyInstance(bool isInput) = 0;
+
+  private:
+    struct CachedProxy {
+        std::shared_ptr<::android::bluetooth::audio::aidl::BluetoothAudioPort> ptr;
+        ::aidl::android::hardware::bluetooth::audio::PcmConfiguration pcmConfig;
+    };
+
     ndk::ScopedAStatus createProxy(
             const ::aidl::android::media::audio::common::AudioPort& audioPort,
             int32_t instancePortId, CachedProxy& proxy);
     ndk::ScopedAStatus fetchAndCheckProxy(const StreamContext& context, CachedProxy& proxy);
     ndk::ScopedAStatus findOrCreateProxy(
             const ::aidl::android::media::audio::common::AudioPort& audioPort, CachedProxy& proxy);
+    ChildInterface<BluetoothA2dp>& getBtA2dp();
+    ChildInterface<BluetoothLe>& getBtLe();
+    BtProfileHandles getBtProfileManagerHandles();
 
     static constexpr int kCreateProxyRetries = 5;
     static constexpr int kCreateProxyRetrySleepMs = 75;
@@ -95,6 +100,9 @@ class ModuleBluetooth final : public Module {
     ChildInterface<BluetoothLe> mBluetoothLe;
     std::map<int32_t /*instantiated device port ID*/, CachedProxy> mProxies;
     std::map<int32_t /*mix port handle*/, int32_t /*instantiated device port ID*/> mConnections;
+    std::map<::aidl::android::media::audio::common::AudioDeviceDescription,
+             std::weak_ptr<::android::bluetooth::audio::aidl::BluetoothAudioPort>>
+            mProxiesWeak;
 };
 
 }  // namespace aidl::android::hardware::audio::core

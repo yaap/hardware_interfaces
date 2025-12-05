@@ -18,8 +18,7 @@
 
 #include <Log.h>
 
-#include "BluetoothAudioSession.h"
-#include "core-impl/ModuleBluetooth.h"
+#include "core-impl/ModuleBluetoothBase.h"
 #include "core-impl/StreamBluetooth.h"
 
 using aidl::android::hardware::audio::common::SinkMetadata;
@@ -41,13 +40,6 @@ using aidl::android::media::audio::common::AudioProfile;
 using aidl::android::media::audio::common::Int;
 using aidl::android::media::audio::common::MicrophoneInfo;
 using aidl::android::media::audio::common::PcmType;
-using android::bluetooth::audio::aidl::BluetoothAudioPortAidl;
-using android::bluetooth::audio::aidl::BluetoothAudioPortAidlIn;
-using android::bluetooth::audio::aidl::BluetoothAudioPortAidlOut;
-
-// TODO(b/312265159) bluetooth audio should be in its own process
-// Remove this and the shared_libs when that happens
-extern "C" binder_status_t createIBluetoothAudioProviderFactory();
 
 namespace aidl::android::hardware::audio::core {
 
@@ -80,65 +72,73 @@ AudioChannelLayout channelLayoutFromChannelMode(ChannelMode mode) {
 
 }  // namespace
 
-ModuleBluetooth::ModuleBluetooth(std::unique_ptr<Module::Configuration>&& config)
-    : Module(Type::BLUETOOTH, std::move(config)) {
-    // TODO(b/312265159) bluetooth audio should be in its own process
-    // Remove this and the shared_libs when that happens
-    binder_status_t status = createIBluetoothAudioProviderFactory();
-    if (status != STATUS_OK) {
-        LOG(ERROR) << "Failed to create bluetooth audio provider factory. Status: "
-                   << ::android::statusToString(status);
-    }
-}
+ModuleBluetoothBase::ModuleBluetoothBase(std::unique_ptr<Module::Configuration>&& config)
+    : Module(Type::BLUETOOTH, std::move(config)) {}
 
-ndk::ScopedAStatus ModuleBluetooth::getBluetoothA2dp(
+ndk::ScopedAStatus ModuleBluetoothBase::getBluetoothA2dp(
         std::shared_ptr<IBluetoothA2dp>* _aidl_return) {
     *_aidl_return = getBtA2dp().getInstance();
     LOG(DEBUG) << __func__ << ": returning instance of IBluetoothA2dp: " << _aidl_return->get();
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ModuleBluetooth::getBluetoothLe(std::shared_ptr<IBluetoothLe>* _aidl_return) {
+ndk::ScopedAStatus ModuleBluetoothBase::getBluetoothLe(
+        std::shared_ptr<IBluetoothLe>* _aidl_return) {
     *_aidl_return = getBtLe().getInstance();
     LOG(DEBUG) << __func__ << ": returning instance of IBluetoothLe: " << _aidl_return->get();
     return ndk::ScopedAStatus::ok();
 }
 
-ChildInterface<BluetoothA2dp>& ModuleBluetooth::getBtA2dp() {
+ChildInterface<BluetoothA2dp>& ModuleBluetoothBase::getBtA2dp() {
     if (!mBluetoothA2dp) {
         auto handle = ndk::SharedRefBase::make<BluetoothA2dp>();
-        handle->registerHandler(std::bind(&ModuleBluetooth::bluetoothParametersUpdated, this));
+        handle->registerHandler(std::bind(&ModuleBluetoothBase::bluetoothParametersUpdated, this));
         mBluetoothA2dp = handle;
     }
     return mBluetoothA2dp;
 }
 
-ChildInterface<BluetoothLe>& ModuleBluetooth::getBtLe() {
+ChildInterface<BluetoothLe>& ModuleBluetoothBase::getBtLe() {
     if (!mBluetoothLe) {
         auto handle = ndk::SharedRefBase::make<BluetoothLe>();
-        handle->registerHandler(std::bind(&ModuleBluetooth::bluetoothParametersUpdated, this));
+        handle->registerHandler(std::bind(&ModuleBluetoothBase::bluetoothParametersUpdated, this));
         mBluetoothLe = handle;
     }
     return mBluetoothLe;
 }
 
-ModuleBluetooth::BtProfileHandles ModuleBluetooth::getBtProfileManagerHandles() {
+ModuleBluetoothBase::BtProfileHandles ModuleBluetoothBase::getBtProfileManagerHandles() {
     return std::make_tuple(std::weak_ptr<IBluetooth>(), getBtA2dp().getPtr(), getBtLe().getPtr());
 }
 
-ndk::ScopedAStatus ModuleBluetooth::getMicMute(bool* _aidl_return __unused) {
+ndk::ScopedAStatus ModuleBluetoothBase::getMicMute(bool* _aidl_return __unused) {
     LOG(DEBUG) << __func__ << ": is not supported";
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-ndk::ScopedAStatus ModuleBluetooth::setMicMute(bool in_mute __unused) {
+ndk::ScopedAStatus ModuleBluetoothBase::setMicMute(bool in_mute __unused) {
     LOG(DEBUG) << __func__ << ": is not supported";
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-ndk::ScopedAStatus ModuleBluetooth::setAudioPortConfig(const AudioPortConfig& in_requested,
-                                                       AudioPortConfig* out_suggested,
-                                                       bool* _aidl_return) {
+ndk::ScopedAStatus ModuleBluetoothBase::setAudioPortConfig(const AudioPortConfig& in_requested,
+                                                           AudioPortConfig* out_suggested,
+                                                           bool* _aidl_return) {
+    // Since 'fillConfig' is only called when a new port config is created,
+    // handle the case of updating an existing port config separately.
+    int32_t portId = 0;
+    if (in_requested.id != 0) {
+        auto& configs = getConfig().portConfigs;
+        if (auto existing = findById<AudioPortConfig>(configs, in_requested.id);
+            existing != configs.end()) {
+            auto& ports = getConfig().ports;
+            auto portIt = findById<AudioPort>(ports, existing->portId);
+            if (portIt != ports.end() && portIt->ext.getTag() == AudioPortExt::Tag::device) {
+                portId = portIt->id;
+            }
+        }
+    }
+
     auto fillConfig = [this](const AudioPort& port, AudioPortConfig* config) {
         if (port.ext.getTag() == AudioPortExt::device) {
             CachedProxy proxy;
@@ -162,16 +162,28 @@ ndk::ScopedAStatus ModuleBluetooth::setAudioPortConfig(const AudioPortConfig& in
         }
         return generateDefaultPortConfig(port, config);
     };
-    return Module::setAudioPortConfigImpl(in_requested, fillConfig, out_suggested, _aidl_return);
+    RETURN_STATUS_IF_ERROR(
+            Module::setAudioPortConfigImpl(in_requested, fillConfig, out_suggested, _aidl_return));
+    if (portId != 0) {
+        auto& ports = getConfig().ports;
+        auto portIt = findById<AudioPort>(ports, portId);
+        if (portIt != ports.end() && portIt->ext.getTag() == AudioPortExt::Tag::device) {
+            CachedProxy proxy;
+            // Ignore error similar to 'fillConfig', this can happen in VTS tests when
+            // device connections are simulated.
+            findOrCreateProxy(*portIt, proxy);
+        }
+    }
+    return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ModuleBluetooth::supportsVariableLatency(bool* _aidl_return) {
+ndk::ScopedAStatus ModuleBluetoothBase::supportsVariableLatency(bool* _aidl_return) {
     LOG(DEBUG) << __func__ << ": " << getType();
     *_aidl_return = true;
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ModuleBluetooth::checkAudioPatchEndpointsMatch(
+ndk::ScopedAStatus ModuleBluetoothBase::checkAudioPatchEndpointsMatch(
         const std::vector<AudioPortConfig*>& sources, const std::vector<AudioPortConfig*>& sinks) {
     // Both sources and sinks must be non-empty, this is guaranteed by 'setAudioPatch'.
     const bool isInput = sources[0]->ext.getTag() == AudioPortExt::device;
@@ -192,12 +204,12 @@ ndk::ScopedAStatus ModuleBluetooth::checkAudioPatchEndpointsMatch(
     return ndk::ScopedAStatus::ok();
 }
 
-void ModuleBluetooth::onExternalDeviceConnectionChanged(const AudioPort& audioPort,
-                                                        bool connected) {
+void ModuleBluetoothBase::onExternalDeviceConnectionChanged(const AudioPort& audioPort,
+                                                            bool connected) {
     if (!connected) mProxies.erase(audioPort.id);
 }
 
-ndk::ScopedAStatus ModuleBluetooth::createInputStream(
+ndk::ScopedAStatus ModuleBluetoothBase::createInputStream(
         StreamContext&& context, const SinkMetadata& sinkMetadata,
         const std::vector<MicrophoneInfo>& microphones, std::shared_ptr<StreamIn>* result) {
     CachedProxy proxy;
@@ -207,7 +219,7 @@ ndk::ScopedAStatus ModuleBluetooth::createInputStream(
                                                    proxy.ptr, proxy.pcmConfig);
 }
 
-ndk::ScopedAStatus ModuleBluetooth::createOutputStream(
+ndk::ScopedAStatus ModuleBluetoothBase::createOutputStream(
         StreamContext&& context, const SourceMetadata& sourceMetadata,
         const std::optional<AudioOffloadInfo>& offloadInfo, std::shared_ptr<StreamOut>* result) {
     CachedProxy proxy;
@@ -217,15 +229,11 @@ ndk::ScopedAStatus ModuleBluetooth::createOutputStream(
                                                     proxy.ptr, proxy.pcmConfig);
 }
 
-ndk::ScopedAStatus ModuleBluetooth::populateConnectedDevicePort(AudioPort* audioPort,
-                                                                int32_t nextPortId) {
+ndk::ScopedAStatus ModuleBluetoothBase::populateConnectedDevicePort(AudioPort* audioPort,
+                                                                    int32_t nextPortId) {
     if (audioPort->ext.getTag() != AudioPortExt::device) {
         LOG(ERROR) << __func__ << ": not a device port: " << audioPort->toString();
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-    }
-    if (!::aidl::android::hardware::bluetooth::audio::BluetoothAudioSession::IsAidlAvailable()) {
-        LOG(ERROR) << __func__ << ": IBluetoothAudioProviderFactory AIDL service not available";
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
     const auto& devicePort = audioPort->ext.get<AudioPortExt::device>();
     const auto& description = devicePort.device.type;
@@ -256,17 +264,17 @@ ndk::ScopedAStatus ModuleBluetooth::populateConnectedDevicePort(AudioPort* audio
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ModuleBluetooth::onMasterMuteChanged(bool) {
+ndk::ScopedAStatus ModuleBluetoothBase::onMasterMuteChanged(bool) {
     LOG(DEBUG) << __func__ << ": is not supported";
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-ndk::ScopedAStatus ModuleBluetooth::onMasterVolumeChanged(float) {
+ndk::ScopedAStatus ModuleBluetoothBase::onMasterVolumeChanged(float) {
     LOG(DEBUG) << __func__ << ": is not supported";
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-int32_t ModuleBluetooth::getNominalLatencyMs(const AudioPortConfig& portConfig) {
+int32_t ModuleBluetoothBase::getNominalLatencyMs(const AudioPortConfig& portConfig) {
     const auto connectionsIt = mConnections.find(portConfig.ext.get<AudioPortExt::mix>().handle);
     if (connectionsIt != mConnections.end()) {
         const auto proxyIt = mProxies.find(connectionsIt->second);
@@ -285,7 +293,7 @@ int32_t ModuleBluetooth::getNominalLatencyMs(const AudioPortConfig& portConfig) 
     return Module::getNominalLatencyMs(portConfig);
 }
 
-binder_status_t ModuleBluetooth::dump(int fd, const char** args, uint32_t numArgs) {
+binder_status_t ModuleBluetoothBase::dump(int fd, const char** args, uint32_t numArgs) {
     if (!::aidl::android::hardware::audio::common::hasArgument(
                 args, numArgs,
                 ::aidl::android::hardware::audio::common::kDumpFromAudioServerArgument)) {
@@ -297,13 +305,9 @@ binder_status_t ModuleBluetooth::dump(int fd, const char** args, uint32_t numArg
     return ::android::OK;
 }
 
-ndk::ScopedAStatus ModuleBluetooth::createProxy(const AudioPort& audioPort, int32_t instancePortId,
-                                                CachedProxy& proxy) {
-    const bool isInput = audioPort.flags.getTag() == AudioIoFlags::input;
-    proxy.ptr = isInput ? std::shared_ptr<BluetoothAudioPortAidl>(
-                                  std::make_shared<BluetoothAudioPortAidlIn>())
-                        : std::shared_ptr<BluetoothAudioPortAidl>(
-                                  std::make_shared<BluetoothAudioPortAidlOut>());
+ndk::ScopedAStatus ModuleBluetoothBase::createProxy(const AudioPort& audioPort,
+                                                    int32_t instancePortId, CachedProxy& proxy) {
+    proxy.ptr = createProxyInstance(audioPort.flags.getTag() == AudioIoFlags::input);
     const auto& devicePort = audioPort.ext.get<AudioPortExt::device>();
     const auto device = devicePort.device.type;
     bool registrationSuccess = false;
@@ -321,11 +325,12 @@ ndk::ScopedAStatus ModuleBluetooth::createProxy(const AudioPort& audioPort, int3
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
     mProxies.insert(std::pair(instancePortId, proxy));
+    mProxiesWeak[device] = proxy.ptr;
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ModuleBluetooth::fetchAndCheckProxy(const StreamContext& context,
-                                                       CachedProxy& proxy) {
+ndk::ScopedAStatus ModuleBluetoothBase::fetchAndCheckProxy(const StreamContext& context,
+                                                           CachedProxy& proxy) {
     const auto connectionsIt = mConnections.find(context.getMixPortHandle());
     if (connectionsIt != mConnections.end()) {
         const auto proxyIt = mProxies.find(connectionsIt->second);
@@ -348,11 +353,30 @@ ndk::ScopedAStatus ModuleBluetooth::fetchAndCheckProxy(const StreamContext& cont
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus ModuleBluetooth::findOrCreateProxy(const AudioPort& audioPort,
-                                                      CachedProxy& proxy) {
+ndk::ScopedAStatus ModuleBluetoothBase::findOrCreateProxy(const AudioPort& audioPort,
+                                                          CachedProxy& proxy) {
     if (auto proxyIt = mProxies.find(audioPort.id); proxyIt != mProxies.end()) {
         proxy = proxyIt->second;
         return ndk::ScopedAStatus::ok();
+    }
+    if (audioPort.ext.getTag() == AudioPortExt::Tag::device) {
+        const auto& description = audioPort.ext.get<AudioPortExt::Tag::device>().device.type;
+        auto weakIt = mProxiesWeak.find(description);
+        if (weakIt != mProxiesWeak.end()) {
+            if (auto existingProxy = weakIt->second.lock()) {
+                proxy.ptr = existingProxy;
+                if (proxy.ptr->loadAudioConfig(proxy.pcmConfig)) {
+                    mProxies.insert(std::pair(audioPort.id, proxy));
+                    LOG(DEBUG) << __func__ << ": Reused existing proxy for "
+                               << description.toString();
+                    return ndk::ScopedAStatus::ok();
+                } else {
+                    LOG(ERROR) << __func__ << ": Failed to load config from reused proxy";
+                }
+            }
+            // If expired or failed to load config, remove from map and create new
+            mProxiesWeak.erase(weakIt);
+        }
     }
     return createProxy(audioPort, audioPort.id, proxy);
 }

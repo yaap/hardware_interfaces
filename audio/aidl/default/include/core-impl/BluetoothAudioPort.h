@@ -16,20 +16,16 @@
 
 #pragma once
 
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <vector>
 
-#include <android-base/thread_annotations.h>
+#include <android-base/stringprintf.h>
 
 #include <aidl/android/hardware/audio/common/SinkMetadata.h>
 #include <aidl/android/hardware/audio/common/SourceMetadata.h>
-#include <aidl/android/hardware/bluetooth/audio/BluetoothAudioStatus.h>
 #include <aidl/android/hardware/bluetooth/audio/LatencyMode.h>
 #include <aidl/android/hardware/bluetooth/audio/PcmConfiguration.h>
 #include <aidl/android/hardware/bluetooth/audio/PresentationPosition.h>
-#include <aidl/android/hardware/bluetooth/audio/SessionType.h>
 #include <aidl/android/media/audio/common/AudioDeviceDescription.h>
 
 namespace android::bluetooth::audio::aidl {
@@ -43,9 +39,25 @@ enum class BluetoothStreamState : uint8_t {
     UNKNOWN,
 };
 
-std::ostream& operator<<(std::ostream& os, const BluetoothStreamState& state);
+inline std::ostream& operator<<(std::ostream& os, const BluetoothStreamState& state) {
+    switch (state) {
+        case BluetoothStreamState::DISABLED:
+            return os << "DISABLED";
+        case BluetoothStreamState::STANDBY:
+            return os << "STANDBY";
+        case BluetoothStreamState::STARTING:
+            return os << "STARTING";
+        case BluetoothStreamState::STARTED:
+            return os << "STARTED";
+        case BluetoothStreamState::SUSPENDING:
+            return os << "SUSPENDING";
+        case BluetoothStreamState::UNKNOWN:
+            return os << "UNKNOWN";
+        default:
+            return os << android::base::StringPrintf("%#hhx", state);
+    }
+}
 
-class BluetoothSession;
 class BluetoothAudioPortCallbacks {
   public:
     virtual ~BluetoothAudioPortCallbacks() = default;
@@ -165,116 +177,6 @@ class BluetoothAudioPort {
     virtual void setCallbacks(const std::shared_ptr<BluetoothAudioPortCallbacks>&) = 0;
 
     virtual std::string getSessionNameForDebug() const = 0;
-};
-
-class BluetoothAudioPortAidl : public BluetoothAudioPort {
-  public:
-    explicit BluetoothAudioPortAidl(std::optional<bool> supportsLowLatency);
-    virtual ~BluetoothAudioPortAidl();
-
-    bool registerPort(const ::aidl::android::media::audio::common::AudioDeviceDescription&
-                              description) override EXCLUDES(mCvMutex);
-
-    void unregisterPort() override;
-
-    bool loadAudioConfig(
-            ::aidl::android::hardware::bluetooth::audio::PcmConfiguration& audio_cfg) override;
-
-    bool standby() override EXCLUDES(mCvMutex);
-    bool start() override EXCLUDES(mCvMutex);
-    bool suspend() override EXCLUDES(mCvMutex);
-    void stop() override EXCLUDES(mCvMutex);
-
-    bool getPresentationPosition(::aidl::android::hardware::bluetooth::audio::PresentationPosition&
-                                         presentation_position) const override;
-
-    bool updateSourceMetadata(const ::aidl::android::hardware::audio::common::SourceMetadata&
-                                      sourceMetadata) const override;
-
-    bool updateSinkMetadata(const ::aidl::android::hardware::audio::common::SinkMetadata&
-                                    sinkMetadata) const override;
-
-    /**
-     * Return the current BluetoothStreamState
-     */
-    BluetoothStreamState getState() const override EXCLUDES(mCvMutex);
-
-    bool setState(BluetoothStreamState state) override EXCLUDES(mCvMutex);
-
-    bool isA2dp() const override;
-
-    bool isLeAudio() const override;
-
-    bool getPreferredDataIntervalUs(size_t& interval_us) const override;
-
-    bool getRecommendedLatencyModes(
-            std::vector<::aidl::android::hardware::bluetooth::audio::LatencyMode>* latencyModes)
-            override EXCLUDES(mCvMutex);
-
-    void setCallbacks(const std::shared_ptr<BluetoothAudioPortCallbacks>& callbacks) override
-            EXCLUDES(mCvMutex);
-
-    std::string getSessionNameForDebug() const override;
-
-  protected:
-    uint16_t mCookie;
-    BluetoothStreamState mState GUARDED_BY(mCvMutex);
-    // WR to support Mono: True if fetching Stereo and mixing into Mono
-    bool mIsStereoToMono = false;
-    std::shared_ptr<BluetoothAudioPortCallbacks> mCallbacks GUARDED_BY(mCvMutex);
-    std::optional<bool> mSupportsLowLatency GUARDED_BY(mCvMutex);
-
-    bool inUse() const;
-    BluetoothSession* getSession() const EXCLUDES(mCvMutex);
-
-    std::string debugMessage() const;
-
-  private:
-    // start()/suspend() report state change status via callback. Wait until kMaxWaitingTimeMs or a
-    // state change after a call to start()/suspend() and analyse the returned status. Below mutex,
-    // conditional variable serves this purpose.
-    mutable std::mutex mCvMutex;
-    std::condition_variable mInternalCv GUARDED_BY(mCvMutex);
-    // do not call into BluetoothSession directly, use getSession() to ensure that 'mCvMutex'
-    // is not taken, to avoid deadlocks with callbacks.
-    std::unique_ptr<BluetoothSession> mSession;
-
-    bool getRecommendedLatencyModes(
-            std::vector<::aidl::android::hardware::bluetooth::audio::LatencyMode>* latency_modes,
-            std::optional<bool>* supports_low_latency);
-    // Check and initialize session type for |devices| If failed, this
-    // BluetoothAudioPortAidl is not initialized and must be deleted.
-    bool initSession(
-            const ::aidl::android::media::audio::common::AudioDeviceDescription& description);
-
-    bool condWaitState(std::unique_lock<std::mutex>* lock) REQUIRES(mCvMutex);
-
-    void controlResultHandler(
-            uint16_t cookie,
-            const ::aidl::android::hardware::bluetooth::audio::BluetoothAudioStatus& status)
-            EXCLUDES(mCvMutex);
-    void lowLatencyAllowedHandler(uint16_t cookie, bool allowed) EXCLUDES(mCvMutex);
-    void sessionChangedHandler(uint16_t cookie) EXCLUDES(mCvMutex);
-};
-
-class BluetoothAudioPortAidlOut : public BluetoothAudioPortAidl {
-  public:
-    BluetoothAudioPortAidlOut() : BluetoothAudioPortAidl(std::nullopt /*supportsLowLatency*/) {}
-    bool loadAudioConfig(
-            ::aidl::android::hardware::bluetooth::audio::PcmConfiguration& audio_cfg) override;
-
-    // The audio data path to the Bluetooth stack (Software encoding)
-    size_t writeData(const void* buffer, size_t bytes) const override;
-
-    bool setLatencyMode(
-            ::aidl::android::hardware::bluetooth::audio::LatencyMode latency_mode) override;
-};
-
-class BluetoothAudioPortAidlIn : public BluetoothAudioPortAidl {
-  public:
-    BluetoothAudioPortAidlIn() : BluetoothAudioPortAidl(false /*supportsLowLatency*/) {}
-    // The audio data path from the Bluetooth stack (Software decoded)
-    size_t readData(void* buffer, size_t bytes) const override;
 };
 
 }  // namespace android::bluetooth::audio::aidl
