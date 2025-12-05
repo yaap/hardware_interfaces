@@ -314,6 +314,9 @@ cc_defaults {
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
     ],
+    static_libs: [
+        "libaudioeffectaidlcommon",
+    ],
     header_libs: [
         "libaudioaidl_headers",
         "libaudio_system_headers",
@@ -328,13 +331,38 @@ cc_defaults {
     ],
 }
 
-filegroup {
-    name: "effectCommonFile",
+cc_library_static {
+    name: "libaudioeffectaidlcommon",
     srcs: [
         "EffectContext.cpp",
-        "EffectThread.cpp",
         "EffectImpl.cpp",
+        "EffectThread.cpp",
     ],
+    defaults: [
+        "latest_android_media_audio_common_types_ndk_shared",
+        "latest_android_hardware_audio_effect_ndk_shared",
+    ],
+    shared_libs: [
+        "libaudioaidlcommon",
+        "libaudioutils",
+        "libfmq",
+    ],
+    static_libs: [
+        "libaudioaidlranges",
+    ],
+    header_libs: [
+        "libaudioaidl_headers",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wthread-safety",
+        "-DBACKEND_NDK",
+    ],
+    export_include_dirs: ["include"],
+    host_supported: true,
+    vendor: true,
 }
 
 cc_binary {

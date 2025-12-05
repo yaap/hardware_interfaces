@@ -56,9 +56,6 @@ cc_defaults {
         "latest_android_hardware_audio_effect_ndk_static",
         "VtsHalAudioTargetTestDefaults",
     ],
-    srcs: [
-        ":effectCommonFile",
-    ],
     test_config_template: "VtsHalAudioEffectTargetTestTemplate.xml",
 }
 
@@ -236,7 +233,6 @@ cc_test {
     ],
     test_config_template: "VtsHalAudioEraserTest.xml",
     srcs: [
-        ":effectCommonFile",
         "VtsHalEraserTargetTest.cpp",
     ],
     static_libs: [
