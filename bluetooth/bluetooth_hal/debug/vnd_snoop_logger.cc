@@ -255,7 +255,6 @@ class LoggerHandler {
               << ".";
 
     max_packets_per_file_ = GetMaxPacketsPerFile();
-    is_filtered_mode = vnd_snoop_log_mode != kBtLogModeFull;
     if (vnd_snoop_log_mode != kBtLogModeDisabled) {
       PrepareNewLogFile();
       state_ = State::kRecording;
@@ -285,7 +284,7 @@ class LoggerHandler {
     // Bit 1: Type (0 for Data, 1 for Command/Event)
     uint32_t flags = 0;
     // No filter on command and event packets.
-    bool filtered = is_filtered_mode;
+    bool filtered = true;
     switch (type) {
       case HciPacketType::kCommand:
         flags |= (1 << 1);
@@ -403,7 +402,6 @@ class LoggerHandler {
   State state_{State::kStoppedOrDisabled};
   size_t max_packets_per_file_{0};
   size_t packet_counter_{0};
-  bool is_filtered_mode = true;
   std::unique_ptr<Worker<LoggerTask>> logger_thread_;
 };
 
