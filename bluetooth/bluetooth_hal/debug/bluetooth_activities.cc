@@ -102,6 +102,9 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
   void OnBluetoothEnabled() override {};
   void OnBluetoothDisabled() override {};
 
+  ConnectionCallbackSubscription RegisterConnectionCountChangedCallback(
+      ConnectionCountChangedCallback callback) override;
+
 #ifndef UNIT_TEST
   std::vector<Coredump> Dump() override;
 #endif
@@ -114,6 +117,7 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
     std::string status;
     std::string timestamp;
   };
+  void UnregisterConnectionCountChangedCallback(uint32_t id);
 
   void UpdateConnectionHistory(const ConnectionActivity& device);
 
@@ -125,6 +129,9 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
 
   std::list<ConnectionActivity> connection_history_;
   std::unordered_map<uint16_t, BluetoothAddress> connected_device_address_;
+  std::unordered_map<uint32_t, ConnectionCountChangedCallback>
+      connection_count_changed_callbacks_;
+  uint32_t next_callback_id_ = 0;
 };
 
 BluetoothActivitiesImpl::BluetoothActivitiesImpl()
@@ -200,6 +207,20 @@ void BluetoothActivitiesImpl::OnBluetoothChipReady() {
 void BluetoothActivitiesImpl::OnBluetoothChipClosed() {
   connected_device_address_.clear();
   CLIENT_LOG(INFO) << __func__ << ": " << "Clear connected devices.";
+}
+
+BluetoothActivities::ConnectionCallbackSubscription
+BluetoothActivitiesImpl::RegisterConnectionCountChangedCallback(
+    ConnectionCountChangedCallback callback) {
+  uint32_t id = next_callback_id_++;
+  connection_count_changed_callbacks_[id] = std::move(callback);
+  return ConnectionCallbackSubscription(
+      [this, id] { UnregisterConnectionCountChangedCallback(id); });
+}
+
+void BluetoothActivitiesImpl::UnregisterConnectionCountChangedCallback(
+    uint32_t id) {
+  connection_count_changed_callbacks_.erase(id);
 }
 
 void BluetoothActivitiesImpl::HandleBleMetaEvent(const HalPacket& event) {
