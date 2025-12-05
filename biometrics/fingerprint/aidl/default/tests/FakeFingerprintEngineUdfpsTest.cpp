@@ -53,6 +53,10 @@ class TestSessionCallback : public BnSessionCallback {
         mAuthenticationSuccess++;
         return ndk::ScopedAStatus::ok();
     };
+    ::ndk::ScopedAStatus onAuthenticationSucceededWithResult(
+            const AuthenticateSuccess& result) override {
+        return onAuthenticationSucceeded(result.enrollmentId, result.hat);
+    };
     ::ndk::ScopedAStatus onAuthenticationFailed() override {
         mAuthenticationFailure++;
         return ndk::ScopedAStatus::ok();
