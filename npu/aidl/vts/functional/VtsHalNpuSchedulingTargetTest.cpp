@@ -320,6 +320,23 @@ TEST_P(NpuSchedulingAidl, SetSchedulingConfigsInvalidPriority) {
 }
 
 /*
+ * Tests that setSchedulingConfigs() rejects multiple configs for the same UID
+ */
+TEST_P(NpuSchedulingAidl, SetSchedulingConfigsDuplicateUid) {
+    std::vector<SchedulingConfig> configs = {
+            {.uid = 1001, .priority = 0, .hasDirectAccess = true, .canAttributeOtherUid = false},
+            {.uid = 1001,
+             .priority = 1000,
+             .hasDirectAccess = true,
+             .canAttributeOtherUid = false}};
+
+    auto status = scheduling->setSchedulingConfigs(configs);
+    ASSERT_FALSE(status.isOk()) << "setSchedulingConfigs with multiple configs for the same UID "
+                                   "must return EX_ILLEGAL_ARGUMENT";
+    ASSERT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
+}
+
+/*
  * Tests that updateSchedulingConfigs() works with valid input
  */
 TEST_P(NpuSchedulingAidl, UpdateSchedulingConfigs) {
