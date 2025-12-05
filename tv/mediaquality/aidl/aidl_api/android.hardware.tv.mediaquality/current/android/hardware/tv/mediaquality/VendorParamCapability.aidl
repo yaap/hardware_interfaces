@@ -38,4 +38,5 @@ parcelable VendorParamCapability {
   boolean isSupported;
   @nullable android.hardware.tv.mediaquality.ParameterDefaultValue defaultValue;
   @nullable android.hardware.tv.mediaquality.ParameterRange range;
+  @nullable android.hardware.tv.mediaquality.CommonParamCapability commonParamCapability;
 }

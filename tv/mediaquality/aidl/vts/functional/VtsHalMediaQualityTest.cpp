@@ -22,7 +22,9 @@
 #include <aidl/android/hardware/tv/mediaquality/BnMediaQualityCallback.h>
 #include <aidl/android/hardware/tv/mediaquality/BnPictureProfileAdjustmentListener.h>
 #include <aidl/android/hardware/tv/mediaquality/BnSoundProfileAdjustmentListener.h>
+#include <aidl/android/hardware/tv/mediaquality/CommonParamCapability.h>
 #include <aidl/android/hardware/tv/mediaquality/IMediaQuality.h>
+#include <aidl/android/hardware/tv/mediaquality/ParameterName.h>
 #include <aidl/android/hardware/tv/mediaquality/PictureParameter.h>
 #include <aidl/android/hardware/tv/mediaquality/PictureParameters.h>
 #include <aidl/android/hardware/tv/mediaquality/PictureProfile.h>
@@ -45,8 +47,10 @@ using aidl::android::hardware::tv::mediaquality::AmbientBacklightSource;
 using aidl::android::hardware::tv::mediaquality::BnMediaQualityCallback;
 using aidl::android::hardware::tv::mediaquality::BnPictureProfileAdjustmentListener;
 using aidl::android::hardware::tv::mediaquality::BnSoundProfileAdjustmentListener;
+using aidl::android::hardware::tv::mediaquality::CommonParamCapability;
 using aidl::android::hardware::tv::mediaquality::IMediaQuality;
 using aidl::android::hardware::tv::mediaquality::ParamCapability;
+using aidl::android::hardware::tv::mediaquality::ParameterName;
 using aidl::android::hardware::tv::mediaquality::PictureParameter;
 using aidl::android::hardware::tv::mediaquality::PictureParameters;
 using aidl::android::hardware::tv::mediaquality::PictureProfile;
@@ -703,6 +707,19 @@ TEST_P(MediaQualityAidl, TestGetAutoAqEnabled) {
 
 TEST_P(MediaQualityAidl, TestSetAutoAqEnabled) {
     ASSERT_OK(mediaquality->setAutoAqEnabled(true));
+}
+
+TEST_P(MediaQualityAidl, TestGetParamCaps) {
+    std::vector<ParameterName> paramNames;
+    paramNames.push_back(ParameterName::BRIGHTNESS);
+    std::vector<ParamCapability> caps;
+    ASSERT_OK(mediaquality->getParamCaps(paramNames, &caps));
+    ASSERT_EQ(caps.size(), 1);
+    int32_t version;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        EXPECT_EQ(caps[0].commonParamCapability->isMutable, true);
+    }
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MediaQualityAidl);
