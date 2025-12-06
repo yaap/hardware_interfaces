@@ -53,14 +53,10 @@ class LeAudioSoftwareInputAudioProvider : public LeAudioSoftwareAudioProvider {
   LeAudioSoftwareInputAudioProvider();
 };
 
-class LeAudioSoftwareBroadcastOutputAudioProvider : public LeAudioSoftwareAudioProvider {
+class LeAudioSoftwareBroadcastAudioProvider
+    : public LeAudioSoftwareAudioProvider {
  public:
-  LeAudioSoftwareBroadcastOutputAudioProvider();
-};
-
-class LeAudioSoftwareBroadcastInputAudioProvider : public LeAudioSoftwareAudioProvider {
- public:
-  LeAudioSoftwareBroadcastInputAudioProvider();
+  LeAudioSoftwareBroadcastAudioProvider();
 };
 
 }  // namespace audio

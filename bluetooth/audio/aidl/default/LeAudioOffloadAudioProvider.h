@@ -204,16 +204,10 @@ class LeAudioOffloadInputAudioProvider : public LeAudioOffloadAudioProvider {
   LeAudioOffloadInputAudioProvider();
 };
 
-class LeAudioOffloadBroadcastOutputAudioProvider
+class LeAudioOffloadBroadcastAudioProvider
     : public LeAudioOffloadAudioProvider {
  public:
-  LeAudioOffloadBroadcastOutputAudioProvider();
-};
-
-class LeAudioOffloadBroadcastInputAudioProvider
-    : public LeAudioOffloadAudioProvider {
- public:
-  LeAudioOffloadBroadcastInputAudioProvider();
+  LeAudioOffloadBroadcastAudioProvider();
 };
 
 }  // namespace audio

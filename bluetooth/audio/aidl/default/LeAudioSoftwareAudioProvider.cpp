@@ -55,16 +55,9 @@ LeAudioSoftwareInputAudioProvider::LeAudioSoftwareInputAudioProvider()
   session_type_ = SessionType::LE_AUDIO_SOFTWARE_DECODING_DATAPATH;
 }
 
-LeAudioSoftwareBroadcastOutputAudioProvider::
-    LeAudioSoftwareBroadcastOutputAudioProvider()
+LeAudioSoftwareBroadcastAudioProvider::LeAudioSoftwareBroadcastAudioProvider()
     : LeAudioSoftwareAudioProvider() {
   session_type_ = SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH;
-}
-
-LeAudioSoftwareBroadcastInputAudioProvider::
-    LeAudioSoftwareBroadcastInputAudioProvider()
-    : LeAudioSoftwareAudioProvider() {
-  session_type_ = SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH;
 }
 
 LeAudioSoftwareAudioProvider::LeAudioSoftwareAudioProvider()
@@ -95,9 +88,7 @@ ndk::ScopedAStatus LeAudioSoftwareAudioProvider::startSession(
       session_type_ ==
           SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH)
     buffer_modifier = kBufferOutCount;
-  else if (session_type_ == SessionType::LE_AUDIO_SOFTWARE_DECODING_DATAPATH ||
-           session_type_ ==
-              SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH)
+  else if (session_type_ == SessionType::LE_AUDIO_SOFTWARE_DECODING_DATAPATH)
     buffer_modifier = kBufferInCount;
 
   // 24 bit audio stream is sent as unpacked
