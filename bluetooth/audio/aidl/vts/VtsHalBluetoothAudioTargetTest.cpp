@@ -278,7 +278,6 @@ class BluetoothAudioProviderFactoryAidl
       case SessionType::LE_AUDIO_SOFTWARE_ENCODING_DATAPATH:
       case SessionType::LE_AUDIO_SOFTWARE_DECODING_DATAPATH:
       case SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH:
-      case SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH:
       case SessionType::HFP_SOFTWARE_ENCODING_DATAPATH: {
         // All software paths are mandatory and must have exact 1
         // "PcmParameters"
@@ -663,7 +662,6 @@ class BluetoothAudioProviderFactoryAidl
       SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
       SessionType::A2DP_SOFTWARE_DECODING_DATAPATH,
       SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH,
-      SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
   };
 
   static constexpr SessionType kAndroidVSessionType[] = {
@@ -745,7 +743,6 @@ TEST_P(BluetoothAudioProviderFactoryAidl, getProviderInfo_invalidSessionTypes) {
       SessionType::LE_AUDIO_SOFTWARE_ENCODING_DATAPATH,
       SessionType::LE_AUDIO_SOFTWARE_DECODING_DATAPATH,
       SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH,
-      SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
       SessionType::A2DP_SOFTWARE_DECODING_DATAPATH,
   };
 
@@ -929,7 +926,6 @@ TEST_P(BluetoothAudioProviderAidl, parseA2dpConfiguration_invalidSessionType) {
       SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
       SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH,
       SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
-      SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
       SessionType::A2DP_SOFTWARE_DECODING_DATAPATH,
   };
 
@@ -1074,7 +1070,6 @@ TEST_P(BluetoothAudioProviderAidl, getA2dpConfiguration_invalidSessionType) {
       SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
       SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH,
       SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
-      SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
       SessionType::A2DP_SOFTWARE_DECODING_DATAPATH,
   };
 
@@ -4261,11 +4256,10 @@ TEST_P(BluetoothAudioProviderLeAudioInputHardwareAidl, GetQoSConfiguration) {
     ASSERT_FALSE(QoSConfigurations.empty());
   }
 }
-
 /**
  * openProvider LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH
  */
-class BluetoothAudioProviderLeAudioBroadcastOutputSoftwareAidl
+class BluetoothAudioProviderLeAudioBroadcastSoftwareAidl
     : public BluetoothAudioProviderFactoryAidl {
  public:
   virtual void SetUp() override {
@@ -4298,95 +4292,20 @@ class BluetoothAudioProviderLeAudioBroadcastOutputSoftwareAidl
  * SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH can be started
  * and stopped
  */
-TEST_P(BluetoothAudioProviderLeAudioBroadcastOutputSoftwareAidl,
-       OpenLeAudioBroadcastOutputSoftwareProvider) {}
+TEST_P(BluetoothAudioProviderLeAudioBroadcastSoftwareAidl,
+       OpenLeAudioOutputSoftwareProvider) {}
 
 /**
  * Test whether each provider of type
  * SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH can be started
  * and stopped with different PCM config
  */
-TEST_P(BluetoothAudioProviderLeAudioBroadcastOutputSoftwareAidl,
+TEST_P(BluetoothAudioProviderLeAudioBroadcastSoftwareAidl,
        StartAndEndLeAudioOutputSessionWithPossiblePcmConfig) {
   for (auto sample_rate : le_audio_output_sample_rates_) {
     for (auto bits_per_sample : le_audio_output_bits_per_samples_) {
       for (auto channel_mode : le_audio_output_channel_modes_) {
         for (auto data_interval_us : le_audio_output_data_interval_us_) {
-          PcmConfiguration pcm_config{
-              .sampleRateHz = sample_rate,
-              .channelMode = channel_mode,
-              .bitsPerSample = bits_per_sample,
-              .dataIntervalUs = data_interval_us,
-          };
-          bool is_codec_config_valid =
-              IsPcmConfigSupported(pcm_config) && pcm_config.dataIntervalUs > 0;
-          DataMQDesc mq_desc;
-          auto aidl_retval = audio_provider_->startSession(
-              audio_port_, AudioConfiguration(pcm_config), latency_modes,
-              &mq_desc);
-          DataMQ data_mq(mq_desc);
-
-          EXPECT_EQ(aidl_retval.isOk(), is_codec_config_valid);
-          if (is_codec_config_valid) {
-            EXPECT_TRUE(data_mq.isValid());
-          }
-          EXPECT_TRUE(audio_provider_->endSession().isOk());
-        }
-      }
-    }
-  }
-}
-
-/**
- * openProvider LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH
- */
-class BluetoothAudioProviderLeAudioBroadcastInputSoftwareAidl
-    : public BluetoothAudioProviderFactoryAidl {
- public:
-  virtual void SetUp() override {
-    BluetoothAudioProviderFactoryAidl::SetUp();
-    GetProviderCapabilitiesHelper(
-        SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH);
-    OpenProviderHelper(
-        SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH);
-    ASSERT_NE(audio_provider_, nullptr);
-  }
-
-  virtual void TearDown() override {
-    audio_port_ = nullptr;
-    audio_provider_ = nullptr;
-    BluetoothAudioProviderFactoryAidl::TearDown();
-  }
-
-  static constexpr int32_t le_audio_input_sample_rates_[] = {
-      0, 8000, 16000, 24000, 32000, 44100, 48000,
-  };
-  static constexpr int8_t le_audio_input_bits_per_samples_[] = {0, 16, 24};
-  static constexpr ChannelMode le_audio_input_channel_modes_[] = {
-      ChannelMode::UNKNOWN, ChannelMode::MONO, ChannelMode::STEREO};
-  static constexpr int32_t le_audio_input_data_interval_us_[] = {
-      0 /* Invalid */, 10000 /* Valid 10ms */};
-};
-
-/**
- * Test whether each provider of type
- * SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH can be started
- * and stopped
- */
-TEST_P(BluetoothAudioProviderLeAudioBroadcastInputSoftwareAidl,
-       OpenLeAudioBroadcastInputSoftwareProvider) {}
-
-/**
- * Test whether each provider of type
- * SessionType::LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH can be started
- * and stopped with different PCM config
- */
-TEST_P(BluetoothAudioProviderLeAudioBroadcastInputSoftwareAidl,
-       StartAndEndLeAudioInputSessionWithPossiblePcmConfig) {
-  for (auto sample_rate : le_audio_input_sample_rates_) {
-    for (auto bits_per_sample : le_audio_input_bits_per_samples_) {
-      for (auto channel_mode : le_audio_input_channel_modes_) {
-        for (auto data_interval_us : le_audio_input_data_interval_us_) {
           PcmConfiguration pcm_config{
               .sampleRateHz = sample_rate,
               .channelMode = channel_mode,
@@ -5250,17 +5169,9 @@ INSTANTIATE_TEST_SUITE_P(PerInstance,
                          android::PrintInstanceNameToString);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
-    BluetoothAudioProviderLeAudioBroadcastOutputSoftwareAidl);
+    BluetoothAudioProviderLeAudioBroadcastSoftwareAidl);
 INSTANTIATE_TEST_SUITE_P(PerInstance,
-                         BluetoothAudioProviderLeAudioBroadcastOutputSoftwareAidl,
-                         testing::ValuesIn(android::getAidlHalInstanceNames(
-                             IBluetoothAudioProviderFactory::descriptor)),
-                         android::PrintInstanceNameToString);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
-    BluetoothAudioProviderLeAudioBroadcastInputSoftwareAidl);
-INSTANTIATE_TEST_SUITE_P(PerInstance,
-                         BluetoothAudioProviderLeAudioBroadcastInputSoftwareAidl,
+                         BluetoothAudioProviderLeAudioBroadcastSoftwareAidl,
                          testing::ValuesIn(android::getAidlHalInstanceNames(
                              IBluetoothAudioProviderFactory::descriptor)),
                          android::PrintInstanceNameToString);
