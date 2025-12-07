@@ -124,11 +124,6 @@ parcelable CodecInfo {
          * Additional configuration flags
          */
         @nullable ConfigurationFlags flags;
-
-        /**
-         * Supported maxSdu when adaptive bit rate flag is set.
-         */
-        @nullable int[] maxSdu;
     }
 
     /**

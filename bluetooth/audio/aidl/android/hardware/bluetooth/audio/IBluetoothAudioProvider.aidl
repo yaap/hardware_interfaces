@@ -307,6 +307,11 @@ interface IBluetoothAudioProvider {
          * HDT packet format used in Set CIG Parameters command
          */
         int hdtPacketFormat;
+        /**
+         * Supported maxSdu values for adaptive bit rate capabilities.
+         * This list should contain all possible SDU sizes, including the one set in `maxSdu`.
+         */
+        @nullable int[] maxSduForAbrCodec;
     }
 
     /**
