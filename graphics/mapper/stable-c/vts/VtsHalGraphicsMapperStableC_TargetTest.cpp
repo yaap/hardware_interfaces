@@ -738,7 +738,6 @@ class GraphicsTestsBase {
                 }
             case PixelFormat::RGBA_12121212_UINT:
             case PixelFormat::RGBA_14141414_UINT:
-            case PixelFormat::RGBA_10101010:
             case PixelFormat::RGBA_FP16:
                 if (channel == gralloc4::PlaneLayoutComponentType_R) {
                     return 0;
@@ -748,6 +747,16 @@ class GraphicsTestsBase {
                     return 32;
                 } else {
                     return 48;
+                }
+            case PixelFormat::RGBA_10101010:
+                if (channel == gralloc4::PlaneLayoutComponentType_R) {
+                    return 6;
+                } else if (channel == gralloc4::PlaneLayoutComponentType_G) {
+                    return 22;
+                } else if (channel == gralloc4::PlaneLayoutComponentType_B) {
+                    return 38;
+                } else {
+                    return 54;
                 }
             case PixelFormat::UNSPECIFIED:
             case PixelFormat::YCBCR_422_SP:
