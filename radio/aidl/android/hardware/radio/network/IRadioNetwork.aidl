@@ -785,4 +785,18 @@ oneway interface IRadioNetwork {
      * This is available when android.hardware.telephony.radio.access is defined.
      */
     void isSatelliteEnabledForCarrier(in int serial);
+
+    /**
+     * Retrieves the set of alert categories supported by the modem.
+     *
+     * Returns a list of AlertCategory enums that the modem implementation is
+     * capable of detecting and reporting.
+     *
+     * Note: an empty list indicates that no alert categories are supported.
+     *
+     * @param serial Serial number of request
+     *
+     * Response function is IRadioNetworkResponse.getSupportedNetworkAlertCategories()
+     */
+    void getSupportedNetworkAlertCategories(in int serial);
 }

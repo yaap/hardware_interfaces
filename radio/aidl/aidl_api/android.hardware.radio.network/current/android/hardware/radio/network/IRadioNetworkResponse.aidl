@@ -106,4 +106,5 @@ interface IRadioNetworkResponse {
   oneway void setSatellitePlmnResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void setSatelliteEnabledForCarrierResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void isSatelliteEnabledForCarrierResponse(in android.hardware.radio.RadioResponseInfo info, boolean isEnabled);
+  oneway void getSupportedNetworkAlertCategoriesResponse(in android.hardware.radio.RadioResponseInfo info, in android.hardware.radio.network.AlertCategory[] alertCategories);
 }
