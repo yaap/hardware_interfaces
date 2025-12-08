@@ -17,7 +17,7 @@
 package android.hardware.security.keymint;
 
 /**
- * Supported ML-DSA variants.
+ * Supported ML-DSA variants (see FIPS 204).
  * @hide
  */
 @VintfStability

@@ -131,7 +131,7 @@ import android.hardware.security.secureclock.TimeStampToken;
  *
  * TRUSTED_ENVIRONMENT implementations of IKeyMintDevice must provide support for the following:
  *
- * o   ML-DSA
+ * o   ML-DSA (see FIPS 204)
  *
  *      - ML-DSA-65 and ML-DSA-87 must be supported.  ML-DSA-44 is not supported.
  *      - Import of ML-DSA keys is supported in raw format (32-byte seed value), and in PKCS#8
