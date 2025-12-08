@@ -50,6 +50,7 @@ interface IBluetoothAudioProvider {
   void onSourceAseMetadataChanged(in android.hardware.bluetooth.audio.IBluetoothAudioProvider.AseState state, int cigId, int cisId, in @nullable android.hardware.bluetooth.audio.MetadataLtv[] metadata);
   android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioBroadcastConfigurationSetting getLeAudioBroadcastConfiguration(in @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioDeviceCapabilities[] remoteSinkAudioCapabilities, in android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioBroadcastConfigurationRequirement requirement);
   android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioDataPathConfiguration getLeAudioBroadcastDatapathConfiguration(in android.hardware.bluetooth.audio.AudioContext audioContext, in android.hardware.bluetooth.audio.LeAudioBroadcastConfiguration.BroadcastStreamMap[] streamMap);
+  @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseCodecConfiguredResponse getLeAudioAseCodecConfiguredParameters(in @nullable android.hardware.bluetooth.audio.LeAudioAseConfiguration[] sinkAseConfiguration, in @nullable android.hardware.bluetooth.audio.LeAudioAseConfiguration[] sourceAseConfiguration);
   const int CODEC_PRIORITY_DISABLED = (-1) /* -1 */;
   const int CODEC_PRIORITY_NONE = 0;
   @VintfStability
@@ -199,5 +200,47 @@ interface IBluetoothAudioProvider {
     android.hardware.bluetooth.audio.IBluetoothAudioProvider.Framing framing;
     @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioDataPathConfiguration dataPathConfiguration;
     android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioBroadcastSubgroupConfiguration[] subgroupsConfigurations;
+  }
+  @VintfStability
+  parcelable LeAudioAseCodecConfiguredParameters {
+    android.hardware.bluetooth.audio.IBluetoothAudioProvider.Framing framing;
+    android.hardware.bluetooth.audio.Phy[] preferredPhy;
+    int preferredRetransmissionNum;
+    int maxTransportLatencyMs;
+    int presentationDelayMinUs;
+    int presentationDelayMaxUs;
+    int preferredPresentationDelayMinUs;
+    int preferredPresentationDelayMaxUs;
+    @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioDataPathConfiguration dataPathConfiguration;
+    android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseCodecConfiguredParameters.ResponseCode responseCode;
+    android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseCodecConfiguredParameters.Reason reason;
+    @Backing(type="byte") @VintfStability
+    enum ResponseCode {
+      SUCCESS = 0x00,
+      UNSUPPORTED_CAPABILITIES = 0x06,
+      UNSUPPORTED_CONFIGURATION_PARAM = 0x07,
+      REJECTED_CONFIGURATION_PARAM = 0x08,
+      INVALID_CONFIGURATION_PARAM_VALUE = 0x09,
+      INSUFFICIENT_RESOURCES = 0x0D,
+      UNSPECIFIED_ERROR = 0x0E,
+    }
+    @Backing(type="byte") @VintfStability
+    enum Reason {
+      NO_REASON = 0x00,
+      CODEC_ID = 0x01,
+      CODEC_SPECIFIC_CONFIGURATION = 0x02,
+      SDU_INTERVAL = 0x03,
+      FRAMING = 0x04,
+      PHY = 0x05,
+      MAX_SDU_SIZE = 0x06,
+      RTN = 0x07,
+      MAX_TRANSPORT_LATENCY = 0x08,
+      PRESENTATION_DELAY = 0x09,
+    }
+  }
+  @VintfStability
+  parcelable LeAudioAseCodecConfiguredResponse {
+    @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseCodecConfiguredParameters[] sinkAseCodecConfiguredParams;
+    @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseCodecConfiguredParameters[] sourceAseCodecConfiguredParams;
   }
 }

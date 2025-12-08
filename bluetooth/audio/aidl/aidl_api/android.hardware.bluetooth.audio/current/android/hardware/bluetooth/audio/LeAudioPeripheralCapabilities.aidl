@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,38 +33,23 @@
 
 package android.hardware.bluetooth.audio;
 @VintfStability
-parcelable CodecInfo {
-  android.hardware.bluetooth.audio.CodecId id;
-  String name;
-  android.hardware.bluetooth.audio.CodecInfo.Transport transport;
-  parcelable A2dp {
-    byte[] capabilities;
-    android.hardware.bluetooth.audio.ChannelMode[] channelMode;
-    int[] samplingFrequencyHz;
-    int[] bitdepth;
-    boolean lossless;
-  }
-  parcelable Hfp {
-    int inputDataPath = 1;
-    int outputDataPath = 1;
-    boolean useControllerCodec = true;
-  }
-  parcelable LeAudio {
-    android.hardware.bluetooth.audio.ChannelMode[] channelMode;
+parcelable LeAudioPeripheralCapabilities {
+  android.hardware.bluetooth.audio.LeAudioPeripheralCapabilities.CodecCapabilities codecCapabilities;
+  @nullable android.hardware.bluetooth.audio.LeAudioPeripheralCapabilities.VendorCodecCapabilities vendorCapabilities;
+  @nullable android.hardware.bluetooth.audio.MetadataLtv[] metadata;
+  @VintfStability
+  parcelable CodecCapabilities {
+    byte[] pcmBitDepth;
     int[] samplingFrequencyHz;
     int[] frameDurationUs;
-    int[] bitdepth;
-    @nullable android.hardware.bluetooth.audio.ConfigurationFlags flags;
-    @nullable int[] maxSdu;
+    int[] minOctectsPerFrame;
+    int[] maxOctectsPerFrame;
+    byte[] blocksPerSdu;
+    android.hardware.bluetooth.audio.ChannelMode[] channelMode;
   }
-  parcelable LeAudioPeripheral {
-    android.hardware.bluetooth.audio.ConfigurationFlags flags;
-    android.hardware.bluetooth.audio.LeAudioPeripheralCapabilities[] codecCapabilities;
-  }
-  union Transport {
-    android.hardware.bluetooth.audio.CodecInfo.LeAudio leAudio;
-    android.hardware.bluetooth.audio.CodecInfo.A2dp a2dp;
-    android.hardware.bluetooth.audio.CodecInfo.Hfp hfp;
-    android.hardware.bluetooth.audio.CodecInfo.LeAudioPeripheral leAudioPeripheral;
+  @VintfStability
+  parcelable VendorCodecCapabilities {
+    ParcelableHolder extension;
+    byte[] vendorCodecSpecificCapabilities;
   }
 }

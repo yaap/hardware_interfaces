@@ -87,7 +87,7 @@ interface IBluetoothAudioProviderFactory {
         // @deprecated move to AdvancedSetting
         boolean supportsMultidirectionalCapabilities;
         /**
-         * LE Audio Context
+         * LE Audio Context for Central and Peripheral use case
          */
         parcelable LeAudio {
             boolean supportsMultidirectionalCapabilities;

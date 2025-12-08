@@ -135,6 +135,18 @@ class BluetoothAudioProvider : public BnBluetoothAudioProvider {
       const A2dpConfigurationHint& hint,
       std::optional<audio::A2dpConfiguration>* _aidl_return);
 
+  ndk::ScopedAStatus getLeAudioAseCodecConfiguredParameters(
+      const std::optional<std::vector<
+          std::optional<::aidl::android::hardware::bluetooth::audio::
+                            LeAudioAseConfiguration>>>& in_sinkAseConfiguration,
+      const std::optional<
+          std::vector<std::optional<::aidl::android::hardware::bluetooth::
+                                        audio::LeAudioAseConfiguration>>>&
+          in_sourceAseConfiguration,
+      std::optional<
+          ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
+              LeAudioAseCodecConfiguredResponse>* _aidl_return);
+
   virtual bool isValid(const SessionType& sessionType) = 0;
 
  protected:

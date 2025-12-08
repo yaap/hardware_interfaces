@@ -77,6 +77,7 @@ using aidl::android::hardware::bluetooth::audio::
     LeAudioCodecCapabilitiesSetting;
 using aidl::android::hardware::bluetooth::audio::LeAudioCodecConfiguration;
 using aidl::android::hardware::bluetooth::audio::LeAudioConfiguration;
+using aidl::android::hardware::bluetooth::audio::LeAudioPeripheralCapabilities;
 using aidl::android::hardware::bluetooth::audio::LeAudioUpdateLatencySetting;
 using aidl::android::hardware::bluetooth::audio::MetadataLtv;
 using aidl::android::hardware::bluetooth::audio::OpusCapabilities;
@@ -128,6 +129,8 @@ using LeAudioBroadcastConfigurationSetting =
     IBluetoothAudioProvider::LeAudioBroadcastConfigurationSetting;
 using LeAudioSubgroupBisConfiguration =
     IBluetoothAudioProvider::LeAudioSubgroupBisConfiguration;
+using LeAudioAseCodecConfiguredResponse =
+    IBluetoothAudioProvider::LeAudioAseCodecConfiguredResponse;
 
 // Constants
 
@@ -5143,14 +5146,25 @@ class BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl
         SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH);
     OpenProviderHelper(
         SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH);
-    ASSERT_TRUE(temp_provider_capabilities_.empty() |
-                !temp_provider_info_.has_value() | audio_provider_ != nullptr);
+    ASSERT_TRUE(audio_provider_ != nullptr);
   }
 
   virtual void TearDown() override {
     audio_port_ = nullptr;
     audio_provider_ = nullptr;
     BluetoothAudioProviderFactoryAidl::TearDown();
+  }
+
+  bool IsUnicastPeripheralOffloadOutputProviderInfoSupported() {
+    if (temp_provider_info_.has_value() &&
+        !temp_provider_info_.value().codecInfos.empty()) {
+      for (auto& codec_info : temp_provider_info_.value().codecInfos) {
+        EXPECT_TRUE(codec_info.transport.getTag() ==
+                    CodecInfo::Transport::leAudioPeripheral);
+      }
+      return true;
+    }
+    return false;
   }
 };
 
@@ -5161,6 +5175,125 @@ class BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl
  */
 TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
        OpenLeAudioProviderOutputOffloadProvider) {}
+
+TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
+       GetLeAudioPeripheralAseCodecConfigured) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  if (!IsUnicastPeripheralOffloadOutputProviderInfoSupported()) {
+    GTEST_SKIP();
+  }
+
+  auto test_sampling_rate =
+      CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000;
+  auto test_frame_duration =
+      CodecSpecificConfigurationLtv::FrameDuration::US10000;
+  LeAudioAseConfiguration test_conf = {
+      .targetLatency = LeAudioAseConfiguration::TargetLatency::LOWER,
+      .codecConfiguration = {test_sampling_rate, test_frame_duration}};
+  std::vector<std::optional<LeAudioAseConfiguration>> sinkConfigurations;
+  // Simulate two Sink ASEs
+  sinkConfigurations.push_back(test_conf);
+  sinkConfigurations.push_back(test_conf);
+
+  // Simulate one Source ASEs
+  std::vector<std::optional<LeAudioAseConfiguration>> sourceConfigurations;
+  sourceConfigurations.push_back(test_conf);
+
+  std::optional<LeAudioAseCodecConfiguredResponse> codecConfiguredResponse;
+
+  auto aidl_retval = audio_provider_->getLeAudioAseCodecConfiguredParameters(
+      sinkConfigurations, sourceConfigurations, &codecConfiguredResponse);
+
+  ASSERT_TRUE(aidl_retval.isOk());
+  ASSERT_TRUE(codecConfiguredResponse->sinkAseCodecConfiguredParams->size() ==
+              2);
+  ASSERT_TRUE(codecConfiguredResponse->sourceAseCodecConfiguredParams->size() ==
+              1);
+}
+
+TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
+       GetLeAudioPeripheralVendorSpecificCapabilities) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  if (!IsUnicastPeripheralOffloadOutputProviderInfoSupported()) {
+    GTEST_SKIP();
+  }
+
+  for (auto& codec_info : temp_provider_info_.value().codecInfos) {
+    ASSERT_TRUE(codec_info.transport.getTag() ==
+                CodecInfo::Transport::leAudioPeripheral);
+
+    const auto& peripheral_info =
+        codec_info.transport.get<CodecInfo::Transport::leAudioPeripheral>();
+
+    for (auto& leaudio_peripheral_capa : peripheral_info.codecCapabilities) {
+      if (!leaudio_peripheral_capa.vendorCapabilities.has_value()) {
+        continue;
+      }
+
+      ASSERT_TRUE(leaudio_peripheral_capa.vendorCapabilities
+                      ->vendorCodecSpecificCapabilities.size() > 0)
+          << "VendorCodecCapabilities present but "
+             "vendorCodecSpecificCapabilities is empty";
+    }
+  }
+}
+
+/**
+ * Test that all LeAudioPeripheralCapabilities returned for output peripheral
+ * sessions are unique within the codecCapabilities array.
+ */
+TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
+       LeAudioPeripheralCapabilities_AreUnique_SortMethod) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  if (!IsUnicastPeripheralOffloadOutputProviderInfoSupported()) {
+    GTEST_SKIP();
+  }
+
+  auto provider_info = temp_provider_info_.value();
+
+  for (const auto& codec_info : provider_info.codecInfos) {
+    ASSERT_EQ(codec_info.transport.getTag(),
+              CodecInfo::Transport::leAudioPeripheral);
+
+    const auto& peripheral_info =
+        codec_info.transport.get<CodecInfo::Transport::leAudioPeripheral>();
+
+    std::vector<LeAudioPeripheralCapabilities> capabilities_copy =
+        peripheral_info.codecCapabilities;
+
+    if (capabilities_copy.empty()) {
+      continue;
+    }
+
+    const size_t initial_size = capabilities_copy.size();
+
+    std::sort(capabilities_copy.begin(), capabilities_copy.end());
+
+    auto last_unique =
+        std::unique(capabilities_copy.begin(), capabilities_copy.end());
+
+    const size_t unique_count =
+        std::distance(capabilities_copy.begin(), last_unique);
+
+    EXPECT_EQ(initial_size, unique_count)
+        << "The codecCapabilities array contains duplicate "
+           "LeAudioPeripheralCapabilities"
+        << ". Expected size: " << initial_size
+        << ", Actual unique size: " << unique_count;
+  }
+}
 
 /**
  * openProvider LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH
@@ -5181,8 +5314,7 @@ class BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl
         SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH);
     OpenProviderHelper(
         SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH);
-    ASSERT_TRUE(temp_provider_capabilities_.empty() |
-                !temp_provider_info_.has_value() | audio_provider_ != nullptr);
+    ASSERT_TRUE(audio_provider_ != nullptr);
   }
 
   virtual void TearDown() override {
@@ -5190,7 +5322,68 @@ class BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl
     audio_provider_ = nullptr;
     BluetoothAudioProviderFactoryAidl::TearDown();
   }
+
+  bool IsUnicastPeripheralOffloadInputProviderInfoSupported() {
+    if (temp_provider_info_.has_value() &&
+        !temp_provider_info_.value().codecInfos.empty()) {
+      for (auto& codec_info : temp_provider_info_.value().codecInfos) {
+        EXPECT_TRUE(codec_info.transport.getTag() ==
+                    CodecInfo::Transport::leAudioPeripheral);
+      }
+      return true;
+    }
+    return false;
+  }
 };
+
+/**
+ * Test that all LeAudioPeripheralCapabilities returned for input peripheral
+ * sessions are unique within the codecCapabilities array.
+ */
+TEST_P(BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl,
+       LeAudioPeripheralCapabilities_AreUnique_SortMethod) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  if (!IsUnicastPeripheralOffloadInputProviderInfoSupported()) {
+    GTEST_SKIP();
+  }
+
+  auto provider_info = temp_provider_info_.value();
+
+  for (const auto& codec_info : provider_info.codecInfos) {
+    ASSERT_EQ(codec_info.transport.getTag(),
+              CodecInfo::Transport::leAudioPeripheral);
+
+    const auto& peripheral_info =
+        codec_info.transport.get<CodecInfo::Transport::leAudioPeripheral>();
+
+    std::vector<LeAudioPeripheralCapabilities> capabilities_copy =
+        peripheral_info.codecCapabilities;
+
+    if (capabilities_copy.empty()) {
+      continue;
+    }
+
+    const size_t initial_size = capabilities_copy.size();
+
+    std::sort(capabilities_copy.begin(), capabilities_copy.end());
+
+    auto last_unique =
+        std::unique(capabilities_copy.begin(), capabilities_copy.end());
+
+    const size_t unique_count =
+        std::distance(capabilities_copy.begin(), last_unique);
+
+    EXPECT_EQ(initial_size, unique_count)
+        << "The codecCapabilities array contains duplicate "
+           "LeAudioPeripheralCapabilities"
+        << ". Expected size: " << initial_size
+        << ", Actual unique size: " << unique_count;
+  }
+}
 
 /**
  * Test whether each provider of type
