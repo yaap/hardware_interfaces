@@ -57,4 +57,5 @@ interface IRadioNetworkIndication {
   oneway void securityAlgorithmsUpdated(in android.hardware.radio.RadioIndicationType type, in android.hardware.radio.network.SecurityAlgorithmUpdate securityAlgorithmUpdate);
   /* @hide */
   oneway void displayNetworkTypeChanged(in android.hardware.radio.RadioIndicationType type, in android.hardware.radio.network.DisplayNetworkType dnt);
+  oneway void onNetworkSecurityEvents(in android.hardware.radio.RadioIndicationType type, in android.hardware.radio.network.NetworkSecurityEvent[] events);
 }

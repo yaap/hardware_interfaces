@@ -2475,3 +2475,29 @@ TEST_P(RadioNetworkTest, setSatelliteEnabledForCarrier) {
         EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
     }
 }
+
+/*
+ * Test IRadioNetwork.getSupportedNetworkAlertCategories for the response returned.
+ */
+TEST_P(RadioNetworkTest, getSupportedNetworkAlertCategories) {
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_network->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 5) {
+        ALOGI("Skipped the test since"
+              " getSupportedNetworkAlertCategories is not supported on version < 5");
+        GTEST_SKIP();
+    }
+
+    // Get current value
+    serial = GetRandomSerialNumber();
+    ndk::ScopedAStatus res = radio_network->getSupportedNetworkAlertCategories(serial);
+
+    ASSERT_OK(res);
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+    ASSERT_TRUE(CheckAnyOfErrors(
+            radioRsp_network->rspInfo.error,
+            {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE, RadioError::MODEM_ERR}));
+}

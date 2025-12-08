@@ -107,4 +107,5 @@ interface IRadioNetwork {
   oneway void setSatellitePlmn(in int serial, in String[] carrierPlmnArray, in String[] allSatellitePlmnArray);
   oneway void setSatelliteEnabledForCarrier(in int serial, boolean satelliteEnabled);
   oneway void isSatelliteEnabledForCarrier(in int serial);
+  oneway void getSupportedNetworkAlertCategories(in int serial);
 }

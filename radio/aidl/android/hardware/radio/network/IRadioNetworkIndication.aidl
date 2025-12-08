@@ -26,6 +26,7 @@ import android.hardware.radio.network.DisplayNetworkType;
 import android.hardware.radio.network.EmergencyRegResult;
 import android.hardware.radio.network.LinkCapacityEstimate;
 import android.hardware.radio.network.NetworkScanResult;
+import android.hardware.radio.network.NetworkSecurityEvent;
 import android.hardware.radio.network.PhoneRestrictedState;
 import android.hardware.radio.network.PhysicalChannelConfig;
 import android.hardware.radio.network.SecurityAlgorithmUpdate;
@@ -355,7 +356,7 @@ oneway interface IRadioNetworkIndication {
     void securityAlgorithmsUpdated(
             in RadioIndicationType type, in SecurityAlgorithmUpdate securityAlgorithmUpdate);
 
-    /**
+   /**
      * Indicates that the modem suggests display network type has changed.
      *
      * This unsolicited indication is sent by the modem to the framework whenever
@@ -374,4 +375,15 @@ oneway interface IRadioNetworkIndication {
      * @hide
      */
     void displayNetworkTypeChanged(in RadioIndicationType type, in DisplayNetworkType dnt);
+
+    /**
+     * Called by the modem when cellular network security threats are
+     * detected. The modem implementation should populate the
+     * NetworkSecurityEvent with details on threat(s) detected, the mitigation
+     * status, and any relevant network identifiers. This method should be
+     * called as soon as the threat is detected and processed by the modem.
+     *
+     * @param events A list of NetworkSecurityEvent objects.
+     */
+   void onNetworkSecurityEvents(in RadioIndicationType type, in NetworkSecurityEvent[] events);
 }

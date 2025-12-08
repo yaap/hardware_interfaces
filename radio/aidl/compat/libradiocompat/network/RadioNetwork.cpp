@@ -425,4 +425,11 @@ ScopedAStatus RadioNetwork::isSatelliteEnabledForCarrier(int32_t serial) {
     return ok();
 }
 
+ScopedAStatus RadioNetwork::getSupportedNetworkAlertCategories(int32_t serial) {
+    LOG_CALL << serial;
+    LOG(ERROR) << " getSupportedNetworkAlertCategories is unsupported by HIDL HALs";
+    respond()->getSupportedNetworkAlertCategoriesResponse(notSupported(serial), {}); //std::vector<network::NetworkAlertCategory>()
+    return ok();
+}
+
 }  // namespace android::hardware::radio::compat
