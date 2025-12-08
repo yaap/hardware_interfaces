@@ -146,6 +146,18 @@ LeAudioOffloadInputAudioProvider::LeAudioOffloadInputAudioProvider()
   session_type_ = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH;
 }
 
+LeAudioOffloadPeripheralOutputAudioProvider::
+    LeAudioOffloadPeripheralOutputAudioProvider()
+    : LeAudioOffloadAudioProvider() {
+  session_type_ = SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH;
+}
+
+LeAudioOffloadPeripheralInputAudioProvider::
+    LeAudioOffloadPeripheralInputAudioProvider()
+    : LeAudioOffloadAudioProvider() {
+  session_type_ = SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH;
+}
+
 LeAudioOffloadBroadcastAudioProvider::LeAudioOffloadBroadcastAudioProvider()
     : LeAudioOffloadAudioProvider() {
   session_type_ =

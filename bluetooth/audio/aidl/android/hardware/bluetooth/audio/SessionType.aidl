@@ -83,4 +83,14 @@ enum SessionType {
      * This is a control path only.
      */
     HFP_HARDWARE_OFFLOAD_DATAPATH,
+    /**
+     * Used when audio is encoded by offloader on the peripheral and streamed to a remote
+     * LE Audio device. This is a control path only.
+     */
+    LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH,
+    /**
+     * Used when audio is decoded by offloader on the peripheral and streamed to a local
+     * endpoint. This is a control path only.
+     */
+    LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH,
 }

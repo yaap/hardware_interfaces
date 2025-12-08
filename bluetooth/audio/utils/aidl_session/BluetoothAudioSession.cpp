@@ -295,6 +295,8 @@ const AudioConfiguration BluetoothAudioSession::GetAudioConfig() {
         return AudioConfiguration(HfpConfiguration{});
       case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
       case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH:
+      case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH:
+      case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH:
         return AudioConfiguration(LeAudioConfiguration{});
       case SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
         return AudioConfiguration(LeAudioBroadcastConfiguration{});
@@ -398,12 +400,18 @@ bool BluetoothAudioSession::IsSessionReady(bool is_primary_hal) {
            SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
        session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH ||
        session_type_ == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH ||
+       session_type_ ==
+           SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH ||
+       session_type_ ==
+           SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH ||
        (data_mq_ != nullptr && data_mq_->isValid()));
 
   if (com::android::btaudio::hal::flags::leaudio_sw_offload() &&
       ::android::base::GetBoolProperty(kPropertyLeaSwOffload, false)) {
     if (session_type_ ==
-        SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+            SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
+        session_type_ ==
+            SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH) {
       if (!is_primary_hal) {
         is_mq_valid &= LeAudioSwOffloadInstance::is_using_swoffload_.load();
       }
@@ -426,6 +434,10 @@ bool BluetoothAudioSession::IsSessionReadyInternal() {
            SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
        session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH ||
        session_type_ == SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH ||
+       session_type_ ==
+           SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH ||
+       session_type_ ==
+           SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH ||
        (data_mq_ != nullptr && data_mq_->isValid()));
   return stack_iface_ != nullptr && is_mq_valid && audio_config_ != nullptr;
 }
@@ -563,7 +575,11 @@ bool BluetoothAudioSession::UpdateAudioConfig(
       (session_type_ ==
            SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
        session_type_ ==
-           SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH);
+           SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH ||
+       session_type_ ==
+           SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH ||
+       session_type_ ==
+           SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH);
   bool is_offload_le_audio_broadcast_session =
       (session_type_ ==
        SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH);
@@ -592,7 +608,9 @@ bool BluetoothAudioSession::UpdateAudioConfig(
   }
 
   if (session_type_ ==
-      SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+          SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
+      session_type_ ==
+          SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH) {
     // reset swoffload when new config is coming with offload session
     // type
     LeAudioSwOffloadInstance::releaseSwOffload();
