@@ -69,6 +69,7 @@ cc_library {
         "alsa/StreamAlsa.cpp",
         "alsa/Utils.cpp",
         "bluetooth/DevicePortProxy.cpp",
+        "bluetooth/ModuleBluetoothBase.cpp",
         "bluetooth/ModuleBluetooth.cpp",
         "bluetooth/StreamBluetooth.cpp",
         "deprecated/StreamSwitcher.cpp",
@@ -283,6 +284,63 @@ cc_test {
     srcs: [
         "alsa/Utils.cpp",
         "tests/AlsaUtilsTest.cpp",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wthread-safety",
+        "-DBACKEND_NDK",
+    ],
+    test_suites: ["general-tests"],
+}
+
+cc_test {
+    name: "audio_module_bluetooth_tests",
+    vendor_available: true,
+    defaults: [
+        "latest_android_hardware_audio_common_ndk_static",
+        "latest_android_hardware_audio_core_ndk_static",
+        "latest_android_hardware_audio_core_sounddose_ndk_static",
+        "latest_android_hardware_audio_effect_ndk_static",
+        "latest_android_hardware_bluetooth_audio_ndk_static",
+        "latest_android_media_audio_common_types_ndk_static",
+        "latest_android_media_audio_eraser_types_ndk_static",
+    ],
+    shared_libs: [
+        "android.hardware.common-V2-ndk",
+        "android.hardware.common.fmq-V1-ndk",
+        "libaudio_aidl_conversion_common_ndk",
+        "libaudioaidlcommon",
+        "libaudioutils",
+        "libbase",
+        "libbinder_ndk",
+        "libcutils",
+        "libfmq",
+        "liblog",
+        "libmedia_helper",
+        "libstagefright_foundation",
+        "libutils",
+    ],
+    static_libs: [
+        "libaudioaidltestutils",
+    ],
+    header_libs: [
+        "libaudioaidl_headers",
+        "libexpectedutils_headers",
+    ],
+    // Do not use 'libaudioserviceexampleimpl' because tests do not have access
+    // to AIDL interfaces shared libraries (they need to be static), and we do not
+    // want to depend on BT libraries.
+    srcs: [
+        "Bluetooth.cpp",
+        "Configuration.cpp",
+        "Module.cpp",
+        "SoundDose.cpp",
+        "Stream.cpp",
+        "bluetooth/ModuleBluetoothBase.cpp",
+        "bluetooth/StreamBluetooth.cpp",
+        "tests/ModuleBluetoothTest.cpp",
     ],
     cflags: [
         "-Wall",

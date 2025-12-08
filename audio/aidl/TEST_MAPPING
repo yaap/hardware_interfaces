@@ -73,6 +73,9 @@
     },
     {
       "name": "CtsVirtualDevicesAudioTestCases"
+    },
+    {
+      "name": "audio_module_bluetooth_tests"
     }
   ]
 }

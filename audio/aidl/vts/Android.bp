@@ -26,6 +26,7 @@ cc_defaults {
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
         "libaudioaidlcommon",
+        "libaudioaidltestutils",
         "libaidlcommonsupport",
         "libpffft",
     ],
@@ -44,9 +45,6 @@ cc_defaults {
     test_suites: [
         "general-tests",
         "vts",
-    ],
-    srcs: [
-        "TestUtils.cpp",
     ],
 }
 
@@ -70,7 +68,6 @@ cc_test {
         "libcutils",
     ],
     srcs: [
-        "ModuleConfig.cpp",
         "VtsHalAudioCoreConfigTargetTest.cpp",
         "VtsHalAudioCoreModuleTargetTest.cpp",
     ],

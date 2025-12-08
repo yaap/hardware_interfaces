@@ -129,25 +129,6 @@ constexpr unsigned int kMaxWaitingTimeMs = 4500;
 
 }  // namespace
 
-std::ostream& operator<<(std::ostream& os, const BluetoothStreamState& state) {
-    switch (state) {
-        case BluetoothStreamState::DISABLED:
-            return os << "DISABLED";
-        case BluetoothStreamState::STANDBY:
-            return os << "STANDBY";
-        case BluetoothStreamState::STARTING:
-            return os << "STARTING";
-        case BluetoothStreamState::STARTED:
-            return os << "STARTED";
-        case BluetoothStreamState::SUSPENDING:
-            return os << "SUSPENDING";
-        case BluetoothStreamState::UNKNOWN:
-            return os << "UNKNOWN";
-        default:
-            return os << android::base::StringPrintf("%#hhx", state);
-    }
-}
-
 BluetoothAudioPortAidl::BluetoothAudioPortAidl(std::optional<bool> supportsLowLatency)
     : mCookie(::aidl::android::hardware::bluetooth::audio::kObserversCookieUndefined),
       mState(BluetoothStreamState::DISABLED),
