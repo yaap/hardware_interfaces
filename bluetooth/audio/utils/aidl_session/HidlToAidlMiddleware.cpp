@@ -25,7 +25,7 @@
 #include <unordered_map>
 
 #include "../aidl_session/BluetoothAudioSession.h"
-#include "../aidl_session/BluetoothAudioSessionControl.h"
+#include "../aidl_session/BluetoothAudioSessionControl_V6.h"
 #include "HidlToAidlMiddleware_2_0.h"
 #include "HidlToAidlMiddleware_2_1.h"
 
