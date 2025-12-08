@@ -59,6 +59,12 @@ class CsConfigLoaderImpl : public CsConfigLoader {
   std::string DumpConfigToString() const override;
 
  private:
+  bool ParseCommandsIntoVector(
+      const CalibrationCommands& calibration_commands_proto,
+      std::vector<HalPacket>* out_commands);
+
+  void MaybeReloadConfig();
+
   std::vector<HalPacket> cs_calibration_commands_;
 };
 
@@ -69,28 +75,36 @@ CsConfigLoaderImpl::CsConfigLoaderImpl() {
 }
 
 bool CsConfigLoaderImpl::LoadConfig() {
-  std::string file_path = AndroidBaseWrapper::GetWrapper().GetProperty(
-      Property::kCsConfigFile, std::string(kDefaultCsConfigFile));
-
-  if (LoadConfigFromFile(file_path)) {
-    LOG(INFO) << __func__ << ": Successfully load calibration config from "
-              << file_path << ".";
+  // 1. Try to load from kDefaultCsConfigFile.
+  if (LoadConfigFromFile(kDefaultCsConfigFile)) {
+    LOG(INFO) << __func__
+              << ": Successfully loaded calibration config from default file '"
+              << kDefaultCsConfigFile << "'.";
     return true;
   }
 
+  // 2. Try to load from product-specific path.
   std::string product_name =
       AndroidBaseWrapper::GetWrapper().GetProperty(Property::kProductName, "");
+  if (!product_name.empty()) {
+    size_t pos = kDefaultCsConfigFile.rfind(".json");
+    std::string product_specific_path =
+        std::string(kDefaultCsConfigFile).substr(0, pos) + "_" + product_name +
+        ".json";
 
-  if (product_name.empty()) {
-    LOG(WARNING) << __func__ << ": Product name is empty.";
-    return false;
+    if (LoadConfigFromFile(product_specific_path)) {
+      LOG(INFO) << __func__
+                << ": Successfully loaded product-specific calibration config "
+                   "from '"
+                << product_specific_path << "'.";
+      return true;
+    }
   }
 
-  size_t pos = kDefaultCsConfigFile.rfind(".json");
-  std::string product_specific_path =
-      file_path.substr(0, pos) + "_" + product_name + ".json";
+  LOG(WARNING) << __func__
+               << ": Failed to load calibration config from any source.";
 
-  return LoadConfigFromFile(product_specific_path);
+  return false;
 }
 
 bool CsConfigLoaderImpl::LoadConfigFromFile(std::string_view path) {
@@ -118,9 +132,24 @@ bool CsConfigLoaderImpl::LoadConfigFromString(std::string_view content) {
     return false;
   }
 
-  cs_calibration_commands_.clear();
+  std::vector<HalPacket> new_commands;
+  if (!ParseCommandsIntoVector(calibration_commands, &new_commands) ||
+      new_commands.empty()) {
+    return false;
+  }
 
-  for (const auto& command : calibration_commands.commands()) {
+  cs_calibration_commands_ = std::move(new_commands);
+
+  LOG(INFO) << DumpConfigToString();
+
+  return true;
+}
+
+bool CsConfigLoaderImpl::ParseCommandsIntoVector(
+    const CalibrationCommands& calibration_commands_proto,
+    std::vector<HalPacket>* out_commands) {
+  out_commands->clear();
+  for (const auto& command : calibration_commands_proto.commands()) {
     HalPacket packet;
 
     packet.push_back(command.packet_type());
@@ -132,16 +161,16 @@ bool CsConfigLoaderImpl::LoadConfigFromString(std::string_view content) {
                   command.sub_opcode().end());
     packet.insert(packet.end(), command.data().begin(), command.data().end());
 
-    cs_calibration_commands_.emplace_back(packet);
+    out_commands->emplace_back(packet);
   }
-
-  LOG(INFO) << DumpConfigToString();
-
-  return !cs_calibration_commands_.empty();
+  return true;
 }
 
 const std::vector<HalPacket>& CsConfigLoaderImpl::GetCsCalibrationCommands()
     const {
+  // Attempt to reload config. This is a const_cast workaround as the design
+  // requires updating internal state from a const getter.
+  const_cast<CsConfigLoaderImpl*>(this)->MaybeReloadConfig();
   return cs_calibration_commands_;
 }
 
@@ -152,6 +181,29 @@ std::string CsConfigLoaderImpl::DumpConfigToString() const {
      << " command(s)\n";
   ss << "-------------------------------\n";
   return ss.str();
+}
+
+void CsConfigLoaderImpl::MaybeReloadConfig() {
+  std::string config_file_from_property =
+      AndroidBaseWrapper::GetWrapper().GetProperty(Property::kCsConfigFile, "");
+
+  // If property is not set, do not attempt reload and do not warn.
+  if (config_file_from_property.empty()) {
+    return;
+  }
+
+  // Temporarily store original commands to revert if loading fails.
+  auto original_commands = cs_calibration_commands_;
+
+  if (LoadConfigFromFile(config_file_from_property)) {
+    LOG(INFO) << __func__
+              << ": Successfully reloaded calibration config from property '"
+              << config_file_from_property << "'.";
+    return;
+  }
+
+  // If loading from kCsConfigFile property failed, revert to original.
+  cs_calibration_commands_ = std::move(original_commands);
 }
 
 CsConfigLoader& CsConfigLoader::GetLoader() {

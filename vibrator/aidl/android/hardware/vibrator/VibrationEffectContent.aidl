@@ -27,7 +27,7 @@ import android.hardware.vibrator.VendorEffect;
  *
  * It has a fixed size and can be used to send vibration effects across Fast Message Queues (FMQs).
  *
- * The each content represent one of the following vibrate APIs:
+ * Each content type represents one of the following vibrate APIs:
  * <ul>
  * <li>OneShotPrimitive: IVibrator.on followed by IVibrator.setAmplitude.
  * <li>PredefinedEffect: IVibrator.perform.

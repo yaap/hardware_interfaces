@@ -244,7 +244,7 @@ parcelable Stream {
     int colorSpace;
 
     /**
-     * Whether concurrent streaming is to be enable for all streams within this
+     * Whether concurrent streaming is to be enabled for all streams within this
      * stream group.
      *
      * When set to true, the HAL is allowed to concurrently output multiple streams

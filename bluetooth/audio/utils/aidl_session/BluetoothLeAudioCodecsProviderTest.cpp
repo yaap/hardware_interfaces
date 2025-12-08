@@ -578,12 +578,10 @@ TEST_F(GetLeAudioOffloadUpdateLatencySettingTest,
   auto& rule = update_latency_setting->suggestedLatencyRules->at(0);
   ASSERT_EQ(rule->suggestedLatencyMs, 400);
   int32_t expected_bitmask =
-      1 << aidl::android::hardware::bluetooth::audio::
-              LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-                  WITH_TRANSPORT_LATENCY_CHANGE |
-      1 << aidl::android::hardware::bluetooth::audio::
-              LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-                  WITH_CIS_DIRECTIONS_CHANGE;
+      aidl::android::hardware::bluetooth::audio::LeAudioUpdateLatencySetting::
+          ConfigChangeConditionFlags::WITH_TRANSPORT_LATENCY_CHANGE |
+      aidl::android::hardware::bluetooth::audio::LeAudioUpdateLatencySetting::
+          ConfigChangeConditionFlags::WITH_CIS_DIRECTIONS_CHANGE;
   ASSERT_EQ(rule->configChangeConditionFlags.bitmask, expected_bitmask);
 }
 

@@ -31,7 +31,6 @@ cc_library_shared {
     ],
     srcs: [
         "DynamicsProcessingSw.cpp",
-        ":effectCommonFile",
     ],
     relative_install_path: "soundfx",
     visibility: [

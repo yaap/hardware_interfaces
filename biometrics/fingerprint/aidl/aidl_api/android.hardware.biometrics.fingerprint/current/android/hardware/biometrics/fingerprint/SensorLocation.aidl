@@ -39,9 +39,19 @@ parcelable SensorLocation {
    * @deprecated use the display field instead. This field was never used.
    */
   int displayId;
+  /**
+   * @deprecated use sensorLocationData with a specific struct (e.g., UnderDisplayLocation) instead. This value will be ignored if sensorLocationData is set.
+   */
   int sensorLocationX;
+  /**
+   * @deprecated use sensorLocationData with a specific struct (e.g., UnderDisplayLocation) instead. This value will be ignored if sensorLocationData is set.
+   */
   int sensorLocationY;
+  /**
+   * @deprecated use sensorLocationData with a specific struct (e.g., UnderDisplayLocation) instead. This value will be ignored if sensorLocationData is set.
+   */
   int sensorRadius;
   String display = "";
   android.hardware.biometrics.fingerprint.SensorShape sensorShape = android.hardware.biometrics.fingerprint.SensorShape.CIRCLE;
+  @nullable android.hardware.biometrics.fingerprint.SensorLocationData sensorLocationData;
 }

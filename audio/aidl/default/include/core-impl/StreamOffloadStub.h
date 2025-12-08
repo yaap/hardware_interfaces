@@ -79,7 +79,7 @@ class DspClipState {
 struct DspSimulatorState {
     static constexpr int64_t kSkipBufferNotifyFrames = -1;
 
-    const std::string formatEncoding;
+    const ::aidl::android::media::audio::common::AudioFormatDescription format;
     const int sampleRate;
     const int64_t earlyNotifyFrames;
     DriverCallbackInterface* callback = nullptr;  // set before starting DSP worker
@@ -133,6 +133,8 @@ class DriverOffloadStubImpl : public DriverStubImpl {
                                           size_t* actualFrameCount);
     ::android::status_t handleMpegTransfer(void* buffer, size_t frameCount,
                                            size_t* actualFrameCount);
+    ::android::status_t handlePcmTransfer(void* buffer, size_t frameCount,
+                                          size_t* actualFrameCount);
     ::android::status_t (DriverOffloadStubImpl::*mTransferHandler)(void*, size_t, size_t*);
 
     const int64_t mBufferNotifyFrames;

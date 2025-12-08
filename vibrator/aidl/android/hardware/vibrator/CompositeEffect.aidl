@@ -18,6 +18,12 @@ package android.hardware.vibrator;
 
 import android.hardware.vibrator.CompositePrimitive;
 
+/**
+ * Represents a primitive in a composed effect.
+ *
+ * <p>This defines a specific {@link CompositePrimitive} to be played, modified by an amplitude
+ * scale. It also defines a delay, in milliseconds, to wait before playing this primitive.
+ */
 @VintfStability
 @FixedSize
 parcelable CompositeEffect {

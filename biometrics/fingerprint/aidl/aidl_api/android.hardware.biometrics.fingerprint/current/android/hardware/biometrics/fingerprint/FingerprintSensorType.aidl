@@ -41,4 +41,5 @@ enum FingerprintSensorType {
   UNDER_DISPLAY_OPTICAL,
   POWER_BUTTON,
   HOME_BUTTON,
+  STANDALONE,
 }

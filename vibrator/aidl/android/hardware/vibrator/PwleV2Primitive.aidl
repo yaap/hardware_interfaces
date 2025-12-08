@@ -16,6 +16,15 @@
 
 package android.hardware.vibrator;
 
+/**
+ * Represents a single control point for a Piecewise-Linear Envelope (PWLE) waveform.
+ *
+ * <p>A PWLE effect is constructed by a sequence of these primitives. Each primitive represents
+ * a target point (frequency and amplitude) that the vibrator should reach.
+ *
+ * <p>The device will linearly interpolate from the previous point to the next one over the
+ * duration specified, in milliseconds.
+ */
 @VintfStability
 @FixedSize
 parcelable PwleV2Primitive {

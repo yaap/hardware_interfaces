@@ -22,6 +22,7 @@ package android.hardware.npu;
  * This parcelable stores the UUID as a 16-byte array.
  */
 @VintfStability
+@RustDerive(Clone=true, Eq=true, PartialEq=true)
 parcelable Uuid {
     byte[16] uuid;
 }

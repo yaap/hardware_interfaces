@@ -31,7 +31,6 @@ cc_library_shared {
     ],
     srcs: [
         "AutomaticGainControlV2Sw.cpp",
-        ":effectCommonFile",
     ],
     relative_install_path: "soundfx",
     visibility: [

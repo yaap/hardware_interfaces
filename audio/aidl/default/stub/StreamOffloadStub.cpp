@@ -26,6 +26,7 @@
 
 using aidl::android::hardware::audio::common::SourceMetadata;
 using aidl::android::media::audio::common::AudioDevice;
+using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::AudioOffloadInfo;
 using aidl::android::media::audio::common::MicrophoneInfo;
 
@@ -46,7 +47,10 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
     usleep(1000);
     const int64_t clipFramesPlayed =
             (::android::uptimeNanos() - timeBeginNs) * mSharedState.sampleRate / NANOS_PER_SECOND;
-    const int64_t bufferFramesConsumed = clipFramesPlayed / 2;  // assume 1:2 compression ratio
+    const int64_t bufferFramesConsumed =
+            mSharedState.format.type == AudioFormatType::PCM
+                    ? clipFramesPlayed       // For PCM data, the data is not compressed
+                    : clipFramesPlayed / 2;  // assume 1:2 compression ratio
     int64_t bufferFramesLeft = 0, bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     {
         std::lock_guard l(mSharedState.lock);
@@ -70,8 +74,16 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
                     clipNotifies.emplace_back(clipFramesLeft, hasNextClip);
                 }
             } else {
-                clipNotifies.emplace_back(0 /*clipFramesLeft*/, hasNextClip);
-                framesPlayed -= mSharedState.clips.removeCurrent();
+                if (mSharedState.format.type == AudioFormatType::PCM) {
+                    // There is not enough data to be full played, set `framesPlayed` to 0 so that
+                    // it can exit the while loop.
+                    framesPlayed = 0;
+                    mSharedState.clips.trimCurrentFrames(0);
+                    clipNotifies.emplace_back(0 /*clipFramesLeft*/, false /*hasNextClip*/);
+                } else {
+                    clipNotifies.emplace_back(0 /*clipFramesLeft*/, hasNextClip);
+                    framesPlayed -= mSharedState.clips.removeCurrent();
+                }
                 if (!hasNextClip) {
                     // Since it's a simulation, the buffer consumption rate it not real,
                     // thus 'bufferFramesLeft' might still have something, need to erase it.
@@ -114,22 +126,28 @@ using offload::DspSimulatorState;
 DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     : DriverStubImpl(context, 0 /*asyncSleepTimeUs*/),
       mBufferNotifyFrames(static_cast<int64_t>(context.getBufferSizeInFrames()) / 2),
-      mState{context.getFormat().encoding, context.getSampleRate(),
+      mState{context.getFormat(), context.getSampleRate(),
              250 /*earlyNotifyMs*/ * context.getSampleRate() / MILLIS_PER_SECOND},
       mDspWorker(mState) {
     LOG_IF(FATAL, !mIsAsynchronous) << "The steam must be used in asynchronous mode";
 
-    if (mState.formatEncoding == "audio/x-ape") {
+    if (mState.format.encoding == "audio/x-ape") {
         mTransferHandler = &DriverOffloadStubImpl::handleApeTransfer;
-    } else if (mState.formatEncoding == "audio/mpeg") {
+    } else if (mState.format.encoding == "audio/mpeg") {
         mTransferHandler = &DriverOffloadStubImpl::handleMpegTransfer;
+    } else if (mState.format.type == AudioFormatType::PCM) {
+        mTransferHandler = &DriverOffloadStubImpl::handlePcmTransfer;
+        // For PCM offload, there is no way for the HAL to know where is the end of a clip.
+        // In that case, it assumes there is only one clip.
+        LOG_IF(FATAL, !mState.clips.add(0)) << "Cannot initialize for PCM offload";
     }
 }
 
 ::android::status_t DriverOffloadStubImpl::init(DriverCallbackInterface* callback) {
     RETURN_STATUS_IF_ERROR(DriverStubImpl::init(callback));
-    if (!StreamOffloadStub::getSupportedEncodings().count(mState.formatEncoding)) {
-        LOG(ERROR) << __func__ << ": encoded format \"" << mState.formatEncoding
+    if (!StreamOffloadStub::getSupportedEncodings().count(mState.format.encoding) &&
+        mState.format.type != AudioFormatType::PCM) {
+        LOG(ERROR) << __func__ << ": encoded format \"" << mState.format.toString()
                    << "\" is not supported";
         return ::android::NO_INIT;
     }
@@ -202,7 +220,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
             return status;
         }
     } else {
-        LOG(FATAL) << __func__ << ": unsupported format for offload: " << mState.formatEncoding;
+        LOG(FATAL) << __func__ << ": unsupported format for offload: " << mState.format.toString();
         *actualFrameCount = 0;
     }
 
@@ -301,6 +319,14 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
         }
     }
     *actualFrameCount = static_cast<size_t>(currentPtr - beginPtr) / mFrameSizeBytes;
+    return ::android::OK;
+}
+
+::android::status_t DriverOffloadStubImpl::handlePcmTransfer(void* /*buffer*/, size_t frameCount,
+                                                             size_t* actualFrameCount) {
+    *actualFrameCount = frameCount;
+    std::lock_guard l(mState.lock);
+    mState.clips.updateLastFrames(frameCount);
     return ::android::OK;
 }
 

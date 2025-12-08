@@ -29,7 +29,6 @@ cc_test {
     defaults: [
         "VtsHalTargetTestDefaults",
         "use_libaidlvintf_gtest_helper_static",
-        "librenderengine_deps",
         "android.hardware.graphics.common-ndk_static",
         "android.hardware.graphics.composer3-ndk_static",
     ],
@@ -46,7 +45,6 @@ cc_test {
         "libbase",
         "libsync",
         "libui",
-        "libgui",
         "libprocessgroup",
         "libtracing_perfetto",
         "server_configurable_flags",
@@ -64,7 +62,6 @@ cc_test {
         "libgmock",
         "libgtest",
         "libhwc_aidl_test",
-        "librenderengine",
         "libsync",
         "libsurfaceflinger_common",
         "libshaders",

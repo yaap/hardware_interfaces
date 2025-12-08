@@ -20,6 +20,7 @@ use android_hardware_tv_mediaquality::aidl::android::hardware::tv::mediaquality:
     IMediaQualityCallback::IMediaQualityCallback,
     AmbientBacklightEvent::AmbientBacklightEvent,
     AmbientBacklightSettings::AmbientBacklightSettings,
+    CommonParamCapability::CommonParamCapability,
     IPictureProfileAdjustmentListener::IPictureProfileAdjustmentListener,
     IPictureProfileChangedListener::IPictureProfileChangedListener,
     ParamCapability::ParamCapability,
@@ -288,18 +289,36 @@ impl IMediaQuality for MediaQualityService {
     fn getParamCaps(
             &self,
             param_names: &[ParameterName],
-            _caps: &mut Vec<ParamCapability>
+            caps: &mut Vec<ParamCapability>
     ) -> binder::Result<()> {
         println!("getParamCaps. len= {}", param_names.len());
+        for name in param_names {
+            caps.push(ParamCapability {
+                name: name.clone(),
+                isSupported: true,
+                defaultValue: None,
+                range: None,
+                commonParamCapability: Some(CommonParamCapability { isMutable: true }),
+            });
+        }
         Ok(())
     }
 
     fn getVendorParamCaps(
             &self,
             param_names: &[VendorParameterIdentifier],
-            _caps: &mut Vec<VendorParamCapability>
+            caps: &mut Vec<VendorParamCapability>
     ) -> binder::Result<()> {
         println!("getVendorParamCaps. len= {}", param_names.len());
+        for name in param_names {
+            caps.push(VendorParamCapability {
+                identifier: VendorParameterIdentifier { identifier: name.identifier.clone() },
+                isSupported: true,
+                defaultValue: None,
+                range: None,
+                commonParamCapability: Some(CommonParamCapability { isMutable: true }),
+            });
+        }
         Ok(())
     }
 }

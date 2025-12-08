@@ -229,6 +229,14 @@ bool BluetoothChannelSoundingHandler::GetMaxSupportedCsSecurityLevel(
   return true;
 }
 
+bool BluetoothChannelSoundingHandler::GetSupportedCsSecurityLevels(
+    std::vector<CsSecurityLevel>* _aidl_return) {
+  std::vector<CsSecurityLevel> supported_security_levels = {
+      CsSecurityLevel::ONE};
+  *_aidl_return = supported_security_levels;
+  return true;
+}
+
 bool BluetoothChannelSoundingHandler::OpenSession(
     const BluetoothChannelSoundingParameters& in_params,
     const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&

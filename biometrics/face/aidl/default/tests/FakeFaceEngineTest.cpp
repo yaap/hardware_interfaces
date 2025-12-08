@@ -57,6 +57,10 @@ class TestSessionCallback : public BnSessionCallback {
         mAuthenticateFailed = false;
         return ndk::ScopedAStatus::ok();
     };
+    ::ndk::ScopedAStatus onAuthenticationSucceededWithResult(
+            const AuthenticateSuccess& result) override {
+        return onAuthenticationSucceeded(result.enrollmentId, result.hat);
+    };
     ::ndk::ScopedAStatus onAuthenticationFailed() override {
         mLastAuthenticated = 0;
         mAuthenticateFailed = true;
