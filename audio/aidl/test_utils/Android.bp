@@ -1,0 +1,51 @@
+package {
+    default_team: "trendy_team_android_media_audio_framework",
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "hardware_interfaces_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["hardware_interfaces_license"],
+}
+
+cc_library_static {
+    name: "libaudioaidltestutils",
+    vendor_available: true,
+    defaults: [
+        "latest_android_media_audio_common_types_ndk_static",
+        "latest_android_hardware_audio_core_ndk_static",
+    ],
+    header_libs: [
+        "libaudioaidl_headers",
+        "libexpectedutils_headers",
+        "libaudio_system_headers",
+    ],
+    shared_libs: [
+        "libaudioaidlcommon",
+        "libbinder_ndk",
+        "liblog",
+    ],
+    static_libs: [
+        "libgtest",
+    ],
+    srcs: [
+        "TestUtils.cpp",
+        "ModuleConfig.cpp",
+    ],
+    export_include_dirs: [
+        "include",
+    ],
+    export_header_lib_headers: [
+        "libaudioaidl_headers",
+        "libaudio_system_headers",
+    ],
+    export_shared_lib_headers: [
+        "libbinder_ndk",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wthread-safety",
+    ],
+}

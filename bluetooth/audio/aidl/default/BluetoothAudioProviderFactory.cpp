@@ -99,6 +99,14 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::openProvider(
     case SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH:
       provider = ndk::SharedRefBase::make<HfpOffloadAudioProvider>();
       break;
+    case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH:
+      provider = ndk::SharedRefBase::make<
+          LeAudioOffloadPeripheralOutputAudioProvider>();
+      break;
+    case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH:
+      provider = ndk::SharedRefBase::make<
+          LeAudioOffloadPeripheralInputAudioProvider>();
+      break;
     default:
       provider = nullptr;
       break;
@@ -142,6 +150,13 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderCapabilities(
             db_codec_capabilities[i]);
       }
     }
+  } else if (session_type ==
+                 SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH ||
+             session_type ==
+                 SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH) {
+    LOG(WARNING) << __func__ << " - SessionType=" << toString(session_type)
+                 << "operation not supported";
+    return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
   } else if (session_type != SessionType::UNKNOWN) {
     auto pcm_capabilities = BluetoothAudioCodecs::GetSoftwarePcmCapabilities();
     _aidl_return->resize(pcm_capabilities.size());
@@ -184,7 +199,11 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
       session_type ==
           SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH ||
       session_type ==
-          SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+          SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
+      session_type ==
+          SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH ||
+      session_type ==
+          SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH) {
     std::vector<CodecInfo> db_codec_info =
         BluetoothAudioCodecs::GetCodecInfo(session_type);
 

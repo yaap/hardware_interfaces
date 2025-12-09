@@ -19,6 +19,7 @@
 #include <aidl/android/hardware/radio/network/BnRadioNetworkIndication.h>
 #include <aidl/android/hardware/radio/network/BnRadioNetworkResponse.h>
 #include <aidl/android/hardware/radio/network/IRadioNetwork.h>
+#include <aidl/android/hardware/radio/network/AlertCategory.h>
 
 #include "radio_aidl_hal_utils.h"
 
@@ -49,6 +50,7 @@ class RadioNetworkResponse : public BnRadioNetworkResponse {
     bool isCellularIdentifierTransparencyEnabled = false;
     bool isSecurityAlgorithmsUpdatedEnabled = false;
     bool isSatelliteEnabledForCarrier = false;
+    std::vector<AlertCategory> alertCategories;
 
     virtual ndk::ScopedAStatus acknowledgeRequest(int32_t serial) override;
 
@@ -192,6 +194,8 @@ class RadioNetworkResponse : public BnRadioNetworkResponse {
 
     virtual ndk::ScopedAStatus isSatelliteEnabledForCarrierResponse(const RadioResponseInfo& info,
                                                                     bool isEnabled) override;
+    virtual ndk::ScopedAStatus getSupportedNetworkAlertCategoriesResponse(const RadioResponseInfo& info,
+                                        const std::vector<AlertCategory>& alertCategories) override;
 };
 
 /* Callback class for radio network indication */
@@ -259,6 +263,9 @@ class RadioNetworkIndication : public BnRadioNetworkIndication {
     virtual ndk::ScopedAStatus securityAlgorithmsUpdated(
             RadioIndicationType type,
             const SecurityAlgorithmUpdate& securityAlgorithmUpdate) override;
+    virtual ndk::ScopedAStatus onNetworkSecurityEvents(
+            RadioIndicationType type,
+            const std::vector<NetworkSecurityEvent>& events) override;
 };
 
 // The main test class for Radio AIDL Network.

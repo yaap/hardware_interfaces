@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,24 +31,17 @@
 // with such a backward incompatible change, it has a high risk of breaking
 // later when a module using the interface is updated, e.g., Mainline modules.
 
-package android.hardware.bluetooth.audio;
-@Backing(type="byte") @VintfStability
-enum SessionType {
-  UNKNOWN,
-  A2DP_SOFTWARE_ENCODING_DATAPATH,
-  A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
-  HEARING_AID_SOFTWARE_ENCODING_DATAPATH,
-  LE_AUDIO_SOFTWARE_ENCODING_DATAPATH,
-  LE_AUDIO_SOFTWARE_DECODING_DATAPATH,
-  LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
-  LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
-  LE_AUDIO_BROADCAST_SOFTWARE_ENCODING_DATAPATH,
-  LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
-  A2DP_SOFTWARE_DECODING_DATAPATH,
-  A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH,
-  HFP_SOFTWARE_ENCODING_DATAPATH,
-  HFP_SOFTWARE_DECODING_DATAPATH,
-  HFP_HARDWARE_OFFLOAD_DATAPATH,
-  LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH,
-  LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH,
+package android.hardware.radio.network;
+/* @hide */
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
+parcelable NetworkSecurityEvent {
+  android.hardware.radio.network.AlertCategory alertCategory = android.hardware.radio.network.AlertCategory.UNSPECIFIED;
+  android.hardware.radio.network.AlertStatus alertStatus = android.hardware.radio.network.AlertStatus.UNSPECIFIED;
+  android.hardware.radio.network.ReasonCode[] reasonCodes;
+  long cellId;
+  int physicalCellId;
+  int arfcn;
+  String plmn;
+  android.hardware.radio.RadioTechnology rat = android.hardware.radio.RadioTechnology.UNKNOWN;
+  boolean isEmergency;
 }

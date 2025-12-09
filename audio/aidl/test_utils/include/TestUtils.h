@@ -32,6 +32,7 @@ class TestExecutionTracer : public ::testing::EmptyTestEventListener {
     void OnTestStart(const ::testing::TestInfo& test_info) override;
     void OnTestEnd(const ::testing::TestInfo& test_info) override;
     void OnTestPartResult(const ::testing::TestPartResult& result) override;
+
   private:
     static void TraceTestState(const std::string& state, const ::testing::TestInfo& test_info);
 };

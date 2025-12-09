@@ -204,6 +204,18 @@ class LeAudioOffloadInputAudioProvider : public LeAudioOffloadAudioProvider {
   LeAudioOffloadInputAudioProvider();
 };
 
+class LeAudioOffloadPeripheralOutputAudioProvider
+    : public LeAudioOffloadAudioProvider {
+ public:
+  LeAudioOffloadPeripheralOutputAudioProvider();
+};
+
+class LeAudioOffloadPeripheralInputAudioProvider
+    : public LeAudioOffloadAudioProvider {
+ public:
+  LeAudioOffloadPeripheralInputAudioProvider();
+};
+
 class LeAudioOffloadBroadcastAudioProvider
     : public LeAudioOffloadAudioProvider {
  public:
