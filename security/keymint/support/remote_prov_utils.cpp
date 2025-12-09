@@ -948,12 +948,12 @@ ErrMsgOr<bool> verifyComponentNameInKeyMintDiceChain(const std::vector<uint8_t>&
         return diceChain.message();
     }
 
-    auto satisfied = diceChain->componentNameContains(kKeyMintComponentName);
-    if (!satisfied.ok()) {
-        return satisfied.error().message();
+    auto componentName = diceChain->leafComponentName();
+    if (!componentName.ok()) {
+        return componentName.error().message();
     }
 
-    return *satisfied;
+    return componentName->find(kKeyMintComponentName) != std::string::npos;
 }
 
 ErrMsgOr<bool> hasNonNormalModeInDiceChain(const std::vector<uint8_t>& encodedCsr,
