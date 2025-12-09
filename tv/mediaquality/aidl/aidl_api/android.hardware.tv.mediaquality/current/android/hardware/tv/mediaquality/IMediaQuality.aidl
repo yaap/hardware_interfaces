@@ -61,4 +61,6 @@ interface IMediaQuality {
   android.hardware.tv.mediaquality.EqualizerDetail getEqualizerSettings();
   void setEqualizerSettings(in android.hardware.tv.mediaquality.EqualizerDetail detail);
   boolean isDisplayTechnologySupported(in android.hardware.tv.mediaquality.PanelTechnologyType panelTechnology);
+  void sendDefaultPictureProfile(in android.hardware.tv.mediaquality.PictureProfile pictureProfile);
+  void sendDefaultSoundProfile(in android.hardware.tv.mediaquality.SoundProfile soundProfile);
 }

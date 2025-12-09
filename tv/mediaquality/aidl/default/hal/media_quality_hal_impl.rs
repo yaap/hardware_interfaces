@@ -27,9 +27,11 @@ use android_hardware_tv_mediaquality::aidl::android::hardware::tv::mediaquality:
     ParameterName::ParameterName,
     PictureParameters::PictureParameters,
     PanelTechnologyType::PanelTechnologyType,
+    PictureProfile::PictureProfile,
     ISoundProfileAdjustmentListener::ISoundProfileAdjustmentListener,
     ISoundProfileChangedListener::ISoundProfileChangedListener,
     SoundParameters::SoundParameters,
+    SoundProfile::SoundProfile,
     VendorParamCapability::VendorParamCapability,
     VendorParameterIdentifier::VendorParameterIdentifier,
     EqualizerCapabilities::EqualizerCapabilities,
@@ -322,6 +324,22 @@ impl IMediaQuality for MediaQualityService {
                 commonParamCapability: Some(CommonParamCapability { isMutable: true }),
             });
         }
+        Ok(())
+    }
+
+    fn sendDefaultPictureProfile(
+        &self,
+        _picture_profile: &PictureProfile,
+    ) -> binder::Result<()> {
+        println!("Received default picture profile");
+        Ok(())
+    }
+
+    fn sendDefaultSoundProfile(
+        &self,
+        _sound_profile: &SoundProfile,
+    ) -> binder::Result<()> {
+        println!("Received default sound profile with id");
         Ok(())
     }
 

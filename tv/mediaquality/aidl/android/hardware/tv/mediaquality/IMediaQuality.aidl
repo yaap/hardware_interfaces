@@ -28,7 +28,9 @@ import android.hardware.tv.mediaquality.PanelTechnologyType;
 import android.hardware.tv.mediaquality.ParamCapability;
 import android.hardware.tv.mediaquality.ParameterName;
 import android.hardware.tv.mediaquality.PictureParameters;
+import android.hardware.tv.mediaquality.PictureProfile;
 import android.hardware.tv.mediaquality.SoundParameters;
+import android.hardware.tv.mediaquality.SoundProfile;
 import android.hardware.tv.mediaquality.VendorParamCapability;
 import android.hardware.tv.mediaquality.VendorParameterIdentifier;
 
@@ -267,4 +269,20 @@ interface IMediaQuality {
      * @return true if the technology is supported, false otherwise.
      */
     boolean isDisplayTechnologySupported(in PanelTechnologyType panelTechnology);
+
+    /**
+     * Sends the default picture profile and its ID to the HAL.
+     *
+     * @param pictureProfile The default picture profile settings.
+     * @param defaultPictureProfileId The ID for the default picture profile.
+     */
+    void sendDefaultPictureProfile(in PictureProfile pictureProfile);
+
+    /**
+     * Sends the default sound profile and its ID to the HAL.
+     *
+     * @param soundProfile The default sound profile settings.
+     * @param defaultSoundProfileId The ID for the default sound profile.
+     */
+    void sendDefaultSoundProfile(in SoundProfile soundProfile);
 }

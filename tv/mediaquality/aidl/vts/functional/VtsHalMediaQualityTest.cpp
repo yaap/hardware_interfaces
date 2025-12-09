@@ -857,6 +857,57 @@ TEST_P(MediaQualityAidl, TestIsDisplayTechnologySupported) {
     }
 }
 
+TEST_P(MediaQualityAidl, TestSendDefaultPictureProfile) {
+    int32_t version;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version < 2) {
+        ALOGD("Test requires interface version 2 or higher.");
+        return;
+    }
+    PictureProfile pictureProfile;
+
+    PictureParameters pictureParameters;
+    std::vector<PictureParameter> picParams;
+
+    PictureParameter brightnessParam;
+    brightnessParam.set<PictureParameter::Tag::brightness>(0.5f);
+    picParams.push_back(brightnessParam);
+
+    PictureParameter contrastParam;
+    contrastParam.set<PictureParameter::Tag::contrast>(50);
+    picParams.push_back(contrastParam);
+
+    pictureParameters.pictureParameters = picParams;
+
+    pictureProfile.parameters = pictureParameters;
+    ASSERT_OK(mediaquality->sendDefaultPictureProfile(pictureProfile));
+}
+
+TEST_P(MediaQualityAidl, TestSendDefaultSoundProfile) {
+    int32_t version;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version < 2) {
+        ALOGD("Test requires interface version 2 or higher.");
+        return;
+    }
+    SoundProfile soundProfile;
+    SoundParameters soundParameters;
+    std::vector<SoundParameter> soundParams;
+
+    SoundParameter balanceParam;
+    balanceParam.set<SoundParameter::Tag::balance>(50);
+    soundParams.push_back(balanceParam);
+
+    SoundParameter bassParam;
+    bassParam.set<SoundParameter::Tag::bass>(50);
+    soundParams.push_back(bassParam);
+
+    soundParameters.soundParameters = soundParams;
+
+    soundProfile.parameters = soundParameters;
+    ASSERT_OK(mediaquality->sendDefaultSoundProfile(soundProfile));
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MediaQualityAidl);
 
 INSTANTIATE_TEST_SUITE_P(
