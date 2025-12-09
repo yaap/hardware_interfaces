@@ -237,6 +237,8 @@ class BluetoothAudioPort : public BnBluetoothAudioPort {
     return ScopedAStatus::ok();
   }
 
+  ndk::ScopedAStatus updateSinkLatency(int64_t) { return ScopedAStatus::ok(); }
+
   ndk::ScopedAStatus setCodecType(const CodecType) {
     return ScopedAStatus::ok();
   }

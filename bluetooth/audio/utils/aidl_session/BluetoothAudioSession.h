@@ -195,6 +195,8 @@ class BluetoothAudioSession {
   std::vector<LatencyMode> GetSupportedLatencyModes();
   void SetLatencyMode(const LatencyMode& latency_mode);
 
+  void UpdateSinkLatency(int64_t latency_ms);
+
   // The control function writes stream to FMQ
   size_t OutWritePcmData(const void* buffer, size_t bytes);
   // The control function read stream from FMQ
