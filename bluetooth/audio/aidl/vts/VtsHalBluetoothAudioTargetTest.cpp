@@ -826,7 +826,8 @@ bool SuggestedLatencyRulesValidated(
       LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
           WITH_CODEC_TYPE_CHANGE |
       LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CIS_DIRECTIONS_CHANGE;
+          WITH_CIS_DIRECTIONS_CHANGE |
+      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::WITH_CSIP_TWS;
 
   for (const auto& rule_opt : rules) {
     if (!rule_opt.has_value()) {
@@ -3642,6 +3643,67 @@ TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl, GetQoSConfiguration) {
   if (is_supported) {
     // QoS Configurations should not be empty, as we searched for all contexts
     ASSERT_FALSE(QoSConfigurations.empty());
+  }
+}
+
+TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
+       GetQoSConfiguration_AbrConfiguration) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+  auto allocation = CodecSpecificConfigurationLtv::AudioChannelAllocation();
+  allocation.bitmask =
+      CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT |
+      CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT;
+
+  IBluetoothAudioProvider::LeAudioAseQosConfigurationRequirement requirement;
+  requirement = GetQosRequirements(true /* sink */, false /* source */);
+
+  std::vector<IBluetoothAudioProvider::LeAudioAseQosConfiguration>
+      QoSConfigurations;
+  bool is_supported = false;
+  for (auto bitmask : all_context_bitmasks) {
+    requirement.audioContext = GetAudioContext(bitmask);
+    IBluetoothAudioProvider::LeAudioAseQosConfigurationPair result;
+    auto aidl_retval =
+        audio_provider_->getLeAudioAseQosConfiguration(requirement, &result);
+    if (!aidl_retval.isOk()) {
+      // If not OK, then it could be not supported, as it is an optional
+      // feature
+      ASSERT_EQ(aidl_retval.getExceptionCode(), EX_UNSUPPORTED_OPERATION);
+    } else {
+      is_supported = true;
+      if (result.sinkQosConfiguration.has_value()) {
+        QoSConfigurations.push_back(result.sinkQosConfiguration.value());
+      }
+    }
+  }
+
+  if (is_supported) {
+    // QoS Configurations should not be empty, as we searched for all contexts
+    ASSERT_FALSE(QoSConfigurations.empty());
+
+    for (const auto& qos : QoSConfigurations) {
+      if (qos.maxSduForAbrCodec.has_value()) {
+        const auto& maxSduForAbrCodec = qos.maxSduForAbrCodec.value();
+        // Check that maxSdu is present in maxSduForAbrCodec
+        auto it = std::find(maxSduForAbrCodec.begin(), maxSduForAbrCodec.end(),
+                            qos.maxSdu);
+        ASSERT_NE(it, maxSduForAbrCodec.end())
+            << "maxSdu " << qos.maxSdu
+            << " should be present in maxSduForAbrCodec";
+
+        // Check for duplicates
+        std::vector<int> sortedMaxSduForAbrCodec = maxSduForAbrCodec;
+        std::sort(sortedMaxSduForAbrCodec.begin(),
+                  sortedMaxSduForAbrCodec.end());
+        auto last = std::unique(sortedMaxSduForAbrCodec.begin(),
+                                sortedMaxSduForAbrCodec.end());
+        ASSERT_EQ(last, sortedMaxSduForAbrCodec.end())
+            << "maxSduForAbrCodec should not contain duplicates";
+      }
+    }
   }
 }
 

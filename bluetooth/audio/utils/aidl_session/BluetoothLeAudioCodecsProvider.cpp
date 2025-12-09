@@ -169,17 +169,6 @@ BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo() {
         codec_config.getSamplingFrequency());
     // Mapping octetsPerCodecFrame to bitdepth for easier comparison.
     transport.bitdepth.push_back(codec_config.getOctetsPerCodecFrame());
-    if (!transport.maxSdu.has_value()) {
-      transport.maxSdu.emplace();
-    }
-    transport.maxSdu->push_back(codec_config.getOctetsPerCodecFrame());
-    if (com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
-      if (codec_config.hasMaxSdusAbr()) {
-        for (auto octet : codec_config.getMaxSdusAbr()) {
-          transport.maxSdu->push_back(octet);
-        }
-      }
-    }
     transport.frameDurationUs.push_back(codec_config.getFrameDurationUs());
     if (strategy_config.hasAudioLocation()) {
       switch (strategy_config.getAudioLocation()) {
@@ -523,6 +512,9 @@ int32_t BluetoothLeAudioCodecsProvider::getConditionFlagAidlFormat(
     case setting::ConfigChangeConditionFlagMask::WITH_CIS_DIRECTIONS_CHANGE:
       return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
           WITH_CIS_DIRECTIONS_CHANGE;
+    case setting::ConfigChangeConditionFlagMask::WITH_CSIP_TWS:
+      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
+          WITH_CSIP_TWS;
     default:
       LOG(ERROR) << __func__
                  << "Unknown ConfigChangeConditionFlag from setting";
