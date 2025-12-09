@@ -97,7 +97,7 @@ class AudioCoreConfig : public testing::TestWithParam<std::string> {
         switch (pst) {
             case AudioProductStrategyType::SYS_RESERVED_NONE:
             case AudioProductStrategyType::SYS_RESERVED_REROUTING:
-            case AudioProductStrategyType::SYS_RESERVED_CALL_ASSISTANT:
+            case AudioProductStrategyType::SYS_RESERVED_PATCH:
                 return true;
             default:
                 return false;
