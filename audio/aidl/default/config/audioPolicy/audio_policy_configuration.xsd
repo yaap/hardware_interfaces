@@ -429,6 +429,7 @@
             <xs:enumeration value="AUDIO_FORMAT_IAMF_BASE_ENHANCED_AAC"/>
             <xs:enumeration value="AUDIO_FORMAT_IAMF_BASE_ENHANCED_PCM"/>
             <xs:enumeration value="AUDIO_FORMAT_IAMF_BASE_ENHANCED_FLAC"/>
+            <xs:enumeration value="AUDIO_FORMAT_APTX_ADAPTIVE_PLUS"/>
         </xs:restriction>
     </xs:simpleType>
     <xs:simpleType name="extendableAudioFormat">
