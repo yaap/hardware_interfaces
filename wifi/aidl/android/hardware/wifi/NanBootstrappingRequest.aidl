@@ -59,10 +59,11 @@ parcelable NanBootstrappingRequest {
     byte discoverySessionId;
 
     /**
-     * Arbitrary information communicated to the peer. There is no semantic meaning to these
-     * bytes. They are passed-through from sender to receiver as-is with no parsing.
-     * Max length: |NanCapabilities.maxServiceSpecificInfoLen|.
-     * NAN Spec: Service Descriptor Attribute (SDA) / Service Info
+     * Arbitrary information communicated in discovery packets - there is no semantic meaning to
+     * these bytes. They are passed-through from publisher to subscriber as-is with no parsing. Max
+     * length: |NanCapabilities.maxExtendedServiceSpecificInfoLen|. This info uses the Service
+     * Protocol type subfield of Service Info field set to 2 (Generic). NAN Spec: Service
+     * Descriptor Extension Attribute (SDEA) / Service Info
      */
     @nullable byte[] serviceSpecificInfo;
 }
