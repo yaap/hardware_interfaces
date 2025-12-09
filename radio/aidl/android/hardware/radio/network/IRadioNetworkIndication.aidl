@@ -356,7 +356,7 @@ oneway interface IRadioNetworkIndication {
     void securityAlgorithmsUpdated(
             in RadioIndicationType type, in SecurityAlgorithmUpdate securityAlgorithmUpdate);
 
-   /**
+    /**
      * Indicates that the modem suggests display network type has changed.
      *
      * This unsolicited indication is sent by the modem to the framework whenever
@@ -377,6 +377,15 @@ oneway interface IRadioNetworkIndication {
     void displayNetworkTypeChanged(in RadioIndicationType type, in DisplayNetworkType dnt);
 
     /**
+     * Indicates that the prioritized network scan mode has changed
+     *
+     * @param type Type of radio indication
+     * @param prioritized {@code true} means modem is in prioritized network scan mode,
+     * {@code false} otherwise.
+     */
+    void prioritizedScanModeChanged(in RadioIndicationType type, in boolean prioritized);
+
+    /**
      * Called by the modem when cellular network security threats are
      * detected. The modem implementation should populate the
      * NetworkSecurityEvent with details on threat(s) detected, the mitigation
@@ -385,5 +394,5 @@ oneway interface IRadioNetworkIndication {
      *
      * @param events A list of NetworkSecurityEvent objects.
      */
-   void onNetworkSecurityEvents(in RadioIndicationType type, in NetworkSecurityEvent[] events);
+    void onNetworkSecurityEvents(in RadioIndicationType type, in NetworkSecurityEvent[] events);
 }

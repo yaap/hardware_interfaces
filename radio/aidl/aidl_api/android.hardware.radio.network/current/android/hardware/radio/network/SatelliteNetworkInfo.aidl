@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,18 +33,8 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
-parcelable EutranRegistrationInfo {
-  android.hardware.radio.network.LteVopsInfo lteVopsInfo;
-  android.hardware.radio.network.NrIndicators nrIndicators;
-  android.hardware.radio.network.EutranRegistrationInfo.AttachResultType lteAttachResultType = android.hardware.radio.network.EutranRegistrationInfo.AttachResultType.NONE;
-  int extraInfo;
-  android.hardware.radio.network.SatelliteTechnology satelliteTechnology = android.hardware.radio.network.SatelliteTechnology.SAT_TECH_NONE;
-  const int EXTRA_CSFB_NOT_PREFERRED = (1 << 0) /* 1 */;
-  const int EXTRA_SMS_ONLY = (1 << 1) /* 2 */;
-  enum AttachResultType {
-    NONE,
-    EPS_ONLY,
-    COMBINED,
-  }
+@VintfStability
+parcelable SatelliteNetworkInfo {
+  android.hardware.radio.network.NetworkInfo[] allowedPlmns;
+  android.hardware.radio.network.NetworkInfo[] disallowedPlmns;
 }

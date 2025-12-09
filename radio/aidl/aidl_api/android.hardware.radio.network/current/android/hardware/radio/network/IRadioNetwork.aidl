@@ -104,8 +104,14 @@ interface IRadioNetwork {
   oneway void setCellularIdentifierTransparencyEnabled(in int serial, in boolean enabled);
   oneway void setSecurityAlgorithmsUpdatedEnabled(in int serial, boolean enable);
   oneway void isSecurityAlgorithmsUpdatedEnabled(in int serial);
+  /**
+   * @deprecated use IRadioNetwork.setSatelliteNetworkInfo
+   */
   oneway void setSatellitePlmn(in int serial, in String[] carrierPlmnArray, in String[] allSatellitePlmnArray);
   oneway void setSatelliteEnabledForCarrier(in int serial, boolean satelliteEnabled);
   oneway void isSatelliteEnabledForCarrier(in int serial);
+  oneway void setSatelliteNetworkInfo(in int serial, in android.hardware.radio.network.SatelliteNetworkInfo satelliteNetworkInfo);
+  oneway void enablePrioritizedNetworkScan(in int serial, in android.hardware.radio.network.PrioritizedNetworkScanRequest scanRequest);
+  oneway void disablePrioritizedNetworkScan(in int serial);
   oneway void getSupportedNetworkAlertCategories(in int serial);
 }
