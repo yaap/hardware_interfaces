@@ -425,29 +425,6 @@ ScopedAStatus RadioNetwork::isSatelliteEnabledForCarrier(int32_t serial) {
     return ok();
 }
 
-ScopedAStatus RadioNetwork::setSatelliteNetworkInfo(
-        int32_t serial, const aidl::SatelliteNetworkInfo& /*satelliteNetworkInfo*/) {
-    LOG_CALL << serial;
-    LOG(ERROR) << " setSatelliteNetworkInfo is unsupported by HIDL HALs";
-    respond()->setSatelliteNetworkInfoResponse(notSupported(serial));
-    return ok();
-}
-
-ScopedAStatus RadioNetwork::enablePrioritizedNetworkScan(
-        int32_t serial, const aidl::PrioritizedNetworkScanRequest& /*scanRequest*/) {
-    LOG_CALL << serial;
-    LOG(ERROR) << " enablePrioritizedNetworkScan is unsupported by HIDL HALs";
-    respond()->enablePrioritizedNetworkScanResponse(notSupported(serial));
-    return ok();
-}
-
-ScopedAStatus RadioNetwork::disablePrioritizedNetworkScan(int32_t serial) {
-    LOG_CALL << serial;
-    LOG(ERROR) << " disablePrioritizedNetworkScan is unsupported by HIDL HALs";
-    respond()->disablePrioritizedNetworkScanResponse(notSupported(serial));
-    return ok();
-}
-
 ScopedAStatus RadioNetwork::getSupportedNetworkAlertCategories(int32_t serial) {
     LOG_CALL << serial;
     LOG(ERROR) << " getSupportedNetworkAlertCategories is unsupported by HIDL HALs";
