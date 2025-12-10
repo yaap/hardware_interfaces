@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,18 +33,9 @@
 
 package android.hardware.radio.network;
 /* @hide */
-@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
-union AccessTechnologySpecificInfo {
-  boolean noinit;
-  /**
-   * @deprecated Legacy CDMA is unsupported.
-   */
-  android.hardware.radio.network.Cdma2000RegistrationInfo cdmaInfo;
-  android.hardware.radio.network.EutranRegistrationInfo eutranInfo;
-  /**
-   * @deprecated use NrRegistrationInfo.nrVopsInfo
-   */
-  android.hardware.radio.network.NrVopsInfo ngranNrVopsInfo;
-  boolean geranDtmSupported;
-  android.hardware.radio.network.NrRegistrationInfo nrInfo;
+@VintfStability
+parcelable PrioritizedNetworkScanRequest {
+  android.hardware.radio.network.NetworkInfo[] networkInfos;
+  int searchIntervalMs = (-1) /* -1 */;
+  int validDurationSec = (-2) /* -2 */;
 }
