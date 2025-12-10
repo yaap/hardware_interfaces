@@ -303,6 +303,24 @@ BluetoothAudioProvider::getLeAudioBroadcastDatapathConfiguration(
   return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
+ndk::ScopedAStatus
+BluetoothAudioProvider::getLeAudioAseCodecConfiguredParameters(
+    const std::optional<std::vector<std::optional<
+        ::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration>>>&
+        in_sinkAseConfiguration,
+    const std::optional<std::vector<std::optional<
+        ::aidl::android::hardware::bluetooth::audio::LeAudioAseConfiguration>>>&
+        in_sourceAseConfiguration,
+    std::optional<
+        ::aidl::android::hardware::bluetooth::audio::IBluetoothAudioProvider::
+            LeAudioAseCodecConfiguredResponse>* _aidl_return) {
+  /* TODO: Implement */
+  (void)in_sinkAseConfiguration;
+  (void)in_sourceAseConfiguration;
+  (void)_aidl_return;
+  return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
 }  // namespace audio
 }  // namespace bluetooth
 }  // namespace hardware

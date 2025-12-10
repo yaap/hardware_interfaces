@@ -3026,12 +3026,38 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_invalidInt) {
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
 }
 
+TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_invalidAreaId) {
+    std::vector<std::string> options = {
+            "--set-minmaxvalue", "SEAT_MEMORY_SELECT", "-a", "blah", "1", "4"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not valid"));
+}
+
 TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_minLargerThanMax) {
     std::vector<std::string> options = {
             "--set-minmaxvalue", "SEAT_MEMORY_SELECT", "-a", "ROW_1_LEFT", "2", "1"};
 
     DumpResult result = getHardware()->dump(options);
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_areaIdNotSupported) {
+    std::vector<std::string> options = {
+            "--set-minmaxvalue", "SEAT_MEMORY_SELECT", "-a", "0", "1", "4"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not supported"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_minMaxValueNotSupportedForProperty) {
+    std::vector<std::string> options = {"--set-minmaxvalue", "EV_BATTERY_DISPLAY_UNITS", "1", "4"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("property does not support min/max"));
 }
 
 TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_Int) {
@@ -3166,6 +3192,24 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_invalidAreaId) {
     DumpResult result = getHardware()->dump(options);
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
     ASSERT_THAT(result.buffer, ContainsRegex("areaId not valid"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_areaIdNotSupported) {
+    std::vector<std::string> options = {
+            "--set-supportedvalues", "EV_STOPPING_MODE", "-a", "1", "1", "2", "3"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not supported"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_supportedValuesNotSupportedForProperty) {
+    std::vector<std::string> options = {
+            "--set-supportedvalues", "INFO_EV_BATTERY_CAPACITY", "1", "2"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("property does not support supported values"));
 }
 
 struct SetPropTestCase {

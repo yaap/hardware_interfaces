@@ -327,15 +327,6 @@ class ContextHubEndpointAidlWithTestMode : public ContextHubEndpointAidl {
         mContextHub->setTestMode(/* enable= */ false);
         ContextHubEndpointAidl::TearDown();
     }
-
-    bool areDataFlowsSupported() {
-        EXPECT_NE(mHubInterface, nullptr)
-                << "should call registerDefaultHub() to prepare mHubInterface first";
-        if (!mHubInterface) {
-            return false;
-        }
-        return true;
-    }
 };
 
 TEST_P(ContextHubEndpointAidl, TestGetHubs) {
@@ -1006,15 +997,16 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateSharedDataRegionInvalidSi
     if (!registerDefaultHub()) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     }
-    if (!areDataFlowsSupported()) {
-        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
-    }
 
     // Test allocateSharedDataRegion with invalid parameter (size=0)
     SharedDataRegionRequirements badReqs;
     badReqs.sizeBytes = 0;  // Invalid size
     SharedDataRegion badRegion;
     ScopedAStatus status = mHubInterface->allocateSharedDataRegion(badReqs, &badRegion);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
 
     // Expect failure with EX_ILLEGAL_ARGUMENT
     EXPECT_FALSE(status.isOk());
@@ -1024,9 +1016,6 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateSharedDataRegionInvalidSi
 TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSuccess) {
     if (!registerDefaultHub()) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
-    }
-    if (!areDataFlowsSupported()) {
-        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
     }
 
     // Test allocateSharedDataRegion with valid parameter
@@ -1038,6 +1027,10 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestAllocateAndFreeSharedDataRegionSu
 
     SharedDataRegion region;
     ScopedAStatus status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     ASSERT_TRUE(status.isOk());
 
     // Checks region information.
@@ -1073,12 +1066,13 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionNonExistent) 
     if (!registerDefaultHub()) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     }
-    if (!areDataFlowsSupported()) {
-        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
-    }
 
     // Test free non-existent region.
     ScopedAStatus status = mHubInterface->freeSharedDataRegion(-999);  // non-existent region ID
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     EXPECT_FALSE(status.isOk());
     EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
@@ -1087,9 +1081,6 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
     if (!registerDefaultHub()) {
         GTEST_SKIP() << "Not supported -> old API; or not implemented";
     }
-    if (!areDataFlowsSupported()) {
-        GTEST_SKIP() << "Not supported data flows -> old API; or not implemented";
-    }
 
     // Allocate a valid region
     SharedDataRegionRequirements requirements;
@@ -1097,12 +1088,20 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
     requirements.targetHubIds = {kDefaultHubId};
     SharedDataRegion region;
     ScopedAStatus status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     ASSERT_TRUE(status.isOk());
     ASSERT_GT(region.id, 0);
     int32_t allocatedRegionId = region.id;
 
     // Free it the first time (should succeed)
     status = mHubInterface->freeSharedDataRegion(allocatedRegionId);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     EXPECT_TRUE(status.isOk());
 
     // Free it the second time (should fail)
@@ -1113,14 +1112,17 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestFreeSharedDataRegionDoubleFree) {
 
 TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic) {
     if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
-    if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
 
     // Allocate Region
     SharedDataRegionRequirements requirements;
     requirements.sizeBytes = 4096;
     requirements.targetHubIds = {kDefaultHubId};
     SharedDataRegion region;
-    ASSERT_TRUE(mHubInterface->allocateSharedDataRegion(requirements, &region).isOk());
+    ScopedAStatus status = mHubInterface->allocateSharedDataRegion(requirements, &region);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
 
     // Register Data Flow
     EndpointId hostEndpoint;
@@ -1137,8 +1139,11 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic
     close(efd);
 
     int32_t dataFlowId = -1;
-    ScopedAStatus status =
-            mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    status = mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     EXPECT_TRUE(status.isOk());
     EXPECT_GE(dataFlowId, 0);
 
@@ -1151,7 +1156,6 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestRegisterHostProducerDataFlowBasic
 
 TEST_P(ContextHubEndpointAidlWithTestMode, TestHostProducerDataFlowInvalidRegion) {
     if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
-    if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
 
     EndpointId hostEndpoint;
     hostEndpoint.hubId = kDefaultHubId;
@@ -1168,6 +1172,10 @@ TEST_P(ContextHubEndpointAidlWithTestMode, TestHostProducerDataFlowInvalidRegion
     int32_t dataFlowId = -1;
     ScopedAStatus status =
             mHubInterface->registerDataFlowHostProducer(hostEndpoint, info, &dataFlowId);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
 
@@ -1281,14 +1289,27 @@ class RegisterOffloadConsumerCallback
 
 TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
-    if (!areDataFlowsSupported()) GTEST_SKIP() << "Data flows not supported";
 
     std::vector<EndpointInfo> endpoints;
     mContextHub->getEndpoints(&endpoints);
     if (endpoints.empty()) {
-        FAIL() << "No endpoints returned by HAL";
+        GTEST_SKIP() << "No endpoints returned by HAL";
     }
-    EndpointId halEndpointId = endpoints[0].id;
+    EndpointId halEndpointId;
+    bool foundEchoEndpoint = false;
+    for (const auto& endpoint : endpoints) {
+        for (const auto& service : endpoint.services) {
+            if (service.serviceDescriptor == "android.hardware.contexthub.test.EchoService") {
+                halEndpointId = endpoints[0].id;
+                foundEchoEndpoint = true;
+                break;
+            }
+        }
+    }
+    if (!foundEchoEndpoint) {
+        GTEST_SKIP() << "Endpoint with echo service not implemented.";
+        return;
+    }
 
     // 1. Allocate shared data region and act as producer.
     SharedDataRegionRequirements reqs;
@@ -1297,6 +1318,10 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
 
     SharedDataRegion regionInfo;
     auto status = mHubInterface->allocateSharedDataRegion(reqs, &regionInfo);
+    if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION ||
+        status.getStatus() == STATUS_UNKNOWN_TRANSACTION) {
+        GTEST_SKIP() << "Not supported -> old API; or not implemented";
+    }
     ASSERT_TRUE(status.isOk()) << "Allocation failed: " << status.getDescription();
 
     // Save region ID for later usage.

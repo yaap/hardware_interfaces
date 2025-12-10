@@ -33,21 +33,23 @@
 
 package android.hardware.bluetooth.audio;
 @VintfStability
-parcelable LeAudioUpdateLatencySetting {
-  int defaultSuggestedLatencyMs;
-  @nullable android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting.SuggestedLatencyRule[] suggestedLatencyRules;
+parcelable LeAudioPeripheralCapabilities {
+  android.hardware.bluetooth.audio.LeAudioPeripheralCapabilities.CodecCapabilities codecCapabilities;
+  @nullable android.hardware.bluetooth.audio.LeAudioPeripheralCapabilities.VendorCodecCapabilities vendorCapabilities;
+  @nullable android.hardware.bluetooth.audio.MetadataLtv[] metadata;
   @VintfStability
-  parcelable ConfigChangeConditionFlags {
-    int bitmask;
-    const int WITH_TRANSPORT_LATENCY_CHANGE = 0x0001;
-    const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 0x0002;
-    const int WITH_CODEC_TYPE_CHANGE = 0x0004;
-    const int WITH_CIS_DIRECTIONS_CHANGE = 0x0008;
-    const int WITH_CSIP_TWS = 0x0010;
+  parcelable CodecCapabilities {
+    byte[] pcmBitDepth;
+    int[] samplingFrequencyHz;
+    int[] frameDurationUs;
+    int[] minOctectsPerFrame;
+    int[] maxOctectsPerFrame;
+    byte[] blocksPerSdu;
+    android.hardware.bluetooth.audio.ChannelMode[] channelMode;
   }
   @VintfStability
-  parcelable SuggestedLatencyRule {
-    int suggestedLatencyMs;
-    android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting.ConfigChangeConditionFlags configChangeConditionFlags;
+  parcelable VendorCodecCapabilities {
+    ParcelableHolder extension;
+    byte[] vendorCodecSpecificCapabilities;
   }
 }

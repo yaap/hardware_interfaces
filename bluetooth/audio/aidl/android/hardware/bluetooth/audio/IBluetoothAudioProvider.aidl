@@ -307,6 +307,11 @@ interface IBluetoothAudioProvider {
          * HDT packet format used in Set CIG Parameters command
          */
         int hdtPacketFormat;
+        /**
+         * Supported maxSdu values for adaptive bit rate capabilities.
+         * This list should contain all possible SDU sizes, including the one set in `maxSdu`.
+         */
+        @nullable int[] maxSduForAbrCodec;
     }
 
     /**
@@ -844,4 +849,134 @@ interface IBluetoothAudioProvider {
      */
     LeAudioDataPathConfiguration getLeAudioBroadcastDatapathConfiguration(
             in AudioContext audioContext, in BroadcastStreamMap[] streamMap);
+
+    /**
+     * All the LeAudioAseCodecConfiguredParameters parameters are defined by the Bluetooth Audio
+     * Stream Control Service specification v.1.0, Sec. 4 Table 4.2.
+     */
+    @VintfStability
+    parcelable LeAudioAseCodecConfiguredParameters {
+        /**
+         * Support for unframed Isochronous Adaptation Layer PDUs.
+         * When set to FRAMED, the unframed PDUs are not supported.
+         */
+        Framing framing;
+        /**
+         * Preferred value for the PHY parameter to be written by the client
+         * for this ASE in the Config QoS operation
+         */
+        Phy[] preferredPhy;
+        /**
+         * Preferred value for the Retransmission Number parameter to be
+         * written by the client for this ASE in the Config QoS operation.
+         */
+        int preferredRetransmissionNum;
+        /**
+         * Preferred value for the Max Transport Latency parameter to be
+         * written by the client for this ASE in the Config QoS operation.
+         */
+        int maxTransportLatencyMs;
+        /**
+         * Minimum server supported Presentation Delay (in microseconds) for
+         * an ASE.
+         */
+        int presentationDelayMinUs;
+        /**
+         * Maximum server supported Presentation Delay (in microseconds) for
+         * an ASE.
+         */
+        int presentationDelayMaxUs;
+        /**
+         * Preferred minimum Presentation Delay (in microseconds) for an
+         * ASE.
+         */
+        int preferredPresentationDelayMinUs;
+        /**
+         * Preferred maximum Presentation Delay (in microseconds) for an
+         * ASE.
+         */
+        int preferredPresentationDelayMaxUs;
+
+        /**
+         * Data path configuration
+         * If not provided, getLeAudioDatapathConfiguration() will be
+         * called during the configuration, increasing the stream establishment
+         * time (not recommended).
+         */
+        @nullable LeAudioDataPathConfiguration dataPathConfiguration;
+
+        /**
+         * Response codes for validating the ASE configuration.
+         */
+
+        @VintfStability
+        @Backing(type="byte")
+        enum ResponseCode {
+            SUCCESS = 0x00,
+            UNSUPPORTED_CAPABILITIES = 0x06,
+            UNSUPPORTED_CONFIGURATION_PARAM = 0x07,
+            REJECTED_CONFIGURATION_PARAM = 0x08,
+            INVALID_CONFIGURATION_PARAM_VALUE = 0x09,
+            INSUFFICIENT_RESOURCES = 0x0D,
+            UNSPECIFIED_ERROR = 0x0E,
+        }
+        ResponseCode responseCode;
+        /**
+         * Reason codes for rejecting the ASE configuration.
+         *
+         * This is only valid when `responseCode` is one of:
+         * - `UNSUPPORTED_CONFIGURATION_PARAM`
+         * - `REJECTED_CONFIGURATION_PARAM`
+         * - `INVALID_CONFIGURATION_PARAM_VALUE`
+         *
+         */
+        @VintfStability
+        @Backing(type="byte")
+        enum Reason {
+            NO_REASON = 0x00,
+            CODEC_ID = 0x01,
+            CODEC_SPECIFIC_CONFIGURATION = 0x02,
+            SDU_INTERVAL = 0x03,
+            FRAMING = 0x04,
+            PHY = 0x05,
+            MAX_SDU_SIZE = 0x06,
+            RTN = 0x07,
+            MAX_TRANSPORT_LATENCY = 0x08,
+            PRESENTATION_DELAY = 0x09,
+        }
+        Reason reason;
+    }
+
+    /**
+     * Response to getLeAudioAseCodecConfiguredParameters, containing validated
+     * parameters for both sink and source ASEs.
+     */
+    @VintfStability
+    parcelable LeAudioAseCodecConfiguredResponse {
+        @nullable LeAudioAseCodecConfiguredParameters[] sinkAseCodecConfiguredParams;
+        @nullable LeAudioAseCodecConfiguredParameters[] sourceAseCodecConfiguredParams;
+    }
+
+    /**
+     * Get the Codec Configured parameters from the audio provider for the given
+     * Audio Strean Endpoind (ASE) configurations as per Bluetooth specification
+     * ASCS ver 1.0.1. This method shall be supported for LeAudioPeripheral role.
+     *
+     * The BT stack calls this function with codec configurations requested by
+     * the remote device. The audio provider shall validate the given
+     * configurations and return the corresponding parameters.
+     *
+     * @param sinkAseConfiguration The configuration for the sink ASEs.
+     * @param sourceAseConfiguration The configuration for the source ASEs.
+     * @return A LeAudioAseCodecConfiguredResponse containing arrays of
+     *         parameters for sink and source ASEs. The order and number of
+     *         entries in these arrays must match the input arrays. If a
+     *         configuration is rejected, the `responseCode` and `reason`
+     *         fields in the corresponding returned parameter should be set
+     *         accordingly. A null response indicates a failure to process the
+     *         request.
+     */
+    @nullable LeAudioAseCodecConfiguredResponse getLeAudioAseCodecConfiguredParameters(
+            in @nullable LeAudioAseConfiguration[] sinkAseConfiguration,
+            in @nullable LeAudioAseConfiguration[] sourceAseConfiguration);
 }

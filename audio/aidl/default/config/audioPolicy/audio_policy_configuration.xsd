@@ -271,6 +271,7 @@
             <xs:enumeration value="AUDIO_DEVICE_OUT_BLE_HEADSET"/>
             <xs:enumeration value="AUDIO_DEVICE_OUT_BLE_SPEAKER"/>
             <xs:enumeration value="AUDIO_DEVICE_OUT_BLE_BROADCAST"/>
+            <xs:enumeration value="AUDIO_DEVICE_OUT_BLE_HEARING_AID"/>
             <xs:enumeration value="AUDIO_DEVICE_OUT_DEFAULT"/>
             <xs:enumeration value="AUDIO_DEVICE_OUT_STUB"/>
 
@@ -429,6 +430,7 @@
             <xs:enumeration value="AUDIO_FORMAT_IAMF_BASE_ENHANCED_AAC"/>
             <xs:enumeration value="AUDIO_FORMAT_IAMF_BASE_ENHANCED_PCM"/>
             <xs:enumeration value="AUDIO_FORMAT_IAMF_BASE_ENHANCED_FLAC"/>
+            <xs:enumeration value="AUDIO_FORMAT_APTX_ADAPTIVE_PLUS"/>
         </xs:restriction>
     </xs:simpleType>
     <xs:simpleType name="extendableAudioFormat">

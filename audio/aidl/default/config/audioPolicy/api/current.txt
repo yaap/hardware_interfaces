@@ -125,6 +125,7 @@ package android.audio.policy.configuration {
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_AUX_LINE;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_BROADCAST;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_HEADSET;
+    enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_HEARING_AID;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLE_SPEAKER;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLUETOOTH_A2DP;
     enum_constant public static final android.audio.policy.configuration.AudioDevice AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES;
@@ -200,6 +201,7 @@ package android.audio.policy.configuration {
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APE;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE;
+    enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE_PLUS;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE_QLEA;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_ADAPTIVE_R4;
     enum_constant public static final android.audio.policy.configuration.AudioFormat AUDIO_FORMAT_APTX_HD;

@@ -829,10 +829,11 @@ std::unordered_map<std::string, int> getLegacyProductStrategyMap() {
                            AudioProductStrategyType::SONIFICATION_RESPECTFUL),
             STRATEGY_ENTRY(DTMF, AudioProductStrategyType::DTMF),
             STRATEGY_ENTRY(ENFORCED_AUDIBLE, AudioProductStrategyType::ENFORCED_AUDIBLE),
-            STRATEGY_ENTRY(CALL_ASSISTANT, AudioProductStrategyType::SYS_RESERVED_CALL_ASSISTANT),
+            STRATEGY_ENTRY(CALL_ASSISTANT, AudioProductStrategyType::CALL_ASSISTANT),
             STRATEGY_ENTRY(TRANSMITTED_THROUGH_SPEAKER,
                            AudioProductStrategyType::TRANSMITTED_THROUGH_SPEAKER),
-            STRATEGY_ENTRY(ACCESSIBILITY, AudioProductStrategyType::ACCESSIBILITY)};
+            STRATEGY_ENTRY(ACCESSIBILITY, AudioProductStrategyType::ACCESSIBILITY),
+            STRATEGY_ENTRY(ASSISTANT, AudioProductStrategyType::ASSISTANT)};
 #undef STRATEGY_ENTRY
 }
 
