@@ -21,21 +21,15 @@
 #include <android-base/logging.h>
 #include <health-storage-impl/common.h>
 
+using aidl::android::hardware::health::storage::Result;
 using ::android::hardware::health::storage::DebugDump;
 using ::android::hardware::health::storage::GarbageCollect;
-
-using HResult = android::hardware::health::storage::V1_0::Result;
-using AResult = aidl::android::hardware::health::storage::Result;
-// Ensure static_cast<AResult>(any HResult) works
-static_assert(static_cast<AResult>(HResult::SUCCESS) == AResult::SUCCESS);
-static_assert(static_cast<AResult>(HResult::IO_ERROR) == AResult::IO_ERROR);
-static_assert(static_cast<AResult>(HResult::UNKNOWN_ERROR) == AResult::UNKNOWN_ERROR);
 
 namespace aidl::android::hardware::health::storage {
 
 ndk::ScopedAStatus Storage::garbageCollect(
         int64_t timeout_seconds, const std::shared_ptr<IGarbageCollectCallback>& callback) {
-    AResult result = static_cast<AResult>(GarbageCollect(static_cast<uint64_t>(timeout_seconds)));
+    Result result = GarbageCollect(static_cast<uint64_t>(timeout_seconds));
     if (callback != nullptr) {
         auto status = callback->onFinish(result);
         if (!status.isOk()) {

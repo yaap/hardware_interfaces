@@ -16,16 +16,19 @@
 
 #pragma once
 
-#include <android/hardware/health/storage/1.0/types.h>
 #include <string>
 
+#include <aidl/android/hardware/health/storage/BnStorage.h>
+
 namespace android::hardware::health::storage {
+
+using aidl::android::hardware::health::storage::Result;
 
 // Run debug on fd
 void DebugDump(int fd);
 
 // Run garbage collection on GetGarbageCollectPath(). Blocks until garbage
 // collect finishes or |timeout_seconds| has reached.
-V1_0::Result GarbageCollect(uint64_t timeout_seconds);
+Result GarbageCollect(uint64_t timeout_seconds);
 
 }  // namespace android::hardware::health::storage
