@@ -34,6 +34,7 @@ import android.hardware.bluetooth.audio.LeAudioAseConfiguration;
 import android.hardware.bluetooth.audio.LeAudioBisConfiguration;
 import android.hardware.bluetooth.audio.LeAudioBroadcastConfiguration.BroadcastStreamMap;
 import android.hardware.bluetooth.audio.LeAudioConfiguration.StreamMap;
+import android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting;
 import android.hardware.bluetooth.audio.MetadataLtv;
 import android.hardware.bluetooth.audio.Phy;
 import android.hardware.common.fmq.MQDescriptor;
@@ -378,6 +379,17 @@ interface IBluetoothAudioProvider {
          * Additional flags, used for configurations with special features
          */
         @nullable ConfigurationFlags flags;
+        /**
+         * Config identifier string. If flags.bitmask does not include ISO_PARAMETER_UPDATE, this
+         * field is ignored. The same configIdentifier must correspond to the same
+         * LeAudioAseConfigurationSetting content. Example:
+         * "Two-OneChan-SnkAse-Lc3_16_2_Balanced_Reliability"
+         */
+        @nullable String configIdentifier;
+        /**
+         * latency setting update along with the config from the HAL.
+         */
+        @nullable LeAudioUpdateLatencySetting latencySetting;
     }
 
     /**
