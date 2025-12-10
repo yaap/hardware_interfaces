@@ -1937,6 +1937,7 @@ Dataspace CameraAidlTest::getDataspace(PixelFormat format) {
         case PixelFormat::RAW_OPAQUE:
         case PixelFormat::RAW10:
         case PixelFormat::RAW12:
+        case PixelFormat::RAW14:
             return Dataspace::ARBITRARY;
         default:
             return Dataspace::UNKNOWN;
