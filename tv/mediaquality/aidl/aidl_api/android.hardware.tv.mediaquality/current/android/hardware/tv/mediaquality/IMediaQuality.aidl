@@ -57,4 +57,7 @@ interface IMediaQuality {
   void getVendorParamCaps(in android.hardware.tv.mediaquality.VendorParameterIdentifier[] names, out android.hardware.tv.mediaquality.VendorParamCapability[] caps);
   void setMutedColor(int color);
   void setColorMuteEnabled(boolean enable);
+  android.hardware.tv.mediaquality.EqualizerCapabilities getEqualizerCapabilities();
+  android.hardware.tv.mediaquality.EqualizerDetail getEqualizerSettings();
+  void setEqualizerSettings(in android.hardware.tv.mediaquality.EqualizerDetail detail);
 }

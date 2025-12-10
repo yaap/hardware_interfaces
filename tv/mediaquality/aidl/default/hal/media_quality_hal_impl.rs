@@ -31,6 +31,8 @@ use android_hardware_tv_mediaquality::aidl::android::hardware::tv::mediaquality:
     SoundParameters::SoundParameters,
     VendorParamCapability::VendorParamCapability,
     VendorParameterIdentifier::VendorParameterIdentifier,
+    EqualizerCapabilities::EqualizerCapabilities,
+    EqualizerDetail::EqualizerDetail,
 };
 use binder::{Interface, Strong};
 use binder::ExceptionCode;
@@ -55,6 +57,8 @@ pub struct MediaQualityService {
             Arc<Mutex<Option<Strong<dyn ISoundProfileAdjustmentListener>>>>,
     picture_profile_changed_listener: Arc<Mutex<Option<Strong<dyn IPictureProfileChangedListener>>>>,
     sound_profile_changed_listener: Arc<Mutex<Option<Strong<dyn ISoundProfileChangedListener>>>>,
+    equalizer_capabilities: Arc<Mutex<EqualizerCapabilities>>,
+    equalizer_settings: Arc<Mutex<EqualizerDetail>>,
 }
 
 impl MediaQualityService {
@@ -77,6 +81,20 @@ impl MediaQualityService {
             sound_profile_adjustment_listener: Arc::new(Mutex::new(None)),
             picture_profile_changed_listener: Arc::new(Mutex::new(None)),
             sound_profile_changed_listener: Arc::new(Mutex::new(None)),
+            equalizer_capabilities: Arc::new(Mutex::new(EqualizerCapabilities {
+                minLevelDb: -1200,
+                maxLevelDb: 1200,
+                supportedFrequenciesHz: vec![],
+                hasAdjustableQ: false,
+            })),
+            equalizer_settings: Arc::new(Mutex::new(EqualizerDetail {
+                band120Hz: 0,
+                band500Hz: 0,
+                band1_5kHz: 0,
+                band5kHz: 0,
+                band10kHz: 0,
+                bands: vec![],
+            })),
         }
     }
 }
@@ -319,6 +337,25 @@ impl IMediaQuality for MediaQualityService {
                 commonParamCapability: Some(CommonParamCapability { isMutable: true }),
             });
         }
+        Ok(())
+    }
+
+    fn getEqualizerCapabilities(&self) -> binder::Result<EqualizerCapabilities> {
+        println!("HAL: getEqualizerCapabilities called");
+        let caps = self.equalizer_capabilities.lock().unwrap();
+        Ok((*caps).clone())
+    }
+
+    fn getEqualizerSettings(&self) -> binder::Result<EqualizerDetail> {
+        println!("HAL: getEqualizerSettings called");
+        let settings = self.equalizer_settings.lock().unwrap();
+        Ok((*settings).clone())
+    }
+
+    fn setEqualizerSettings(&self, detail: &EqualizerDetail) -> binder::Result<()> {
+        println!("HAL: setEqualizerSettings called");
+        let mut settings = self.equalizer_settings.lock().unwrap();
+        *settings = detail.clone();
         Ok(())
     }
 }
