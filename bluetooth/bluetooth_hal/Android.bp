@@ -401,6 +401,7 @@ cc_test {
         "hci_router.cc",
         "hci_router_test.cc",
         "hci_router_interface.cc",
+        "hci_router_interface_test.cc",
         "hci_router_async.cc",
         "hci_router_client.cc",
         "extensions/thread/socket_processor.cc",
