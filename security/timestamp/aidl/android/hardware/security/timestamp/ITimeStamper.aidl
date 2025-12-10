@@ -26,16 +26,15 @@ interface ITimeStamper {
     /**
      * Creates an RFC3161 timestamp token for the given timestamp request.
      *
-     * The implementation should validate the incoming timestampReq and generate
-     * a TimeStampToken as defined in RFC3161, Section 2.4.2.
+     * The implementation should validate the incoming timestampReq and
+     * generate a TimeStampToken as defined in RFC3161, Section 2.4.2. As
+     * explained in Section 2.4.2, errors are communicated via the status
+     * information contained in the output structure.
      *
      * @param timestampReq The RFC3161 timestamp request, containing the DER
      *        encoded TimeStampReq structure.
      * @return The RFC3161 TimeStampToken as a DER encoded byte array.
      *         Returns an empty array on unrecoverable failure.
-     * @throws ServiceSpecificException with a service-specific error code on
-     *         failure.
-     * @throws IllegalArgumentException if the timestampReq is malformed or empty.
      */
     byte[] createRfc3161TimestampToken(in TimeStampReq timestampReq);
 }
