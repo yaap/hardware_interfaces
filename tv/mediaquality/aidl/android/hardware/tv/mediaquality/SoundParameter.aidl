@@ -105,4 +105,34 @@ union SoundParameter {
      * The default value is user customized profile.
      */
     SoundStyle soundStyle;
+
+    /**
+     * Adjusts the left/right audio balance for the built-in speakers.
+     * The range is -50 (left) to 50 (right), with 0 being centered.
+     */
+    int balanceSpeaker;
+
+    /**
+     * Adjusts the left/right audio balance for a connected Bluetooth device.
+     * The range is -50 (left) to 50 (right), with 0 being centered.
+     */
+    int balanceBluetooth;
+
+    /**
+     * Adjusts the left/right audio balance for a connected headphone.
+     * The range is -50 (left) to 50 (right), with 0 being centered.
+     */
+    int balanceHeadphone;
+
+    /**
+     * Toggles the High-Resolution Audio path, which offers better-than-CD quality
+     * playback with higher sampling rates and/or bit depth.
+     */
+    boolean hiResAudio;
+
+    /**
+     * Reports the audio latency of the connected media device in microseconds.
+     * This value can be used by A/V sync logic to maintain lip-sync.
+     */
+    int mtLatencyUs;
 }
