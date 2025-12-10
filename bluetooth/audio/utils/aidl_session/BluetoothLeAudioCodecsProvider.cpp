@@ -502,10 +502,9 @@ int32_t BluetoothLeAudioCodecsProvider::getConditionFlagAidlFormat(
     case setting::ConfigChangeConditionFlagMask::WITH_TRANSPORT_LATENCY_CHANGE:
       return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
           WITH_TRANSPORT_LATENCY_CHANGE;
-    case setting::ConfigChangeConditionFlagMask::
-        WITHOUT_TRANSPORT_LATENCY_CHANGE:
+    case setting::ConfigChangeConditionFlagMask::WITH_CONFIG_PARAMETERS_CHANGE:
       return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITHOUT_TRANSPORT_LATENCY_CHANGE;
+          WITH_CONFIG_PARAMETERS_CHANGE;
     case setting::ConfigChangeConditionFlagMask::WITH_CODEC_TYPE_CHANGE:
       return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
           WITH_CODEC_TYPE_CHANGE;

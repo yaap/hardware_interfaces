@@ -101,7 +101,7 @@
   <xs:simpleType name="configChangeConditionFlagMask">
     <xs:restriction base="xs:string">
       <xs:enumeration value="WITH_TRANSPORT_LATENCY_CHANGE"/>
-      <xs:enumeration value="WITHOUT_TRANSPORT_LATENCY_CHANGE"/>
+      <xs:enumeration value="WITH_CONFIG_PARAMETERS_CHANGE"/>
       <xs:enumeration value="WITH_CODEC_TYPE_CHANGE"/>
       <xs:enumeration value="WITH_CIS_DIRECTIONS_CHANGE"/>
       <xs:enumeration value="WITH_CSIP_TWS"/>

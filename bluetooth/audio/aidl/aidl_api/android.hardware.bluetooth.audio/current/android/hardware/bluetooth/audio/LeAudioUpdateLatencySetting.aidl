@@ -40,7 +40,7 @@ parcelable LeAudioUpdateLatencySetting {
   parcelable ConfigChangeConditionFlags {
     int bitmask;
     const int WITH_TRANSPORT_LATENCY_CHANGE = 0x0001;
-    const int WITHOUT_TRANSPORT_LATENCY_CHANGE = 0x0002;
+    const int WITH_CONFIG_PARAMETERS_CHANGE = 0x0002;
     const int WITH_CODEC_TYPE_CHANGE = 0x0004;
     const int WITH_CIS_DIRECTIONS_CHANGE = 0x0008;
     const int WITH_CSIP_TWS = 0x0010;
