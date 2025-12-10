@@ -103,14 +103,8 @@ interface IRadioNetworkResponse {
   oneway void setCellularIdentifierTransparencyEnabledResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void setSecurityAlgorithmsUpdatedEnabledResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void isSecurityAlgorithmsUpdatedEnabledResponse(in android.hardware.radio.RadioResponseInfo info, in boolean isEnabled);
-  /**
-   * @deprecated use setSatelliteNetworkInfoResponse
-   */
   oneway void setSatellitePlmnResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void setSatelliteEnabledForCarrierResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void isSatelliteEnabledForCarrierResponse(in android.hardware.radio.RadioResponseInfo info, boolean isEnabled);
-  oneway void setSatelliteNetworkInfoResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void enablePrioritizedNetworkScanResponse(in android.hardware.radio.RadioResponseInfo info);
-  oneway void disablePrioritizedNetworkScanResponse(in android.hardware.radio.RadioResponseInfo info);
   oneway void getSupportedNetworkAlertCategoriesResponse(in android.hardware.radio.RadioResponseInfo info, in android.hardware.radio.network.AlertCategory[] alertCategories);
 }

@@ -839,8 +839,6 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:INTERNAL_ERR
      *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:INVALID_STATE
-     *
-     * @deprecated use setSatelliteNetworkInfoResponse
      */
     void setSatellitePlmnResponse(in RadioResponseInfo info);
 
@@ -878,52 +876,6 @@ oneway interface IRadioNetworkResponse {
     void isSatelliteEnabledForCarrierResponse(in RadioResponseInfo info, boolean isEnabled);
 
     /**
-     * Response of setSatelliteNetworkInfo.
-     *
-     * @param info Response info struct containing response type, serial no. and error.
-     *
-     * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED
-     *   RadioError:NONE
-     *   RadioError:RADIO_NOT_AVAILABLE
-     *   RadioError:INTERNAL_ERR
-     *   RadioError:INVALID_STATE
-     */
-    void setSatelliteNetworkInfoResponse(in RadioResponseInfo info);
-
-    /**
-     * Response of enablePrioritizedNetworkScan.
-     * This is an optional API.
-     *
-     * @param info Response info struct containing response type, serial no. and error.
-     *
-     * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED
-     *   RadioError:NONE
-     *   RadioError:RADIO_NOT_AVAILABLE
-     *   RadioError:INTERNAL_ERR
-     *   RadioError:REQUEST_NOT_SUPPORTED
-     *   RadioError:INVALID_STATE
-     */
-    void enablePrioritizedNetworkScanResponse(in RadioResponseInfo info);
-
-    /**
-     * Response of disablePrioritizedNetworkScan.
-     * This is an optional API.
-     *
-     * @param info Response info struct containing response type, serial no. and error.
-     *
-     * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED
-     *   RadioError:NONE
-     *   RadioError:RADIO_NOT_AVAILABLE
-     *   RadioError:INTERNAL_ERR
-     *   RadioError:REQUEST_NOT_SUPPORTED
-     *   RadioError:INVALID_STATE
-     */
-    void disablePrioritizedNetworkScanResponse(in RadioResponseInfo info);
-
-    /**
      * Response of getSupportedNetworkAlertCategories.
      *
      * @param info Response info struct containing response type, serial no. and error.
@@ -936,6 +888,5 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:INVALID_STATE
      */
-    void getSupportedNetworkAlertCategoriesResponse(
-            in RadioResponseInfo info, in AlertCategory[] alertCategories);
+    void getSupportedNetworkAlertCategoriesResponse(in RadioResponseInfo info, in AlertCategory[] alertCategories);
 }

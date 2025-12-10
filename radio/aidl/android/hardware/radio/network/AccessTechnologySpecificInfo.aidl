@@ -18,7 +18,6 @@ package android.hardware.radio.network;
 
 import android.hardware.radio.network.Cdma2000RegistrationInfo;
 import android.hardware.radio.network.EutranRegistrationInfo;
-import android.hardware.radio.network.NrRegistrationInfo;
 import android.hardware.radio.network.NrVopsInfo;
 
 /** @hide */
@@ -32,20 +31,12 @@ union AccessTechnologySpecificInfo {
     EutranRegistrationInfo eutranInfo;
     /**
      * Network capabilities for voice over PS services. This info is valid only on NR network and
-     * must be present when the device is camped on NR including limited service.
-     * NrVopsInfo must be empty when the device is not camped on NR.
-     * @deprecated use NrRegistrationInfo.ngranNrVopsInfo
+     * must be present when the device is camped on NR. NrVopsInfo must be empty when the device is
+     * not camped on NR.
      */
     NrVopsInfo ngranNrVopsInfo;
     /**
      * True if the dual transfer mode is supported. Refer to 3GPP TS 44.108 section 3.4.25.3
      */
     boolean geranDtmSupported;
-    /**
-     * NR (New Radio)/5G network registration information including VoPS and satellite technology
-     * Network capabilities for voice over PS services. This info is valid only on NR network and
-     * must be present when the device is camped on NR including limited service.
-     * nrInfo must be empty when the device is not camped on NR.
-     */
-    NrRegistrationInfo nrInfo;
 }
