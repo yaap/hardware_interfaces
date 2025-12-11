@@ -17,7 +17,6 @@
 #pragma once
 
 #include <aidl/android/hardware/bluetooth/audio/LeAudioCodecCapabilitiesSetting.h>
-#include <aidl/android/hardware/bluetooth/audio/LeAudioUpdateLatencySetting.h>
 #include <android-base/logging.h>
 
 #include <unordered_map>
@@ -43,8 +42,6 @@ class BluetoothLeAudioCodecsProvider {
   GetLeAudioCodecInfo();
   static void SetLeAudioOffloadSettingForTesting(
       std::optional<setting::LeAudioOffloadSetting> setting);
-  static std::optional<LeAudioUpdateLatencySetting>
-  GetLeAudioOffloadUpdateLatencySetting();
 
  private:
   static inline std::vector<setting::Scenario> supported_scenarios_;
@@ -97,10 +94,6 @@ class BluetoothLeAudioCodecsProvider {
 
   static inline OpusCapabilities ComposeOpusCapability(
       const setting::CodecConfiguration& codec_configuration);
-  static LeAudioUpdateLatencySetting::ConfigChangeConditionFlags
-  ComposeConfigChangeConditionFlags(
-      const std::vector<setting::ConfigChangeConditionFlagMask>&
-          conditionFlags);
 
   static inline AudioLocation GetAudioLocation(
       const setting::AudioLocation& audio_location);
@@ -113,8 +106,6 @@ class BluetoothLeAudioCodecsProvider {
   static bool ParseFromLeAudioOffloadSettingFile();
   static inline std::optional<setting::LeAudioOffloadSetting>
       le_audio_offload_setting_;
-  static int32_t getConditionFlagAidlFormat(
-      const setting::ConfigChangeConditionFlagMask& flag);
 };
 
 }  // namespace audio

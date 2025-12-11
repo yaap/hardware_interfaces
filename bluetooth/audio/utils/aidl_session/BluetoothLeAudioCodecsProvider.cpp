@@ -24,8 +24,6 @@
 #include "aidl_android_hardware_bluetooth_audio_setting_enums.h"
 #define LOG_TAG "BTAudioCodecsProviderAidl"
 
-#include <com_android_btaudio_hal_flags.h>
-
 #include "BluetoothLeAudioCodecsProvider.h"
 
 namespace aidl {
@@ -52,7 +50,6 @@ static const AudioLocation kStereoAudio = static_cast<AudioLocation>(
 static const AudioLocation kMonoAudio = AudioLocation::UNKNOWN;
 
 static std::vector<LeAudioCodecCapabilitiesSetting> leAudioCodecCapabilities;
-static std::optional<LeAudioUpdateLatencySetting> leAudioUpdateLatencySetting;
 
 // TODO: reuse from utils/aidl_session/BluetoothAudioType.h
 /* Vendor codec ID */
@@ -294,47 +291,6 @@ void BluetoothLeAudioCodecsProvider::ClearLeAudioCodecCapabilities() {
   supported_scenarios_.clear();
 }
 
-std::optional<LeAudioUpdateLatencySetting>
-BluetoothLeAudioCodecsProvider::GetLeAudioOffloadUpdateLatencySetting() {
-  if (leAudioUpdateLatencySetting) {
-    return leAudioUpdateLatencySetting;
-  }
-
-  if (!ParseFromLeAudioOffloadSettingFile()) {
-    LOG(ERROR) << __func__
-               << ": Failed to parse LE audio offload settings file.";
-    return {};
-  }
-
-  if (!le_audio_offload_setting_->hasUpdateLatencySetting()) {
-    return {};
-  }
-
-  auto& update_latency_setting =
-      le_audio_offload_setting_->getUpdateLatencySetting().at(0);
-  if (!update_latency_setting.hasDefaultLatency()) {
-    return {};
-  }
-  leAudioUpdateLatencySetting.emplace();
-  leAudioUpdateLatencySetting->defaultSuggestedLatencyMs =
-      update_latency_setting.getDefaultLatency();
-  leAudioUpdateLatencySetting->suggestedLatencyRules.emplace();
-
-  for (const auto& update_latency_rule :
-       update_latency_setting.getUpdateLatencyRule()) {
-    if (!update_latency_rule.hasLatency() ||
-        !update_latency_rule.hasConfigChangeConditionFlags()) {
-      continue;
-    }
-    LeAudioUpdateLatencySetting::SuggestedLatencyRule latency_rule;
-    latency_rule.suggestedLatencyMs = update_latency_rule.getLatency();
-    latency_rule.configChangeConditionFlags = ComposeConfigChangeConditionFlags(
-        update_latency_rule.getConfigChangeConditionFlags());
-    leAudioUpdateLatencySetting->suggestedLatencyRules->push_back(latency_rule);
-  }
-  return leAudioUpdateLatencySetting;
-}
-
 std::vector<setting::Scenario> BluetoothLeAudioCodecsProvider::GetScenarios() {
   std::vector<setting::Scenario> supported_scenarios;
   if (le_audio_offload_setting_->hasScenarioList()) {
@@ -482,43 +438,6 @@ BluetoothLeAudioCodecsProvider::ComposeLeAudioCodecCapabilities(
          .broadcastCapability = broadcast_capability});
   }
   return le_audio_codec_capabilities;
-}
-
-LeAudioUpdateLatencySetting::ConfigChangeConditionFlags
-BluetoothLeAudioCodecsProvider::ComposeConfigChangeConditionFlags(
-    const std::vector<setting::ConfigChangeConditionFlagMask>& conditionFlags) {
-  LeAudioUpdateLatencySetting::ConfigChangeConditionFlags result;
-  int32_t bitmask = 0;
-  for (auto flag : conditionFlags) {
-    bitmask |= getConditionFlagAidlFormat(flag);
-  }
-  result.bitmask = bitmask;
-  return result;
-}
-
-int32_t BluetoothLeAudioCodecsProvider::getConditionFlagAidlFormat(
-    const setting::ConfigChangeConditionFlagMask& flag) {
-  switch (flag) {
-    case setting::ConfigChangeConditionFlagMask::WITH_TRANSPORT_LATENCY_CHANGE:
-      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_TRANSPORT_LATENCY_CHANGE;
-    case setting::ConfigChangeConditionFlagMask::WITH_CONFIG_PARAMETERS_CHANGE:
-      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CONFIG_PARAMETERS_CHANGE;
-    case setting::ConfigChangeConditionFlagMask::WITH_CODEC_TYPE_CHANGE:
-      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CODEC_TYPE_CHANGE;
-    case setting::ConfigChangeConditionFlagMask::WITH_CIS_DIRECTIONS_CHANGE:
-      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CIS_DIRECTIONS_CHANGE;
-    case setting::ConfigChangeConditionFlagMask::WITH_CSIP_TWS:
-      return LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CSIP_TWS;
-    default:
-      LOG(ERROR) << __func__
-                 << "Unknown ConfigChangeConditionFlag from setting";
-  }
-  return 0;
 }
 
 UnicastCapability BluetoothLeAudioCodecsProvider::GetUnicastCapability(
