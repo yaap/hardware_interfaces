@@ -1413,6 +1413,10 @@ bool Module::setAudioPortConfigGain(const AudioPort& port, const AudioGainConfig
         LOG(ERROR) << __func__ << ": gains for port " << port.id << " is undefined";
         return false;
     }
+    if (gainRequested.values.empty()) {
+        LOG(ERROR) << __func__ << ": received empty gain values";
+        return false;
+    }
     int stepValue = port.gains[gainRequested.index].stepValue;
     if (stepValue == 0) {
         LOG(ERROR) << __func__ << ": port gain step value is 0";

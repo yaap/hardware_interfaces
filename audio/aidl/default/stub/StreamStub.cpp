@@ -43,4 +43,19 @@ StreamOutStub::StreamOutStub(StreamContext&& context, const SourceMetadata& sour
                              const std::optional<AudioOffloadInfo>& offloadInfo)
     : StreamOut(std::move(context), offloadInfo), StreamStub(&mContextInstance, sourceMetadata) {}
 
+StreamOutTelephonyStub::StreamOutTelephonyStub(StreamContext&& context,
+                                               const SourceMetadata& sourceMetadata,
+                                               const std::optional<AudioOffloadInfo>& offloadInfo)
+    : StreamOutStub(std::move(context), sourceMetadata, offloadInfo),
+      StreamOutHwVolumeHelper(&mContext) {}
+
+ndk::ScopedAStatus StreamOutTelephonyStub::getHwVolume(std::vector<float>* _aidl_return) {
+    return getHwVolumeImpl(_aidl_return);
+}
+
+ndk::ScopedAStatus StreamOutTelephonyStub::setHwVolume(
+        const std::vector<float>& in_channelVolumes) {
+    return setHwVolumeImpl(in_channelVolumes);
+}
+
 }  // namespace aidl::android::hardware::audio::core

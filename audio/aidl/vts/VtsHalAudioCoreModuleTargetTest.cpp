@@ -43,6 +43,7 @@
 #include <aidl/android/hardware/audio/core/IModule.h>
 #include <aidl/android/hardware/audio/core/ITelephony.h>
 #include <aidl/android/hardware/audio/core/sounddose/ISoundDose.h>
+#include <aidl/android/media/audio/common/AudioGainMode.h>
 #include <aidl/android/media/audio/common/AudioIoFlags.h>
 #include <aidl/android/media/audio/common/AudioMMapPolicyInfo.h>
 #include <aidl/android/media/audio/common/AudioMMapPolicyType.h>
@@ -101,6 +102,7 @@ using aidl::android::media::audio::common::AudioEncapsulationMode;
 using aidl::android::media::audio::common::AudioFormatDescription;
 using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::AudioGainConfig;
+using aidl::android::media::audio::common::AudioGainMode;
 using aidl::android::media::audio::common::AudioInputFlags;
 using aidl::android::media::audio::common::AudioIoFlags;
 using aidl::android::media::audio::common::AudioLatencyMode;
@@ -399,7 +401,15 @@ class WithModuleParameter {
 class WithAudioPortConfig {
   public:
     WithAudioPortConfig() = default;
-    explicit WithAudioPortConfig(const AudioPortConfig& config) : mInitialConfig(config) {}
+    explicit WithAudioPortConfig(const AudioPortConfig& config) : mInitialConfig(config) {
+        static int32_t sHandleCounter = 100;  // Arbitrary base offset
+        if (mInitialConfig.ext.getTag() == AudioPortExt::Tag::mix) {
+            auto& mixExt = mInitialConfig.ext.template get<AudioPortExt::Tag::mix>();
+            if (mixExt.handle == 0) {
+                mixExt.handle = sHandleCounter++;
+            }
+        }
+    }
     WithAudioPortConfig(const WithAudioPortConfig&) = delete;
     WithAudioPortConfig& operator=(const WithAudioPortConfig&) = delete;
     ~WithAudioPortConfig() {
@@ -5512,6 +5522,154 @@ TEST_P(AudioStreamOut, UpdateOffloadMetadata) {
                                              .delayFrames = -1,
                                              .paddingFrames = -1};
         EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, stream.get()->updateOffloadMetadata(invalidMetadata));
+    }
+}
+
+// @VsrTest = VSR-5.5-003
+TEST_P(AudioStreamOut, HwVolumeAndPortGainIndependence) {
+    if (aidlVersion < kAidlVersion4) {
+        GTEST_SKIP() << "Current HAL version less than 4. Skipping the test.";
+    }
+    constexpr bool connectedOnly = true;
+    const auto ports = moduleConfig->getOutputMixPorts(connectedOnly);
+    if (ports.empty()) {
+        GTEST_SKIP() << "No output mix ports for attached devices";
+    }
+
+    bool atLeastOnePortTested = false;
+    for (const auto& port : ports) {
+        SCOPED_TRACE(port.toString());
+        StreamFixture<IStreamOut> stream;
+        ASSERT_NO_FATAL_FAILURE(stream.SetUpStreamForMixPort(module.get(), moduleConfig.get(), port,
+                                                             connectedOnly));
+        if (!stream.skipTestReason().empty()) {
+            continue;
+        }
+
+        const auto portConfig = stream.getPortConfig();
+        SCOPED_TRACE(portConfig.toString());
+
+        // Check if setHwVolume is supported
+        std::vector<float> initialHwVolume;
+        ScopedAStatus status = stream.getStream()->getHwVolume(&initialHwVolume);
+        if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
+            continue;
+        }
+        ASSERT_IS_OK(status) << "Unexpected status from getHwVolume: " << status;
+
+        // Check if port gain is supported
+        const auto devicePortConfig = stream.getDevicePortConfig();
+        auto devicePort = moduleConfig->getPort(devicePortConfig.portId);
+        ASSERT_TRUE(devicePort.has_value());
+        if (devicePort->gains.empty()) {
+            continue;  // Skip if device port has no gain control
+        }
+
+        atLeastOnePortTested = true;
+        const int channelCount = getChannelCount(portConfig.channelMask.value());
+        ASSERT_GT(channelCount, 0);
+
+        std::vector<AudioPortConfig> allPortConfigs;
+        ASSERT_IS_OK(module->getAudioPortConfigs(&allPortConfigs));
+
+        // Find the specific config for our Device Port
+        auto activeDevicePortConfig = findById(allPortConfigs, devicePortConfig.id);
+        ASSERT_NE(activeDevicePortConfig, allPortConfigs.end())
+                << "Device port config " << devicePortConfig.id << " not found in HAL";
+        AudioPortConfig initialDevicePortConfig = *activeDevicePortConfig;
+
+        // Change HW volume and verify no change in port gain
+        std::vector<float> testHwVolume = initialHwVolume;
+        std::transform(testHwVolume.begin(), testHwVolume.end(), testHwVolume.begin(), [](float v) {
+            // If current volume is 0, flip to max. Otherwise, halve it.
+            return (v == 0.0f) ? IStreamOut::HW_VOLUME_MAX : v * 0.5f;
+        });
+        ASSERT_IS_OK(stream.getStream()->setHwVolume(testHwVolume));
+
+        allPortConfigs.clear();
+        ASSERT_IS_OK(module->getAudioPortConfigs(&allPortConfigs));
+
+        // Find the specific config for our Device Port
+        activeDevicePortConfig = findById(allPortConfigs, devicePortConfig.id);
+        ASSERT_NE(activeDevicePortConfig, allPortConfigs.end())
+                << "Device port config " << devicePortConfig.id << " not found in HAL";
+        AudioPortConfig currentDevicePortConfig = *activeDevicePortConfig;
+
+        bool gainChanged = false;
+        if (initialDevicePortConfig.gain.has_value()) {
+            if (!currentDevicePortConfig.gain.has_value()) {
+                EXPECT_TRUE(currentDevicePortConfig.gain.has_value())
+                        << "Port gain unexpectedly became empty after setHwVolume";
+                gainChanged = true;
+            } else {
+                if (initialDevicePortConfig.gain.value() != currentDevicePortConfig.gain.value()) {
+                    EXPECT_EQ(initialDevicePortConfig.gain.value(),
+                              currentDevicePortConfig.gain.value())
+                            << "Port gain changed after setHwVolume";
+                    gainChanged = true;
+                }
+            }
+        } else {
+            if (currentDevicePortConfig.gain.has_value()) {
+                EXPECT_FALSE(currentDevicePortConfig.gain.has_value())
+                        << "Port gain unexpectedly appeared after setHwVolume";
+                gainChanged = true;
+            }
+        }
+        if (gainChanged) continue;
+
+        // Restore initial HW volume
+        ASSERT_IS_OK(stream.getStream()->setHwVolume(initialHwVolume));
+
+        // Change port gain and verify no change in HW volume
+        const int gainIndex = 0;
+        const auto& gainController = devicePort->gains[gainIndex];
+
+        const size_t count = (isBitPositionFlagSet(gainController.mode, AudioGainMode::JOINT)) ? 1
+                             : (isBitPositionFlagSet(gainController.mode, AudioGainMode::CHANNELS))
+                                     ? getChannelCount(gainController.channelMask)
+                             : (isBitPositionFlagSet(gainController.mode, AudioGainMode::RAMP)) ? 1
+                                                                                                : 0;
+        const std::vector<int32_t> gains(count, gainController.defaultValue);
+
+        // Set a gain value different from the initial one
+        if (gainController.minValue == gainController.maxValue) {
+            LOG(DEBUG) << "Skipping validation for this port due to single supported gain value: "
+                       << port.toString();
+            continue;
+        }
+        AudioGainConfig testPortGain =
+                (initialDevicePortConfig.gain.has_value() &&
+                 !initialDevicePortConfig.gain.value().values.empty())
+                        ? initialDevicePortConfig.gain.value()
+                        : AudioGainConfig{.index = gainIndex,
+                                          .mode = gainController.mode,
+                                          .channelMask = gainController.channelMask,
+                                          .values = gains,
+                                          .rampDurationMs = 0};
+
+        for (auto& value : testPortGain.values) {
+            value = (value == gainController.minValue) ? gainController.maxValue
+                                                       : gainController.minValue;
+        }
+        testPortGain.index = gainIndex;
+
+        AudioPortConfig deviceConfigToSet = initialDevicePortConfig;
+        deviceConfigToSet.gain = testPortGain;
+        bool applied = false;
+        AudioPortConfig suggestedConfig;
+        ASSERT_IS_OK(module->setAudioPortConfig(deviceConfigToSet, &suggestedConfig, &applied));
+        ASSERT_TRUE(applied) << "Failed to apply initial port config: " << deviceConfigToSet
+                             << ". Suggested: " << suggestedConfig.toString();
+
+        std::vector<float> currentHwVolume;
+        ASSERT_IS_OK(stream.getStream()->getHwVolume(&currentHwVolume));
+        EXPECT_EQ(initialHwVolume, currentHwVolume)
+                << "HW volume changed after setAudioPortConfig with gain";
+    }
+
+    if (!atLeastOnePortTested) {
+        GTEST_SKIP() << "No port found supporting both IStreamOut.setHwVolume and device port gain";
     }
 }
 

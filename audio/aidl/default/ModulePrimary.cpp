@@ -20,10 +20,12 @@
 #include <Log.h>
 #include <Utils.h>
 
+#include "core-impl/Configuration.h"
 #include "core-impl/ModulePrimary.h"
 #include "core-impl/StreamMmapStub.h"
 #include "core-impl/StreamOffloadStub.h"
 #include "core-impl/StreamPrimary.h"
+#include "core-impl/StreamStub.h"
 #include "core-impl/Telephony.h"
 
 using aidl::android::hardware::audio::common::areAllBitPositionFlagsSet;
@@ -96,6 +98,23 @@ ndk::ScopedAStatus ModulePrimary::createOutputStream(
         return createStreamInstance<StreamOutOffloadStub>(result, std::move(context),
                                                           sourceMetadata, offloadInfo);
     }
+
+    const auto& activeConfigs = getConfig().portConfigs;
+    int32_t handle = context.getMixPortHandle();
+    auto it = std::find_if(activeConfigs.begin(), activeConfigs.end(), [&](const auto& config) {
+        return config.ext.getTag() == AudioPortExt::Tag::mix &&
+               config.ext.template get<AudioPortExt::Tag::mix>().handle == handle;
+    });
+    if (it != activeConfigs.end()) {
+        int32_t portId = it->portId;
+        auto& ports = getConfig().ports;
+        auto foundPort = findById(ports, portId);
+        if (foundPort != ports.end() && foundPort->name == internal::kPortNameTelephonyTx) {
+            return createStreamInstance<StreamOutTelephonyStub>(result, std::move(context),
+                                                                sourceMetadata, offloadInfo);
+        }
+    }
+
     return createStreamInstance<StreamOutPrimary>(result, std::move(context), sourceMetadata,
                                                   offloadInfo);
 }
