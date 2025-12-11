@@ -18,6 +18,7 @@ package android.hardware.radio.network;
 
 import android.hardware.radio.network.LteVopsInfo;
 import android.hardware.radio.network.NrIndicators;
+import android.hardware.radio.network.SatelliteTechnology;
 
 /** @hide */
 @VintfStability
@@ -59,4 +60,10 @@ parcelable EutranRegistrationInfo {
 
     /** Values are bitwise ORs of EXTRA_* constants */
     int extraInfo;
+
+    /**
+     * The type of satellite technology. Modem must report SatelliteTechnology.NONE when camped on
+     * a terrestrial network or if it is not aware of the satellite technology.
+     */
+    SatelliteTechnology satelliteTechnology = SatelliteTechnology.SAT_TECH_NONE;
 }

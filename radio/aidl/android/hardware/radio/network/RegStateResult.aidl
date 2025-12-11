@@ -61,9 +61,4 @@ parcelable RegStateResult {
      * Access-technology-specific registration information.
      */
     AccessTechnologySpecificInfo accessTechnologySpecificInfo;
-    /**
-     * Indicates if the current cell is on a Non-Terrestrial Network (NTN).
-     * This field should be populated by the modem based on network signaling (e.g., SIB).
-     */
-    boolean isNonTerrestrialNetwork = false;
 }

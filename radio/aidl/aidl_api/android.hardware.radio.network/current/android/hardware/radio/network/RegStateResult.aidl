@@ -41,5 +41,4 @@ parcelable RegStateResult {
   android.hardware.radio.network.CellIdentity cellIdentity;
   String registeredPlmn;
   android.hardware.radio.network.AccessTechnologySpecificInfo accessTechnologySpecificInfo;
-  boolean isNonTerrestrialNetwork = false;
 }

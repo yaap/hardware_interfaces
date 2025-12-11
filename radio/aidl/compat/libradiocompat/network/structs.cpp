@@ -658,7 +658,15 @@ toAidl(const V1_6::RegStateResult::AccessTechnologySpecificInfo& info) {
 
     if (discr == Discr::cdmaInfo) return toAidl(info.cdmaInfo());
     if (discr == Discr::eutranInfo) return toAidl(info.eutranInfo());
-    if (discr == Discr::ngranNrVopsInfo) return toAidl(info.ngranNrVopsInfo());
+    if (discr == Discr::ngranNrVopsInfo) {
+        aidl::NrRegistrationInfo nrInfo = {
+                .nrVopsInfo = toAidl(info.ngranNrVopsInfo()),
+                .satelliteTechnology = aidl::SatelliteTechnology::SAT_TECH_NONE,
+        };
+        using T = aidl::AccessTechnologySpecificInfo;
+        return T::make<T::Tag::nrInfo>(nrInfo);
+    }
+
     if (discr == Discr::geranDtmSupported) {
         using T = aidl::AccessTechnologySpecificInfo;
         return T::make<T::Tag::geranDtmSupported>(info.geranDtmSupported());
