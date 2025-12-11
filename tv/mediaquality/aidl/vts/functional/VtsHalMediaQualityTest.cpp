@@ -27,6 +27,7 @@
 #include <aidl/android/hardware/tv/mediaquality/EqualizerCapabilities.h>
 #include <aidl/android/hardware/tv/mediaquality/EqualizerDetail.h>
 #include <aidl/android/hardware/tv/mediaquality/IMediaQuality.h>
+#include <aidl/android/hardware/tv/mediaquality/PanelTechnologyType.h>
 #include <aidl/android/hardware/tv/mediaquality/ParameterName.h>
 #include <aidl/android/hardware/tv/mediaquality/PictureParameter.h>
 #include <aidl/android/hardware/tv/mediaquality/PictureParameters.h>
@@ -56,6 +57,7 @@ using aidl::android::hardware::tv::mediaquality::EqualizerBand;
 using aidl::android::hardware::tv::mediaquality::EqualizerCapabilities;
 using aidl::android::hardware::tv::mediaquality::EqualizerDetail;
 using aidl::android::hardware::tv::mediaquality::IMediaQuality;
+using aidl::android::hardware::tv::mediaquality::PanelTechnologyType;
 using aidl::android::hardware::tv::mediaquality::ParamCapability;
 using aidl::android::hardware::tv::mediaquality::ParameterName;
 using aidl::android::hardware::tv::mediaquality::PictureParameter;
@@ -834,6 +836,24 @@ TEST_P(MediaQualityAidl, TestSetEqualizerSettings_MismatchedBands) {
     } else {
         ALOGD("TestSetEqualizerSettings_MismatchedBands skipped due to interface version %d",
               version);
+    }
+}
+
+TEST_P(MediaQualityAidl, TestIsDisplayTechnologySupported) {
+    int32_t version;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        const std::vector<PanelTechnologyType> all_features = {
+                PanelTechnologyType::OLED,
+        };
+
+        for (const auto& feature : all_features) {
+            bool supported;
+            auto result = mediaquality->isDisplayTechnologySupported(feature, &supported);
+            ASSERT_OK(result);
+        }
+    } else {
+        ALOGD("TestIsDisplayTechnologySupported skipped due to interface version %d", version);
     }
 }
 

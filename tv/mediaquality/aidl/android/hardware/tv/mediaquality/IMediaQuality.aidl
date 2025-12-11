@@ -24,6 +24,7 @@ import android.hardware.tv.mediaquality.IPictureProfileAdjustmentListener;
 import android.hardware.tv.mediaquality.IPictureProfileChangedListener;
 import android.hardware.tv.mediaquality.ISoundProfileAdjustmentListener;
 import android.hardware.tv.mediaquality.ISoundProfileChangedListener;
+import android.hardware.tv.mediaquality.PanelTechnologyType;
 import android.hardware.tv.mediaquality.ParamCapability;
 import android.hardware.tv.mediaquality.ParameterName;
 import android.hardware.tv.mediaquality.PictureParameters;
@@ -258,4 +259,12 @@ interface IMediaQuality {
      *         BAD_VALUE if the bands in `detail` do not match the capabilities.
      */
     void setEqualizerSettings(in EqualizerDetail detail);
+
+    /**
+     * Checks if a specific display panel technology is supported.
+     *
+     * @param panelTechnology The panel technology type to check.
+     * @return true if the technology is supported, false otherwise.
+     */
+    boolean isDisplayTechnologySupported(in PanelTechnologyType panelTechnology);
 }

@@ -60,4 +60,5 @@ interface IMediaQuality {
   android.hardware.tv.mediaquality.EqualizerCapabilities getEqualizerCapabilities();
   android.hardware.tv.mediaquality.EqualizerDetail getEqualizerSettings();
   void setEqualizerSettings(in android.hardware.tv.mediaquality.EqualizerDetail detail);
+  boolean isDisplayTechnologySupported(in android.hardware.tv.mediaquality.PanelTechnologyType panelTechnology);
 }
