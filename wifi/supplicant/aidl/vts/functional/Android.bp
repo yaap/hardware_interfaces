@@ -90,3 +90,9 @@ cc_test {
     defaults: ["supplicant_vts_test_defaults"],
     srcs: ["supplicant_aidl_test.cpp"],
 }
+
+cc_test {
+    name: "VtsHalWifiSupplicantRttControllerTargetTest",
+    defaults: ["supplicant_vts_test_defaults"],
+    srcs: ["supplicant_wifi_rtt_controller_aidl_test.cpp"],
+}
