@@ -120,6 +120,7 @@
         <interface>
             <name>IBluetoothHci</name>
             <instance>default</instance>
+            <regex-instance>hci[1-9][0-9]*</regex-instance>
         </interface>
     </hal>
     <hal format="aidl">
