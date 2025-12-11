@@ -328,6 +328,67 @@ enum PixelFormat {
     RGBA_1010102 = 0x2B,
 
     /**
+     * RAW14 is a single-channel, 14-bit per pixel, densely packed in each row,
+     * unprocessed format, usually representing raw Bayer-pattern images coming from
+     * an image sensor.
+     *
+     * In an image buffer with this format, starting from the first pixel of each
+     * row, each four consecutive pixels are packed into 7 bytes (56 bits). The
+     * first four bytes contain the most significan 8 bits of the first four pixels. The last
+     * three bytes contain the 6 least significant bits of the four pixels, packed one after
+     * the other, the exact layoutdata for each four consecutive pixels is illustrated below
+     * (Pi[j] stands for the jth bit of the ith pixel):
+     *
+     * <pre>
+     *           bit 7                                            bit 0
+     *          ======|======|======|======|======|======|======|======|
+     * Byte 0: |P0[13]|P0[12]|P0[11]|P0[10]|P0[ 9]|P0[ 8]|P0[ 7]|P0[ 6]|
+     *         |------|------|------|------|------|------|------|------|
+     * Byte 1: |P1[13]|P1[12]|P1[11]|P1[10]|P1[ 9]|P1[ 8]|P1[ 7]|P1[ 6]|
+     *         |------|------|------|------|------|------|------|------|
+     * Byte 2: |P2[13]|P2[12]|P2[11]|P2[10]|P2[ 9]|P2[ 8]|P2[ 7]|P2[ 6]|
+     *         |------|------|------|------|------|------|------|------|
+     * Byte 3: |P3[13]|P3[12]|P3[11]|P3[10]|P3[ 9]|P3[ 8]|P3[ 7]|P3[ 6]|
+     *         |------|------|------|------|------|------|------|------|
+     * Byte 4: |P1[ 1]|P1[ 0]|P0[ 5]|P0[ 4]|P0[ 3]|P0[ 2]|P0[ 1]|P0[ 0]|
+     *         |------|------|------|------|------|------|------|------|
+     * Byte 5: |P2[ 3]|P2[ 2]|P2[ 1]|P2[ 0]|P1[ 5]|P1[ 4]|P1[ 3]|P1[ 2]|
+     *         |------|------|------|------|------|------|------|------|
+     * Byte 6: |P3[ 5]|P3[ 4]|P3[ 3]|P3[ 2]|P3[ 1]|P3[ 0]|P2[ 5]|P2[ 4]|
+     *          =======================================================
+     * </pre>
+     *
+     * This format assumes:
+     * - a width multiple of 4 pixels
+     * - an even height
+     * - a vertical stride equal to the height
+     * - strides are specified in bytes, not in pixels
+     *
+     *   size = stride * height
+     *
+     * When stride is equal to width * (14 / 8), there will be no padding bytes at
+     * the end of each row, the entire image data is densely packed. When stride is
+     * larger than width * (14 / 8), padding bytes will be present at the end of
+     * each row (including the last row).
+     *
+     * If this format supported by the device, it must also be accepted by the allocator
+     * when used with the following usage flags:
+     *
+     *    - BufferUsage::CAMERA_*
+     *    - BufferUsage::CPU_*
+     *    - BufferUsage::RENDERSCRIPT
+     *
+     * The mapping of the dataspace to buffer contents for RAW14 is as
+     * follows:
+     *
+     *  Dataspace value               | Buffer contents
+     * -------------------------------+-----------------------------------------
+     *  Dataspace::ARBITRARY          | Raw image sensor data.
+     *  Other                         | Unsupported
+     */
+    RAW14 = 0x2C,
+
+    /**
      * 0x100 - 0x1FF
      *
      * This range is reserved for vendor extensions. Formats in this range

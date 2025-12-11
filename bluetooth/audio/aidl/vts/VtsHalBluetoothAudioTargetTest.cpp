@@ -838,7 +838,7 @@ bool SuggestedLatencyRulesValidated(
       LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
           WITH_TRANSPORT_LATENCY_CHANGE |
       LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITHOUT_TRANSPORT_LATENCY_CHANGE |
+          WITH_CONFIG_PARAMETERS_CHANGE |
       LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
           WITH_CODEC_TYPE_CHANGE |
       LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::

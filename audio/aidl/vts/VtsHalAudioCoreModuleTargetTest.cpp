@@ -5553,21 +5553,19 @@ class AudioStreamIo : public AudioCoreModuleBase,
                 (!isCompressOffload && streamType == StreamTypeFilter::OFFLOAD)) {
                 continue;
             }
-            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion)) {
+            const auto configBase = AudioConfigBase{portConfig.sampleRate->value,
+                                                    *portConfig.channelMask, *portConfig.format};
+            auto filesToTest = getMediaFileInfoForConfig(configBase);
+            if (skipStreamIoTestForMixPortConfig(portConfig, aidlVersion) ||
+                (isCompressOffload && filesToTest.empty())) {
                 skipped.emplace(port->id, port->name, port->flags, portConfig.format.value());
                 continue;
             }
+
             WithDebugFlags delayTransientStates = WithDebugFlags::createNested(*debug);
             delayTransientStates.flags().streamTransientStateDelayMs =
                     std::get<NAMED_CMD_DELAY_MS>(std::get<PARAM_CMD_SEQ>(GetParam()));
             ASSERT_NO_FATAL_FAILURE(delayTransientStates.SetUp(module.get()));
-
-            const auto configBase = AudioConfigBase{portConfig.sampleRate->value,
-                                                    *portConfig.channelMask, *portConfig.format};
-            auto filesToTest = getMediaFileInfoForConfig(configBase);
-            if (filesToTest.empty()) {
-                continue;
-            }
 
             if (isCompressOffload) {
                 for (const auto& fileInfo : filesToTest) {

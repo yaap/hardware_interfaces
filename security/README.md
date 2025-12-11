@@ -133,3 +133,11 @@ The list of Trusted HALs is:
 *   **`IDeviceState`**: Allows a KeyMint instance running in a VM to query if the device is
     currently in its manufacturing phase. This acts as a guardrail, ensuring that sensitive Device
     ID data is only provisioned to the secure environment while the device is at the factory.
+
+*   **`IHwCryptoKey`**: Provides a high-level interface for key generation and management. It allows
+    clients to derive keys cryptographically bound to their DICE policy, import keys, and retrieve
+    an **`IHwCryptoOperations`** interface to perform cryptographic operations using opaque keys.
+
+*   **`ISecureStorage`**: Interface for the Secure Storage. It allows clients to start storage
+    sessions for specific filesystems, enabling secure data persistence while handling underlying
+    storage availability states.

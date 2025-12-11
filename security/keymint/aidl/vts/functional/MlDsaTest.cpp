@@ -237,8 +237,7 @@ const std::string kExpanded65Pkcs8 =
         "8b31cb9d97425acab9b216d98a6ae355e583da71e8864ee3d16b0759796190ef"
         "545c1e62bfef92af6ca147b13244d6c892fc8ef223ab3f43f924c2f466097ee8";
 
-// TODO(b/395069628): enable ML-DSA-87 tests when reference implementation updated
-const MlDsaVariant kVariants[] = {MlDsaVariant::ML_DSA_65, /* MlDsaVariant::ML_DSA_87 */};
+const MlDsaVariant kVariants[] = {MlDsaVariant::ML_DSA_65, MlDsaVariant::ML_DSA_87};
 
 }  // namespace
 

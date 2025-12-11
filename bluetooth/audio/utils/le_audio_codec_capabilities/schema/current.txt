@@ -42,9 +42,9 @@ package aidl.android.hardware.bluetooth.audio.setting {
 
   public enum ConfigChangeConditionFlagMask {
     method public String getRawName();
-    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITHOUT_TRANSPORT_LATENCY_CHANGE;
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CIS_DIRECTIONS_CHANGE;
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CODEC_TYPE_CHANGE;
+    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CONFIG_PARAMETERS_CHANGE;
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CSIP_TWS;
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_TRANSPORT_LATENCY_CHANGE;
   }

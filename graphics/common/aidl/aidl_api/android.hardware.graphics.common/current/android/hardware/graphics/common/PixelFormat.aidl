@@ -53,6 +53,7 @@ enum PixelFormat {
   RAW10 = 0x25,
   RAW12 = 0x26,
   RGBA_1010102 = 0x2B,
+  RAW14 = 0x2C,
   Y8 = 0x20203859,
   Y16 = 0x20363159,
   YV12 = 0x32315659,

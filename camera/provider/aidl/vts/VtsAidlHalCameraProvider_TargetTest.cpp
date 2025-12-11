@@ -1545,7 +1545,6 @@ TEST_P(CameraAidlTest, configureStreamsVideoStillOutputs) {
 
 // Generate and verify a camera capture request
 TEST_P(CameraAidlTest, processCaptureRequestPreview) {
-    // TODO(b/220897574): Failing with BUFFER_ERROR
     processCaptureRequestInternal(GRALLOC1_CONSUMER_USAGE_HWCOMPOSER, RequestTemplate::PREVIEW,
                                   false /*secureOnlyCameras*/);
 }
