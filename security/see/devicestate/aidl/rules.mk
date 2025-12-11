@@ -20,7 +20,15 @@ AIDL_DIR := $(LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-MODULE_AIDL_FLAGS :=
+MODULE_AIDL_STABLE := false
+
+MODULE_AIDL_VERSION := 1
+
+# TODO(b/462054024): The build system does not attach the version flag
+# for unfrozen AIDLs, but VTS requires a valid version.
+MODULE_AIDL_FLAGS := \
+    --stability=vintf \
+    --version $(MODULE_AIDL_VERSION)
 
 MODULE_AIDL_LANGUAGE := rust
 
