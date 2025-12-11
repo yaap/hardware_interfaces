@@ -23,6 +23,9 @@
 #include <aidl/android/hardware/tv/mediaquality/BnPictureProfileAdjustmentListener.h>
 #include <aidl/android/hardware/tv/mediaquality/BnSoundProfileAdjustmentListener.h>
 #include <aidl/android/hardware/tv/mediaquality/CommonParamCapability.h>
+#include <aidl/android/hardware/tv/mediaquality/EqualizerBand.h>
+#include <aidl/android/hardware/tv/mediaquality/EqualizerCapabilities.h>
+#include <aidl/android/hardware/tv/mediaquality/EqualizerDetail.h>
 #include <aidl/android/hardware/tv/mediaquality/IMediaQuality.h>
 #include <aidl/android/hardware/tv/mediaquality/ParameterName.h>
 #include <aidl/android/hardware/tv/mediaquality/PictureParameter.h>
@@ -38,6 +41,7 @@
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
 #include <log/log.h>
+#include <utils/Errors.h>
 #include <future>
 
 using aidl::android::hardware::graphics::common::PixelFormat;
@@ -48,6 +52,9 @@ using aidl::android::hardware::tv::mediaquality::BnMediaQualityCallback;
 using aidl::android::hardware::tv::mediaquality::BnPictureProfileAdjustmentListener;
 using aidl::android::hardware::tv::mediaquality::BnSoundProfileAdjustmentListener;
 using aidl::android::hardware::tv::mediaquality::CommonParamCapability;
+using aidl::android::hardware::tv::mediaquality::EqualizerBand;
+using aidl::android::hardware::tv::mediaquality::EqualizerCapabilities;
+using aidl::android::hardware::tv::mediaquality::EqualizerDetail;
 using aidl::android::hardware::tv::mediaquality::IMediaQuality;
 using aidl::android::hardware::tv::mediaquality::ParamCapability;
 using aidl::android::hardware::tv::mediaquality::ParameterName;
@@ -750,6 +757,84 @@ TEST_P(MediaQualityAidl, TestSendInvalidSoundParameters) {
 
     ASSERT_FALSE(result.isOk());
     EXPECT_EQ(result.getExceptionCode(), EX_TRANSACTION_FAILED);
+}
+
+TEST_P(MediaQualityAidl, GetEqualizerCapabilities) {
+    int32_t version = 0;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        EqualizerCapabilities capabilities;
+        ASSERT_OK(mediaquality->getEqualizerCapabilities(&capabilities));
+    } else {
+        ALOGD("GetEqualizerCapabilities skipped due to interface version %d", version);
+    }
+}
+
+TEST_P(MediaQualityAidl, GetEqualizerSettings) {
+    int32_t version = 0;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        EqualizerDetail settings;
+        ASSERT_OK(mediaquality->getEqualizerSettings(&settings));
+    } else {
+        ALOGD("GetEqualizerSettings skipped due to interface version %d", version);
+    }
+}
+
+TEST_P(MediaQualityAidl, SetEqualizerSettings) {
+    int32_t version = 0;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        EqualizerCapabilities capabilities;
+        ASSERT_OK(mediaquality->getEqualizerCapabilities(&capabilities));
+
+        if (capabilities.supportedFrequenciesHz.empty()) {
+            ALOGD("TestSetEqualizerSettings: No supported frequencies, skipping test.");
+            return;
+        }
+
+        EqualizerDetail testDetail;
+        testDetail.bands.resize(capabilities.supportedFrequenciesHz.size());
+        for (size_t i = 0; i < capabilities.supportedFrequenciesHz.size(); ++i) {
+            testDetail.bands[i].frequencyHz = capabilities.supportedFrequenciesHz[i];
+            testDetail.bands[i].gain = 0;
+            testDetail.bands[i].qFactor = 1.0f;
+        }
+
+        ASSERT_OK(mediaquality->setEqualizerSettings(testDetail));
+    } else {
+        ALOGD("SetEqualizerSettings skipped due to interface version %d", version);
+    }
+}
+
+TEST_P(MediaQualityAidl, TestSetEqualizerSettings_MismatchedBands) {
+    int32_t version = 0;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        EqualizerCapabilities capabilities;
+        ASSERT_OK(mediaquality->getEqualizerCapabilities(&capabilities));
+
+        if (capabilities.supportedFrequenciesHz.empty()) {
+            ALOGD("TestSetEqualizerSettings_MismatchedBands: No supported frequencies, skipping "
+                  "test.");
+            return;
+        }
+
+        EqualizerDetail testDetail;
+        // Create bands that do NOT match the supported frequencies
+        testDetail.bands.resize(1);  // One band, but with an unsupported frequency
+        testDetail.bands[0].frequencyHz =
+                capabilities.supportedFrequenciesHz[0] + 1;  // Mismatched frequency
+        testDetail.bands[0].gain = 0;
+        testDetail.bands[0].qFactor = 1.0f;
+
+        auto result = mediaquality->setEqualizerSettings(testDetail);
+        ASSERT_FALSE(result.isOk());
+        EXPECT_EQ(result.getExceptionCode(), android::BAD_VALUE);
+    } else {
+        ALOGD("TestSetEqualizerSettings_MismatchedBands skipped due to interface version %d",
+              version);
+    }
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MediaQualityAidl);

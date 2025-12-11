@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,8 @@
 
 package android.hardware.tv.mediaquality;
 @RustDerive(Clone=true, PartialEq=true) @VintfStability
-parcelable EqualizerDetail {
-  int band120Hz;
-  int band500Hz;
-  int band1_5kHz;
-  int band5kHz;
-  int band10kHz;
-  android.hardware.tv.mediaquality.EqualizerBand[] bands = {};
+parcelable EqualizerBand {
+  int frequencyHz;
+  int gain;
+  float qFactor;
 }
