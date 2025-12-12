@@ -799,7 +799,7 @@ TEST_P(MediaQualityAidl, SetEqualizerSettings) {
         testDetail.bands.resize(capabilities.supportedFrequenciesHz.size());
         for (size_t i = 0; i < capabilities.supportedFrequenciesHz.size(); ++i) {
             testDetail.bands[i].frequencyHz = capabilities.supportedFrequenciesHz[i];
-            testDetail.bands[i].gain = 0;
+            testDetail.bands[i].gainDb = 0;
             testDetail.bands[i].qFactor = 1.0f;
         }
 
@@ -827,7 +827,7 @@ TEST_P(MediaQualityAidl, TestSetEqualizerSettings_MismatchedBands) {
         testDetail.bands.resize(1);  // One band, but with an unsupported frequency
         testDetail.bands[0].frequencyHz =
                 capabilities.supportedFrequenciesHz[0] + 1;  // Mismatched frequency
-        testDetail.bands[0].gain = 0;
+        testDetail.bands[0].gainDb = 0;
         testDetail.bands[0].qFactor = 1.0f;
 
         auto result = mediaquality->setEqualizerSettings(testDetail);

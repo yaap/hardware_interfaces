@@ -237,6 +237,9 @@ interface IMediaQuality {
      * Enables or disables the color mute feature.
      *
      * @param enable True to enable, false to disable.
+     *
+     * @return Status::ok on success
+     *         Throw UNSUPPORTED_OPERATION if this functionality is unsupport by the hardware.
      */
     void setColorMuteEnabled(boolean enable);
 

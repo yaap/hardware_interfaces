@@ -35,6 +35,6 @@ package android.hardware.tv.mediaquality;
 @RustDerive(Clone=true, PartialEq=true) @VintfStability
 parcelable EqualizerBand {
   int frequencyHz;
-  int gain;
+  int gainDb;
   float qFactor;
 }
