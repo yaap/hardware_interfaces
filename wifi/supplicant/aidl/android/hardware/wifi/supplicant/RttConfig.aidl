@@ -99,6 +99,20 @@ parcelable RttConfig {
     boolean mustRequestLcr;
 
     /**
+     * Valid values will be 2-11 and 15 as specified by the IEEE 802.11mc std for
+     * the FTM parameter burst duration. In a multi-burst
+     * request, if responder overrides with larger value,
+     * the initiator will return failure. In a single-burst
+     * request, if responder overrides with larger value,
+     * the initiator will send TMR_STOP to terminate RTT
+     * at the end of the burst_duration it requested.
+     * Refer IEEE802.11 specification Table 9-279 for burst duration encoding.
+     *
+     * Note: Applicable to IEEE 802.11mc only.
+     */
+    int burstDuration;
+
+    /**
      * RTT preamble to be used in the RTT frames.
      */
     RttPreamble preamble;
