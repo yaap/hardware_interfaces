@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,22 @@
 
 package android.hardware.tv.mediaquality;
 @VintfStability
-parcelable PictureProfile {
-  long pictureProfileId;
-  android.hardware.tv.mediaquality.PictureParameters parameters;
-  @nullable android.hardware.tv.mediaquality.StreamStatusConfiguration streamStatusConfiguration;
+parcelable StreamStatusConfiguration {
+  @nullable android.hardware.tv.mediaquality.PictureParameters sdrPictureParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters dolbyVisionParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters hdr10PictureParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters tchPictureParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters hlgPictureParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters hdr10PlusPictureParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters hdrVividPictureParameters;
+  @nullable android.hardware.tv.mediaquality.PictureParameters imaxSdr;
+  @nullable android.hardware.tv.mediaquality.PictureParameters imaxHdr10;
+  @nullable android.hardware.tv.mediaquality.PictureParameters imaxHdr10Plus;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmSdr;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmHdr10;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmHdr10Plus;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmHlg;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmDolby;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmTch;
+  @nullable android.hardware.tv.mediaquality.PictureParameters fmmHdrVivid;
 }
