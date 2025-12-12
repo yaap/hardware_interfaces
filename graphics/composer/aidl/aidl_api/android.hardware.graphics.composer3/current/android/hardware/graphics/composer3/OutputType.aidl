@@ -38,4 +38,5 @@ enum OutputType {
   SYSTEM = 1,
   SDR = 2,
   HDR10 = 3,
+  HLG_PLUS = 4,
 }
