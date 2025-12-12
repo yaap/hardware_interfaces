@@ -22,6 +22,9 @@ import android.hardware.bluetooth.audio.MetadataLtv;
 
 /**
  * Used to specify the capabilities of the codecs supported by the offloader.
+ * This describes the peripheral capabilities that can be exposed in the Published Audio
+ * Capabilities Service (PACS), allowing the use of structures defined in the
+ * Bluetooth SIG Assigned Numbers.
  */
 @VintfStability
 parcelable LeAudioPeripheralCapabilities {
