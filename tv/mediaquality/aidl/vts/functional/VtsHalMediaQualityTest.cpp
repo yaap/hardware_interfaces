@@ -36,6 +36,7 @@
 #include <aidl/android/hardware/tv/mediaquality/SoundParameters.h>
 #include <aidl/android/hardware/tv/mediaquality/SoundProfile.h>
 #include <aidl/android/hardware/tv/mediaquality/StreamStatus.h>
+#include <aidl/android/hardware/tv/mediaquality/StreamStatusConfiguration.h>
 
 #include <android/binder_auto_utils.h>
 #include <android/binder_manager.h>
@@ -67,6 +68,7 @@ using aidl::android::hardware::tv::mediaquality::SoundParameter;
 using aidl::android::hardware::tv::mediaquality::SoundParameters;
 using aidl::android::hardware::tv::mediaquality::SoundProfile;
 using aidl::android::hardware::tv::mediaquality::StreamStatus;
+using aidl::android::hardware::tv::mediaquality::StreamStatusConfiguration;
 using aidl::android::hardware::tv::mediaquality::VendorParamCapability;
 using aidl::android::hardware::tv::mediaquality::VendorParameterIdentifier;
 using android::ProcessState;
@@ -627,17 +629,25 @@ TEST_P(MediaQualityAidl, TestSendDefaultPictureParameters) {
 }
 
 TEST_P(MediaQualityAidl, TestSetMutedColor) {
-    int32_t blue = 0xFF0000FF;
-    auto result = mediaquality->setMutedColor(blue);
-    ASSERT_TRUE(result.isOk());
+    int32_t version = 0;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        int32_t blue = 0xFF0000FF;
+        auto result = mediaquality->setMutedColor(blue);
+        ASSERT_TRUE(result.isOk());
+    }
 }
 
 TEST_P(MediaQualityAidl, TestSetColorMuteEnabled) {
-    auto result_enable = mediaquality->setColorMuteEnabled(true);
-    ASSERT_TRUE(result_enable.isOk());
+    int32_t version = 0;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version >= 2) {
+        auto result_enable = mediaquality->setColorMuteEnabled(true);
+        ASSERT_TRUE(result_enable.isOk());
 
-    auto result_disable = mediaquality->setColorMuteEnabled(false);
-    ASSERT_TRUE(result_disable.isOk());
+        auto result_disable = mediaquality->setColorMuteEnabled(false);
+        ASSERT_TRUE(result_disable.isOk());
+    }
 }
 
 TEST_P(MediaQualityAidl, TestSetSoundProfileAdjustmentListener) {
@@ -880,6 +890,50 @@ TEST_P(MediaQualityAidl, TestSendDefaultPictureProfile) {
     pictureParameters.pictureParameters = picParams;
 
     pictureProfile.parameters = pictureParameters;
+    ASSERT_OK(mediaquality->sendDefaultPictureProfile(pictureProfile));
+}
+
+TEST_P(MediaQualityAidl, TestSendDefaultPictureProfileWithStreamStatusConfiguration) {
+    int32_t version;
+    ASSERT_OK(mediaquality->getInterfaceVersion(&version));
+    if (version < 2) {
+        ALOGD("Test requires interface version 2 or higher.");
+        return;
+    }
+    PictureProfile pictureProfile;
+
+    // Base parameters
+    PictureParameters baseParams;
+    std::vector<PictureParameter> basePicParams;
+    PictureParameter brightnessParam;
+    brightnessParam.set<PictureParameter::Tag::brightness>(0.5f);
+    basePicParams.push_back(brightnessParam);
+    baseParams.pictureParameters = basePicParams;
+    pictureProfile.parameters = baseParams;
+
+    // StreamStatusConfiguration
+    StreamStatusConfiguration streamConfig;
+
+    // SDR Parameters
+    PictureParameters sdrParams;
+    std::vector<PictureParameter> sdrPicParams;
+    PictureParameter sdrContrast;
+    sdrContrast.set<PictureParameter::Tag::contrast>(60);
+    sdrPicParams.push_back(sdrContrast);
+    sdrParams.pictureParameters = sdrPicParams;
+    streamConfig.sdrPictureParameters = sdrParams;
+
+    // HDR10 Parameters
+    PictureParameters hdr10Params;
+    std::vector<PictureParameter> hdr10PicParams;
+    PictureParameter hdr10Contrast;
+    hdr10Contrast.set<PictureParameter::Tag::contrast>(80);
+    hdr10PicParams.push_back(hdr10Contrast);
+    hdr10Params.pictureParameters = hdr10PicParams;
+    streamConfig.hdr10PictureParameters = hdr10Params;
+
+    pictureProfile.streamStatusConfiguration = streamConfig;
+
     ASSERT_OK(mediaquality->sendDefaultPictureProfile(pictureProfile));
 }
 
