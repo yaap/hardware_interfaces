@@ -46,6 +46,7 @@ class HciRouterAsync : public ::bluetooth_hal::util::Worker<RouterTask> {
   virtual ~HciRouterAsync() = default;
 
   virtual bool DoInRouterThread(std::function<void()> task);
+  virtual bool SynchronousDoInRouterThread(std::function<void()> task);
   virtual ::bluetooth_hal::HalState GetHalState();
 
   // Internal handlers meant to be called by the worker thread

@@ -25,6 +25,7 @@
 #include <mutex>
 #include <ostream>
 #include <string>
+#include <utility>
 
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/debug/debug_central.h"
@@ -43,7 +44,7 @@ void HciRouterInterface::OnTransportClosed() {
 
 void HciRouterInterface::OnTransportPacketReady(const HalPacket& packet) {
   HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
-  hci_router_async_->DoInRouterThread(
+  DoInRouterThread(
       [this, packet]() { hci_router_async_->OnTransportPacketReady(packet); });
 }
 
@@ -55,7 +56,7 @@ HciRouterInterface::HciRouterInterface(
     : hci_router_async_(hci_router_async) {
   // Try to initialize the router in the router thread if accelerated BT ON
   // feature is enabled.
-  hci_router_async_->DoInRouterThread([this]() {
+  DoInRouterThread([this]() {
     if (HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
       LOG(INFO) << "Powering ON Bluetooth chip for Accelerated BT ON.";
       hci_router_async_->InitializeModules(this);
@@ -65,47 +66,36 @@ HciRouterInterface::HciRouterInterface(
 
 bool HciRouterInterface::Initialize(
     const std::shared_ptr<HciRouterCallback>& callback) {
-  return hci_router_async_->DoInRouterThread(
+  return DoInRouterThread(
       [callback, this]() { hci_router_async_->Initialize(callback, this); });
 }
 
 void HciRouterInterface::Close() {
-  std::promise<void> promise;
-  auto future = promise.get_future();
-  if (hci_router_async_->DoInRouterThread([this, &promise]() {
-        hci_router_async_->Close();
-        promise.set_value();
-      })) {
-    future.wait();
-  }
+  // Close has to be synchronous to prevent initialize while closing.
+  SynchronousDoInRouterThread([this]() { hci_router_async_->Close(); });
 }
 
 void HciRouterInterface::Cleanup() {
-  std::promise<void> promise;
-  auto future = promise.get_future();
-  if (hci_router_async_->DoInRouterThread([this, &promise]() {
-        hci_router_async_->Cleanup();
-        promise.set_value();
-      })) {
-    future.wait();
-  }
+  // Cleanup has to be synchronous to prevent system shutdown before cleanup is
+  // complete, which can cause potential power leakage in the hardware layer.
+  SynchronousDoInRouterThread([this]() { hci_router_async_->Cleanup(); });
 }
 
 bool HciRouterInterface::Send(const HalPacket& packet) {
-  return hci_router_async_->DoInRouterThread(
+  return DoInRouterThread(
       [this, packet]() { hci_router_async_->Send(packet); });
 }
 
 bool HciRouterInterface::SendCommand(const HalPacket& packet,
                                      const HalPacketCallback& callback) {
-  return hci_router_async_->DoInRouterThread([this, packet, callback]() {
+  return DoInRouterThread([this, packet, callback]() {
     hci_router_async_->SendCommand(
         packet, std::make_shared<HalPacketCallback>(callback));
   });
 }
 
 bool HciRouterInterface::SendCommandNoAck(const HalPacket& packet) {
-  return hci_router_async_->DoInRouterThread(
+  return DoInRouterThread(
       [this, packet]() { hci_router_async_->SendCommandNoAck(packet); });
 }
 
@@ -114,13 +104,22 @@ HalState HciRouterInterface::GetHalState() {
 }
 
 void HciRouterInterface::UpdateHalState(HalState state) {
-  hci_router_async_->DoInRouterThread(
+  DoInRouterThread(
       [this, state]() { hci_router_async_->UpdateHalState(state); });
 }
 
 void HciRouterInterface::SendPacketToStack(const HalPacket& packet) {
-  hci_router_async_->DoInRouterThread(
+  DoInRouterThread(
       [this, packet]() { hci_router_async_->SendPacketToStack(packet); });
+}
+
+bool HciRouterInterface::SynchronousDoInRouterThread(
+    std::function<void()> task) {
+  return hci_router_async_->SynchronousDoInRouterThread(std::move(task));
+}
+
+bool HciRouterInterface::DoInRouterThread(std::function<void()> task) {
+  return hci_router_async_->DoInRouterThread(std::move(task));
 }
 
 }  // namespace bluetooth_hal::hci

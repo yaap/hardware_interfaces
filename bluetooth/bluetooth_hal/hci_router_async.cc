@@ -20,10 +20,12 @@
 
 #include <cstdint>
 #include <functional>
+#include <future>
 #include <memory>
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #include "bluetooth_hal/chip/async_chip_provisioner.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
@@ -111,6 +113,20 @@ bool HciRouterAsync::DoInRouterThread(std::function<void()> task) {
   return false;
 }
 
+bool HciRouterAsync::SynchronousDoInRouterThread(std::function<void()> task) {
+  std::promise<void> promise;
+  auto future = promise.get_future();
+  bool status = DoInRouterThread([&promise, task = std::move(task)]() {
+    task();
+    promise.set_value();
+  });
+
+  if (status) {
+    future.wait();
+  }
+  return status;
+}
+
 void HciRouterAsync::TaskHandler(RouterTask task) {
   SCOPED_ANCHOR(AnchorType::kRouterTask, __func__);
   HAL_LOG(VERBOSE) << "HciRouterAsync: handling RouterTask";
@@ -179,7 +195,10 @@ bool HciRouterAsync::InitializeModules(
   LOG(INFO) << "Start downloading Bluetooth firmware.";
 #ifndef UNIT_TEST
   AsyncChipProvisioner::GetProvisioner().PostInitialize(
-      std::bind_front(&HciRouterAsync::UpdateHalState, this));
+      [this](HalState hal_state) {
+        SynchronousDoInRouterThread(
+            [this, hal_state]() { UpdateHalState(hal_state); });
+      });
   AsyncChipProvisioner::GetProvisioner().PostDownloadFirmware();
 #endif
 

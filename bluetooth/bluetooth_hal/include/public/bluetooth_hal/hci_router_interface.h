@@ -53,6 +53,10 @@ class HciRouterInterface
  protected:
   explicit HciRouterInterface(std::shared_ptr<HciRouterAsync> hci_router_async);
   std::shared_ptr<HciRouterAsync> hci_router_async_;
+
+ private:
+  bool DoInRouterThread(std::function<void()> task);
+  bool SynchronousDoInRouterThread(std::function<void()> task);
 };
 
 }  // namespace bluetooth_hal::hci

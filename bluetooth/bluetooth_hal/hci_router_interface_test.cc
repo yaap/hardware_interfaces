@@ -52,6 +52,8 @@ class MockHciRouterCallback : public HciRouterCallback {
 class MockHciRouterAsync : public HciRouterAsync {
  public:
   MOCK_METHOD(bool, DoInRouterThread, (std::function<void()> task), (override));
+  MOCK_METHOD(bool, SynchronousDoInRouterThread, (std::function<void()> task),
+              (override));
   MOCK_METHOD(HalState, GetHalState, (), (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(void, Cleanup, (), (override));
@@ -129,7 +131,7 @@ TEST_F(HciRouterInterfaceTest, InitializeFailsWhenDoInRouterThreadFails) {
 }
 
 TEST_F(HciRouterInterfaceTest, Close) {
-  EXPECT_CALL(*mock_hci_router_async_, DoInRouterThread(_))
+  EXPECT_CALL(*mock_hci_router_async_, SynchronousDoInRouterThread(_))
       .WillOnce(Invoke([](std::function<void()> task) {
         task();
         return true;
@@ -140,8 +142,7 @@ TEST_F(HciRouterInterfaceTest, Close) {
 }
 
 TEST_F(HciRouterInterfaceTest, Cleanup) {
-  EXPECT_CALL(*mock_hci_router_async_,
-              DoInRouterThread(An<std::function<void()>>()))
+  EXPECT_CALL(*mock_hci_router_async_, SynchronousDoInRouterThread(_))
       .WillOnce(Invoke([](std::function<void()> task) {
         task();
         return true;

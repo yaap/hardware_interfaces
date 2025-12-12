@@ -133,6 +133,14 @@ TEST_F(HciRouterAsyncTest, DoInRouterThread) {
             std::future_status::ready);
 }
 
+TEST_F(HciRouterAsyncTest, SynchronousDoInRouterThread) {
+  bool task_executed = false;
+  bool result =
+      router_->SynchronousDoInRouterThread([&]() { task_executed = true; });
+  EXPECT_TRUE(result);
+  EXPECT_TRUE(task_executed);
+}
+
 TEST_F(HciRouterAsyncTest, SendAclData) {
   HalPacket acl_data({0x01, 0x02, 0x03});
   acl_data.SetSource(PacketSource::kStack);
