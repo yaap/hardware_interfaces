@@ -959,7 +959,7 @@ interface IBluetoothAudioProvider {
 
     /**
      * Get the Codec Configured parameters from the audio provider for the given
-     * Audio Strean Endpoind (ASE) configurations as per Bluetooth specification
+     * Audio Stream Endpoint (ASE) configurations as per Bluetooth specification
      * ASCS ver 1.0.1. This method shall be supported for LeAudioPeripheral role.
      *
      * The BT stack calls this function with codec configurations requested by
