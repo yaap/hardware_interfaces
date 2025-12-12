@@ -21,6 +21,7 @@
 #include <android-base/strings.h>
 #include <fstab/fstab.h>
 
+using aidl::android::hardware::health::storage::Result;
 using ::android::base::ReadFileToString;
 using ::android::base::Timer;
 using ::android::base::Trim;
@@ -28,7 +29,6 @@ using ::android::base::WriteStringToFd;
 using ::android::base::WriteStringToFile;
 using ::android::fs_mgr::Fstab;
 using ::android::fs_mgr::ReadDefaultFstab;
-using ::android::hardware::health::storage::V1_0::Result;
 
 namespace android::hardware::health::storage {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.hardware.health.storage@1.0;
+
+package android.hardware.tv.mediaquality;
 
 /**
- * Callback interface to IStorage.garbageCollect.
+ * Defines the types of display panel technologies.
  */
-interface IGarbageCollectCallback {
+@VintfStability
+@Backing(type="int")
+enum PanelTechnologyType {
     /**
-     * When garbage collection has finished, the implementation must
-     * invoke this function to indicate the result of the garbage collection.
-     *
-     * @return result Execution result. See documentation for Result for
-     *     details.
+     * Organic Light Emitting Diode.
      */
-    oneway onFinish(Result result);
-};
+    OLED,
+}

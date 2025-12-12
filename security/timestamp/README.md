@@ -17,14 +17,6 @@ The interface is defined in
     `TimeStampReq` and returns a `byte[]` containing the DER encoded RFC3161
     TimeStampToken.
 
-### Error Handling
-
-Methods in this HAL use AIDL exceptions to indicate errors:
-
-*   `ServiceSpecificException`: Used for HAL-specific errors.
-*   `IllegalArgumentException`: Thrown if the input `TimeStampReq` is invalid
-    (e.g., empty or malformed).
-
 ## Implementations
 
 ### Default (Non-Secure TA)

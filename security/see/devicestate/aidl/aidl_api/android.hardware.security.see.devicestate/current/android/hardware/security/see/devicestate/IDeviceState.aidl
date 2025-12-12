@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,8 @@
 // with such a backward incompatible change, it has a high risk of breaking
 // later when a module using the interface is updated, e.g., Mainline modules.
 
-package android.hardware.tv.mediaquality;
-@RustDerive(Clone=true, PartialEq=true) @VintfStability
-parcelable EqualizerDetail {
-  int band120Hz;
-  int band500Hz;
-  int band1_5kHz;
-  int band5kHz;
-  int band10kHz;
-  android.hardware.tv.mediaquality.EqualizerBand[] bands = {};
+package android.hardware.security.see.devicestate;
+@VintfStability
+interface IDeviceState {
+  boolean provisioningAllowed();
 }

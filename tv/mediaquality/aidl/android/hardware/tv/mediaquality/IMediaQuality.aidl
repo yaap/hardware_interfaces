@@ -17,15 +17,20 @@
 package android.hardware.tv.mediaquality;
 
 import android.hardware.tv.mediaquality.AmbientBacklightSettings;
+import android.hardware.tv.mediaquality.EqualizerCapabilities;
+import android.hardware.tv.mediaquality.EqualizerDetail;
 import android.hardware.tv.mediaquality.IMediaQualityCallback;
 import android.hardware.tv.mediaquality.IPictureProfileAdjustmentListener;
 import android.hardware.tv.mediaquality.IPictureProfileChangedListener;
 import android.hardware.tv.mediaquality.ISoundProfileAdjustmentListener;
 import android.hardware.tv.mediaquality.ISoundProfileChangedListener;
+import android.hardware.tv.mediaquality.PanelTechnologyType;
 import android.hardware.tv.mediaquality.ParamCapability;
 import android.hardware.tv.mediaquality.ParameterName;
 import android.hardware.tv.mediaquality.PictureParameters;
+import android.hardware.tv.mediaquality.PictureProfile;
 import android.hardware.tv.mediaquality.SoundParameters;
+import android.hardware.tv.mediaquality.SoundProfile;
 import android.hardware.tv.mediaquality.VendorParamCapability;
 import android.hardware.tv.mediaquality.VendorParameterIdentifier;
 
@@ -234,4 +239,50 @@ interface IMediaQuality {
      * @param enable True to enable, false to disable.
      */
     void setColorMuteEnabled(boolean enable);
+
+    /**
+     * Gets the static equalizer capabilities of this device.
+     * The framework should call this once when it start.
+     */
+    EqualizerCapabilities getEqualizerCapabilities();
+
+    /**
+     * Gets the current equalizer settings.
+     */
+    EqualizerDetail getEqualizerSettings();
+
+    /**
+     * Sets the desired equalizer settings.
+     * The framework must ensure the bands provided in the `detail` object
+     * match the frequencies reported by `getEqualizerCapabilities`. If they do not match, an
+     * error will be returned.
+     *
+     * @return Status::ok on success
+     *         BAD_VALUE if the bands in `detail` do not match the capabilities.
+     */
+    void setEqualizerSettings(in EqualizerDetail detail);
+
+    /**
+     * Checks if a specific display panel technology is supported.
+     *
+     * @param panelTechnology The panel technology type to check.
+     * @return true if the technology is supported, false otherwise.
+     */
+    boolean isDisplayTechnologySupported(in PanelTechnologyType panelTechnology);
+
+    /**
+     * Sends the default picture profile and its ID to the HAL.
+     *
+     * @param pictureProfile The default picture profile settings.
+     * @param defaultPictureProfileId The ID for the default picture profile.
+     */
+    void sendDefaultPictureProfile(in PictureProfile pictureProfile);
+
+    /**
+     * Sends the default sound profile and its ID to the HAL.
+     *
+     * @param soundProfile The default sound profile settings.
+     * @param defaultSoundProfileId The ID for the default sound profile.
+     */
+    void sendDefaultSoundProfile(in SoundProfile soundProfile);
 }

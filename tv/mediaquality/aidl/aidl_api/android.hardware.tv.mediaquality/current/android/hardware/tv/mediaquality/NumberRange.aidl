@@ -40,4 +40,8 @@ union NumberRange {
   @nullable int[] intValuesSupported;
   @nullable long[] longValuesSupported;
   @nullable double[] doubleValuesSupported;
+  @nullable float[2] floatMinMax;
+  @nullable float[] floatValuesSupported;
+  @nullable byte[2] byteMinMax;
+  @nullable byte[] byteValuesSupported;
 }
