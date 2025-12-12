@@ -16,37 +16,6 @@ package {
     default_applicable_licenses: ["hardware_interfaces_license"],
 }
 
-aidl_interface_defaults {
-    name: "android.hardware.graphics.allocator-latest",
-    imports: [
-        "android.hardware.graphics.allocator-V2",
-    ],
-}
-
-rust_defaults {
-    name: "android.hardware.graphics.allocator-latest-rust",
-    rustlibs: [
-        "android.hardware.graphics.allocator-V2-rust",
-    ],
-    defaults: [
-        "android.hardware.graphics.common-latest-rust",
-    ],
-}
-
-cc_defaults {
-    name: "android.hardware.graphics.allocator-ndk_static",
-    target: {
-        linux: {
-            static_libs: [
-                "android.hardware.graphics.allocator-V2-ndk",
-            ],
-        },
-    },
-    defaults: [
-        "android.hardware.graphics.common-ndk_static",
-    ],
-}
-
 cc_defaults {
     name: "android.hardware.graphics.allocator-ndk_shared",
     target: {

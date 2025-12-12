@@ -110,7 +110,6 @@ cc_test {
     defaults: [
         "VtsHalTargetTestDefaults",
         "use_libaidlvintf_gtest_helper_static",
-        "android.hardware.graphics.allocator-ndk_shared",
         "android.hardware.graphics.common-ndk_static",
     ],
     srcs: [
@@ -127,6 +126,8 @@ cc_test {
         "libaidlcommonsupport",
         "libgralloctypes",
         "libgtest",
+        "android.hardware.graphics.allocator-V3-ndk",
+        "android.hardware.common-V2-ndk",
     ],
     header_libs: [
         "libimapper_stablec",

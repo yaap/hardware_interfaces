@@ -43,6 +43,7 @@ __BEGIN_DECLS
  */
 enum AIMapper_Version : uint32_t {
     AIMAPPER_VERSION_5 = 5,
+    AIMAPPER_VERSION_6 = 6,
 };
 
 /**
@@ -152,6 +153,59 @@ typedef void (*AIMapper_DumpBufferCallback)(void* _Null_unspecified context,
  * @param context The caller-provided void* that was passed to dumpAllBuffers.
  */
 typedef void (*AIMapper_BeginDumpBufferCallback)(void* _Null_unspecified context);
+
+/**
+ * Implementation of AIMAPPER_VERSION_6
+ * All functions must not be null & must provide a valid implementation.
+ */
+typedef struct AIMapperV6 {
+    /**
+     * Lists all the views contained in this handle.
+     *
+     * @param buffer Imported buffer handle.
+     * @param outViewList The list of views
+     * @param outNumberOfViews How many views are in `outViewList`
+     * @return error Error status of the call, which may be
+     *     - `NONE` upon success.
+     *     - `UNSUPPORTED` if there's any error
+     */
+    AIMapper_Error (*_Nonnull getMultiViewInfo)(buffer_handle_t _Nonnull buffer,
+                                                const uint32_t* _Nullable* _Nonnull outViewList,
+                                                size_t* _Nonnull outNumberOfViews);
+
+    /**
+     * Indicates the index of the base view of the handle.
+     *
+     * @param buffer Imported buffer handle.
+     * @param outViewIndex The index of base view,
+     *    relative to the list of views provided by getMultiViewInfo().
+     * @return error Error status of the call, which may be
+     *     - `NONE` upon success.
+     *     - `UNSUPPORTED` if there's any error
+     */
+    AIMapper_Error (*_Nonnull getBaseView)(buffer_handle_t _Nonnull buffer,
+                                           uint32_t* _Nonnull outViewIndex);
+
+    /**
+     * Imports a single view buffer from an imported multi-view handle.
+     * The lifetime of this buffer handle is independent of multiViewHandle.
+     * It is callers responsibility to free the buffer handle.
+     *
+     * @param multiViewHandle Imported multi-view handle.
+     * @param viewIndex Index of the view to import,
+     *    determined using getMultiViewInfo().
+     * @param outBufferHandle The resulting imported buffer handle for a single view
+     * @return error Error status of the call, which may be
+     *     - `NONE` upon success.
+     *     - `BAD_BUFFER` if the multi-view handle is invalid.
+     *     - `BAD_VALUE` if the view index is not valid in the multi-view handle.
+     *     - `NO_RESOURCES` if the handle cannot be imported due to
+     *       unavailability of resources.
+     */
+    AIMapper_Error (*_Nonnull importViewBuffer)(
+            buffer_handle_t _Nonnull multiViewHandle, uint32_t viewIndex,
+            buffer_handle_t _Nullable* _Nonnull outBufferHandle);
+} AIMapperV6;
 
 /**
  * Implementation of AIMAPPER_VERSION_5
@@ -666,7 +720,6 @@ typedef struct AIMapperV5 {
     AIMapper_Error (*_Nonnull getReservedRegion)(buffer_handle_t _Nonnull buffer,
                                                  void* _Nullable* _Nonnull outReservedRegion,
                                                  uint64_t* _Nonnull outReservedSize);
-
 } AIMapperV5;
 
 /**
@@ -678,6 +731,7 @@ typedef struct AIMapperV5 {
 typedef struct AIMapper {
     alignas(alignof(max_align_t)) AIMapper_Version version;
     AIMapperV5 v5;
+    AIMapperV6 v6;
 } AIMapper;
 
 /**
