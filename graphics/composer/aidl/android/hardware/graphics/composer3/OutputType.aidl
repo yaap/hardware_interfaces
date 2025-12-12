@@ -39,4 +39,8 @@ enum OutputType {
      * Display supports HDR10 output type
      */
     HDR10 = 3,
+    /**
+     * Display supports HLG+ output type
+     */
+    HLG_PLUS = 4,
 }

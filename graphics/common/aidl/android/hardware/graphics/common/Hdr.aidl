@@ -47,4 +47,8 @@ enum Hdr {
      * If present, indicates that device supports Dolby Vision only up to 4k30hz graphics mode
      */
     DOLBY_VISION_4K30 = 5,
+    /**
+     * Device supports HLG+
+     */
+    HLG10_PLUS = 6,
 }
