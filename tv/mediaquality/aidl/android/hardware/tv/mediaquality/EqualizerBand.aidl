@@ -30,10 +30,10 @@ parcelable EqualizerBand {
     int frequencyHz;
 
     /**
-     * The gain (level) for this band.
+     * The gain (level) for this band in decibel.
      * Range: Determined by capabilities (e.g., -50 to 50).
      */
-    int gain;
+    int gainDb;
 
     /**
      * The Quality Factor (Q).
