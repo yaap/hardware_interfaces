@@ -12,7 +12,6 @@ package aidl.android.hardware.bluetooth.audio.setting {
     method public aidl.android.hardware.bluetooth.audio.setting.CodecType getCodec();
     method public short getCodecFrameBlocksPerSdu();
     method public int getFrameDurationUs();
-    method public java.util.List<java.math.BigInteger> getMaxSdusAbr();
     method public String getName();
     method public int getOctetsPerCodecFrame();
     method public short getPcmBitDepth();
@@ -20,7 +19,6 @@ package aidl.android.hardware.bluetooth.audio.setting {
     method public void setCodec(aidl.android.hardware.bluetooth.audio.setting.CodecType);
     method public void setCodecFrameBlocksPerSdu(short);
     method public void setFrameDurationUs(int);
-    method public void setMaxSdusAbr(java.util.List<java.math.BigInteger>);
     method public void setName(String);
     method public void setOctetsPerCodecFrame(int);
     method public void setPcmBitDepth(short);
@@ -38,15 +36,6 @@ package aidl.android.hardware.bluetooth.audio.setting {
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.CodecType APTX_ADAPTIVE_LEX;
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.CodecType LC3;
     enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.CodecType OPUS;
-  }
-
-  public enum ConfigChangeConditionFlagMask {
-    method public String getRawName();
-    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CIS_DIRECTIONS_CHANGE;
-    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CODEC_TYPE_CHANGE;
-    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CONFIG_PARAMETERS_CHANGE;
-    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_CSIP_TWS;
-    enum_constant public static final aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask WITH_TRANSPORT_LATENCY_CHANGE;
   }
 
   public class Configuration {
@@ -70,12 +59,10 @@ package aidl.android.hardware.bluetooth.audio.setting {
     method public aidl.android.hardware.bluetooth.audio.setting.ConfigurationList getConfigurationList();
     method public aidl.android.hardware.bluetooth.audio.setting.ScenarioList getScenarioList();
     method public aidl.android.hardware.bluetooth.audio.setting.StrategyConfigurationList getStrategyConfigurationList();
-    method public aidl.android.hardware.bluetooth.audio.setting.UpdateLatencySetting getUpdateLatencySetting();
     method public void setCodecConfigurationList(aidl.android.hardware.bluetooth.audio.setting.CodecConfigurationList);
     method public void setConfigurationList(aidl.android.hardware.bluetooth.audio.setting.ConfigurationList);
     method public void setScenarioList(aidl.android.hardware.bluetooth.audio.setting.ScenarioList);
     method public void setStrategyConfigurationList(aidl.android.hardware.bluetooth.audio.setting.StrategyConfigurationList);
-    method public void setUpdateLatencySetting(aidl.android.hardware.bluetooth.audio.setting.UpdateLatencySetting);
   }
 
   public class Scenario {
@@ -110,21 +97,6 @@ package aidl.android.hardware.bluetooth.audio.setting {
   public class StrategyConfigurationList {
     ctor public StrategyConfigurationList();
     method public java.util.List<aidl.android.hardware.bluetooth.audio.setting.StrategyConfiguration> getStrategyConfiguration();
-  }
-
-  public class UpdateLatencyRule {
-    ctor public UpdateLatencyRule();
-    method public java.util.List<aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask> getConfigChangeConditionFlags();
-    method public int getLatency();
-    method public void setConfigChangeConditionFlags(java.util.List<aidl.android.hardware.bluetooth.audio.setting.ConfigChangeConditionFlagMask>);
-    method public void setLatency(int);
-  }
-
-  public class UpdateLatencySetting {
-    ctor public UpdateLatencySetting();
-    method public java.math.BigInteger getDefaultLatency();
-    method public java.util.List<aidl.android.hardware.bluetooth.audio.setting.UpdateLatencyRule> getUpdateLatencyRule();
-    method public void setDefaultLatency(java.math.BigInteger);
   }
 
   public class XmlParser {

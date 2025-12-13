@@ -19,7 +19,6 @@ package android.hardware.bluetooth.audio;
 import android.hardware.bluetooth.audio.AudioCapabilities;
 import android.hardware.bluetooth.audio.CodecInfo;
 import android.hardware.bluetooth.audio.IBluetoothAudioProvider;
-import android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting;
 import android.hardware.bluetooth.audio.SessionType;
 
 /**
@@ -84,19 +83,7 @@ interface IBluetoothAudioProviderFactory {
     parcelable ProviderInfo {
         String name;
         CodecInfo[] codecInfos;
-        // @deprecated move to AdvancedSetting
         boolean supportsMultidirectionalCapabilities;
-        /**
-         * LE Audio Context for Central and Peripheral use case
-         */
-        parcelable LeAudio {
-            boolean supportsMultidirectionalCapabilities;
-            @nullable LeAudioUpdateLatencySetting leAudioUpdateLatencySetting;
-        }
-        union AdvancedSetting {
-            LeAudio leAudio;
-        }
-        @nullable AdvancedSetting advancedSetting;
     }
 
     /**

@@ -36,4 +36,5 @@ package android.hardware.tv.mediaquality;
 parcelable PictureProfile {
   long pictureProfileId;
   android.hardware.tv.mediaquality.PictureParameters parameters;
+  @nullable android.hardware.tv.mediaquality.StreamStatusConfiguration streamStatusConfiguration;
 }

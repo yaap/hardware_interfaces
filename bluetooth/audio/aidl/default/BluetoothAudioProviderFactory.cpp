@@ -226,17 +226,7 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
     for (const auto& codec_info : db_codec_info) {
       LOG(INFO) << __func__ << " - Codec Info: " << codec_info.toString();
     }
-    if (!com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
-      provider_info.supportsMultidirectionalCapabilities = true;
-      return ndk::ScopedAStatus::ok();
-    }
-    auto advanced_setting =
-        BluetoothAudioCodecs::GetAdvancedSetting(session_type);
-    provider_info.advancedSetting = advanced_setting;
-    if (advanced_setting) {
-      LOG(INFO) << __func__
-                << " - Advanced Setting: " << advanced_setting->toString();
-    }
+    provider_info.supportsMultidirectionalCapabilities = true;
     return ndk::ScopedAStatus::ok();
   }
 

@@ -60,9 +60,9 @@ parcelable LeAudioUpdateLatencySetting {
          */
         const int WITH_CIS_DIRECTIONS_CHANGE = 0x0008;
         /**
-         * Set for the CSIP TWS device
+         * Set for the update with the phy
          */
-        const int WITH_CSIP_TWS = 0x0010;
+        const int WITH_PHY_CHANGE = 0x0010;
 
         int bitmask;
     }

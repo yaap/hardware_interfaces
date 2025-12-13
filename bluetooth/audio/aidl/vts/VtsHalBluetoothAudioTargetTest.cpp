@@ -23,7 +23,6 @@
 #include <android/binder_process.h>
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
-#include <com_android_btaudio_hal_flags.h>
 #include <cutils/properties.h>
 #include <fmq/AidlMessageQueue.h>
 
@@ -78,7 +77,6 @@ using aidl::android::hardware::bluetooth::audio::
 using aidl::android::hardware::bluetooth::audio::LeAudioCodecConfiguration;
 using aidl::android::hardware::bluetooth::audio::LeAudioConfiguration;
 using aidl::android::hardware::bluetooth::audio::LeAudioPeripheralCapabilities;
-using aidl::android::hardware::bluetooth::audio::LeAudioUpdateLatencySetting;
 using aidl::android::hardware::bluetooth::audio::MetadataLtv;
 using aidl::android::hardware::bluetooth::audio::OpusCapabilities;
 using aidl::android::hardware::bluetooth::audio::OpusConfiguration;
@@ -830,33 +828,6 @@ TEST_P(BluetoothAudioProviderFactoryAidl, getProviderInfo_a2dpSessionTypes) {
   }
 }
 
-bool SuggestedLatencyRulesValidated(
-    const std::vector<
-        std::optional<LeAudioUpdateLatencySetting::SuggestedLatencyRule>>&
-        rules) {
-  const auto kSupportedFlags =
-      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_TRANSPORT_LATENCY_CHANGE |
-      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CONFIG_PARAMETERS_CHANGE |
-      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CODEC_TYPE_CHANGE |
-      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::
-          WITH_CIS_DIRECTIONS_CHANGE |
-      LeAudioUpdateLatencySetting::ConfigChangeConditionFlags::WITH_CSIP_TWS;
-
-  for (const auto& rule_opt : rules) {
-    if (!rule_opt.has_value()) {
-      return true;
-    }
-    const auto& rule = *rule_opt;
-    if ((rule.configChangeConditionFlags.bitmask & ~kSupportedFlags) != 0) {
-      return false;
-    }
-  }
-  return true;
-}
-
 /**
  * Test that getProviderInfo, when implemented,
  * returns valid information for session types for
@@ -887,37 +858,6 @@ TEST_P(BluetoothAudioProviderFactoryAidl, getProviderInfo_leAudioSessionTypes) {
       // The codec info must contain the information
       // for le audio transport.
       ASSERT_EQ(codec_info.transport.getTag(), CodecInfo::Transport::leAudio);
-    }
-
-    if (GetProviderFactoryInterfaceVersion() <
-            BluetoothAudioHalVersion::VERSION_AIDL_V6 ||
-        !provider_info->advancedSetting.has_value() ||
-        (session_type !=
-             SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH &&
-         session_type !=
-             SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH)) {
-      GTEST_SKIP();
-    }
-
-    const auto& advanced_setting = provider_info->advancedSetting.value();
-    ASSERT_EQ(
-        advanced_setting.getTag(),
-        IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting::leAudio);
-
-    const auto& le_audio_setting =
-        advanced_setting.get<IBluetoothAudioProviderFactory::ProviderInfo::
-                                 AdvancedSetting::leAudio>();
-
-    if (com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
-      if (!le_audio_setting.leAudioUpdateLatencySetting.has_value()) {
-        GTEST_SKIP();
-      }
-      const auto& latency_setting =
-          le_audio_setting.leAudioUpdateLatencySetting.value();
-      ASSERT_TRUE(SuggestedLatencyRulesValidated(
-          *latency_setting.suggestedLatencyRules));
-    } else {
-      ASSERT_FALSE(le_audio_setting.leAudioUpdateLatencySetting.has_value());
     }
   }
 }
@@ -2369,18 +2309,7 @@ class BluetoothAudioProviderLeAudioOutputHardwareAidl
   bool IsMultidirectionalCapabilitiesEnabled() {
     if (!temp_provider_info_.has_value()) return false;
 
-    if (GetProviderFactoryInterfaceVersion() <
-        BluetoothAudioHalVersion::VERSION_AIDL_V6) {
-      return temp_provider_info_.value().supportsMultidirectionalCapabilities;
-    }
-
-    auto temp_advanced_setting = temp_provider_info_.value().advancedSetting;
-    if (!temp_advanced_setting.has_value()) return false;
-
-    return temp_advanced_setting
-        ->get<IBluetoothAudioProviderFactory::ProviderInfo::AdvancedSetting::
-                  leAudio>()
-        .supportsMultidirectionalCapabilities;
+    return temp_provider_info_.value().supportsMultidirectionalCapabilities;
   }
 
   bool IsAsymmetricConfigurationAllowed() {

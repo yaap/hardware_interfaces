@@ -372,6 +372,27 @@ ndk::ScopedAStatus RadioNetworkResponse::isSatelliteEnabledForCarrierResponse(
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus RadioNetworkResponse::setSatelliteNetworkInfoResponse(
+        const RadioResponseInfo& info) {
+    rspInfo = info;
+    parent_network.notify(info.serial);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus RadioNetworkResponse::enablePrioritizedNetworkScanResponse(
+        const RadioResponseInfo& info) {
+    rspInfo = info;
+    parent_network.notify(info.serial);
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus RadioNetworkResponse::disablePrioritizedNetworkScanResponse(
+        const RadioResponseInfo& info) {
+    rspInfo = info;
+    parent_network.notify(info.serial);
+    return ndk::ScopedAStatus::ok();
+}
+
 ndk::ScopedAStatus RadioNetworkResponse::getSupportedNetworkAlertCategoriesResponse(
         const RadioResponseInfo& info, const std::vector<AlertCategory>& alertCategories) {
     rspInfo = info;

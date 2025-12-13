@@ -95,7 +95,6 @@ cc_library_shared {
 cc_test {
     name: "BluetoothLeAudioCodecsProviderTest",
     defaults: [
-        "aconfig_lib_cc_static_link.defaults",
         "latest_android_hardware_audio_common_ndk_static",
         "latest_android_hardware_bluetooth_audio_ndk_static",
         "latest_android_media_audio_common_types_ndk_static",
@@ -110,12 +109,7 @@ cc_test {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
-        "liblog",
         "libxml2",
-        "server_configurable_flags",
-    ],
-    static_libs: [
-        "btaudiohal_flags_c_lib",
     ],
     test_suites: [
         "general-tests",
