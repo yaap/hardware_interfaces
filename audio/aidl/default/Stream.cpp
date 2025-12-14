@@ -36,12 +36,14 @@ using aidl::android::hardware::audio::common::SinkMetadata;
 using aidl::android::hardware::audio::common::SourceMetadata;
 using aidl::android::media::audio::common::AudioDevice;
 using aidl::android::media::audio::common::AudioDualMonoMode;
+using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::AudioInputFlags;
 using aidl::android::media::audio::common::AudioIoFlags;
 using aidl::android::media::audio::common::AudioLatencyMode;
 using aidl::android::media::audio::common::AudioOffloadInfo;
 using aidl::android::media::audio::common::AudioOutputFlags;
 using aidl::android::media::audio::common::AudioPlaybackRate;
+using aidl::android::media::audio::common::FlushFromFrameAccuracy;
 using aidl::android::media::audio::common::MicrophoneDynamicInfo;
 using aidl::android::media::audio::common::MicrophoneInfo;
 
@@ -196,6 +198,12 @@ void StreamWorkerCommonLogic::populateReplyWrongState(
     reply->status = STATUS_INVALID_OPERATION;
 }
 
+void StreamWorkerCommonLogic::populateReplyUnsupportedCommand(
+        StreamDescriptor::Reply* reply, const StreamDescriptor::Command& command) const {
+    LOG(WARNING) << "command '" << toString(command.getTag()) << "' is not supported by the stream";
+    reply->status = STATUS_INVALID_OPERATION;
+}
+
 const std::string StreamInWorkerLogic::kThreadName = "reader";
 
 StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
@@ -345,6 +353,10 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
             } else {
                 populateReplyWrongState(&reply, command);
             }
+            break;
+        case Tag::flushFromFrame:
+            LOG(ERROR) << __func__ << ": flushFromFrame is not supported for input stream";
+            populateReplyUnsupportedCommand(&reply, command);
             break;
     }
     reply.state = mState;
@@ -717,6 +729,56 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                 populateReplyWrongState(&reply, command);
             }
             break;
+        case Tag::flushFromFrame: {
+            if (mContext->isOffload() && mContext->getFormat().type == AudioFormatType::PCM) {
+                bool validState = false;
+                switch (mState) {
+                    case StreamDescriptor::State::ACTIVE:
+                    case StreamDescriptor::State::TRANSFERRING:
+                    case StreamDescriptor::State::DRAINING:
+                    case StreamDescriptor::State::TRANSFER_PAUSED:
+                    case StreamDescriptor::State::PAUSED:
+                    case StreamDescriptor::State::DRAIN_PAUSED:
+                        validState = true;
+                        break;
+                    default:
+                        LOG(ERROR)
+                                << __func__
+                                << ": flushFromFrame, invalid state: " << toString(mState.load());
+                        populateReplyWrongState(&reply, command);
+                }
+                if (validState) {
+                    const int32_t flushFromFrameRequest = command.get<Tag::flushFromFrame>();
+                    const FlushFromFrameAccuracy accuracy =
+                            (FlushFromFrameAccuracy)((flushFromFrameRequest >>
+                                                      StreamDescriptor::
+                                                              FLUSH_FROM_FRAME_POSITION_BITS) &
+                                                     0x0f);
+                    if (accuracy == FlushFromFrameAccuracy::BEST_EFFORT ||
+                        accuracy == FlushFromFrameAccuracy::EXACT) {
+                        static const int32_t kPositionMask =
+                                (1 << StreamDescriptor::FLUSH_FROM_FRAME_POSITION_BITS) - 1;
+                        int position = flushFromFrameRequest & kPositionMask;
+                        const ::android::status_t status = mDriver->flushFromFrame(
+                                accuracy, position, &reply.flushFromPosition);
+                        populateReply(&reply, mIsConnected);
+                        if (status == ::android::BAD_VALUE) {
+                            LOG(INFO) << __func__ << ": flushFromFrame(" << position
+                                      << "), flushFromPosition=" << reply.flushFromPosition;
+                            reply.status = STATUS_BAD_VALUE;
+                        } else if (status != ::android::OK) {
+                            LOG(ERROR) << __func__ << ": flushFromFrame failed: " << status;
+                            reply.status = STATUS_INVALID_OPERATION;
+                        }
+                    } else {
+                        LOG(ERROR) << __func__ << ": invalid accuracy: " << toString(accuracy);
+                        reply.status = STATUS_BAD_VALUE;
+                    }
+                }
+            } else {
+                populateReplyUnsupportedCommand(&reply, command);
+            }
+        } break;
     }
     reply.state = mState;
     LOG(severity) << __func__ << ": writing reply " << reply.toString();
