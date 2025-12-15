@@ -28,14 +28,15 @@ cc_defaults {
     vendor_available: true,
     cflags: [
         "-Wall",
-        "-Wextra",
         "-Werror",
+        "-Wextra",
     ],
     srcs: [
         "attestation_record.cpp",
         "authorization_set.cpp",
-        "keymint_utils.cpp",
         "key_param_output.cpp",
+        "keymint_utils.cpp",
+        "openssl_utils.cpp",
     ],
     export_include_dirs: [
         "include",
@@ -46,8 +47,8 @@ cc_defaults {
     shared_libs: [
         "libbase",
         "libcrypto",
-        "libutils",
         "libhardware",
+        "libutils",
     ],
 }
 
@@ -115,8 +116,8 @@ cc_library {
         "libcppbor",
         "libcppcose_rkp",
         "libcrypto",
-        "libkeymaster_portable",
         "libjsoncpp",
+        "libkeymaster_portable",
     ],
 }
 
