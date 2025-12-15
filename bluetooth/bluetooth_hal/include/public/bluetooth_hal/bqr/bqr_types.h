@@ -164,9 +164,6 @@ enum class BqrErrorCode : uint8_t {
   kHostOpenCoexDeviceError = 0x97,
   kHostAccelBtInitFailed = 0x98,
   kHostAccelBtShutdownFailed = 0x99,
-  kChreArbitratorErrBase = 0xE0,
-  kChreArbitratorUnimplementedPacket = 0xE0,
-  kChreArbitratorInvalidPacketSize = 0xE1,
 };
 
 inline std::string_view BqrErrorToStringView(BqrErrorCode error_code) {
@@ -238,10 +235,6 @@ inline std::string_view BqrErrorToStringView(BqrErrorCode error_code) {
       return "Host Accelerated Init Failed (BtHal)";
     case BqrErrorCode::kHostAccelBtShutdownFailed:
       return "Host Accelerated ShutDown Failed (BtHal)";
-    case BqrErrorCode::kChreArbitratorUnimplementedPacket:
-      return "Arbitrator Detected Unimplemented Packet Type Error (BtChre)";
-    case BqrErrorCode::kChreArbitratorInvalidPacketSize:
-      return "Arbitrator Detected Invalid Packet Size (BtChre)";
     default:
       return "Undefined error code";
   }
