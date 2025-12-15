@@ -25,35 +25,73 @@ package android.hardware.radio.network;
 @Backing(type="int")
 @JavaDerive(toString=true)
 enum ConnectionEvent {
-    // 2G GSM circuit switched
+    /**
+     * 2G GSM circuit switched
+     */
     CS_SIGNALLING_GSM = 0,
 
-    // 2G GPRS packet services
+    /**
+     * 2G GPRS packet services
+     */
     PS_SIGNALLING_GPRS = 1,
 
-    // 3G circuit switched
+    /**
+     * 3G circuit switched
+     */
     CS_SIGNALLING_3G = 2,
 
-    // 3G packet switched
+    /**
+     * 3G packet switched
+     */
     PS_SIGNALLING_3G = 3,
 
-    // 4G LTE packet services
+    /**
+     * 4G LTE packet services
+     */
     NAS_SIGNALLING_LTE = 4,
+    /**
+     * @deprecated For signalling reporting, used only prior to radio hal version 5.0
+     */
     AS_SIGNALLING_LTE = 5,
+    /**
+     * For DRB signalling reporting as of radio HAL version 5.0 or newer
+     */
+    AS_SIGNALLING_LTE_DRB = 16,
+    /**
+     * For non-DRB signalling reporting as of radio HAL version 5.0 or newer
+     */
+    AS_SIGNALLING_LTE_NON_DRB = 17,
 
-    // VoLTE
-    // Note: emergency calls could use either normal or SOS (emergency) PDN in practice
+    /**
+     * VoLTE
+     * Note: emergency calls could use either normal or SOS (emergency) PDN in practice
+     */
     VOLTE_SIP = 6,
     VOLTE_SIP_SOS = 7,
     VOLTE_RTP = 8,
     VOLTE_RTP_SOS = 9,
 
-    // 5G packet services
+    /**
+     * 5G packet services
+     */
     NAS_SIGNALLING_5G = 10,
+    /**
+     * @deprecated For signalling reporting, used only prior to radio hal version 5.0
+     */
     AS_SIGNALLING_5G = 11,
+    /**
+     * For DRB signalling reporting as of radio HAL version 5.0 or newer
+     */
+    AS_SIGNALLING_5G_DRB = 18,
+    /**
+     * For non-DRB signalling reporting as of radio HAL version 5.0 or newer
+     */
+    AS_SIGNALLING_5G_NON_DRB = 19,
 
-    // VoNR
-    // Note: emergency calls could use either normal or SOS (emergency) PDN in practice
+    /**
+     * VoNR
+     * Note: emergency calls could use either normal or SOS (emergency) PDN in practice
+     */
     VONR_SIP = 12,
     VONR_SIP_SOS = 13,
     VONR_RTP = 14,
