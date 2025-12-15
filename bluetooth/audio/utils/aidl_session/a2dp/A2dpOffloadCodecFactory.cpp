@@ -76,8 +76,8 @@ bool A2dpOffloadCodecFactory::GetConfiguration(
             continue;
 
         configuration->id = codec->info.id;
-        A2dpStatus status =
-                codec->ParseConfiguration(configuration->configuration, &configuration->parameters);
+        A2dpStatus status = codec->SelectA2dpConfiguration(configuration->configuration,
+                                                           &configuration->parameters);
         assert(status == A2dpStatus::OK);
 
         configuration->remoteSeid = rc->seid;

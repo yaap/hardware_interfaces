@@ -33,8 +33,8 @@ class A2dpOffloadCodec {
 
     const CodecId& GetCodecId() const { return info.id; }
 
-    virtual A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                          CodecParameters* codec_parameters) const = 0;
+    virtual A2dpStatus SelectA2dpConfiguration(const std::vector<uint8_t>& configuration,
+                                               CodecParameters* codec_parameters) const = 0;
 
     virtual bool BuildConfiguration(const std::vector<uint8_t>& remote_capabilities,
                                     const std::optional<CodecParameters>& hint,

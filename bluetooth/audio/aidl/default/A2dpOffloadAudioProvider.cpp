@@ -69,13 +69,15 @@ ndk::ScopedAStatus A2dpOffloadAudioProvider::startSession(
             SbcParameters sbc_parameters;
 
             auto codec_sbc = std::static_pointer_cast<const A2dpOffloadCodecSbc>(codec);
-            a2dp_status = codec_sbc->ParseConfiguration(a2dp_config.configuration, &sbc_parameters);
+            a2dp_status =
+                    codec_sbc->SelectA2dpConfiguration(a2dp_config.configuration, &sbc_parameters);
 
         } else if (codec->info.id == CodecId(CodecId::A2dp::AAC)) {
             AacParameters aac_parameters;
 
             auto codec_aac = std::static_pointer_cast<const A2dpOffloadCodecAac>(codec);
-            a2dp_status = codec_aac->ParseConfiguration(a2dp_config.configuration, &aac_parameters);
+            a2dp_status =
+                    codec_aac->SelectA2dpConfiguration(a2dp_config.configuration, &aac_parameters);
         }
         if (a2dp_status != A2dpStatus::OK) {
             LOG(WARNING) << __func__
@@ -123,7 +125,7 @@ ndk::ScopedAStatus A2dpOffloadAudioProvider::parseA2dpConfiguration(
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
-    *_aidl_return = codec->ParseConfiguration(configuration, codec_parameters);
+    *_aidl_return = codec->SelectA2dpConfiguration(configuration, codec_parameters);
 
     return ndk::ScopedAStatus::ok();
 }
