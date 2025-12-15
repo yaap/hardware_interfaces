@@ -89,8 +89,6 @@ struct DspSimulatorState {
     int64_t bufferNotifyFrames GUARDED_BY(lock) = kSkipBufferNotifyFrames;
     StreamDescriptor::DrainMode draining GUARDED_BY(lock) =
             StreamDescriptor::DrainMode::DRAIN_UNSPECIFIED;
-    int64_t mTotalFramesPlayed GUARDED_BY(lock) = 0;
-    int64_t mLastReportedFrames GUARDED_BY(lock) = 0;
 };
 
 class DspSimulatorLogic : public ::android::hardware::audio::common::StreamLogic {
@@ -127,12 +125,7 @@ class DriverOffloadStubImpl : public DriverStubImpl {
     ::android::status_t start() override;
     ::android::status_t transfer(void* buffer, size_t frameCount, size_t* actualFrameCount,
                                  int32_t* latencyMs) override;
-    ::android::status_t flushFromFrame(
-            ::aidl::android::media::audio::common::FlushFromFrameAccuracy accuracy,
-            int32_t position, int32_t* flushFromPosition) override;
     void shutdown() override;
-
-    ::android::status_t refinePosition(StreamDescriptor::Position* position) override;
 
   private:
     ::android::status_t startWorkerIfNeeded();
@@ -145,7 +138,6 @@ class DriverOffloadStubImpl : public DriverStubImpl {
     ::android::status_t (DriverOffloadStubImpl::*mTransferHandler)(void*, size_t, size_t*);
 
     const int64_t mBufferNotifyFrames;
-    const int32_t mSafeMarginForFlushFromFrames;
     offload::DspSimulatorState mState;
     offload::DspSimulatorWorker mDspWorker;
     bool mDspWorkerStarted = false;
