@@ -38,7 +38,6 @@
 #include <aidl/android/media/audio/common/AudioDevice.h>
 #include <aidl/android/media/audio/common/AudioIoFlags.h>
 #include <aidl/android/media/audio/common/AudioOffloadInfo.h>
-#include <aidl/android/media/audio/common/FlushFromFrameAccuracy.h>
 #include <aidl/android/media/audio/common/MicrophoneInfo.h>
 #include <android-base/thread_annotations.h>
 #include <error/expected_utils.h>
@@ -160,9 +159,6 @@ class StreamContext {
         return mFlags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::input;
     }
     bool isMmap() const { return ::aidl::android::hardware::audio::common::hasMmapFlag(mFlags); }
-    bool isOffload() const {
-        return ::aidl::android::hardware::audio::common::hasNonblockingOffloadFlag(mFlags);
-    }
     bool isValid() const;
     // 'reset' is called on a Binder thread when closing the stream. Does not use
     // locking because it only cleans MQ pointers which were also set on the Binder thread.
@@ -231,12 +227,6 @@ struct DriverInterface {
                                                           int32_t* /*latency*/) {
         return ::android::OK;
     }
-    // Implement 'flushFromFrame' for offload stream if it is supported.
-    virtual ::android::status_t flushFromFrame(
-            ::aidl::android::media::audio::common::FlushFromFrameAccuracy /*accuracy*/,
-            int32_t /*position*/, int32_t* /*flushFromPosition*/) {
-        return ::android::INVALID_OPERATION;
-    }
     virtual void shutdown() = 0;  // This function is only called once.
 };
 
@@ -271,8 +261,6 @@ class StreamWorkerCommonLogic : public ::android::hardware::audio::common::Strea
     void populateReply(StreamDescriptor::Reply* reply, bool isConnected) const;
     void populateReplyWrongState(StreamDescriptor::Reply* reply,
                                  const StreamDescriptor::Command& command) const;
-    void populateReplyUnsupportedCommand(StreamDescriptor::Reply* reply,
-                                         const StreamDescriptor::Command& command) const;
     void switchToTransientState(StreamDescriptor::State state) {
         mState = state;
         mTransientStateStart = std::chrono::steady_clock::now();

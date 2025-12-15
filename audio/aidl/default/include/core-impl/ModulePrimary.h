@@ -25,10 +25,6 @@ class ModulePrimary final : public Module {
     ModulePrimary(std::unique_ptr<Configuration>&& config)
         : Module(Type::DEFAULT, std::move(config)) {}
 
-    ndk::ScopedAStatus getFlushFromFrameSupport(
-            const ::aidl::android::media::audio::common::AudioPortConfig& in_config,
-            ::aidl::android::media::audio::common::FlushFromFrameSupport* _aidl_return) override;
-
   protected:
     ndk::ScopedAStatus getTelephony(std::shared_ptr<ITelephony>* _aidl_return) override;
 

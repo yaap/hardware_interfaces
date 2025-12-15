@@ -40,7 +40,6 @@ import android.media.audio.common.AudioOffloadInfo;
 import android.media.audio.common.AudioPort;
 import android.media.audio.common.AudioPortConfig;
 import android.media.audio.common.Float;
-import android.media.audio.common.FlushFromFrameSupport;
 import android.media.audio.common.MicrophoneInfo;
 
 /**
@@ -960,20 +959,4 @@ interface IModule {
      *                             - If this is not a connected device port.
      */
     void prepareToDisconnectExternalDevice(int portId);
-
-    /**
-     * Return the level of support for 'flushFromFrame' stream command if a stream is opened
-     * using the specified port config.
-     *
-     * Note: It is not necessary to actually create an audio port config via 'setAudioPortConfig',
-     * and 'id' and 'portId' fields are not considered by this method.
-     *
-     * @param config The mix port config that may be used to open a stream.
-     * @throw EX_ILLEGAL_ARGUMENT If the config is not a valid mix port config or it does not
-     *                            contain the necessary information, which includes flags and
-     *                            format.
-     * @throw EX_UNSUPPORTED_OPERATION If none of the streams of the module support
-     *                                 'flushFromFrame' command.
-     */
-    FlushFromFrameSupport getFlushFromFrameSupport(in AudioPortConfig config);
 }

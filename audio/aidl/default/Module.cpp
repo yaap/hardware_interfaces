@@ -61,7 +61,6 @@ using aidl::android::media::audio::common::AudioPortConfig;
 using aidl::android::media::audio::common::AudioPortExt;
 using aidl::android::media::audio::common::AudioProfile;
 using aidl::android::media::audio::common::Boolean;
-using aidl::android::media::audio::common::FlushFromFrameSupport;
 using aidl::android::media::audio::common::Int;
 using aidl::android::media::audio::common::MicrophoneInfo;
 using aidl::android::media::audio::common::PcmType;
@@ -1884,12 +1883,6 @@ std::vector<MicrophoneInfo> Module::getMicrophoneInfos() {
 
 ndk::ScopedAStatus Module::bluetoothParametersUpdated() {
     return mStreams.bluetoothParametersUpdated();
-}
-
-ndk::ScopedAStatus Module::getFlushFromFrameSupport(const AudioPortConfig& in_config __unused,
-                                                    FlushFromFrameSupport* _aidl_return __unused) {
-    LOG(VERBOSE) << __func__ << ": " << mType;
-    return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
 }  // namespace aidl::android::hardware::audio::core
