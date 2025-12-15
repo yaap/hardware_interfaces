@@ -53,6 +53,27 @@ parcelable ProximityRangingConfig {
     }
 
     /**
+     * Ranging measurement role.
+     */
+    @VintfStability
+    @Backing(type="byte")
+    enum RangingMeasurementRole {
+        /**
+         * Unknown role.
+         */
+        UNKNOWN = 0,
+        /**
+         * Ranging initiating station (ISTA) which initiates the range request.
+         */
+        INITIATOR_STA = 1,
+        /**
+         * Ranging responding station (RSTA) which receives the range request and starts the
+         * measurement exchange.
+         */
+        RESPONDER_STA = 2,
+    }
+
+    /**
      * The ranging service role |RangingServiceRole|
      */
     RangingServiceRole rangingServiceRole;
@@ -71,6 +92,13 @@ parcelable ProximityRangingConfig {
      * to derive the ranging channel.
      */
     int preferredRangingChannelFrequencyMhz;
+
+    /**
+     * Sets the preferred ranging measurement role |RangingMeasurementRole|.
+     * Default role - RangingServiceRole.SEEKER takes the initiating station (ISTA) role and
+     * RangingServiceRole.ADVERTISER takes the responding station (RSTA) role.
+     */
+    RangingMeasurementRole preferredRangingMeasurementRole;
 
     /**
      * Ranging Interval (in milliseconds) for conducting the range

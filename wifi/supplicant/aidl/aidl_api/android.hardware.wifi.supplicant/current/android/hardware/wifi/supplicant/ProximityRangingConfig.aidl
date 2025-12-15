@@ -37,6 +37,7 @@ parcelable ProximityRangingConfig {
   android.hardware.wifi.supplicant.ProximityRangingConfig.RangingServiceRole rangingServiceRole;
   int discoveryChannelFrequencyMhz;
   int preferredRangingChannelFrequencyMhz;
+  android.hardware.wifi.supplicant.ProximityRangingConfig.RangingMeasurementRole preferredRangingMeasurementRole;
   int continuousRangingIntervalMillis;
   int continuousRangingSessionTimeMillis;
   boolean advertiserRequiresRangeReport;
@@ -54,5 +55,11 @@ parcelable ProximityRangingConfig {
     CONTINUOUS_INDICATION_MASK = (1 << 0) /* 1 */,
     INGRESS_MET_MASK = (1 << 1) /* 2 */,
     EGRESS_MET_MASK = (1 << 2) /* 4 */,
+  }
+  @Backing(type="byte") @VintfStability
+  enum RangingMeasurementRole {
+    UNKNOWN = 0,
+    INITIATOR_STA = 1,
+    RESPONDER_STA = 2,
   }
 }
