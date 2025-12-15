@@ -28,14 +28,15 @@ import android.hardware.npu.WorkInfo;
 oneway interface ISchedulingCallback {
     /**
      * The amount of time to wait in milliseconds for debouncing the
-     * onWorkStarted() and onWorkEnded() events.
+     * onWorkRequested(), onWorkStarted(), and onWorkEnded() events.
      */
     const int DEBOUNCE_DURATION_MS = 50;
 
     /**
      * Called when a request for work has been received from an app.
      * This will be suppressed if execution for a prior request from
-     * the same UID has been completed within DEBOUNCE_DURATION_MS.
+     * the same UID has been completed within DEBOUNCE_DURATION_MS or
+     * if there is already ongoing work for the same UID.
      *
      * @param workInfo information describing the work being requested
      */
@@ -54,7 +55,7 @@ oneway interface ISchedulingCallback {
     /**
      * Received when exeuction has ended on a request from an Android app. This
      * will only be sent once DEBOUNCE_DURATION_MS has elapsed and another request
-     * from the same UID has not been requested.
+     * from the same UID has not been received.
      *
      * @param workInfo information describing the work that was completed
      * @param reason the reason associated with the work ending
