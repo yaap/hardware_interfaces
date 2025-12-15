@@ -2402,14 +2402,16 @@ class BluetoothAudioProviderLeAudioOutputHardwareAidl
     auto pref_context_metadata = MetadataLtv::PreferredAudioContexts();
     pref_context_metadata.values =
         GetAudioContext(AudioContext::MEDIA | AudioContext::CONVERSATIONAL |
-                        AudioContext::GAME);
+                        AudioContext::GAME | AudioContext::LIVE_AUDIO);
     capability.metadata = {pref_context_metadata};
 
     auto sampling_rate =
         CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies();
     sampling_rate.bitmask =
-        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ16000 |
-        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ8000;
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ48000 |
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ32000 |
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ24000 |
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ16000;
     auto frame_duration =
         CodecSpecificCapabilitiesLtv::SupportedFrameDurations();
     frame_duration.bitmask =
@@ -2477,8 +2479,9 @@ class BluetoothAudioProviderLeAudioOutputHardwareAidl
     auto sampling_rate =
         CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies();
     sampling_rate.bitmask =
-        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ16000 |
-        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ8000;
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ32000 |
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ24000 |
+        CodecSpecificCapabilitiesLtv::SupportedSamplingFrequencies::HZ16000;
     auto frame_duration =
         CodecSpecificCapabilitiesLtv::SupportedFrameDurations();
     frame_duration.bitmask =
@@ -2826,6 +2829,28 @@ class BluetoothAudioProviderLeAudioOutputHardwareAidl
       }
     }
     ASSERT_EQ(num_of_satisfied_requirements, num_of_requirements);
+  }
+
+  static bool VerifyMaxSduForAbrCodec(
+      const IBluetoothAudioProvider::LeAudioAseQosConfiguration& qos) {
+    if (!qos.maxSduForAbrCodec.has_value()) return false;
+    const auto& maxSduForAbrCodec = qos.maxSduForAbrCodec.value();
+    // Check that maxSdu is present in maxSduForAbrCodec
+    auto it = std::find(maxSduForAbrCodec.begin(), maxSduForAbrCodec.end(),
+                        qos.maxSdu);
+    EXPECT_NE(it, maxSduForAbrCodec.end())
+        << "maxSdu " << qos.maxSdu << " should be present in maxSduForAbrCodec";
+    if (it == maxSduForAbrCodec.end()) return false;
+
+    // Check for duplicates
+    std::vector<int> sortedMaxSduForAbrCodec = maxSduForAbrCodec;
+    std::sort(sortedMaxSduForAbrCodec.begin(), sortedMaxSduForAbrCodec.end());
+    auto last = std::unique(sortedMaxSduForAbrCodec.begin(),
+                            sortedMaxSduForAbrCodec.end());
+    EXPECT_EQ(last, sortedMaxSduForAbrCodec.end())
+        << "maxSduForAbrCodec should not contain duplicates";
+    if (last != sortedMaxSduForAbrCodec.end()) return false;
+    return sortedMaxSduForAbrCodec.size() > 1;
   }
 
   LeAudioConfigurationRequirement GetUnicastDefaultRequirement(
@@ -3597,15 +3622,188 @@ TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl, GetQoSConfiguration) {
 }
 
 TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
+       GetLeAudioAseConfiguration_AbrConfiguration) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  std::vector<std::optional<LeAudioDeviceCapabilities>> sink_capabilities = {
+      GetDefaultRemoteSinkCapability()};
+  std::vector<std::optional<LeAudioDeviceCapabilities>> source_capabilities = {
+      GetDefaultRemoteSourceCapability()};
+
+  std::vector<LeAudioAseConfigurationSetting> configurations;
+  std::vector<LeAudioConfigurationRequirement> media_requirements = {
+      GetUnicastDefaultRequirement(
+          AudioContext::MEDIA, true /* sink */, false /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000),
+      GetUnicastDefaultRequirement(
+          AudioContext::CONVERSATIONAL, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
+      GetUnicastDefaultRequirement(
+          AudioContext::GAME, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
+      GetUnicastDefaultRequirement(
+          AudioContext::LIVE_AUDIO, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000)};
+  auto aidl_retval = audio_provider_->getLeAudioAseConfiguration(
+      std::nullopt, source_capabilities, media_requirements, &configurations);
+
+  ASSERT_TRUE(aidl_retval.isOk());
+  ASSERT_FALSE(configurations.empty());
+
+  bool is_abr_codec;
+  for (auto& configuration : configurations) {
+    is_abr_codec = false;
+    if (configuration.sinkAseConfiguration.has_value()) {
+      for (auto& ase_direct_config :
+           configuration.sinkAseConfiguration.value()) {
+        if (!ase_direct_config) continue;
+        if (ase_direct_config->qosConfiguration.has_value()) {
+          if (VerifyMaxSduForAbrCodec(
+                  ase_direct_config->qosConfiguration.value())) {
+            is_abr_codec = true;
+          }
+        }
+      }
+    }
+    if (configuration.sourceAseConfiguration.has_value()) {
+      for (auto& ase_direct_config :
+           configuration.sourceAseConfiguration.value()) {
+        if (!ase_direct_config) continue;
+
+        if (ase_direct_config->qosConfiguration.has_value()) {
+          if (VerifyMaxSduForAbrCodec(
+                  ase_direct_config->qosConfiguration.value())) {
+            is_abr_codec = true;
+          }
+        }
+      }
+    }
+    if (is_abr_codec) {
+      EXPECT_TRUE(configuration.flags.has_value());
+      EXPECT_TRUE(configuration.flags->bitmask &
+                  ConfigurationFlags::ADAPTER_BIT_RATE);
+    }
+  }
+}
+
+TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
+       GetLeAudioAseConfiguration_LatencySettings) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  std::vector<std::optional<LeAudioDeviceCapabilities>> sink_capabilities = {
+      GetDefaultRemoteSinkCapability()};
+  std::vector<std::optional<LeAudioDeviceCapabilities>> source_capabilities = {
+      GetDefaultRemoteSourceCapability()};
+
+  std::vector<LeAudioAseConfigurationSetting> configurations;
+  std::vector<LeAudioConfigurationRequirement> media_requirements = {
+      GetUnicastDefaultRequirement(
+          AudioContext::MEDIA, true /* sink */, false /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000),
+      GetUnicastDefaultRequirement(
+          AudioContext::CONVERSATIONAL, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
+      GetUnicastDefaultRequirement(
+          AudioContext::GAME, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
+      GetUnicastDefaultRequirement(
+          AudioContext::LIVE_AUDIO, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000)};
+  auto aidl_retval = audio_provider_->getLeAudioAseConfiguration(
+      std::nullopt, source_capabilities, media_requirements, &configurations);
+
+  ASSERT_TRUE(aidl_retval.isOk());
+  ASSERT_FALSE(configurations.empty());
+
+  for (auto& configuration : configurations) {
+    std::vector<int> flag_bitmasks;
+    bool latency_setting_required = false;
+    if (configuration.flags.has_value() &&
+        (configuration.flags->bitmask &
+         (ConfigurationFlags::ADAPTER_BIT_RATE |
+          ConfigurationFlags::ISO_PARAMETER_UPDATE)))
+      latency_setting_required = true;
+    if (!configuration.latencySetting.has_value()) {
+      EXPECT_FALSE(latency_setting_required);
+      continue;
+    }
+
+    EXPECT_TRUE(latency_setting_required);
+    if (!configuration.latencySetting->suggestedLatencyRules.has_value())
+      continue;
+
+    for (auto& rules :
+         configuration.latencySetting->suggestedLatencyRules.value()) {
+      ASSERT_TRUE(rules.has_value());
+      EXPECT_TRUE(rules->configChangeConditionFlags.bitmask != 0);
+      flag_bitmasks.push_back(rules->configChangeConditionFlags.bitmask);
+    }
+
+    // Check for duplicates
+    std::sort(flag_bitmasks.begin(), flag_bitmasks.end());
+    auto last = std::unique(flag_bitmasks.begin(), flag_bitmasks.end());
+    ASSERT_EQ(last, flag_bitmasks.end())
+        << "LatencySettings should not contain duplicates";
+  }
+}
+
+TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
+       GetLeAudioAseConfiguration_CheckSameConfigIdentifier) {
+  if (GetProviderFactoryInterfaceVersion() <
+      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+    GTEST_SKIP();
+  }
+
+  std::vector<std::optional<LeAudioDeviceCapabilities>> sink_capabilities = {
+      GetDefaultRemoteSinkCapability()};
+  std::vector<std::optional<LeAudioDeviceCapabilities>> source_capabilities = {
+      GetDefaultRemoteSourceCapability()};
+
+  std::vector<LeAudioAseConfigurationSetting> configurations;
+  std::vector<LeAudioConfigurationRequirement> requirements = {
+      GetUnicastDefaultRequirement(
+          AudioContext::MEDIA, true /* sink */, false /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000),
+      GetUnicastDefaultRequirement(
+          AudioContext::CONVERSATIONAL, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
+      GetUnicastDefaultRequirement(
+          AudioContext::GAME, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
+      GetUnicastDefaultRequirement(
+          AudioContext::LIVE_AUDIO, true /* sink */, true /* source */,
+          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000)};
+  auto aidl_retval = audio_provider_->getLeAudioAseConfiguration(
+      std::nullopt, source_capabilities, requirements, &configurations);
+
+  ASSERT_TRUE(aidl_retval.isOk());
+  ASSERT_FALSE(configurations.empty());
+
+  std::map<std::string, LeAudioAseConfigurationSetting> config_map;
+  for (const auto& config : configurations) {
+    if (config.configIdentifier.has_value()) {
+      std::string id = config.configIdentifier.value();
+      if (config_map.find(id) != config_map.end()) {
+        ASSERT_EQ(config, config_map[id]);
+      } else {
+        config_map[id] = config;
+      }
+    }
+  }
+}
+
+TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
        GetQoSConfiguration_AbrConfiguration) {
   if (GetProviderFactoryInterfaceVersion() <
       BluetoothAudioHalVersion::VERSION_AIDL_V6) {
     GTEST_SKIP();
   }
-  auto allocation = CodecSpecificConfigurationLtv::AudioChannelAllocation();
-  allocation.bitmask =
-      CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT |
-      CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT;
 
   IBluetoothAudioProvider::LeAudioAseQosConfigurationRequirement requirement;
   requirement = GetQosRequirements(true /* sink */, false /* source */);
@@ -3635,24 +3833,7 @@ TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
     ASSERT_FALSE(QoSConfigurations.empty());
 
     for (const auto& qos : QoSConfigurations) {
-      if (qos.maxSduForAbrCodec.has_value()) {
-        const auto& maxSduForAbrCodec = qos.maxSduForAbrCodec.value();
-        // Check that maxSdu is present in maxSduForAbrCodec
-        auto it = std::find(maxSduForAbrCodec.begin(), maxSduForAbrCodec.end(),
-                            qos.maxSdu);
-        ASSERT_NE(it, maxSduForAbrCodec.end())
-            << "maxSdu " << qos.maxSdu
-            << " should be present in maxSduForAbrCodec";
-
-        // Check for duplicates
-        std::vector<int> sortedMaxSduForAbrCodec = maxSduForAbrCodec;
-        std::sort(sortedMaxSduForAbrCodec.begin(),
-                  sortedMaxSduForAbrCodec.end());
-        auto last = std::unique(sortedMaxSduForAbrCodec.begin(),
-                                sortedMaxSduForAbrCodec.end());
-        ASSERT_EQ(last, sortedMaxSduForAbrCodec.end())
-            << "maxSduForAbrCodec should not contain duplicates";
-      }
+      VerifyMaxSduForAbrCodec(qos);
     }
   }
 }
