@@ -38,6 +38,7 @@ using aidl::android::media::audio::common::AudioOutputFlags;
 using aidl::android::media::audio::common::AudioPort;
 using aidl::android::media::audio::common::AudioPortConfig;
 using aidl::android::media::audio::common::AudioPortExt;
+using aidl::android::media::audio::common::FlushFromFrameSupport;
 using aidl::android::media::audio::common::MicrophoneInfo;
 
 namespace aidl::android::hardware::audio::core {
@@ -130,6 +131,18 @@ int32_t ModulePrimary::getNominalLatencyMs(const AudioPortConfig& portConfig) {
     // should have significantly lower latency.
     static constexpr int32_t kStandardLatencyMs = 85;
     return hasMmapFlag(portConfig.flags.value()) ? kLowLatencyMs : kStandardLatencyMs;
+}
+
+ndk::ScopedAStatus ModulePrimary::getFlushFromFrameSupport(const AudioPortConfig& in_config,
+                                                           FlushFromFrameSupport* _aidl_return) {
+    LOG(DEBUG) << __func__ << ": config=" << in_config.toString();
+    if (!in_config.flags.has_value() || !in_config.format.has_value()) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    *_aidl_return = common::isPcmOffload(in_config.format.value(), in_config.flags.value())
+                            ? FlushFromFrameSupport::SUPPORTED
+                            : FlushFromFrameSupport::UNSUPPORTED;
+    return ndk::ScopedAStatus::ok();
 }
 
 }  // namespace aidl::android::hardware::audio::core

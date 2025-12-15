@@ -28,11 +28,14 @@ using aidl::android::hardware::audio::common::SourceMetadata;
 using aidl::android::media::audio::common::AudioDevice;
 using aidl::android::media::audio::common::AudioFormatType;
 using aidl::android::media::audio::common::AudioOffloadInfo;
+using aidl::android::media::audio::common::FlushFromFrameAccuracy;
 using aidl::android::media::audio::common::MicrophoneInfo;
 
 namespace aidl::android::hardware::audio::core {
 
 namespace offload {
+
+static constexpr int32_t SAFE_FLUSH_FROM_MARGIN_IN_MS = 100;
 
 std::string DspSimulatorLogic::init() {
     return "";
@@ -68,12 +71,14 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
             const bool hasNextClip = mSharedState.clips.hasNext();
             if (mSharedState.clips.currentFrames() > framesPlayed) {
                 mSharedState.clips.updateCurrentFrames(-framesPlayed);
+                mSharedState.mTotalFramesPlayed += framesPlayed;
                 framesPlayed = 0;
                 if (auto clipFramesLeft = mSharedState.clips.currentFrames();
                     clipFramesLeft <= mSharedState.earlyNotifyFrames) {
                     clipNotifies.emplace_back(clipFramesLeft, hasNextClip);
                 }
             } else {
+                mSharedState.mTotalFramesPlayed += mSharedState.clips.currentFrames();
                 if (mSharedState.format.type == AudioFormatType::PCM) {
                     // There is not enough data to be full played, set `framesPlayed` to 0 so that
                     // it can exit the while loop.
@@ -126,6 +131,8 @@ using offload::DspSimulatorState;
 DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     : DriverStubImpl(context, 0 /*asyncSleepTimeUs*/),
       mBufferNotifyFrames(static_cast<int64_t>(context.getBufferSizeInFrames()) / 2),
+      mSafeMarginForFlushFromFrames(offload::SAFE_FLUSH_FROM_MARGIN_IN_MS *
+                                    context.getSampleRate() / MILLIS_PER_SECOND),
       mState{context.getFormat(), context.getSampleRate(),
              250 /*earlyNotifyMs*/ * context.getSampleRate() / MILLIS_PER_SECOND},
       mDspWorker(mState) {
@@ -230,6 +237,56 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
         mState.bufferNotifyFrames = mBufferNotifyFrames;
     }
     mDspWorker.resume();
+    return ::android::OK;
+}
+
+::android::status_t DriverOffloadStubImpl::flushFromFrame(FlushFromFrameAccuracy accuracy,
+                                                          int32_t position,
+                                                          int32_t* flushFromPosition) {
+    LOG(DEBUG) << __func__ << ": accuracy=" << toString(accuracy) << ", position=" << position;
+    if ((accuracy != FlushFromFrameAccuracy::BEST_EFFORT &&
+         accuracy != FlushFromFrameAccuracy::EXACT) ||
+        position < 0 || flushFromPosition == nullptr) {
+        *flushFromPosition = position;
+        LOG(ERROR) << __func__ << ": invalid parameters, accuracy= " << toString(accuracy)
+                   << ", position=" << position
+                   << ", suggestedPosition is null:" << (flushFromPosition == nullptr);
+        return ::android::BAD_VALUE;
+    }
+    if (mState.format.type != media::audio::common::AudioFormatType::PCM) {
+        // Currently only support flushFromFrame for PCM offload.
+        LOG(ERROR) << __func__ << ": invalid as format is " << mState.format.toString();
+        return ::android::INVALID_OPERATION;
+    }
+    {
+        std::lock_guard l(mState.lock);
+        const int64_t requestedPosition = position + mState.mLastReportedFrames;
+        const int64_t safeFlushedPosition =
+                mState.mTotalFramesPlayed +
+                std::min((int64_t)mSafeMarginForFlushFromFrames, mState.clips.currentFrames());
+        const int64_t totalWrittenFrames = mState.mTotalFramesPlayed + mState.clips.currentFrames();
+        if (accuracy == FlushFromFrameAccuracy::BEST_EFFORT) {
+            if (requestedPosition < safeFlushedPosition) {
+                *flushFromPosition = safeFlushedPosition - mState.mLastReportedFrames;
+                mState.clips.trimCurrentFrames(safeFlushedPosition - mState.mTotalFramesPlayed);
+            } else if (requestedPosition > totalWrittenFrames) {
+                *flushFromPosition = totalWrittenFrames - mState.mLastReportedFrames;
+            } else {
+                *flushFromPosition = requestedPosition - mState.mLastReportedFrames;
+                mState.clips.trimCurrentFrames(requestedPosition - mState.mTotalFramesPlayed);
+            }
+        } else {  // accuracy == FlushFromFrameAccuracy::EXACT
+            if (requestedPosition < safeFlushedPosition ||
+                requestedPosition > mState.mTotalFramesPlayed + mState.clips.currentFrames()) {
+                *flushFromPosition = safeFlushedPosition - mState.mLastReportedFrames;
+                return ::android::BAD_VALUE;
+            } else {
+                const int64_t positionToTrim = requestedPosition - mState.mTotalFramesPlayed;
+                *flushFromPosition = requestedPosition - mState.mLastReportedFrames;
+                mState.clips.trimCurrentFrames(positionToTrim);
+            }
+        }
+    }
     return ::android::OK;
 }
 
@@ -344,6 +401,15 @@ void DriverOffloadStubImpl::shutdown() {
         }
         mDspWorkerStarted = true;
     }
+    return ::android::OK;
+}
+
+::android::status_t DriverOffloadStubImpl::refinePosition(StreamDescriptor::Position* position) {
+    if (mState.format.type != AudioFormatType::PCM) {
+        return DriverStubImpl::refinePosition(position);
+    }
+    std::lock_guard l(mState.lock);
+    position->frames = mState.mTotalFramesPlayed;
     return ::android::OK;
 }
 
