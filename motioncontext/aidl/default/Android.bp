@@ -36,6 +36,29 @@ cc_binary {
     ],
 }
 
+cc_fuzz {
+    name: "android.hardware.motioncontext-service_fuzzer",
+    team: "trendy_team_context_hub",
+    defaults: ["service_fuzzer_defaults"],
+    srcs: [
+        "fuzzer.cpp",
+        "MotionContext.cpp",
+    ],
+    static_libs: [
+        "liblog",
+        "android.hardware.motioncontext-V1-ndk",
+    ],
+    fuzz_config: {
+        cc: [
+            "crsabotta@google.com",
+        ],
+        fuzzed_code_usage: "future_version",
+        vector: "local_no_privileges_required",
+        users: "multi_user",
+        service_privilege: "privileged",
+    },
+}
+
 filegroup {
     name: "manifest_android.hardware.motioncontext.service-default.xml",
     srcs: ["motioncontext-service-default.xml"],
