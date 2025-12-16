@@ -41,5 +41,5 @@ enum Hdr {
   HLG = 3,
   HDR10_PLUS = 4,
   DOLBY_VISION_4K30 = 5,
-  HLG10_PLUS = 6,
+  HLG_PLUS = 6,
 }
