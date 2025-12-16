@@ -55,4 +55,5 @@ interface IRadioConfig {
   oneway void getSimultaneousCallingSupport(in int serial);
   oneway void getSimTypeInfo(in int serial);
   oneway void setSimType(in int serial, in android.hardware.radio.config.SimType[] simTypes);
+  oneway void rebootModem(in int serial);
 }
