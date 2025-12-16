@@ -101,25 +101,24 @@ cc_binary {
     static_libs: [
         "hwcryptohaldelegatorhelperslib",
     ],
-    shared_libs: select((soong_config_variable("trusty_system_vm", "enabled"), soong_config_variable("trusty_system_vm", "placeholder_trusted_hal")), {
-        (true, false): [
-            "hwcryptohasharedsecretllib",
-            // AIDL interface deps versions, please refer to below link
-            // https://source.android.com/docs/core/architecture/aidl/stable-aidl#module-naming-rules
-            "android.hardware.security.sharedsecret-V1-ndk",
-            "android.hardware.security.sharedsecret-V1-cpp",
-        ],
-        (default, default): [],
-    }),
-    cflags: select((soong_config_variable("trusty_system_vm", "enabled"), soong_config_variable("trusty_system_vm", "placeholder_trusted_hal")), {
-        (true, false): ["-DENABLE_SHARED_SECRET_HAL"],
-        (default, default): [],
-    }),
-    vintf_fragments: select((soong_config_variable("trusty_system_vm", "enabled"), soong_config_variable("trusty_system_vm", "placeholder_trusted_hal")), {
-        (true, false): ["android.hardware.security.see.hwcrypto.sharedsecret-service.trusty.xml"],
-        (default, default): [],
-    }),
+    shared_libs: [
+        "hwcryptohasharedsecretllib",
+        // AIDL interface deps versions, please refer to below link
+        // https://source.android.com/docs/core/architecture/aidl/stable-aidl#module-naming-rules
+        "android.hardware.security.sharedsecret-V1-ndk",
+        "android.hardware.security.sharedsecret-V1-cpp",
+    ],
     init_rc: ["android.hardware.security.see.hwcrypto-service.trusty.rc"],
+}
+
+// This prebuilt is used when HwCrypto HAL registers and handles ISharedSecret
+// requests. It is included on the apex
+// com.android.hardware.security.see.hwcrypto.trusty_tee.shared_secret
+prebuilt_etc {
+    name: "android.hardware.security.see.hwcrypto.sharedsecret-service.trusty.xml",
+    sub_dir: "vintf",
+    proprietary: true,
+    src: "android.hardware.security.see.hwcrypto.sharedsecret-service.trusty.xml",
 }
 
 cc_fuzz {
