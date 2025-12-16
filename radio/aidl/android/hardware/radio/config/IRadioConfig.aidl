@@ -244,16 +244,4 @@ oneway interface IRadioConfig {
      * This is available when android.hardware.telephony.subscription is defined.
      */
     void setSimType(in int serial, in SimType[] simTypes);
-
-    /**
-     * Reboots the modem.
-     *
-     * This triggers the reboot of the modem. A modem reboot should result in a full
-     * reset of the modem hardware and software, similar to a power cycle.
-     *
-     * @param serial Serial number of the request.
-     *
-     * Response function is IRadioConfigResponse.rebootModemResponse()
-     */
-    void rebootModem(in int serial);
 }

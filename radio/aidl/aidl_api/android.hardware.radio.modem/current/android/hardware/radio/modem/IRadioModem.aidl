@@ -49,9 +49,6 @@ interface IRadioModem {
    * @deprecated NV APIs are deprecated starting from Android U.
    */
   oneway void nvReadItem(in int serial, in android.hardware.radio.modem.NvItem itemId);
-  /**
-   * @deprecated use IRadioConfig.rebootModem()
-   */
   oneway void nvResetConfig(in int serial, in android.hardware.radio.modem.ResetNvType resetType);
   /**
    * @deprecated NV APIs are deprecated starting from Android U.
