@@ -124,11 +124,4 @@ ScopedAStatus RadioConfig::setSimType(
     return ok();
 }
 
-ScopedAStatus RadioConfig::rebootModem(int32_t serial) {
-    LOG_CALL << serial;
-    LOG(ERROR) << " rebootModem is unsupported by HIDL HALs";
-    respond()->rebootModemResponse(notSupported(serial));
-    return ok();
-}
-
 }  // namespace android::hardware::radio::compat

@@ -67,8 +67,6 @@ class RadioConfigResponse : public BnRadioConfigResponse {
             const RadioResponseInfo& info, const std::vector<SimTypeInfo>& simTypeInfo) override;
 
     virtual ndk::ScopedAStatus setSimTypeResponse(const RadioResponseInfo& info) override;
-
-    virtual ndk::ScopedAStatus rebootModemResponse(const RadioResponseInfo& info) override;
 };
 
 /* Callback class for radio config indication */
