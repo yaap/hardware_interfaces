@@ -60,6 +60,7 @@ class RadioConfig : public aidl::android::hardware::radio::config::BnRadioConfig
             int32_t serial,
             const std::vector<aidl::android::hardware::radio::config::SimType>& simTypes)
             override;
+    ::ndk::ScopedAStatus rebootModem(int32_t serial) override;
   protected:
     std::shared_ptr<::aidl::android::hardware::radio::config::IRadioConfigResponse> respond();
 
