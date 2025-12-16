@@ -474,6 +474,12 @@ void validateSoundParameter(const SoundParameter& param) {
             EXPECT_LE(value, 250);
             break;
         }
+        case SoundParameter::Tag::adVolume: {
+            ALOGD("[validateSoundParameter] validate adVolume value");
+            int value = param.get<SoundParameter::Tag::adVolume>();
+            validateParameterRange0To100(value);
+            break;
+        }
         default:
             ALOGD("Those parameters don't need to check.");
             break;

@@ -57,4 +57,8 @@ union SoundParameter {
   int balanceHeadphone;
   boolean hiResAudio;
   int mtLatencyUs;
+  boolean adSpeakerEnable;
+  boolean adHeadphoneEnable;
+  int adVolume;
+  boolean panFadeEnable;
 }

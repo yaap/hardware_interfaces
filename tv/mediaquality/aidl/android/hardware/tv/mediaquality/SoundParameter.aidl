@@ -135,4 +135,56 @@ union SoundParameter {
      * This value can be used by A/V sync logic to maintain lip-sync.
      */
     int mtLatencyUs;
+
+    /**
+     * Controls the output routing of the Audio Description track to the internal speakers.
+     * <p>If set to {@code true}, the AD track will be mixed with the main audio
+     * and played through the device's built-in speakers.</p>
+     * <p><b>Dependency:</b> This setting is ignored if the device does not have
+     * internal speakers or if audio routing is forcibly overridden by system policy.</p>
+     */
+    boolean adSpeakerEnable;
+
+    /**
+     * Controls the output routing of the Audio Description track to connected headphones.
+     * <p>If set to {@code true}, the AD track will be mixed and played through
+     * wired or Bluetooth headsets.</p>
+     * <p><b>Note:</b> This enables independent consumption of AD content if the
+     * audio engine supports dual-routing (e.g., AD on headphones, Main Audio on speakers).</p>
+     */
+    boolean adHeadphoneEnable;
+
+    /**
+     * Sets the relative volume gain for the Audio Description track.
+     *
+     * <p><b>Unit:</b> Integer Percentage (0-100)</p>
+     * <p><b>Default:</b> Typically defaults to 50 or the system-wide accessibility volume
+     * preference.</p>
+     *
+     * <p>This value controls the mixing level of the secondary audio stream (AD)
+     * before it is combined with the main program audio.
+     * <ul>
+     * <li>{@code 0}: AD track is muted.</li>
+     * <li>{@code 100}: AD track is at maximum mixing volume.</li>
+     * </ul>
+     * </p>
+     *
+     * @param volume An integer between 0 and 100.
+     */
+    int adVolume;
+
+    /**
+     * Enables automatic Pan and Fade (Ducking) behavior for the main audio.
+     * <p>When set to {@code true}, the audio engine will apply standard broadcast mixing rules:
+     * <ul>
+     * <li><b>Fade:</b> The main program audio volume is lowered ("ducked") when
+     * audio description is present to ensure the narrator is intelligible.</li>
+     * <li><b>Pan:</b> The main audio may be spatially shifted (e.g., to background channels)
+     * to center the audio description track.</li>
+     * </ul>
+     * </p>
+     * <p>If set to {@code false}, the AD track is mixed simply as an overlay without
+     * modifying the volume or position of the main audio track.</p>
+     */
+    boolean panFadeEnable;
 }
