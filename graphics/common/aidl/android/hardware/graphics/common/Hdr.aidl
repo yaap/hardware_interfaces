@@ -50,5 +50,5 @@ enum Hdr {
     /**
      * Device supports HLG+
      */
-    HLG10_PLUS = 6,
+    HLG_PLUS = 6,
 }
