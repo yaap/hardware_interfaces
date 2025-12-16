@@ -50,6 +50,9 @@ interface IRadioModemResponse {
    * @deprecated NV APIs are deprecated starting from Android U.
    */
   oneway void nvReadItemResponse(in android.hardware.radio.RadioResponseInfo info, in String result);
+  /**
+   * @deprecated use IRadioConfig.rebootModem() responses
+   */
   oneway void nvResetConfigResponse(in android.hardware.radio.RadioResponseInfo info);
   /**
    * @deprecated NV APIs are deprecated starting from Android U.

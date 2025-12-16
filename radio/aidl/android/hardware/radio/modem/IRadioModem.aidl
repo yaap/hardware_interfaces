@@ -148,6 +148,8 @@ oneway interface IRadioModem {
      * @param resetType Always ResetNvType.RELOAD.
      *
      * Response function is IRadioModemResponse.nvResetConfigResponse()
+     *
+     * @deprecated use IRadioConfig.rebootModem()
      */
     void nvResetConfig(in int serial, in ResetNvType resetType);
 
