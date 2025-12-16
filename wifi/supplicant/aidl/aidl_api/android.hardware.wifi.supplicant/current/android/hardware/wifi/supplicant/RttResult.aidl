@@ -42,14 +42,14 @@ parcelable RttResult {
   android.hardware.wifi.supplicant.RttResult.RttStatus status;
   android.hardware.wifi.supplicant.RttType type;
   int rssi;
-  int rssiSpread;
-  long rtt;
-  long rttSd;
-  long rttSpread;
+  int rssiSpread = (-1) /* -1 */;
+  long rttPs;
+  long rttSdPs = (-1) /* -1 */;
+  long rttSpreadPs = (-1) /* -1 */;
   int distanceMm;
   int distanceSdMm;
-  int distanceSpreadMm;
-  long timeStampUs;
+  int distanceSpreadMm = (-1) /* -1 */;
+  long timestampUs;
   int burstDurationMs;
   int negotiatedBurstNum;
   android.hardware.wifi.supplicant.WifiInformationElement lci;
@@ -70,7 +70,7 @@ parcelable RttResult {
   int nominalTimeMs;
   int availabilityWindowTimeMs;
   int measurementNumberPerAvailabilityWindow;
-  int numNtbRepetitionsPerMeasurement;
+  byte numNtbRepetitionsPerMeasurement;
   boolean isDelayedLmrEnabled;
   @Backing(type="int") @VintfStability
   enum RttStatus {

@@ -70,15 +70,16 @@ parcelable RttConfig {
      *
      * Note: Applicable to IEEE 802.11mc only.
      */
-    int numFramesPerBurst;
+    byte numFramesPerBurst;
 
     /**
      * The number of range repetitions set for
      * distance calculation in NTB ranging.
+     * Minimum value = 1, Maximum value = 8
      *
      * Note: Applicable to IEEE 802.11az only.
      */
-    int numNtbRepetitionsPerMeasurement;
+    byte numNtbRepetitionsPerMeasurement;
 
     /**
      *
@@ -86,7 +87,7 @@ parcelable RttConfig {
      * retry an FTMR frame.
      * Minimum value = 0, Maximum value = 3
      */
-    int numRetriesPerFtmr;
+    byte numRetriesPerFtmr;
 
     /**
      * Whether to request location civic info.
@@ -110,7 +111,7 @@ parcelable RttConfig {
      *
      * Note: Applicable to IEEE 802.11mc only.
      */
-    int burstDuration;
+    byte burstDuration;
 
     /**
      * RTT preamble to be used in the RTT frames.
@@ -128,7 +129,7 @@ parcelable RttConfig {
      *
      * Reference: IEEE Std 802.11az-2022 spec, section 9.4.2.298 Ranging Parameters element.
      */
-    long ntbMinMeasurementTime;
+    long ntbMinMeasurementTimeIn100Us;
 
     /**
      * IEEE 802.11az Non-Trigger-based (non-TB) maximum measurement time in units of 10
@@ -136,7 +137,7 @@ parcelable RttConfig {
      *
      * Reference: IEEE Std 802.11az-2022 spec, section 9.4.2.298 Ranging Parameters element.
      */
-    long ntbMaxMeasurementTime;
+    long ntbMaxMeasurementTimeIn10Millis;
 
     /**
      * Optional vendor-specific parameters. Null value indicates

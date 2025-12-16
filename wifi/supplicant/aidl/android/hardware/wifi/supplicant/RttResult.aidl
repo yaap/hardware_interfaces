@@ -85,32 +85,32 @@ parcelable RttResult {
     RttType type;
 
     /**
-     * Average rssi in 0.5 dB steps (e.g. 143 implies -71.5 dB).
+     * Average rssi value in dBM.
      */
     int rssi;
 
     /**
-     * Rssi spread in 0.5 dB steps (e.g. 5 implies 2.5 dB spread) - optional.
+     * Rssi spread in dBM - optional.
      */
-    int rssiSpread;
+    int rssiSpread = -1;
 
     /**
      * Round trip time in picoseconds.
      */
-    long rtt;
+    long rttPs;
 
     /**
-     * Rtt standard deviation in picoseconds.
+     * Rtt standard deviation in picoseconds - optional.
      */
-    long rttSd;
+    long rttSdPs = -1;
 
     /**
-     * Difference between max and min rtt times recorded in picoseconds.
+     * Difference between max and min rtt times recorded in picoseconds - optional.
      */
-    long rttSpread;
+    long rttSpreadPs = -1;
 
     /**
-     * Distance in mm (optional).
+     * Distance in mm.
      */
     int distanceMm;
 
@@ -124,12 +124,12 @@ parcelable RttResult {
      *
      * Note: Only applicable for IEEE 802.11mc
      */
-    int distanceSpreadMm;
+    int distanceSpreadMm = -1;
 
     /**
      * Time of the measurement (in microseconds since boot).
      */
-    long timeStampUs;
+    long timestampUs;
 
     /**
      * Actual time taken by the FW to finish one burst measurement (in ms).
@@ -283,7 +283,7 @@ parcelable RttResult {
      * distance calculation in NTB ranging.
      * Note: Only applicable for IEEE 802.11az result.
      */
-    int numNtbRepetitionsPerMeasurement;
+    byte numNtbRepetitionsPerMeasurement;
 
     /**
      * Whether the device delayed sending the Location Measurement Report (LMR),
