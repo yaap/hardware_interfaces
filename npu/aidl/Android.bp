@@ -33,6 +33,7 @@ aidl_interface {
                 "//apex_available:platform",
                 "com.android.npumanager",
             ],
+            enabled: true,
             min_sdk_version: "36",
         },
         rust: {
