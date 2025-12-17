@@ -60,6 +60,7 @@ enum BufferUsage {
   GPU_MIPMAP_COMPLETE = (1 << 26) /* 67108864 */,
   HW_IMAGE_ENCODER = (1 << 27) /* 134217728 */,
   FRONT_BUFFER = (1L << 32) /* 4294967296 */,
+  NPU = (1L << 33) /* 8589934592 */,
   VENDOR_MASK = (0xfL << 28) /* 4026531840 */,
   VENDOR_MASK_HI = ((1L * 0xffff) << 48) /* -281474976710656 */,
 }

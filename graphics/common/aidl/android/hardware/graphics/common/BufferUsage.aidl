@@ -149,10 +149,20 @@ enum BufferUsage {
      */
     FRONT_BUFFER = 1L << 32,
 
+    /**
+     * Buffer is used by the NPU.
+     *
+     * This is primarily used for buffers that are persistently mapped by
+     * client processes, e.g. I/O or cache buffers.
+     *
+     * Uses {@link PixelFormat#BLOB} as the format.
+     */
+    NPU = 1L << 33,
+
     /** bits 28-31 are reserved for vendor extensions */
     VENDOR_MASK = 0xfL << 28,
 
-    /** bits 33-47 must be zero and are reserved for future versions */
+    /** bits 34-47 must be zero and are reserved for future versions */
     /** bits 48-63 are reserved for vendor extensions */
     VENDOR_MASK_HI = (1L * 0xffff) << 48,
 }
