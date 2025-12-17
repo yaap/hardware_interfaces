@@ -36,6 +36,12 @@ class MockBluetoothActivities : public BluetoothActivities {
               (::bluetooth_hal::hci::MonitorMode mode,
                const ::bluetooth_hal::hci::HalPacket& packet),
               ());
+  using ConnectionCountChangedCallback =
+      BluetoothActivities::ConnectionCountChangedCallback;
+  using ConnectionCallbackSubscription =
+      BluetoothActivities::ConnectionCallbackSubscription;
+  MOCK_METHOD(ConnectionCallbackSubscription, RegisterConnectionCountChangedCallback,
+              (ConnectionCountChangedCallback callback), (override));
   MOCK_METHOD(void, OnBluetoothChipClosed, (), ());
 
   static void SetMockBluetoothActivities(MockBluetoothActivities* mock);
