@@ -19,9 +19,8 @@
 #include <any>
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+
+namespace bluetooth_hal::extensions::cs {
 
 class ChannelSoundingDistanceEstimator
     : public ChannelSoundingDistanceEstimatorInterface {
@@ -35,6 +34,5 @@ class ChannelSoundingDistanceEstimator
  protected:
   double EstimateDistanceImpl(const std::any& data) override;
 };
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+
+}  // namespace bluetooth_hal::extensions::cs

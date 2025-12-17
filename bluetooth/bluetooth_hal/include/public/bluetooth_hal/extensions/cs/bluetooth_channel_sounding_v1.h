@@ -32,9 +32,7 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 class BluetoothChannelSoundingV1 : public ::aidl::android::hardware::bluetooth::
                                        ranging::BnBluetoothChannelSounding {
@@ -67,8 +65,6 @@ class BluetoothChannelSoundingV1 : public ::aidl::android::hardware::bluetooth::
   BluetoothChannelSoundingHandler bluetooth_channel_sounding_handler_;
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs
 
 #endif

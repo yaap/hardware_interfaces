@@ -33,9 +33,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 using ::aidl::android::hardware::bluetooth::ranging::
     BluetoothChannelSoundingParameters;
@@ -206,6 +204,4 @@ HalPacket BuildRasNotification(
   return packet;
 }
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs
