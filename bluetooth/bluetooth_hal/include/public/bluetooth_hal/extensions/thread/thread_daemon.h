@@ -29,8 +29,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 // A class representing a Thread daemon for transmitting/receiving packets from
 // Thread HAL to the controller or from the controller to Thread HAL.
@@ -177,5 +176,4 @@ class ThreadDaemon {
   std::optional<::bluetooth_hal::hci::HalPacketCallback> hal_packet_cb_;
 };
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

@@ -23,8 +23,7 @@
 #include "bluetooth_hal/extensions/thread/socket_processor.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 using ::bluetooth_hal::hci::HalPacketCallback;
 
@@ -58,5 +57,4 @@ void MockSocketProcessor::SetMockProcessor(MockSocketProcessor* processor) {
   mock_socket_processor_ = processor;
 }
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

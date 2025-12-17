@@ -22,8 +22,7 @@
 
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 enum class SocketMode : int {
   kSockModeStream = 1,
@@ -199,5 +198,4 @@ class SocketProcessor {
   static inline SocketProcessor* processor_{nullptr};
 };
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

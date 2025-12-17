@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 /**
  * @brief This class provides a handler for processing Thread packets and
@@ -160,5 +159,4 @@ class ThreadHandler : public ::bluetooth_hal::hci::HciRouterClient {
   ::bluetooth_hal::hci::HciThreadMonitor thread_data_monitor_;
 };
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

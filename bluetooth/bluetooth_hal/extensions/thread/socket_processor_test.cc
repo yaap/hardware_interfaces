@@ -25,8 +25,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 namespace {
 
 using ::testing::_;
@@ -772,5 +771,4 @@ TEST_F(SocketProcessorTestStream, RecvPayloadReturnConnectionFail) {
 }
 
 }  // namespace
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

@@ -34,8 +34,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 using ::bluetooth_hal::hci::HalPacketCallback;
 using ::bluetooth_hal::hci::HciConstants;
@@ -491,5 +490,4 @@ SocketProcessor* SocketProcessor::GetProcessor() {
   return processor_;
 }
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread
