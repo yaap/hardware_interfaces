@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/util/android_base_wrapper.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 AndroidBaseWrapper& AndroidBaseWrapper::GetWrapper() {
   if (!MockAndroidBaseWrapper::mock_android_base_wrapper_) {
@@ -35,5 +34,4 @@ void MockAndroidBaseWrapper::SetMockWrapper(MockAndroidBaseWrapper* wrapper) {
   mock_android_base_wrapper_ = wrapper;
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

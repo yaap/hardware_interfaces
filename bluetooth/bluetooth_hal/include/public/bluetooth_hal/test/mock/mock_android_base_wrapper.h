@@ -22,8 +22,7 @@
 #include "bluetooth_hal/util/android_base_wrapper.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class MockAndroidBaseWrapper : public AndroidBaseWrapper {
  public:
@@ -45,5 +44,4 @@ class MockAndroidBaseWrapper : public AndroidBaseWrapper {
   static inline MockAndroidBaseWrapper* mock_android_base_wrapper_{nullptr};
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

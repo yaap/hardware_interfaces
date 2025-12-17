@@ -25,8 +25,7 @@
 
 #include "android-base/logging.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 constexpr size_t kDefaultMaxQueueSize = 10;
 constexpr std::chrono::seconds kPostTimeout{10};
@@ -130,5 +129,4 @@ class Worker {
   bool running_;
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

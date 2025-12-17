@@ -22,8 +22,7 @@
 #include <sstream>
 #include <string>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 namespace {
 
 // Helper function to format time with leading zeros.
@@ -77,5 +76,4 @@ std::string Logger::GetFileFormatTimestamp() {
   return ss.str();
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

@@ -24,8 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 /**
  * @class SystemCallWrapper
@@ -339,5 +338,4 @@ class SystemCallWrapper {
   virtual int Kill(pid_t pid, int signal) = 0;
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util
