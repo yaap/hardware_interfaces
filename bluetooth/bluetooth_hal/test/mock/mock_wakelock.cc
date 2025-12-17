@@ -19,9 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 Wakelock& Wakelock::GetWakelock() {
   if (!MockWakelock::mock_wakelock_) {
@@ -36,6 +34,4 @@ void MockWakelock::SetMockWakelock(MockWakelock* wakelock) {
   mock_wakelock_ = wakelock;
 }
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

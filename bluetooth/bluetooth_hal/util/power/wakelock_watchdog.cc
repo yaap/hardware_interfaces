@@ -29,9 +29,7 @@
 #include "bluetooth_hal/util/power/wakelock_util.h"
 #include "bluetooth_hal/util/timer_manager.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 using ::bluetooth_hal::debug::DebugCentral;
 
@@ -201,6 +199,4 @@ WakelockWatchdog& WakelockWatchdog::GetWatchdog() {
   return watchdog;
 }
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power
