@@ -70,8 +70,8 @@ enum class CoredumpErrorCode : uint8_t {
   // Error codes for controller errors.
   kForceCollectCoredump,
   kControllerHwError,
-  kControllerRootInflammed,
-  kControllerDebugDumpWithoutRootInflammed,
+  kControllerRootInflamed,
+  kControllerDebugDumpWithoutRootInflamed,
   kControllerDebugInfo,
   kControllerUnimplementedPacketType,
 

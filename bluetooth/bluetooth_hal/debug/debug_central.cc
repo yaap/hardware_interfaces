@@ -272,7 +272,7 @@ void DebugCentralImpl::ReportBqrError(BqrErrorCode error,
   HciRouter::GetRouter().SendPacketToStack(bqr_event);
 
   if (OkToGenerateCrashDump(static_cast<uint8_t>(error))) {
-    GenerateCoredump(CoredumpErrorCode::kControllerRootInflammed,
+    GenerateCoredump(CoredumpErrorCode::kControllerRootInflamed,
                      static_cast<uint8_t>(error));
     LogFatal(error, extra_info);
   } else {
@@ -413,7 +413,7 @@ void DebugCentralImpl::HandleRootInflammationEvent(
              << ").";
   // For some vendor error codes that we do not generate a crash dump.
   if (OkToGenerateCrashDump(vendor_error_code)) {
-    GenerateCoredump(CoredumpErrorCode::kControllerRootInflammed,
+    GenerateCoredump(CoredumpErrorCode::kControllerRootInflamed,
                      vendor_error_code);
   }
 }
@@ -597,16 +597,16 @@ std::string DebugCentral::CoredumpErrorCodeToString(
       return "Force Collect Coredump (BtFw)";
     case CoredumpErrorCode::kControllerHwError:
       return "Controller Hw Error (BtFw)";
-    case CoredumpErrorCode::kControllerRootInflammed: {
+    case CoredumpErrorCode::kControllerRootInflamed: {
       std::stringstream ss;
-      ss << "Controller Root Inflammed (vendor_error: 0x" << std::hex
+      ss << "Controller Root Inflamed (vendor_error: 0x" << std::hex
          << std::setw(2) << std::setfill('0')
          << static_cast<int>(sub_error_code) << ") - "
          << BqrErrorToStringView(static_cast<BqrErrorCode>(sub_error_code));
       return ss.str();
     }
-    case CoredumpErrorCode::kControllerDebugDumpWithoutRootInflammed:
-      return "Controller Debug Info Data Dump Without Root Inflammed (BtFw)";
+    case CoredumpErrorCode::kControllerDebugDumpWithoutRootInflamed:
+      return "Controller Debug Info Data Dump Without Root Inflamed (BtFw)";
     case CoredumpErrorCode::kControllerDebugInfo:
       return "Debug Info Event (BtFw)";
     case CoredumpErrorCode::kControllerUnimplementedPacketType:
