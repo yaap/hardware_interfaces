@@ -25,9 +25,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ext {
+namespace bluetooth_hal::extensions::ext {
 
 class BluetoothExtHandler : public ::bluetooth_hal::hci::HciRouterClient {
  public:
@@ -54,6 +52,4 @@ class BluetoothExtHandler : public ::bluetooth_hal::hci::HciRouterClient {
   std::atomic<bool> command_success_{false};
 };
 
-}  // namespace ext
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ext
