@@ -23,8 +23,7 @@
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class LinkQualityOffsetV5 : uint8_t {
   kRemoteAddr = static_cast<uint8_t>(LinkQualityOffset::kEnd),  // 6 bytes
@@ -77,5 +76,4 @@ class BqrLinkQualityEventV5 : public BqrLinkQualityEventV1ToV3 {
   uint32_t v5_rx_duplicate_packets_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

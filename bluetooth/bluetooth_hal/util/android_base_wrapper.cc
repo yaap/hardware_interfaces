@@ -21,8 +21,7 @@
 #include "android-base/parseint.h"
 #include "android-base/properties.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class AndroidBaseWrapperImpl : public AndroidBaseWrapper {
  public:
@@ -49,5 +48,4 @@ AndroidBaseWrapper& AndroidBaseWrapper::GetWrapper() {
   return wrapper;
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

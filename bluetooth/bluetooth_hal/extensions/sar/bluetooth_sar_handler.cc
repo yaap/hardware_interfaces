@@ -29,9 +29,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace sar {
+namespace bluetooth_hal::extensions::sar {
 
 using ::android::base::StringPrintf;
 using ::bluetooth_hal::config::HalConfigLoader;
@@ -257,6 +255,4 @@ void BluetoothSarHandler::OnBluetoothEnabled() {
 
 void BluetoothSarHandler::OnBluetoothDisabled() { LOG(DEBUG) << __func__; }
 
-}  // namespace sar
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::sar

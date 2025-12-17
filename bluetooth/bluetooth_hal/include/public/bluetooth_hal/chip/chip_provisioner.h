@@ -29,8 +29,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 
 class ChipProvisioner : public ChipProvisionerInterface,
                         public ::bluetooth_hal::hci::HciRouterClient {
@@ -129,5 +128,4 @@ class ChipProvisioner : public ChipProvisionerInterface,
   ProvisioningState state_{ProvisioningState::kIdle};
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

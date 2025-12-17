@@ -19,8 +19,7 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class MockDebugCentral : public DebugCentral {
  public:
@@ -60,5 +59,4 @@ class MockDebugCentral : public DebugCentral {
   static inline MockDebugCentral* mock_debug_central_{nullptr};
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

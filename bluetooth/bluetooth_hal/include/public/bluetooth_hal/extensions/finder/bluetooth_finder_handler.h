@@ -25,9 +25,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 
 class BluetoothFinderHandler : public ::bluetooth_hal::hci::HciRouterClient {
  public:
@@ -90,6 +88,4 @@ class BluetoothFinderHandler : public ::bluetooth_hal::hci::HciRouterClient {
   bool command_success_{false};
 };
 
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder

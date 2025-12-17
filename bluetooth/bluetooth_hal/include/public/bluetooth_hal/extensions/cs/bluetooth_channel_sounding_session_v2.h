@@ -32,9 +32,7 @@
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_interface.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 class BluetoothChannelSoundingSessionV2
     : public BluetoothChannelSoundingSessionInterface,
@@ -97,6 +95,4 @@ class BluetoothChannelSoundingSessionV2
       distance_estimator_;
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

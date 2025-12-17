@@ -34,9 +34,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 class BluetoothChannelSoundingHandler
     : public ::bluetooth_hal::hci::HciRouterClient {
@@ -114,6 +112,4 @@ class BluetoothChannelSoundingHandler
   std::mutex local_cap_mtx_;
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

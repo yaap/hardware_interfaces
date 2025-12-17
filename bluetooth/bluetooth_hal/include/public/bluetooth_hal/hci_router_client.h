@@ -26,8 +26,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client_callback.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 class HciRouterClient : public HciRouterClientCallback {
  public:
@@ -258,5 +257,4 @@ class HciRouterClient : public HciRouterClientCallback {
   std::recursive_mutex mutex_;
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

@@ -32,9 +32,7 @@
 #include "bluetooth_hal/extensions/sar/bluetooth_sar_handler.h"
 #include "bluetooth_hal/hal_extension_points.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace sar {
+namespace bluetooth_hal::extensions::sar {
 namespace {
 
 using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
@@ -94,8 +92,6 @@ ScopedAStatus BluetoothSar::setBluetoothAreaCode(
   return ScopedAStatus::ok();
 }
 
-}  // namespace sar
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::sar
 
 #endif

@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 SystemCallWrapper& SystemCallWrapper::GetWrapper() {
   if (!MockSystemCallWrapper::mock_system_call_wrapper_) {
@@ -35,5 +34,4 @@ void MockSystemCallWrapper::SetMockWrapper(MockSystemCallWrapper* wrapper) {
   mock_system_call_wrapper_ = wrapper;
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

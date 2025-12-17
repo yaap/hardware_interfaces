@@ -55,8 +55,7 @@
 #include "bluetooth_hal/util/power/wakelock_watchdog.h"
 #include "bluetooth_hal/util/timer_manager.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::bqr::BqrErrorCode;
@@ -621,5 +620,4 @@ std::string DebugCentral::CoredumpErrorCodeToString(
   }
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

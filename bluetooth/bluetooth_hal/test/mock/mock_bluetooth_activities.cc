@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/debug/bluetooth_activities.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 BluetoothActivities& BluetoothActivities::Get() {
   if (!MockBluetoothActivities::mock_bluetooth_activities_) {
@@ -36,5 +35,4 @@ void MockBluetoothActivities::SetMockBluetoothActivities(
   mock_bluetooth_activities_ = mock;
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

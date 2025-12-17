@@ -19,8 +19,7 @@
 #include <string>
 #include <string_view>
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class ConfigLoader {
  public:
@@ -79,5 +78,4 @@ class ConfigLoader {
   virtual std::string DumpConfigToString() const = 0;
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

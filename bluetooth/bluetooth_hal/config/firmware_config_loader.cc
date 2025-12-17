@@ -43,8 +43,7 @@
 #include "firmware_config.pb.h"
 #include "google/protobuf/util/json_util.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 namespace {
 
 using ::bluetooth_hal::config::proto::FirmwareConfigForTransport;
@@ -675,5 +674,4 @@ void FirmwareConfigLoader::ResetLoader() {
   }
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

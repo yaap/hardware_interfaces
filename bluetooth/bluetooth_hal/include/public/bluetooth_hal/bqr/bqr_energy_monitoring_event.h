@@ -23,8 +23,7 @@
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class EnergyMonitoringOffset : uint8_t {
   // After H4 type(1) + event code(1) + length(1) + sub event(1) + report id(1)
@@ -97,5 +96,4 @@ class BqrEnergyMonitoringEvent : public BqrEvent {
   uint32_t le_rx_state_enter_count_ = 0;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

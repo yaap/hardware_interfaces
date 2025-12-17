@@ -32,9 +32,7 @@
 #include "bluetooth_hal/extensions/ext/bluetooth_ext_handler.h"
 #include "bluetooth_hal/hal_extension_points.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ext {
+namespace bluetooth_hal::extensions::ext {
 namespace {
 
 using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
@@ -62,8 +60,6 @@ ScopedAStatus BluetoothExt::setBluetoothCmdPacket(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-}  // namespace ext
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ext
 
 #endif

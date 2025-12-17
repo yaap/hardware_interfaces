@@ -26,8 +26,7 @@
 #include "android-base/logging.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 namespace {
 
 using ::testing::Test;
@@ -243,5 +242,4 @@ TEST_F(WorkerTest, StopUnblocksPost) {
 }
 
 }  // namespace
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

@@ -21,8 +21,7 @@
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 class BqrEvent : public ::bluetooth_hal::hci::HalPacket {
  public:
@@ -43,5 +42,4 @@ class BqrEvent : public ::bluetooth_hal::hci::HalPacket {
   BqrEventType bqr_event_type_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

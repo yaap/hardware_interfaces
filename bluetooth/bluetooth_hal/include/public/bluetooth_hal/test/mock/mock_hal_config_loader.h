@@ -23,8 +23,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class MockHalConfigLoader : public HalConfigLoader {
  public:
@@ -98,5 +97,4 @@ class MockHalConfigLoader : public HalConfigLoader {
   static inline MockHalConfigLoader* mock_hal_config_loader_{nullptr};
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

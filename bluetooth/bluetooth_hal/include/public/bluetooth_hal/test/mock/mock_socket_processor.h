@@ -25,8 +25,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 class MockSocketProcessor : public SocketProcessor {
  public:
@@ -74,5 +73,4 @@ class MockSocketProcessor : public SocketProcessor {
   static inline MockSocketProcessor* mock_socket_processor_{nullptr};
 };
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

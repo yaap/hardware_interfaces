@@ -49,10 +49,7 @@
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v2.h"
 #endif
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
-
+namespace bluetooth_hal::extensions::cs {
 namespace {
 
 using ::aidl::android::hardware::bluetooth::ranging::
@@ -555,6 +552,4 @@ void BluetoothChannelSoundingHandler::OnBluetoothDisabled() {
   local_capabilities_.clear();
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

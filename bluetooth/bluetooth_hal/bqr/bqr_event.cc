@@ -23,8 +23,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 namespace {
 
 using ::bluetooth_hal::hci::GoogleEventSubCode;
@@ -77,5 +76,4 @@ std::string BqrEvent::ToBqrString() const {
   return BqrReportIdToString(report_id_);
 }
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

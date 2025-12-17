@@ -18,8 +18,7 @@
 
 #include "android-base/unique_fd.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 /**
  * @brief The PowerManager class manages Bluetooth device power states and low
@@ -115,5 +114,4 @@ class PowerManager {
  protected:
   ::android::base::unique_fd lpm_fd_{-1};
 };
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

@@ -45,8 +45,7 @@ constexpr clockid_t GetAlarmClock() {
 #endif
 }
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 namespace {
 
 constexpr std::chrono::milliseconds kTearDownTimer =
@@ -287,5 +286,4 @@ TimerManager& TimerManager::GetManager() {
   return manager;
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

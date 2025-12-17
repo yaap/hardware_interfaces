@@ -39,9 +39,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 namespace {
 
 using ::bluetooth_hal::hci::BluetoothAddress;
@@ -288,6 +286,4 @@ uint64_t BluetoothCccHandler::GetSystemTime(uint8_t current_toggle_count,
   return system_time;
 }
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

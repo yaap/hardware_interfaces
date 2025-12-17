@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_monitor.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
@@ -109,5 +108,4 @@ bool ThreadHandler::IsDaemonRunning() const {
   return false;
 }
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

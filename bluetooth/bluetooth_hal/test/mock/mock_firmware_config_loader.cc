@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/firmware_config_loader.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 FirmwareConfigLoader& FirmwareConfigLoader::GetLoader() {
   if (!MockFirmwareConfigLoader::mock_firmware_config_loader_) {
@@ -42,5 +41,4 @@ void FirmwareConfigLoader::ResetLoader() {
   }
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

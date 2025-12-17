@@ -28,8 +28,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 enum class FirmwarePacketType : int {
   kSetupCommand = 0,
@@ -224,5 +223,4 @@ class FirmwareConfigLoader : public ConfigLoader {
   static inline std::mutex loader_mutex_;
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

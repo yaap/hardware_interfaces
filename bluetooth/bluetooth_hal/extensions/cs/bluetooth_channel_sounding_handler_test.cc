@@ -41,9 +41,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 namespace {
 
 using ::testing::_;
@@ -764,6 +762,4 @@ INSTANTIATE_TEST_SUITE_P(
     [](const auto& info) { return info.param.test_name; });
 
 }  // namespace
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

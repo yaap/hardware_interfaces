@@ -21,8 +21,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/provider_factory.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 
 class ChipProvisioner;
 
@@ -73,5 +72,4 @@ class ChipProvisionerInterface
   virtual bool ResetFirmware() = 0;
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

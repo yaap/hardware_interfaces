@@ -32,8 +32,7 @@
 #include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -442,5 +441,4 @@ TEST_F(BluetoothActivitiesTest,
 }
 
 }  // namespace
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

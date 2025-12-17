@@ -20,9 +20,7 @@
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 class MockWakelock : public Wakelock {
  public:
@@ -37,6 +35,4 @@ class MockWakelock : public Wakelock {
   static inline MockWakelock* mock_wakelock_{nullptr};
 };
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

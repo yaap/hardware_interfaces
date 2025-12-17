@@ -34,9 +34,7 @@
 #include "bluetooth_hal/extensions/finder/bluetooth_finder_handler.h"
 #include "bluetooth_hal/hal_extension_points.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 namespace {
 
 using ::aidl::android::hardware::bluetooth::finder::Eid;
@@ -80,8 +78,6 @@ ScopedAStatus BluetoothFinder::getPoweredOffFinderMode(bool* _aidl_return) {
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder
 
 #endif

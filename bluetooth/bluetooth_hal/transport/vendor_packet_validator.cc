@@ -19,13 +19,11 @@
 #include <cstdint>
 #include <span>
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 bool VendorPacketValidator::IsValidVendorSpecificEvent(
     [[maybe_unused]] std::span<const uint8_t> data) const {
   return false;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

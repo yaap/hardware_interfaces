@@ -37,8 +37,7 @@
 #include "android-base/logging.h"
 #include "android-base/unique_fd.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 namespace {
 
 using ::android::base::Pipe;
@@ -205,5 +204,4 @@ int FdWatcher::StartWatching(
 
 void FdWatcher::StopWatching() { impl_->StopWatching(); }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

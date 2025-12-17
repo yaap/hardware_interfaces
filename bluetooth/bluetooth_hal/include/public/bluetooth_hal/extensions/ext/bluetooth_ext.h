@@ -23,9 +23,7 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/ext/bluetooth_ext_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ext {
+namespace bluetooth_hal::extensions::ext {
 
 struct BluetoothExt
     : public ::aidl::hardware::google::bluetooth::ext::BnBluetoothExt {
@@ -38,6 +36,4 @@ struct BluetoothExt
   BluetoothExtHandler handler_;
 };
 
-}  // namespace ext
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ext

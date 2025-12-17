@@ -23,8 +23,7 @@
 #include "bluetooth_hal/config/config_loader.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class HalConfigLoader : public ConfigLoader {
  public:
@@ -255,5 +254,4 @@ class HalConfigLoader : public ConfigLoader {
   static inline std::mutex loader_mutex_;
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

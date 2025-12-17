@@ -29,8 +29,7 @@
 #include "bluetooth_hal/util/system_call_wrapper.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class MockSystemCallWrapper : public SystemCallWrapper {
  public:
@@ -96,5 +95,4 @@ class MockSystemCallWrapper : public SystemCallWrapper {
   static inline MockSystemCallWrapper* mock_system_call_wrapper_{nullptr};
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

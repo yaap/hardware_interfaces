@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/transport/hci_packet_rescuer.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class HciPacketizer {
  public:
@@ -73,5 +72,4 @@ class HciPacketizer {
   ::bluetooth_hal::transport::HciPacketRescuer hci_packet_rescuer_;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

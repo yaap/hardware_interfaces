@@ -34,8 +34,7 @@
 #include "google/protobuf/util/json_util.h"
 #include "hal_config.pb.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 namespace {
 
 using ::bluetooth_hal::Property;
@@ -532,5 +531,4 @@ void HalConfigLoader::ResetLoader() {
   }
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

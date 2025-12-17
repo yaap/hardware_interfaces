@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/worker.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 
 enum class ChipProvisionMessageType : int {
   kInitialize = 0,
@@ -94,5 +93,4 @@ class AsyncChipProvisioner {
   std::unique_ptr<ChipProvisionerInterface> chip_provisioner_;
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

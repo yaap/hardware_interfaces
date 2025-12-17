@@ -18,9 +18,7 @@
 
 #include "bluetooth_hal/util/provider_factory.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 class PowerInterface {
  public:
@@ -51,6 +49,4 @@ class PowerInterface {
   static PowerInterface& GetInterface();
 };
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

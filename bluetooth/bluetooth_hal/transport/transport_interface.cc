@@ -32,8 +32,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/uart_h4/transport_uart_h4.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::HalConfigLoader;
@@ -253,5 +252,4 @@ void TransportInterface::Unsubscribe(Subscriber& subscriber) {
   }
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

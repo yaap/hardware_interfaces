@@ -23,9 +23,7 @@
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc_util.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCccHandlerCallback {
  public:
@@ -77,6 +75,4 @@ class BluetoothCccHandlerCallback {
   const std::vector<CccLmpEventId> lmp_event_ids_;
 };
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

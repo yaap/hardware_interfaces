@@ -37,9 +37,7 @@
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_util.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
 using ::aidl::android::hardware::bluetooth::ranging::
@@ -185,6 +183,4 @@ bool BluetoothChannelSoundingSessionV1::ShouldEnableMode0ChannelMap() {
   return enable_mode_0_channel_map_;
 }
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

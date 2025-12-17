@@ -18,8 +18,7 @@
 
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 namespace {
 
 TEST(BluetoothAddressTest, HandleToString) {
@@ -41,5 +40,4 @@ TEST(BluetoothAddressTest, HandleToStringWithDefaultConstructor) {
 }
 
 }  // namespace
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

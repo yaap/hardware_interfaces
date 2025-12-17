@@ -18,8 +18,7 @@
 
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class Subscriber {
  public:
@@ -39,5 +38,4 @@ class Subscriber {
   virtual void NotifyHalStateChange(::bluetooth_hal::HalState hal_state) = 0;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

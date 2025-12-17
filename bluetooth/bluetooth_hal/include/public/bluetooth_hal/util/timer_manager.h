@@ -19,8 +19,7 @@
 #include <chrono>
 #include <functional>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class Timer;
 
@@ -82,5 +81,4 @@ class Timer {
   bool IsScheduled() { return TimerManager::GetManager().IsScheduled(this); }
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

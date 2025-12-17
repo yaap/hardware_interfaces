@@ -22,8 +22,7 @@
 #include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v6.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 enum class EnergyMonitoringOffsetV7 : uint8_t {
   kBredrRxActiveScanTotaltime =
@@ -57,5 +56,4 @@ class BqrEnergyMonitoringEventV7 : public BqrEnergyMonitoringEventV6 {
   uint32_t le_rx_active_scan_totaltime_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

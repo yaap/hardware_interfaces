@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/hci_router.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 HciRouter& HciRouter::GetRouter() {
   if (!MockHciRouter::mock_hci_router_) {
@@ -35,5 +34,4 @@ void MockHciRouter::SetMockRouter(MockHciRouter* router) {
   mock_hci_router_ = router;
 }
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

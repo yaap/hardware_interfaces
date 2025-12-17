@@ -32,9 +32,7 @@
 #include "bluetooth_hal/extensions/channel_avoidance/bluetooth_channel_avoidance_handler.h"
 #include "bluetooth_hal/hal_extension_points.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace channel_avoidance {
+namespace bluetooth_hal::extensions::channel_avoidance {
 namespace {
 
 using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
@@ -64,8 +62,6 @@ ScopedAStatus BluetoothChannelAvoidance::setBluetoothChannelStatus(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-}  // namespace channel_avoidance
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::channel_avoidance
 
 #endif

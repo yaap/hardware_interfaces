@@ -24,8 +24,7 @@
 #include "bluetooth_hal/test/mock/mock_android_base_wrapper.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 namespace {
 
 using ::bluetooth_hal::hci::HalPacket;
@@ -204,5 +203,4 @@ TEST_F(CsConfigLoaderTest,
 }
 
 }  // namespace
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

@@ -30,8 +30,7 @@
 #include "bluetooth_hal/hci_router.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 using ::bluetooth_hal::HalState;
 
@@ -136,5 +135,4 @@ void HciRouterClient::SendPacketToStack(const HalPacket& packet) {
   return HciRouter::GetRouter().SendPacketToStack(packet);
 }
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

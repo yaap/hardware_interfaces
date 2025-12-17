@@ -37,8 +37,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/debug/debug_client.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 const std::string kCoredumpFilePath = "/data/vendor/ssrdump/coredump/";
 const std::string kCoredumpPrefix = "coredump_bt_";
@@ -238,5 +237,4 @@ inline void FlushCoredumpToFd(int fd) {
   }
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

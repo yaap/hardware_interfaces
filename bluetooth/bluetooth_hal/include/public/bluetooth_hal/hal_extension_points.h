@@ -24,8 +24,7 @@
 #include "android/binder_manager.h"
 #include "android/binder_status.h"
 
-namespace bluetooth_hal {
-namespace extensions {
+namespace bluetooth_hal::extensions {
 
 // An initializer function for a HAL extension.
 using BluetoothHalExtensionInitializer = std::function<void()>;
@@ -54,5 +53,4 @@ void RegisterHalService(const std::shared_ptr<T>& service) {
   }
 }
 
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions

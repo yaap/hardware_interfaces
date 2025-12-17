@@ -29,8 +29,7 @@
 #include "bluetooth_hal/transport/subscriber.h"
 #include "bluetooth_hal/util/provider_factory.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 /**
  * @brief Interface for handling transport-related events.
@@ -265,5 +264,4 @@ class TransportInterface {
   static inline std::unique_ptr<TransportInterface> current_transport_;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

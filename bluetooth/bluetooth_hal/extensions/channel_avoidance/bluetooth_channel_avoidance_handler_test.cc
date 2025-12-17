@@ -32,9 +32,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace channel_avoidance {
+namespace bluetooth_hal::extensions::channel_avoidance {
 namespace {
 
 using ::testing::_;
@@ -253,6 +251,4 @@ INSTANTIATE_TEST_SUITE_P(
            SetStatusTestParams{EventResultCode::kFailure, false, "Timeout"}));
 
 }  // namespace
-}  // namespace channel_avoidance
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::channel_avoidance

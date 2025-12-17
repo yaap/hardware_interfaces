@@ -22,8 +22,7 @@
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class MockTransportInterface : public TransportInterface {
  public:
@@ -64,5 +63,5 @@ class MockTransportInterface : public TransportInterface {
 
   static inline MockTransportInterface* mock_transport_interface_{nullptr};
 };
-}  // namespace transport
-}  // namespace bluetooth_hal
+
+}  // namespace bluetooth_hal::transport

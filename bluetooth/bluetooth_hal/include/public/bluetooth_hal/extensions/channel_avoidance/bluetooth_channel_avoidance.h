@@ -23,9 +23,7 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/channel_avoidance/bluetooth_channel_avoidance_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace channel_avoidance {
+namespace bluetooth_hal::extensions::channel_avoidance {
 
 class BluetoothChannelAvoidance
     : public ::aidl::hardware::google::bluetooth::bt_channel_avoidance::
@@ -38,6 +36,4 @@ class BluetoothChannelAvoidance
   BluetoothChannelAvoidanceHandler handler_;
 };
 
-}  // namespace channel_avoidance
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::channel_avoidance
