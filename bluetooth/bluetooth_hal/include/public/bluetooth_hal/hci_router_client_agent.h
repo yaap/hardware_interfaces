@@ -20,8 +20,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client_callback.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 class HciRouterClientAgent {
  public:
@@ -98,5 +97,4 @@ class HciRouterClientAgent {
   virtual bool IsBluetoothChipReady() = 0;
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

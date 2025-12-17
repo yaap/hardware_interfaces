@@ -23,8 +23,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 namespace {
 
 using ::testing::Return;
@@ -350,5 +349,4 @@ TEST_F(HciRouterClientAgentTest, HandleDispatchPacketFromClient) {
 }
 
 }  // namespace
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

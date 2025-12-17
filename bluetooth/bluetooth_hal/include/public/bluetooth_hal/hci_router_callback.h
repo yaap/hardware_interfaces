@@ -20,8 +20,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_monitor.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 class HciRouterCallback {
  public:
@@ -53,5 +52,4 @@ class HciRouterCallback {
                                  const ::bluetooth_hal::HalState old_state) = 0;
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

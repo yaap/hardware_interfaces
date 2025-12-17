@@ -22,8 +22,7 @@
 #include "bluetooth_hal/hci_router_client_callback.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 // A mock implementation of the HciRouterClientAgent class for testing purposes.
 class MockHciRouterClientAgent : public HciRouterClientAgent {
@@ -44,5 +43,4 @@ class MockHciRouterClientAgent : public HciRouterClientAgent {
   static inline MockHciRouterClientAgent* mock_agent_{nullptr};
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

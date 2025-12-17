@@ -27,8 +27,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -386,5 +385,4 @@ TEST_F(HciRouterClientTest, HandleRegisterMonitorUnregisterWithoutRegister) {
 }
 
 }  // namespace
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

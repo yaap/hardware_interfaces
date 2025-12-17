@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hci_router_callback.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 // A mock implementation of the HciRouter class for testing purposes.
 class MockHciRouter : public HciRouter {
@@ -57,5 +56,4 @@ class MockHciRouter : public HciRouter {
   static inline MockHciRouter* mock_hci_router_{nullptr};
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

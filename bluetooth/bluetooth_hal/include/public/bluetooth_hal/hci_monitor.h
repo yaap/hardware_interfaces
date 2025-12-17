@@ -22,8 +22,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 // Enum remains the same
 enum class MonitorType : int {
@@ -229,5 +228,4 @@ class HciThreadMonitor : public HciMonitor {
   }
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

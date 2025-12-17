@@ -27,8 +27,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
 
@@ -208,5 +207,4 @@ void HciRouterClientAgentImpl::ForEachClient(
   }
 }
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci
