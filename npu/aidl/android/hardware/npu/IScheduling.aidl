@@ -23,6 +23,11 @@ import android.hardware.npu.SchedulingConfig;
  * This is used to inform the NPU of the priorities of the applications
  * on the system and receive callbacks related to scheduling decisions.
  *
+ * The NPU should make a best-effort to follow the priorities set via `setSchedulingConfigs()`.
+ * That means that higher-priority work (which has a lower number) should generally be
+ * executed before lower-priority work to the extent that it is possible. The details of this
+ * may vary based on the capabilities of the hardware.
+ *
  * If the NPU gets work for a UID that does not have an associated
  * SchedulingConfig, it should give it the lowest priority (SchedulingConfig.MAX_PRIORITY),
  * allow direct access, and disallow attribution to other UIDs.
@@ -30,7 +35,10 @@ import android.hardware.npu.SchedulingConfig;
 @VintfStability
 interface IScheduling {
     /**
-     * Sets priorities based on the passed set of SchedulingConfig
+     * Sets priorities based on the passed set of SchedulingConfig. This replaces the
+     * entire set of configs that may have been passed prior via setSchedulingConfigs() or
+     * updateSchedulingConfigs(). For example, passing an empty array will clear all
+     * existing configs.
      *
      * @param schedulingConfigs the scheduling configuration for a set of UIDs
      * @throws EX_ILLEGAL_ARGUMENT if parameters of SchedulingConfig are invalid or if
