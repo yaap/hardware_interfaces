@@ -20,6 +20,8 @@
 #include <aidl/android/hardware/usb/IUsb.h>
 #include <aidl/android/hardware/usb/IUsbCallback.h>
 #include <aidl/android/hardware/usb/BnUsbCallback.h>
+#include <aidl/android/hardware/usb/ConnectorType.h>
+#include <aidl/android/hardware/usb/StaticPortInformation.h>
 #include <aidl/android/hardware/usb/PortDataRole.h>
 #include <aidl/android/hardware/usb/PortMode.h>
 #include <aidl/android/hardware/usb/PortPowerRole.h>
@@ -46,6 +48,7 @@ using ::aidl::android::hardware::usb::AltModeData;
 using ::aidl::android::hardware::usb::Bc12Type;
 using ::aidl::android::hardware::usb::BnUsbCallback;
 using ::aidl::android::hardware::usb::ComplianceWarning;
+using ::aidl::android::hardware::usb::ConnectorType;
 using ::aidl::android::hardware::usb::DisplayPortAltModePinAssignment;
 using ::aidl::android::hardware::usb::DisplayPortAltModeStatus;
 using ::aidl::android::hardware::usb::IUsb;
@@ -60,6 +63,7 @@ using ::aidl::android::hardware::usb::PortStatus;
 using ::aidl::android::hardware::usb::PowerProfile;
 using ::aidl::android::hardware::usb::PowerProfileMatchResult;
 using ::aidl::android::hardware::usb::Status;
+using ::aidl::android::hardware::usb::StaticPortInformation;
 using ::aidl::android::hardware::usb::TypecDefault;
 using ::aidl::android::hardware::usb::UsbDataStatus;
 using ::aidl::android::hardware::usb::UsbPdBattery;
@@ -162,6 +166,7 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
     ScopedAStatus notifyQueryPortStatus(const string& /*portName*/, Status /*retval*/,
                                         int64_t transactionId) override {
       parent_.last_transactionId = transactionId;
+      parent_.query_port_status_done = true;
       parent_.notify();
       return ScopedAStatus::ok();
     }
@@ -185,6 +190,19 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
       parent_.reset_usb_port_done = true;
       parent_.notify();
       return ScopedAStatus::ok();
+    }
+
+    // Callback method for the status of queryStaticPortInformation operation.
+    ScopedAStatus notifyQueryStaticPortInformation(const string& /*portName*/,
+                                                   const StaticPortInformation& staticPortInfo,
+                                                   Status /*retval*/,
+                                                   int64_t transactionId) override {
+        parent_.usb_last_static_port_info = staticPortInfo;
+        parent_.last_transactionId = transactionId;
+        parent_.usb_last_cookie = cookie;
+        parent_.query_static_port_info_done = true;
+        parent_.notify();
+        return ScopedAStatus::ok();
     }
   };
 
@@ -259,8 +277,17 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
   // Flag to indicate the invocation of notifyLimitPowerTransferStatus callback.
   bool limit_power_transfer_done;
 
+  // Stores static port information of the last queryStaticPortInformation operation.
+  StaticPortInformation usb_last_static_port_info;
+
   // Flag to indicate the invocation of notifyResetUsbPort callback.
   bool reset_usb_port_done;
+
+  // Flag to indicate the invocation of queryPortStatus callback.
+  bool query_port_status_done;
+
+  // Flag to indicate the invocation of queryStaticPortInformation callback.
+  bool query_static_port_info_done;
 
   // Stores the cookie of the last invoked usb callback object.
   int usb_last_cookie;
@@ -927,6 +954,105 @@ TEST_P(UsbAidlTestV4, verifyPortUsbPd5vSupport) {
 
     verifyPortUsbPd5vSupportHelper(usb_last_port_status.sinkPowerProfiles);
     verifyPortUsbPd5vSupportHelper(usb_last_port_status.sourcePowerProfiles);
+}
+
+template <typename T>
+bool isValidEnumValue(const T& value) {
+    const auto range = ::ndk::enum_range<T>();
+    return std::find(range.begin(), range.end(), value) != range.end();
+}
+
+/*
+ * Test to verify the queryStaticPortInformation method.
+ * The test verifies that the static port information returned is valid:
+ *  - portName is the same as the input portName.
+ *  - sysfsPath is not empty.
+ *  - connectorType is valid.
+ *  - physical location enums are valid.
+ *  - capabilities are valid.
+ *  - usbRootHubSpeedsSupported are valid.
+ *  - usb4TbtSpeedsSupported are valid.
+ *  - displayLinkSpeedsSupported are valid.
+ *  - dataRole and powerRole are part of the supportedRoles.
+ *  - If connector type is Type-A, then power & data roles supported should be NONE only
+ *    and linked device USB port paths, linked display paths, linked power supply paths,
+ *    linked USB4 TBT paths, USB4 TBT speeds supported, and display link speeds supported
+ *    should be empty.
+ */
+TEST_P(UsbAidlTestV4, queryStaticPortInformation) {
+    ALOGI("UsbAidlTestV4 queryStaticPortInformation start");
+    int64_t transactionId = rand() % 10000;
+    query_port_status_done = false;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    std::cv_status waitStatus = wait();
+    while (waitStatus == std::cv_status::no_timeout && !query_port_status_done) waitStatus = wait();
+    EXPECT_EQ(std::cv_status::no_timeout, waitStatus);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    std::string portName = usb_last_port_status.portName;
+    ASSERT_FALSE(portName.empty()) << "No USB ports found";
+
+    transactionId = rand() % 10000;
+    query_static_port_info_done = false;
+    const auto& ret_static = usb->queryStaticPortInformation(portName, transactionId);
+    ASSERT_TRUE(ret_static.isOk());
+    waitStatus = wait();
+    while (waitStatus == std::cv_status::no_timeout && !query_static_port_info_done)
+        waitStatus = wait();
+    EXPECT_EQ(std::cv_status::no_timeout, waitStatus);
+    EXPECT_EQ(2, usb_last_cookie);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    const auto& staticPortInfo = usb_last_static_port_info;
+    EXPECT_EQ(portName, staticPortInfo.portName);
+    EXPECT_FALSE(staticPortInfo.sysfsPath.empty());
+
+    EXPECT_TRUE(std::find(staticPortInfo.powerRolesSupported.begin(),
+                          staticPortInfo.powerRolesSupported.end(),
+                          usb_last_port_status.currentPowerRole) !=
+                staticPortInfo.powerRolesSupported.end());
+    EXPECT_TRUE(std::find(staticPortInfo.dataRolesSupported.begin(),
+                          staticPortInfo.dataRolesSupported.end(),
+                          usb_last_port_status.currentDataRole) !=
+                staticPortInfo.dataRolesSupported.end());
+    EXPECT_TRUE(isValidEnumValue(staticPortInfo.connectorType));
+
+    if (staticPortInfo.connectorType == ConnectorType::A) {
+        EXPECT_EQ(1, staticPortInfo.dataRolesSupported.size());
+        EXPECT_EQ(PortDataRole::HOST, staticPortInfo.dataRolesSupported[0]);
+        EXPECT_EQ(1, staticPortInfo.powerRolesSupported.size());
+        EXPECT_EQ(PortPowerRole::SOURCE, staticPortInfo.powerRolesSupported[0]);
+        EXPECT_TRUE(staticPortInfo.linkedDeviceUSBPortPaths.empty());
+        EXPECT_TRUE(staticPortInfo.linkedDisplayPaths.empty());
+        EXPECT_TRUE(staticPortInfo.linkedUsb4TbtPaths.empty());
+        EXPECT_TRUE(staticPortInfo.linkedPowerSupplyPaths.empty());
+        EXPECT_TRUE(staticPortInfo.usb4TbtSpeedsSupported.empty());
+        EXPECT_TRUE(staticPortInfo.displayLinkSpeedsSupported.empty());
+    }
+
+    const auto& physicalLocation = staticPortInfo.physicalLocation;
+    EXPECT_TRUE(isValidEnumValue(physicalLocation.panel));
+    EXPECT_TRUE(isValidEnumValue(physicalLocation.horizontalPosition));
+    EXPECT_TRUE(isValidEnumValue(physicalLocation.verticalPosition));
+
+    for (const auto& cap : staticPortInfo.capabilities) {
+        EXPECT_TRUE(isValidEnumValue(cap));
+    }
+
+    for (const auto& speed : staticPortInfo.usbRootHubSpeedsSupported) {
+        EXPECT_TRUE(isValidEnumValue(speed));
+    }
+
+    for (const auto& speed : staticPortInfo.usb4TbtSpeedsSupported) {
+        EXPECT_TRUE(isValidEnumValue(speed));
+    }
+
+    for (const auto& speed : staticPortInfo.displayLinkSpeedsSupported) {
+        EXPECT_TRUE(isValidEnumValue(speed));
+    }
+
+    ALOGI("UsbAidlTestV4 queryStaticPortInformation end");
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UsbAidlTest);
