@@ -31,9 +31,7 @@
 #include "bluetooth_hal/hci_router_client.h"
 #include "bluetooth_hal/util/android_base_wrapper.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 
 using ::aidl::android::hardware::bluetooth::finder::Eid;
 using ::bluetooth_hal::Property;
@@ -335,6 +333,4 @@ bool BluetoothFinderHandler::SendCommandAndWait(const HalPacket& packet) {
   return command_success_;  // Return the result set by OnCommandCallback.
 }
 
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder

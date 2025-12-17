@@ -25,9 +25,7 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/finder/bluetooth_finder_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 
 class BluetoothFinder
     : public ::aidl::android::hardware::bluetooth::finder::BnBluetoothFinder {
@@ -46,8 +44,6 @@ class BluetoothFinder
   BluetoothFinderHandler& handler_;
 };
 
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder
 
 #endif
