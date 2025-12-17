@@ -380,13 +380,6 @@ interface IBluetoothAudioProvider {
          */
         @nullable ConfigurationFlags flags;
         /**
-         * Config identifier string. If flags.bitmask does not include ISO_PARAMETER_UPDATE, this
-         * field is ignored. The same configIdentifier must correspond to the same
-         * LeAudioAseConfigurationSetting content. Example:
-         * "Two-OneChan-SnkAse-Lc3_16_2_Balanced_Reliability"
-         */
-        @nullable String configIdentifier;
-        /**
          * latency setting update along with the config from the HAL.
          */
         @nullable LeAudioUpdateLatencySetting latencySetting;
