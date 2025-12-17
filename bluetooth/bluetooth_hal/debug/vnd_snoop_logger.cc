@@ -54,6 +54,9 @@ using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::util::Worker;
 
+using ::bluetooth_hal::util::CloseLogFileStream;
+using ::bluetooth_hal::util::DeleteOldestFiles;
+
 struct PacketHeaderType {
   uint32_t length_original;
   uint32_t length_captured;
@@ -257,7 +260,7 @@ class LoggerHandler {
       PrepareNewLogFile();
       state_ = State::kRecording;
     } else {
-      os::DeleteOldestFiles(kLogDirectory, kLogFilePrefix, 0);
+      DeleteOldestFiles(kLogDirectory, kLogFilePrefix, 0);
       state_ = State::kStoppedOrDisabled;
     }
   }
@@ -347,7 +350,7 @@ class LoggerHandler {
 
   void CloseCurrentLogFile() {
     LOG(INFO) << __func__ << ": Close btsnoop log file.";
-    os::CloseLogFileStream(log_ostream_);
+    CloseLogFileStream(log_ostream_);
     packet_counter_ = 0;
   }
 
@@ -392,7 +395,7 @@ class LoggerHandler {
 
   void PrepareNewLogFile() {
     CloseCurrentLogFile();
-    os::DeleteOldestFiles(kLogDirectory, kLogFilePrefix, kMaxLogFileCount - 1);
+    DeleteOldestFiles(kLogDirectory, kLogFilePrefix, kMaxLogFileCount - 1);
     OpenNewLogFile();
   }
 
