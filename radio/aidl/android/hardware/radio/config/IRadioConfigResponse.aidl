@@ -16,6 +16,7 @@
 
 package android.hardware.radio.config;
 
+import android.hardware.radio.RadioResponseInfo;
 import android.hardware.radio.config.PhoneCapability;
 import android.hardware.radio.config.SimSlotStatus;
 import android.hardware.radio.config.SimTypeInfo;
@@ -189,4 +190,14 @@ oneway interface IRadioConfigResponse {
      *   RadioError:MODEM_ERR
      */
     void setSimTypeResponse(in android.hardware.radio.RadioResponseInfo info);
+
+    /**
+     * @param info Response info struct containing response serial no. and error.
+     *
+     * Valid errors returned:
+     * RadioError:NONE
+     * RadioError:RADIO_NOT_AVAILABLE
+     * RadioError:MODEM_ERR
+     */
+    void rebootModemResponse(in RadioResponseInfo info);
 }
