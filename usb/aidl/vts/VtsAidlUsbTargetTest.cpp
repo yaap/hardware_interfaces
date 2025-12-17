@@ -114,6 +114,9 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
         parent_.usb_last_port_status.sourcePowerProfiles = currentPortStatus[0].sourcePowerProfiles;
         parent_.usb_last_port_status.sinkMatchResults = currentPortStatus[0].sinkMatchResults;
         parent_.usb_last_port_status.sourceMatchResults = currentPortStatus[0].sourceMatchResults;
+        parent_.usb_last_port_status.cableStatus = currentPortStatus[0].cableStatus;
+        parent_.usb_last_port_status.downstreamConnections =
+                currentPortStatus[0].downstreamConnections;
       }
       parent_.usb_last_cookie = cookie;
       return ScopedAStatus::ok();
@@ -277,14 +280,14 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
   // Flag to indicate the invocation of notifyLimitPowerTransferStatus callback.
   bool limit_power_transfer_done;
 
-  // Stores static port information of the last queryStaticPortInformation operation.
-  StaticPortInformation usb_last_static_port_info;
-
   // Flag to indicate the invocation of notifyResetUsbPort callback.
   bool reset_usb_port_done;
 
   // Flag to indicate the invocation of queryPortStatus callback.
   bool query_port_status_done;
+
+  // Stores static port information of the last queryStaticPortInformation operation.
+  StaticPortInformation usb_last_static_port_info;
 
   // Flag to indicate the invocation of queryStaticPortInformation callback.
   bool query_static_port_info_done;
@@ -1053,6 +1056,64 @@ TEST_P(UsbAidlTestV4, queryStaticPortInformation) {
     }
 
     ALOGI("UsbAidlTestV4 queryStaticPortInformation end");
+}
+
+void verifyVendorAltModesSvid(const std::vector<AltModeData>& altModes) {
+    for (const auto& altMode : altModes) {
+        if (altMode.getTag() == AltModeData::vendorAltModeData) {
+            EXPECT_GT(altMode.get<AltModeData::vendorAltModeData>().svid, 0);
+        }
+    }
+}
+
+/*
+ * Test to verify the validity of fields in PortStatus that were added in V4.
+ *  - cableStatus
+ *  - partnerStatus updated version
+ *  - supportedAltModes updated version
+ *  - downstreamConnections
+ */
+TEST_P(UsbAidlTestV4, verifyUpdatedPortStatusValues) {
+    ALOGI("UsbAidlTestV4 verifyUpdatedPortStatusValues start");
+    int64_t transactionId = rand() % 10000;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    std::cv_status waitStatus = wait();
+    while (waitStatus == std::cv_status::no_timeout && !query_port_status_done) waitStatus = wait();
+    EXPECT_EQ(std::cv_status::no_timeout, waitStatus);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    std::string portName = usb_last_port_status.portName;
+    ASSERT_FALSE(portName.empty()) << "No USB ports found";
+
+    if (usb_last_port_status.cableStatus.has_value()) {
+        const auto& cableStatus = usb_last_port_status.cableStatus.value();
+        if (cableStatus.identity.has_value()) {
+            EXPECT_TRUE(isValidEnumValue(cableStatus.identity.value().pdRevision));
+        }
+        verifyVendorAltModesSvid(cableStatus.supportedAltModes);
+    }
+
+    if (usb_last_port_status.partnerStatus.has_value()) {
+        const auto& partnerStatus = usb_last_port_status.partnerStatus.value();
+        EXPECT_TRUE(isValidEnumValue(partnerStatus.bc12Type));
+        EXPECT_TRUE(isValidEnumValue(partnerStatus.activePowerRole));
+        EXPECT_TRUE(isValidEnumValue(partnerStatus.activeDataRole));
+        if (partnerStatus.identity.has_value()) {
+            EXPECT_TRUE(isValidEnumValue(partnerStatus.identity.value().pdRevision));
+        }
+        verifyVendorAltModesSvid(partnerStatus.supportedAltModes);
+    }
+
+    for (const auto& connection : usb_last_port_status.downstreamConnections) {
+        EXPECT_FALSE(connection.sysfsPath.empty());
+        EXPECT_GT(connection.busnum, 0);
+        EXPECT_GT(connection.devnum, 0);
+    }
+
+    verifyVendorAltModesSvid(usb_last_port_status.supportedAltModes);
+
+    ALOGI("UsbAidlTestV4 verifyUpdatedPortStatusValues end");
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UsbAidlTest);
