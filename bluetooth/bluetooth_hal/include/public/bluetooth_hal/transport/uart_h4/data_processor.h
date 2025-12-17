@@ -24,8 +24,7 @@
 #include "bluetooth_hal/transport/uart_h4/hci_packetizer.h"
 #include "bluetooth_hal/util/fd_watcher.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class DataProcessor {
  public:
@@ -73,5 +72,4 @@ class DataProcessor {
   ::bluetooth_hal::util::FdWatcher fd_watcher_;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

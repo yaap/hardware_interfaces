@@ -34,8 +34,7 @@
 #include "bluetooth_hal/util/system_call_wrapper.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
 
@@ -130,5 +129,4 @@ void DataProcessor::ParseHciPacket(std::span<const uint8_t> buffer) {
   }
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

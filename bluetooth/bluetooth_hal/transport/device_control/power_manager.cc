@@ -32,8 +32,7 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::android::base::unique_fd;
@@ -286,5 +285,4 @@ bool PowerManager::ConfigRxWakelockTime(int duration) {
   return true;
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

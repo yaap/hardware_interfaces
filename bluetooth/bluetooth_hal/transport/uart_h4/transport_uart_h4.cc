@@ -35,8 +35,7 @@
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/timer_manager.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::Property;
@@ -320,5 +319,4 @@ void TransportUartH4::RegisterVendorPacketValidator(
       std::move(factory));
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

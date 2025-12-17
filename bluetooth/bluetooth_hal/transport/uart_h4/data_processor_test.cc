@@ -33,8 +33,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::testing::_;
@@ -230,5 +229,4 @@ INSTANTIATE_TEST_SUITE_P(
             .payload = std::vector<uint8_t>{0x01, 0x02, 0x03}}));
 
 }  // namespace
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

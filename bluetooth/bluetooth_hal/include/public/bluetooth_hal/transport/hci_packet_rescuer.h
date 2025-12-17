@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class HciPacketRescuer {
  public:
@@ -56,5 +55,4 @@ class HciPacketRescuer {
   std::unique_ptr<VendorPacketValidatorInterface> vendor_packet_validator_;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

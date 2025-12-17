@@ -20,8 +20,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -90,5 +89,4 @@ void MockTransportInterface::SetMockTransport(
   MockTransportInterface::mock_transport_interface_ = transport;
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

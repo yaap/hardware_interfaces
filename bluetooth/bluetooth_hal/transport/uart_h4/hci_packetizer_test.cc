@@ -29,8 +29,7 @@
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::testing::_;
@@ -231,5 +230,4 @@ TEST_F(HciPacketizerTest, EnhancedValidationOffWithoutValidPacket) {
 }
 
 }  // namespace
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

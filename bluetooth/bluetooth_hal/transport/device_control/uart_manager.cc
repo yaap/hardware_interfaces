@@ -33,8 +33,7 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::android::base::unique_fd;
@@ -187,5 +186,4 @@ void UartManager::UpdateBaudRate(BaudRate rate) const {
 
 int UartManager::GetFd() { return uart_fd_.get(); }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

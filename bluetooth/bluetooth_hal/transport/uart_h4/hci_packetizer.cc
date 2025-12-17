@@ -33,8 +33,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/hci_packet_rescuer.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::bluetooth_hal::config::HalConfigLoader;
@@ -174,5 +173,4 @@ size_t HciPacketizer::ProcessData(std::span<const uint8_t> data) {
   return cur_bytes_read;
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

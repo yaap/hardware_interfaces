@@ -20,8 +20,7 @@
 
 #include "bluetooth_hal/transport/vendor_packet_validator.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 VendorPacketValidatorInterface::FactoryFn
     VendorPacketValidatorInterface::vendor_factory_ = nullptr;
@@ -39,5 +38,4 @@ void VendorPacketValidatorInterface::RegisterVendorPacketValidator(
   vendor_factory_ = std::move(factory);
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport
