@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,15 +32,10 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.usb;
-@VintfStability
-interface IUsbCallback {
-  oneway void notifyPortStatusChange(in android.hardware.usb.PortStatus[] currentPortStatus, in android.hardware.usb.Status retval);
-  oneway void notifyRoleSwitchStatus(in String portName, in android.hardware.usb.PortRole newRole, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyEnableUsbDataStatus(in String portName, boolean enable, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyEnableUsbDataWhileDockedStatus(in String portName, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyContaminantEnabledStatus(in String portName, boolean enable, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyQueryPortStatus(in String portName, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyLimitPowerTransferStatus(in String portName, boolean limit, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyResetUsbPortStatus(in String portName, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyQueryStaticPortInformation(in String portName, in android.hardware.usb.StaticPortInformation portInfo, in android.hardware.usb.Status retval, long transactionId);
+@Backing(type="int") @VintfStability
+enum Capability {
+  HOST_MODE = 0,
+  DEVICE_MODE = 1,
+  DBC = 2,
+  TYPEC_DEBUG_ACCESSORY_MODE = 3,
 }

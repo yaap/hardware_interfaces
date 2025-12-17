@@ -17,6 +17,7 @@ package android.hardware.usb;
 
 import android.hardware.usb.PortRole;
 import android.hardware.usb.PortStatus;
+import android.hardware.usb.StaticPortInformation;
 import android.hardware.usb.Status;
 
 /**
@@ -114,4 +115,15 @@ oneway interface IUsbCallback {
      * @param transactionId current transactionId sent during resetUsbPort request.
      */
     void notifyResetUsbPortStatus(in String portName, in Status retval, long transactionId);
+
+    /**
+     * Notify the result of queryStaticPortInformation call to the caller.
+     *
+     * @param portName name of the port for which static information is being queried.
+     * @param portInfo static information of the port.
+     * @param retval SUCCESS if the port query succeeded. FAILURE otherwise.
+     * @param transactionId transactionId sent during queryStaticPortInformation request.
+     */
+    void notifyQueryStaticPortInformation(in String portName, in StaticPortInformation portInfo,
+            in Status retval, long transactionId);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,14 +33,9 @@
 
 package android.hardware.usb;
 @VintfStability
-interface IUsbCallback {
-  oneway void notifyPortStatusChange(in android.hardware.usb.PortStatus[] currentPortStatus, in android.hardware.usb.Status retval);
-  oneway void notifyRoleSwitchStatus(in String portName, in android.hardware.usb.PortRole newRole, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyEnableUsbDataStatus(in String portName, boolean enable, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyEnableUsbDataWhileDockedStatus(in String portName, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyContaminantEnabledStatus(in String portName, boolean enable, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyQueryPortStatus(in String portName, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyLimitPowerTransferStatus(in String portName, boolean limit, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyResetUsbPortStatus(in String portName, in android.hardware.usb.Status retval, long transactionId);
-  oneway void notifyQueryStaticPortInformation(in String portName, in android.hardware.usb.StaticPortInformation portInfo, in android.hardware.usb.Status retval, long transactionId);
+parcelable PhysicalLocation {
+  android.hardware.usb.Panel panel = android.hardware.usb.Panel.UNKNOWN;
+  android.hardware.usb.HorizontalPosition horizontalPosition = android.hardware.usb.HorizontalPosition.UNKNOWN;
+  android.hardware.usb.VerticalPosition verticalPosition = android.hardware.usb.VerticalPosition.UNKNOWN;
+  boolean lid = false;
 }
