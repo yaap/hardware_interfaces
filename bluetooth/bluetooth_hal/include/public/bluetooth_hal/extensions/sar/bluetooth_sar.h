@@ -23,9 +23,7 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/sar/bluetooth_sar_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace sar {
+namespace bluetooth_hal::extensions::sar {
 
 class BluetoothSar
     : public ::aidl::hardware::google::bluetooth::sar::BnBluetoothSar {
@@ -51,6 +49,4 @@ class BluetoothSar
   ::bluetooth_hal::extensions::sar::BluetoothSarHandler bluetooth_sar_handler_;
 };
 
-}  // namespace sar
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::sar
