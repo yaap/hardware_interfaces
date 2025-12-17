@@ -17,10 +17,8 @@
 package android.hardware.bluetooth.gatt;
 
 import android.hardware.bluetooth.gatt.GattCapabilities;
-import android.hardware.bluetooth.gatt.GattCharacteristic;
+import android.hardware.bluetooth.gatt.GattSession;
 import android.hardware.bluetooth.gatt.IBluetoothGattCallback;
-import android.hardware.bluetooth.gatt.Uuid;
-import android.hardware.contexthub.EndpointId;
 
 /**
  * The interface for host stack to register callback, to get capabilities, to offload
@@ -28,6 +26,12 @@ import android.hardware.contexthub.EndpointId;
  */
 @VintfStability
 interface IBluetoothGatt {
+    /**
+     * Error codes that are used as service specific errors with the AIDL return
+     * value EX_SERVICE_SPECIFIC.
+     */
+    const int EX_BLUETOOTH_GATT_UNSPECIFIED = -1;
+
     /**
      * API to initialize the GATT HAL and to register a callback for receiving asynchronous
      * events.
@@ -37,6 +41,8 @@ interface IBluetoothGatt {
      * registered one.
      *
      * @param callback An instance of the |IBluetoothGattCallback| AIDL interface object
+     *
+     * @throws EX_ILLEGAL_ARGUMENT If any of the parameters are invalid.
      */
     void init(in IBluetoothGattCallback callback);
 
@@ -52,17 +58,6 @@ interface IBluetoothGatt {
     GattCapabilities getGattCapabilities();
 
     /**
-     * Represent GATT role. A device can act as either a {@link SERVER} or a {@link CLIENT} on
-     * the GATT offload session.
-     */
-    @VintfStability
-    @Backing(type="int")
-    enum Role {
-        SERVER,
-        CLIENT,
-    }
-
-    /**
      * API to offload the GATT service to the endpoint for either GATT client or server.
      *
      * This message allows the GATT app to delegate the handling of a subset of the characteristics
@@ -73,18 +68,14 @@ interface IBluetoothGatt {
      depend on the attribute handles of the characteristics. These handles are dynamically assigned
      by the GATT server and are obtained exclusively during the service discovery process.
      *
-     * @param sessionId Identifier assigned to the offload session by the host stack. Used to
-              uniquely identify the offload session in other callbacks and method
-              invocations.
-     * @param aclConnectionHandle Handle of the ACL connection over which the GATT service is
-              offloaded.
-     * @param attMtu Maximum transmission unit for ATT protocol negotiated for this connection.
-     * @param role GATT role (SERVER or CLIENT) for which this offload session is being established.
-     * @param serviceUuid UUID of the GATT service which {@code characteristics} are associated with
-     * @param endpointId Unique identifier for an endpoint at the offload path
+     * @param session Parameters for the GATT offload session to be registered.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT If any of the parameters in {@code session} are invalid.
+     * @throws EX_UNSUPPORTED_OPERATION If the operation is not supported.
+     * @throws EX_SERVICE_SPECIFIC on other errors
+               - EX_BLUETOOTH_GATT_UNSPECIFIED if the request failed for other reasons.
      */
-    void registerService(in int sessionId, in int aclConnectionHandle, in int attMtu, in Role role,
-            in Uuid serviceUuid, in GattCharacteristic[] characteristics, in EndpointId endpointId);
+    void registerService(in GattSession session);
 
     /**
      * API to unregister a previously offloaded GATT offload session or signal its closure.
@@ -96,6 +87,11 @@ interface IBluetoothGatt {
      *
      * @param sessionId The unique identifier for the GATT session that was previously
      *        assigned when the service was offloaded
+     *
+     * @throws EX_ILLEGAL_ARGUMENT If any of the parameters are invalid.
+     * @throws EX_UNSUPPORTED_OPERATION If the operation is not supported.
+     * @throws EX_SERVICE_SPECIFIC on other errors
+               - EX_BLUETOOTH_GATT_UNSPECIFIED if the request failed for other reasons.
      */
     void unregisterService(in int sessionId);
 
@@ -114,6 +110,11 @@ interface IBluetoothGatt {
      * database through DATABASE_OUT_OF_SYNC errors or Service Change notifications.
      *
      * @param aclConnectionHandle  Handle of the selected ACL connection
+     *
+     * @throws EX_ILLEGAL_ARGUMENT If any of the parameters are invalid.
+     * @throws EX_UNSUPPORTED_OPERATION If the operation is not supported.
+     * @throws EX_SERVICE_SPECIFIC on other errors
+               - EX_BLUETOOTH_GATT_UNSPECIFIED if the request failed for other reasons.
      */
     void clearServices(in int aclConnectionHandle);
 }

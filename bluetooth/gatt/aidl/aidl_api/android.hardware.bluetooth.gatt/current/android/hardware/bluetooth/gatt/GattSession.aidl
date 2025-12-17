@@ -33,11 +33,17 @@
 
 package android.hardware.bluetooth.gatt;
 @VintfStability
-interface IBluetoothGatt {
-  void init(in android.hardware.bluetooth.gatt.IBluetoothGattCallback callback);
-  android.hardware.bluetooth.gatt.GattCapabilities getGattCapabilities();
-  void registerService(in android.hardware.bluetooth.gatt.GattSession session);
-  void unregisterService(in int sessionId);
-  void clearServices(in int aclConnectionHandle);
-  const int EX_BLUETOOTH_GATT_UNSPECIFIED = (-1) /* -1 */;
+parcelable GattSession {
+  int sessionId;
+  int aclConnectionHandle;
+  int attMtu;
+  android.hardware.bluetooth.gatt.GattSession.Role role;
+  android.hardware.bluetooth.gatt.Uuid serviceUuid;
+  android.hardware.bluetooth.gatt.GattCharacteristic[] characteristics;
+  android.hardware.contexthub.EndpointId endpointId;
+  @Backing(type="int") @VintfStability
+  enum Role {
+    SERVER,
+    CLIENT,
+  }
 }
