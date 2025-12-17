@@ -25,6 +25,8 @@ import android.hardware.usb.PlugOrientation;
 import android.hardware.usb.PortDataRole;
 import android.hardware.usb.PortMode;
 import android.hardware.usb.PortPartnerStatus;
+import android.hardware.usb.CableStatus;
+import android.hardware.usb.UsbDeviceRef;
 import android.hardware.usb.PortPowerRole;
 import android.hardware.usb.PowerBrickStatus;
 import android.hardware.usb.PowerProfile;
@@ -178,4 +180,12 @@ parcelable PortStatus {
      * power profiles.
      */
     PowerProfileMatchResult[] sourceMatchResults = {};
+    /**
+     * The status of the connected cable, if any.
+     */
+    @nullable CableStatus cableStatus;
+    /**
+     * A list of references to downstream USB devices connected to this port.
+     */
+    UsbDeviceRef[] downstreamConnections = {};
 }

@@ -61,4 +61,6 @@ parcelable PortStatus {
   android.hardware.usb.PowerProfile[] sourcePowerProfiles = {};
   android.hardware.usb.PowerProfileMatchResult[] sinkMatchResults = {};
   android.hardware.usb.PowerProfileMatchResult[] sourceMatchResults = {};
+  @nullable android.hardware.usb.CableStatus cableStatus;
+  android.hardware.usb.UsbDeviceRef[] downstreamConnections = {};
 }
