@@ -1073,7 +1073,7 @@ TEST(RemoteProvUtilsTest, checkModeOnCertificatesInDiceChain) {
 }
 
 TEST(RemoteProvUtilsTest, parseFullyQualifiedInstanceNames) {
-    ASSERT_EQ(deviceSuffix(RKPVM_INSTANCE_NAME), "avf");
+    ASSERT_EQ(deviceSuffix(AVF_INSTANCE_NAME), "avf");
     ASSERT_EQ(deviceSuffix(DEFAULT_INSTANCE_NAME), "default");
     ASSERT_EQ(deviceSuffix("default"), "default");
     ASSERT_EQ(deviceSuffix("//the/last/one"), "one");

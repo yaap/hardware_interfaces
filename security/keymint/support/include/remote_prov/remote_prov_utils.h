@@ -96,7 +96,7 @@ bytevec randomBytes(size_t numBytes);
 
 const std::string DEFAULT_INSTANCE_NAME =
         "android.hardware.security.keymint.IRemotelyProvisionedComponent/default";
-const std::string RKPVM_INSTANCE_NAME =
+const std::string AVF_INSTANCE_NAME =
         "android.hardware.security.keymint.IRemotelyProvisionedComponent/avf";
 
 /**
