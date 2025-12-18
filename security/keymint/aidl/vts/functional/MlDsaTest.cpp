@@ -624,7 +624,26 @@ TEST_P(MlDsaTest, ImportRawSeedUnknownVariant) {
 }
 
 TEST_P(MlDsaTest, ImportWrappedRawSeed) {
-    GTEST_SKIP() << "TODO: add test for import of a wrapped ML-DSA private key seed";
+    // The helper code to build a wrapped key for import uses the C++ system/keymaster code, which
+    // has not been updated to support v5 of the KeyMint HAL.  It therefore does not support
+    // Tag::ML_DSA_VARIANT, but that tag is required for secure-import of a `KeyFormat::RAW` key (as
+    // that's the only way to distinguish an ML-DSA-65 seed from an ML-DSA-87 seed).
+    GTEST_SKIP() << "TODO: add test for import of a wrapped ML-DSA private key raw seed";
+}
+
+TEST_P(MlDsaTest, ImportWrappedPkcs8Seed) {
+    for (MlDsaVariant variant : kVariants) {
+        SCOPED_TRACE(testing::Message() << variant);
+        string key_data = kPkcs8SeedData.at(variant);
+
+        // Wrap up the PKCS#8 key; note that the import parameters don't specify
+        // `Tag::ML_DSA_VARIANT`.
+        WrappedKeyInfo info;
+        WrapKey({key_data.begin(), key_data.end()}, KeyFormat::PKCS8, ImportParams(), &info);
+        int64_t biometric_sid = 24;
+        ASSERT_EQ(ErrorCode::OK, ImportWrappedKey(info, 0, 0));
+        CheckMlDsaKey(variant, KeyOrigin::SECURELY_IMPORTED);
+    }
 }
 
 TEST_P(MlDsaTest, ImportPkcs8SeedUnspecifiedVariant) {
