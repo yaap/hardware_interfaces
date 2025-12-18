@@ -19,10 +19,12 @@
 #include <aidl/android/hardware/radio/messaging/BnRadioMessagingIndication.h>
 #include <aidl/android/hardware/radio/messaging/BnRadioMessagingResponse.h>
 #include <aidl/android/hardware/radio/messaging/IRadioMessaging.h>
+#include <aidl/android/hardware/radio/network/NetworkSecurityEvent.h>
 
 #include "radio_aidl_hal_utils.h"
 
 using namespace aidl::android::hardware::radio::messaging;
+namespace aidl_network = ::aidl::android::hardware::radio::network;
 
 class RadioMessagingTest;
 
@@ -129,6 +131,11 @@ class RadioMessagingIndication : public BnRadioMessagingIndication {
                                                   const std::vector<uint8_t>& pdu) override;
 
     virtual ndk::ScopedAStatus simSmsStorageFull(RadioIndicationType type) override;
+
+
+    virtual ndk::ScopedAStatus newSecureSms(RadioIndicationType type,
+                                            const std::vector<uint8_t>& pdu,
+                                            const aidl_network::NetworkSecurityEvent& event) override;
 };
 
 // The main test class for Radio AIDL Messaging.

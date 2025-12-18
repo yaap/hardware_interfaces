@@ -141,7 +141,10 @@ aidl_interface {
     host_supported: true,
     srcs: ["android/hardware/radio/messaging/*.aidl"],
     stability: "vintf",
-    imports: ["android.hardware.radio-V5"],
+    imports: [
+        "android.hardware.radio-V5",
+        "android.hardware.radio.network-V5",
+    ],
     flags: ["-Werror"],
     always_use_unfrozen: select(release_flag("RELEASE_ALWAYS_USE_UNFROZEN_RADIO_HAL"), {
         true: true,
@@ -214,7 +217,6 @@ aidl_interface {
             version: "4",
             imports: ["android.hardware.radio-V4"],
         },
-
     ],
     frozen: false,
 }
