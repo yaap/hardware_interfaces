@@ -33,12 +33,9 @@
 
 package android.hardware.usb;
 @VintfStability
-parcelable PortPartnerStatus {
-  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
-  android.hardware.usb.PowerProfile[] sinkPowerProfiles = {};
-  android.hardware.usb.PowerProfile[] sourcePowerProfiles = {};
-  android.hardware.usb.AltModeData[] supportedAltModes = {};
-  android.hardware.usb.PortPowerRole activePowerRole = android.hardware.usb.PortPowerRole.NONE;
-  android.hardware.usb.PortDataRole activeDataRole = android.hardware.usb.PortDataRole.NONE;
-  @nullable android.hardware.usb.PeripheralIdentity identity;
+parcelable PhysicalLocation {
+  android.hardware.usb.Panel panel = android.hardware.usb.Panel.UNKNOWN;
+  android.hardware.usb.HorizontalPosition horizontalPosition = android.hardware.usb.HorizontalPosition.UNKNOWN;
+  android.hardware.usb.VerticalPosition verticalPosition = android.hardware.usb.VerticalPosition.UNKNOWN;
+  boolean lid = false;
 }
