@@ -43,6 +43,8 @@ oneway interface IRadioDataIndication {
      * HAL Notes for ConnectionCapability: When setupDataCall results in the reuse CID, this event
      * MUST be triggered. The trafficDescriptors in each SetupDataCallResult in dcList
      * MUST reflect the full set of ConnectionCapabilities for that session.
+     *
+     * @deprecated use IRadioDataResponse.dataCallListUpdated() instead.
      */
     void dataCallListChanged(in RadioIndicationType type, in SetupDataCallResult[] dcList);
 

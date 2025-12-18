@@ -81,6 +81,9 @@ class RadioDataResponse : public BnRadioDataResponse {
             const RadioResponseInfo& info) override;
 
     virtual ndk::ScopedAStatus notifyImsDataNetworkResponse(const RadioResponseInfo& info) override;
+
+    virtual ndk::ScopedAStatus dataCallListUpdated(
+            RadioIndicationType type, const std::vector<SetupDataCallResult>& dcList) override;
 };
 
 /* Callback class for radio data indication */

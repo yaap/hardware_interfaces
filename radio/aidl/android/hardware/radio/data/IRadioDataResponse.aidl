@@ -16,6 +16,7 @@
 
 package android.hardware.radio.data;
 
+import android.hardware.radio.RadioIndicationType;
 import android.hardware.radio.RadioResponseInfo;
 import android.hardware.radio.data.KeepaliveStatus;
 import android.hardware.radio.data.SetupDataCallResult;
@@ -279,4 +280,25 @@ oneway interface IRadioDataResponse {
      *   RadioError:INTERNAL_ERR
      */
     void notifyImsDataNetworkResponse(in RadioResponseInfo info);
+
+    /**
+     * Indicates data call contexts have changed.
+     *
+     * @param type Type of radio indication
+     * @param dcList Array of SetupDataCallResult identical to that returned by
+     *        IRadioData.getDataCallList(). It is the complete list of current data contexts
+     *        including new contexts that have been activated. A data call is only removed from
+     *        this list when any of the below conditions is matched:
+     *        - The framework sends a IRadioData.deactivateDataCall().
+     *        - The radio is powered off/on.
+     *        - Unsolicited disconnect from either modem or network side.
+     *        Note that A data call's status needs to be changed to inactive before it can be
+     *        removed from the list. Directly removing it from the list would result in a
+     *        dangling data call.
+     *
+     * HAL Notes for ConnectionCapability: When setupDataCall results in the reuse CID, this event
+     * MUST be triggered. The trafficDescriptors in each SetupDataCallResult in dcList
+     * MUST reflect the full set of ConnectionCapabilities for that session.
+     */
+    void dataCallListUpdated(in RadioIndicationType type, in SetupDataCallResult[] dcList);
 }
