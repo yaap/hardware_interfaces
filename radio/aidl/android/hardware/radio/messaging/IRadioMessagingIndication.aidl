@@ -18,6 +18,7 @@ package android.hardware.radio.messaging;
 
 import android.hardware.radio.RadioIndicationType;
 import android.hardware.radio.messaging.CdmaSmsMessage;
+import android.hardware.radio.network.NetworkSecurityEvent;
 
 /**
  * Interface declaring unsolicited radio indications for messaging APIs.
@@ -95,4 +96,19 @@ oneway interface IRadioMessagingIndication {
      * @param type Type of radio indication
      */
     void simSmsStorageFull(in RadioIndicationType type);
+
+    /**
+     * Indicates when a new secure SMS is received. Callee must subsequently confirm the
+     * receipt of the SMS with a acknowledgeLastIncomingGsmSms(). Server must
+     * not send newSms(), newSmsStatusReport(), or newSecureSms() messages until an
+     * acknowledgeLastIncomingGsmSms() has been received.
+     *
+     * @param type Type of radio indication
+     * @param pdu PDU of SMS-DELIVER represented as byte array. The PDU starts
+     *        with the SMSC address per TS 27.005 (+CMT:)
+     * @param event is expected to contain a single AlertCategory of UNAUTH_SMS
+     *        with an AlertStatus of UNSPECIFIED, NOT_DETECTED, or DETECTED_ONLY.
+     */
+    void newSecureSms(in RadioIndicationType type, in byte[] pdu, in NetworkSecurityEvent event);
+
 }

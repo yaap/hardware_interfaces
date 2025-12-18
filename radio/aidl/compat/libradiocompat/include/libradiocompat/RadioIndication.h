@@ -94,6 +94,9 @@ class RadioIndication : public V1_6::IRadioIndication {
     Return<void> simStatusChanged(V1_0::RadioIndicationType type) override;
     Return<void> cdmaNewSms(V1_0::RadioIndicationType type,
                             const V1_0::CdmaSmsMessage& msg) override;
+    Return<void> newSecureSms(
+            V1_0::RadioIndicationType type, const hidl_vec<uint8_t>& pdu,
+            const ::aidl::android::hardware::radio::network::NetworkSecurityEvent& event);
     Return<void> newBroadcastSms(V1_0::RadioIndicationType type,
                                  const hidl_vec<uint8_t>& data) override;
     Return<void> cdmaRuimSmsStorageFull(V1_0::RadioIndicationType type) override;

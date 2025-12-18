@@ -48,4 +48,5 @@ interface IRadioMessagingIndication {
   oneway void newSmsOnSim(in android.hardware.radio.RadioIndicationType type, in int recordNumber);
   oneway void newSmsStatusReport(in android.hardware.radio.RadioIndicationType type, in byte[] pdu);
   oneway void simSmsStorageFull(in android.hardware.radio.RadioIndicationType type);
+  oneway void newSecureSms(in android.hardware.radio.RadioIndicationType type, in byte[] pdu, in android.hardware.radio.network.NetworkSecurityEvent event);
 }

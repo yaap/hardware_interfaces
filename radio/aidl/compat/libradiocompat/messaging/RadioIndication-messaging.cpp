@@ -25,6 +25,7 @@
 namespace android::hardware::radio::compat {
 
 namespace aidl = ::aidl::android::hardware::radio::messaging;
+namespace aidl_network = ::aidl::android::hardware::radio::network;
 
 void RadioIndication::setResponseFunction(std::shared_ptr<aidl::IRadioMessagingIndication> rmiCb) {
     mMessagingCb = rmiCb;
@@ -76,6 +77,12 @@ Return<void> RadioIndication::newSmsStatusReport(V1_0::RadioIndicationType type,
 Return<void> RadioIndication::simSmsStorageFull(V1_0::RadioIndicationType type) {
     LOG_CALL << type;
     messagingCb()->simSmsStorageFull(toAidl(type));
+    return {};
+}
+
+Return<void> RadioIndication::newSecureSms(V1_0::RadioIndicationType type, const hidl_vec<uint8_t>& pdu, const aidl_network::NetworkSecurityEvent& event) {
+    LOG_CALL << type;
+    messagingCb()->newSecureSms(toAidl(type), pdu, event);
     return {};
 }
 
