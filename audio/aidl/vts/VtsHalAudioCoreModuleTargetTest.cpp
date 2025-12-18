@@ -3453,10 +3453,11 @@ class StreamLogicDriverInvalidCommand : public StreamLogicDriver {
         const size_t currentCommand = mNextCommand - 1;  // increased by getNextTrigger
         const bool isLastCommand = currentCommand == mCommands.size() - 1;
         // All but the last command should run correctly. The last command must return 'BAD_VALUE'
-        // status or 'INVALID_OPERATION'.
+        // status or 'INVALID_OPERATION' status if the command is 'flushFromFrame'.
         if ((!isLastCommand && reply.status != STATUS_OK) ||
             (isLastCommand && reply.status != STATUS_BAD_VALUE &&
-             reply.status != STATUS_INVALID_OPERATION)) {
+             !(mCommands[currentCommand].getTag() == StreamDescriptor::Command::flushFromFrame &&
+               reply.status == STATUS_INVALID_OPERATION))) {
             std::string s = mCommands[currentCommand].toString();
             s.append(", ").append(statusToString(reply.status));
             mStatuses.push_back(std::move(s));
@@ -4605,9 +4606,11 @@ class AudioStream : public AudioCoreModule {
         } else {
             sequences.emplace_back("DrainUnspecified",
                                    std::vector{kStartCommand, kBurstCommand, kDrainInCommand});
-            sequences.emplace_back(
-                    "InvalidFlushFromFrameAccuracy",
-                    std::vector{kStartCommand, kBurstCommand, kInvalidFlushFromFrameCommand});
+            if (aidlVersion >= kAidlVersion4) {
+                sequences.emplace_back(
+                        "InvalidFlushFromFrameAccuracy",
+                        std::vector{kStartCommand, kBurstCommand, kInvalidFlushFromFrameCommand});
+            }
         }
         for (const auto& seq : sequences) {
             SCOPED_TRACE(std::string("Sequence ").append(seq.first));
