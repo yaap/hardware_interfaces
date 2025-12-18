@@ -20,8 +20,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class DebugMonitor : public ::bluetooth_hal::hci::HciRouterClient {
  public:
@@ -49,5 +48,4 @@ class DebugMonitor : public ::bluetooth_hal::hci::HciRouterClient {
   bool loopback_mode_enabled_{false};
 };
 
-}  //  namespace debug
-}  //  namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

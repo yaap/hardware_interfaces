@@ -567,20 +567,15 @@ ErrorCode KeyMintAidlTestBase::ImportKey(const AuthorizationSet& key_desc, KeyFo
     return ImportKey(key_desc, format, key_material, &key_blob_, &key_characteristics_);
 }
 
-ErrorCode KeyMintAidlTestBase::ImportWrappedKey(string wrapped_key, string wrapping_key,
-                                                const AuthorizationSet& wrapping_key_desc,
-                                                string masking_key,
+ErrorCode KeyMintAidlTestBase::ImportWrappedKey(const vector<uint8_t>& wrapped_key,
+                                                const vector<uint8_t>& wrapping_key_blob,
+                                                const vector<uint8_t>& masking_key,
                                                 const AuthorizationSet& unwrapping_params,
                                                 int64_t password_sid, int64_t biometric_sid) {
-    EXPECT_EQ(ErrorCode::OK, ImportKey(wrapping_key_desc, KeyFormat::PKCS8, wrapping_key));
-
-    key_characteristics_.clear();
-
     KeyCreationResult creationResult;
-    Status result = keymint_->importWrappedKey(
-            vector<uint8_t>(wrapped_key.begin(), wrapped_key.end()), key_blob_,
-            vector<uint8_t>(masking_key.begin(), masking_key.end()),
-            unwrapping_params.vector_data(), password_sid, biometric_sid, &creationResult);
+    Status result = keymint_->importWrappedKey(wrapped_key, wrapping_key_blob, masking_key,
+                                               unwrapping_params.vector_data(), password_sid,
+                                               biometric_sid, &creationResult);
 
     if (result.isOk()) {
         EXPECT_PRED3(KeyCharacteristicsBasicallyValid, SecLevel(),
@@ -604,6 +599,20 @@ ErrorCode KeyMintAidlTestBase::ImportWrappedKey(string wrapped_key, string wrapp
     }
 
     return GetReturnErrorCode(result);
+}
+
+ErrorCode KeyMintAidlTestBase::ImportWrappedKey(string wrapped_key, string wrapping_key,
+                                                const AuthorizationSet& wrapping_key_desc,
+                                                string masking_key,
+                                                const AuthorizationSet& unwrapping_params,
+                                                int64_t password_sid, int64_t biometric_sid) {
+    EXPECT_EQ(ErrorCode::OK, ImportKey(wrapping_key_desc, KeyFormat::PKCS8, wrapping_key));
+
+    key_characteristics_.clear();
+
+    return ImportWrappedKey(vector<uint8_t>(wrapped_key.begin(), wrapped_key.end()), key_blob_,
+                            vector<uint8_t>(masking_key.begin(), masking_key.end()),
+                            unwrapping_params, password_sid, biometric_sid);
 }
 
 ErrorCode KeyMintAidlTestBase::GetCharacteristics(const vector<uint8_t>& key_blob,
@@ -2601,7 +2610,7 @@ void device_id_attestation_check_acceptable_error(Tag tag, const ErrorCode& resu
 bool check_feature(const std::string& name) {
     ::android::sp<::android::IServiceManager> sm(::android::defaultServiceManager());
     ::android::sp<::android::IBinder> binder(
-        sm->waitForService(::android::String16("package_native")));
+            sm->waitForService(::android::String16("package_native")));
     if (binder == nullptr) {
         GTEST_LOG_(ERROR) << "waitForService package_native failed";
         return false;

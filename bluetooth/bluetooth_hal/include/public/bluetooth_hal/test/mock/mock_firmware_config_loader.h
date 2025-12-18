@@ -24,8 +24,7 @@
 #include "bluetooth_hal/config/firmware_config_loader.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class MockFirmwareConfigLoader : public FirmwareConfigLoader {
  public:
@@ -55,5 +54,4 @@ class MockFirmwareConfigLoader : public FirmwareConfigLoader {
   static inline MockFirmwareConfigLoader* mock_firmware_config_loader_{nullptr};
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

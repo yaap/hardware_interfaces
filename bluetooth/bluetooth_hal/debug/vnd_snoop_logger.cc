@@ -46,14 +46,16 @@
 #include "bluetooth_hal/util/files.h"
 #include "bluetooth_hal/util/worker.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::config::HalConfigLoader;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::util::Worker;
+
+using ::bluetooth_hal::util::CloseLogFileStream;
+using ::bluetooth_hal::util::DeleteOldestFiles;
 
 struct PacketHeaderType {
   uint32_t length_original;
@@ -258,7 +260,7 @@ class LoggerHandler {
       PrepareNewLogFile();
       state_ = State::kRecording;
     } else {
-      os::DeleteOldestFiles(kLogDirectory, kLogFilePrefix, 0);
+      DeleteOldestFiles(kLogDirectory, kLogFilePrefix, 0);
       state_ = State::kStoppedOrDisabled;
     }
   }
@@ -348,7 +350,7 @@ class LoggerHandler {
 
   void CloseCurrentLogFile() {
     LOG(INFO) << __func__ << ": Close btsnoop log file.";
-    os::CloseLogFileStream(log_ostream_);
+    CloseLogFileStream(log_ostream_);
     packet_counter_ = 0;
   }
 
@@ -393,7 +395,7 @@ class LoggerHandler {
 
   void PrepareNewLogFile() {
     CloseCurrentLogFile();
-    os::DeleteOldestFiles(kLogDirectory, kLogFilePrefix, kMaxLogFileCount - 1);
+    DeleteOldestFiles(kLogDirectory, kLogFilePrefix, kMaxLogFileCount - 1);
     OpenNewLogFile();
   }
 
@@ -435,5 +437,4 @@ void VndSnoopLoggerImpl::StopRecording() {
   LoggerHandler::GetHandler().Post(LoggerTask::StopRecordingTask());
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

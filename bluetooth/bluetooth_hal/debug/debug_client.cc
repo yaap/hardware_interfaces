@@ -25,8 +25,7 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/util/logging.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 using ::android::base::LogSeverity;
 using ::bluetooth_hal::util::Logger;
@@ -87,5 +86,4 @@ DebugClient::ClientLogStream::~ClientLogStream() {
   }
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

@@ -23,8 +23,7 @@
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 class BqrRootInflammationEvent : public BqrEvent {
  public:
@@ -45,5 +44,4 @@ class BqrRootInflammationEvent : public BqrEvent {
   uint8_t vendor_error_code_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

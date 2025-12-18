@@ -21,8 +21,7 @@
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v6.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 using ::bluetooth_hal::hci::HalPacket;
 
@@ -44,5 +43,4 @@ std::string BqrLinkQualityEventV7::ToBqrString() const {
   return BqrLinkQualityEventV6::ToBqrString();
 }
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

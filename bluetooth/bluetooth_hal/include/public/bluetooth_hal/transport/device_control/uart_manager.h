@@ -19,8 +19,7 @@
 #include "android-base/unique_fd.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 /**
  * @brief The UartManager provides a default implementation that users, such as
@@ -88,5 +87,4 @@ class UartManager {
   ::android::base::unique_fd uart_fd_{-1};
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

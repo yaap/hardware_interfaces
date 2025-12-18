@@ -20,9 +20,7 @@
 
 #include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
 
@@ -40,6 +38,4 @@ double ChannelSoundingDistanceEstimator::GetConfidenceLevel() { return 0; }
 
 void ChannelSoundingDistanceEstimator::SetInlinePCT(bool /*is_enabled*/) {}
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

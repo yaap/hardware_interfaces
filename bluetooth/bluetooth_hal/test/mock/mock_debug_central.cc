@@ -16,8 +16,7 @@
 
 #include "bluetooth_hal/test/mock/mock_debug_central.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 DebugCentral& DebugCentral::Get() {
   if (!MockDebugCentral::mock_debug_central_) {
@@ -33,5 +32,4 @@ void MockDebugCentral::SetMockDebugCentral(
   mock_debug_central_ = mock_debug_central;
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

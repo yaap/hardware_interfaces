@@ -21,8 +21,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 namespace {
 
 using ::bluetooth_hal::hci::HalPacket;
@@ -501,5 +500,4 @@ TEST_F(HciMonitorTest, MonitorAndExclusionDifferentOffset) {
   EXPECT_FALSE(packet3 == monitor);
 }
 }  // namespace
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

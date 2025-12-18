@@ -28,8 +28,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::bluetooth_hal::debug::BluetoothActivities;
@@ -220,5 +219,4 @@ size_t HciPacketRescuer::FindValidPacketOffset(std::span<const uint8_t> data) {
   return length;
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

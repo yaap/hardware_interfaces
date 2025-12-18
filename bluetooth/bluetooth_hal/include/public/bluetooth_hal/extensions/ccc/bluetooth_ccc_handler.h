@@ -29,9 +29,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCccHandler : public ::bluetooth_hal::hci::HciRouterClient {
  public:
@@ -71,6 +69,4 @@ class BluetoothCccHandler : public ::bluetooth_hal::hci::HciRouterClient {
   uint8_t previous_toggle_count_;
 };
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

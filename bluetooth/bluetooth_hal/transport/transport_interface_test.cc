@@ -28,8 +28,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
 using ::testing::_;
@@ -547,5 +546,4 @@ TEST_F(VendorTransportTest, GetVendorTransportReturnSameInstance) {
 }
 
 }  // namespace
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

@@ -31,9 +31,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace sar {
+namespace bluetooth_hal::extensions::sar {
 
 using ::testing::_;
 using ::testing::DoAll;
@@ -397,6 +395,4 @@ TEST_F(BluetoothSarTest, SetBluetoothModeBasedTxPowerCapPlusHR) {
       chain0_cap, chain1_cap, beamforming_cap));
 }
 
-}  // namespace sar
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::sar

@@ -30,8 +30,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class SystemCallWrapperImpl : public SystemCallWrapper {
  public:
@@ -114,5 +113,4 @@ SystemCallWrapper& SystemCallWrapper::GetWrapper() {
   return wrapper;
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

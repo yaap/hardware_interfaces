@@ -26,9 +26,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace channel_avoidance {
+namespace bluetooth_hal::extensions::channel_avoidance {
 
 class BluetoothChannelAvoidanceHandler
     : public ::bluetooth_hal::hci::HciRouterClient {
@@ -57,6 +55,4 @@ class BluetoothChannelAvoidanceHandler
   std::atomic<bool> command_success_{false};
 };
 
-}  // namespace channel_avoidance
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::channel_avoidance

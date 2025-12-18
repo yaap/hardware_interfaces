@@ -26,8 +26,7 @@
 #include "bluetooth_hal/hci_router_client.h"
 #include "bluetooth_hal/util/provider_factory.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 class BqrHandler : public ::bluetooth_hal::hci::HciRouterClient {
  public:
@@ -72,5 +71,4 @@ class BqrHandler : public ::bluetooth_hal::hci::HciRouterClient {
   static inline std::unique_ptr<BqrHandler> handler_ptr_;
 };
 
-}  //  namespace bqr
-}  //  namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

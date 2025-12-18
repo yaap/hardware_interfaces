@@ -21,9 +21,7 @@
 #include "bluetooth_hal/util/provider_factory.h"
 #include "hardware_legacy/power.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 constexpr char kWakeLockName[] = "bthal_wakelock";
 
@@ -48,6 +46,4 @@ PowerInterface& PowerInterface::GetInterface() {
   return *interface;
 }
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

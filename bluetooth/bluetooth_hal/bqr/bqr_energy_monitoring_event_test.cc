@@ -25,8 +25,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 namespace {
 
 using ::bluetooth_hal::hci::HalPacket;
@@ -267,5 +266,4 @@ TEST(BqrEnergyMonitoringEventTest, InvalidPacketParsingWrongReportId) {
 }
 
 }  // namespace
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

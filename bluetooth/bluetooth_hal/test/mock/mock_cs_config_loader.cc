@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/cs_config_loader.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 CsConfigLoader& CsConfigLoader::GetLoader() {
   if (!MockCsConfigLoader::mock_cs_config_loader_) {
@@ -35,5 +34,4 @@ void MockCsConfigLoader::SetMockLoader(MockCsConfigLoader* loader) {
   mock_cs_config_loader_ = loader;
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

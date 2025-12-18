@@ -108,7 +108,6 @@ interface IBluetoothAudioProvider {
     @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseConfigurationSetting.AseDirectionConfiguration[] sinkAseConfiguration;
     @nullable android.hardware.bluetooth.audio.IBluetoothAudioProvider.LeAudioAseConfigurationSetting.AseDirectionConfiguration[] sourceAseConfiguration;
     @nullable android.hardware.bluetooth.audio.ConfigurationFlags flags;
-    @nullable String configIdentifier;
     @nullable android.hardware.bluetooth.audio.LeAudioUpdateLatencySetting latencySetting;
     @VintfStability
     parcelable AseDirectionConfiguration {

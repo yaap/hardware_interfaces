@@ -23,8 +23,7 @@
 #include <sstream>
 #include <string>
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 inline constexpr int kBluetoothAddressLength = 6;
 inline constexpr int kBluetoothAddressHiddenBytes = 4;
@@ -60,5 +59,4 @@ class BluetoothAddress : public std::array<uint8_t, kBluetoothAddressLength> {
   }
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

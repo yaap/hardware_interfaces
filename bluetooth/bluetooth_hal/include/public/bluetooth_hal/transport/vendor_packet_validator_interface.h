@@ -21,8 +21,7 @@
 #include <memory>
 #include <span>
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class VendorPacketValidatorInterface {
  public:
@@ -59,5 +58,4 @@ class VendorPacketValidatorInterface {
   static FactoryFn vendor_factory_;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

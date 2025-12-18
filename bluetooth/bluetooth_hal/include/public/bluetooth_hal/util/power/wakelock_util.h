@@ -20,9 +20,7 @@
 
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 class WakelockUtil {
  public:
@@ -47,6 +45,4 @@ class WakelockUtil {
   }
 };
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

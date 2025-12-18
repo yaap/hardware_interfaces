@@ -26,9 +26,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 using ::bluetooth_hal::hci::BluetoothAddress;
 using ::bluetooth_hal::hci::HalPacket;
@@ -125,6 +123,4 @@ uint16_t BluetoothCccTimesyncEvent::GetEventCount() const {
   return event_count_;
 }
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

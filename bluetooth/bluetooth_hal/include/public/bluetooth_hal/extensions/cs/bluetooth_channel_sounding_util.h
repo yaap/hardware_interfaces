@@ -28,9 +28,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 inline constexpr std::array<uint8_t, 16> kUuidSpecialRangingSettingCapability =
     {0x00, 0x00, 0x8f, 0x01, 0x00, 0x00, 0x10, 0x00,
@@ -135,6 +133,4 @@ bool IsUuidMatched(
         BluetoothChannelSoundingParameters& parameters,
     int procedure_counter);
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

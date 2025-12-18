@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class MockBluetoothActivities : public BluetoothActivities {
  public:
@@ -36,6 +35,12 @@ class MockBluetoothActivities : public BluetoothActivities {
               (::bluetooth_hal::hci::MonitorMode mode,
                const ::bluetooth_hal::hci::HalPacket& packet),
               ());
+  using ConnectionCountChangedCallback =
+      BluetoothActivities::ConnectionCountChangedCallback;
+  using ConnectionCallbackSubscription =
+      BluetoothActivities::ConnectionCallbackSubscription;
+  MOCK_METHOD(ConnectionCallbackSubscription, RegisterConnectionCountChangedCallback,
+              (ConnectionCountChangedCallback callback), (override));
   MOCK_METHOD(void, OnBluetoothChipClosed, (), ());
 
   static void SetMockBluetoothActivities(MockBluetoothActivities* mock);
@@ -43,5 +48,4 @@ class MockBluetoothActivities : public BluetoothActivities {
   static inline MockBluetoothActivities* mock_bluetooth_activities_{nullptr};
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

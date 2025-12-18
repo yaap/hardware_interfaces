@@ -24,8 +24,7 @@
 
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 namespace {
 
 using ::testing::Test;
@@ -352,5 +351,4 @@ TEST_F(TimerManagerTest, FireTimerAfterTheEarlyOneThatHasDestroyed) {
 }
 
 }  // namespace
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

@@ -175,6 +175,8 @@ oneway interface IRadioModemResponse {
      * Valid errors returned:
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
+     *
+     * @deprecated use IRadioConfig.rebootModem() responses
      */
     void nvResetConfigResponse(in RadioResponseInfo info);
 

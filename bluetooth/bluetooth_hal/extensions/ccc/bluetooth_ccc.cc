@@ -37,9 +37,7 @@
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc_util.h"
 #include "bluetooth_hal/hal_extension_points.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 namespace {
 
 using ::aidl::hardware::google::bluetooth::ccc::Direction;
@@ -197,8 +195,6 @@ ScopedAStatus BluetoothCcc::unregisterLmpEvents(
                 : ScopedAStatus::fromExceptionCode(EX_NULL_POINTER);
 }
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc
 
 #endif

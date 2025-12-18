@@ -3754,51 +3754,6 @@ TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
 }
 
 TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
-       GetLeAudioAseConfiguration_CheckSameConfigIdentifier) {
-  if (GetProviderFactoryInterfaceVersion() <
-      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
-    GTEST_SKIP();
-  }
-
-  std::vector<std::optional<LeAudioDeviceCapabilities>> sink_capabilities = {
-      GetDefaultRemoteSinkCapability()};
-  std::vector<std::optional<LeAudioDeviceCapabilities>> source_capabilities = {
-      GetDefaultRemoteSourceCapability()};
-
-  std::vector<LeAudioAseConfigurationSetting> configurations;
-  std::vector<LeAudioConfigurationRequirement> requirements = {
-      GetUnicastDefaultRequirement(
-          AudioContext::MEDIA, true /* sink */, false /* source */,
-          CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000),
-      GetUnicastDefaultRequirement(
-          AudioContext::CONVERSATIONAL, true /* sink */, true /* source */,
-          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
-      GetUnicastDefaultRequirement(
-          AudioContext::GAME, true /* sink */, true /* source */,
-          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000),
-      GetUnicastDefaultRequirement(
-          AudioContext::LIVE_AUDIO, true /* sink */, true /* source */,
-          CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000)};
-  auto aidl_retval = audio_provider_->getLeAudioAseConfiguration(
-      std::nullopt, source_capabilities, requirements, &configurations);
-
-  ASSERT_TRUE(aidl_retval.isOk());
-  ASSERT_FALSE(configurations.empty());
-
-  std::map<std::string, LeAudioAseConfigurationSetting> config_map;
-  for (const auto& config : configurations) {
-    if (config.configIdentifier.has_value()) {
-      std::string id = config.configIdentifier.value();
-      if (config_map.find(id) != config_map.end()) {
-        ASSERT_EQ(config, config_map[id]);
-      } else {
-        config_map[id] = config;
-      }
-    }
-  }
-}
-
-TEST_P(BluetoothAudioProviderLeAudioOutputHardwareAidl,
        GetQoSConfiguration_AbrConfiguration) {
   if (GetProviderFactoryInterfaceVersion() <
       BluetoothAudioHalVersion::VERSION_AIDL_V6) {

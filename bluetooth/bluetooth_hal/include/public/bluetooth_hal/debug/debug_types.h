@@ -18,8 +18,7 @@
 
 #include <cstdint>
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 enum class AnchorType : uint8_t {
   kNone = 0,
@@ -70,8 +69,8 @@ enum class CoredumpErrorCode : uint8_t {
   // Error codes for controller errors.
   kForceCollectCoredump,
   kControllerHwError,
-  kControllerRootInflammed,
-  kControllerDebugDumpWithoutRootInflammed,
+  kControllerRootInflamed,
+  kControllerDebugDumpWithoutRootInflamed,
   kControllerDebugInfo,
   kControllerUnimplementedPacketType,
 
@@ -79,5 +78,4 @@ enum class CoredumpErrorCode : uint8_t {
   kVendor = 0xFF,
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

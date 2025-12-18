@@ -32,8 +32,7 @@
 #include "bluetooth_hal/test/mock/mock_transport_interface.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 namespace {
 
 using ::testing::_;
@@ -1459,5 +1458,4 @@ TEST_F(FirmwareDataFixedSizeDefaultChunkTest, UsesDefaultChunkSize) {
 }
 
 }  // namespace
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

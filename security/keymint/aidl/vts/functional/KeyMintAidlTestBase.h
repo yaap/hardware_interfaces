@@ -137,6 +137,11 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     ErrorCode ImportKey(const AuthorizationSet& key_desc, KeyFormat format,
                         const string& key_material);
 
+    ErrorCode ImportWrappedKey(const vector<uint8_t>& wrapped_key,
+                               const vector<uint8_t>& wrapping_key_blob,
+                               const vector<uint8_t>& masking_key,
+                               const AuthorizationSet& unwrapping_params, int64_t password_sid,
+                               int64_t biometric_sid);
     ErrorCode ImportWrappedKey(string wrapped_key, string wrapping_key,
                                const AuthorizationSet& wrapping_key_desc, string masking_key,
                                const AuthorizationSet& unwrapping_params, int64_t password_sid,

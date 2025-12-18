@@ -29,8 +29,7 @@
 #include "bluetooth_hal/util/power/wakelock_watchdog.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::hci::CommandOpCode;
@@ -129,5 +128,4 @@ void DebugMonitor::OnBluetoothDisabled() {
   }
 }
 
-}  //  namespace debug
-}  //  namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

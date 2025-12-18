@@ -18,8 +18,7 @@
 
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class VndSnoopLogger {
  public:
@@ -64,5 +63,4 @@ class VndSnoopLogger {
                        Direction direction) = 0;
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

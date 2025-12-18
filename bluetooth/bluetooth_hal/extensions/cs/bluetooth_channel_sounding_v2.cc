@@ -39,9 +39,7 @@
 #include "bluetooth_hal/hal_extension_points.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 namespace {
 
 using ::bluetooth_hal::extensions::BluetoothHalRegisterExtension;
@@ -127,8 +125,6 @@ ScopedAStatus BluetoothChannelSoundingV2::getSupportedCsSecurityLevels(
                 : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs
 
 #endif

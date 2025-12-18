@@ -22,8 +22,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 template <typename Key, typename Interface>
 class MultiKeyProviderFactory {
@@ -94,8 +93,7 @@ class ProviderFactory {
       internal_factory_;
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util
 
 namespace std {
 template <>

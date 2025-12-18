@@ -18,18 +18,40 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class BluetoothActivities {
  public:
   virtual ~BluetoothActivities() = default;
+
+  using ConnectionCountChangedCallback =
+      std::function<void(const int new_connected_device_count)>;
+
+  class [[nodiscard]] ConnectionCallbackSubscription {
+   public:
+    ConnectionCallbackSubscription(std::function<void()> unregister_func)
+        : unregister_(std::move(unregister_func)) {}
+
+    ~ConnectionCallbackSubscription() {
+      if (unregister_) {
+        unregister_();
+      }
+    }
+
+    ConnectionCallbackSubscription(ConnectionCallbackSubscription&&) = default;
+    ConnectionCallbackSubscription& operator=(
+        ConnectionCallbackSubscription&&) = default;
+
+   private:
+    std::function<void()> unregister_;
+  };
 
   /**
    * @brief Start the activities monitoring process.
@@ -77,6 +99,18 @@ class BluetoothActivities {
    */
   virtual size_t GetConnectionHandleCount() const = 0;
 
+  /**
+   * @brief Registers a callback to be invoked when the number of connected
+   * devices changes.
+   *
+   * @param callback The callback function to register. It takes an integer
+   * representing the new count of connected devices as an argument.
+   * @return A ConnectionCallbackSubscription object. When this object is
+   * destroyed, the registered callback will be automatically unregistered.
+   */
+  virtual ConnectionCallbackSubscription RegisterConnectionCountChangedCallback(
+      ConnectionCountChangedCallback callback) = 0;
+
   virtual void OnMonitorPacketCallback(
       ::bluetooth_hal::hci::MonitorMode mode,
       const ::bluetooth_hal::hci::HalPacket& packet) = 0;
@@ -91,5 +125,4 @@ class BluetoothActivities {
   static inline std::mutex mutex_;
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

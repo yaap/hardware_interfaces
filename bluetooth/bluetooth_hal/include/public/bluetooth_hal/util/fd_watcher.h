@@ -18,8 +18,7 @@
 
 #include <functional>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class FdWatcherImpl;
 
@@ -66,5 +65,4 @@ class FdWatcher {
   std::unique_ptr<FdWatcherImpl> impl_;
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

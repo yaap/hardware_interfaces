@@ -38,4 +38,5 @@ enum SessionMode {
   GRAPHICS_PIPELINE,
   AUTO_CPU,
   AUTO_GPU,
+  AUDIO_PERFORMANCE,
 }

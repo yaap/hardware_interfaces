@@ -28,8 +28,7 @@
 #include "bluetooth_hal/transport/uart_h4/data_processor.h"
 #include "bluetooth_hal/util/timer_manager.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class TransportUartH4 : virtual public TransportInterface,
                         virtual public PowerManager,
@@ -183,5 +182,4 @@ class TransportUartH4 : virtual public TransportInterface,
   bool transport_wakelock_enabled_ = true;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

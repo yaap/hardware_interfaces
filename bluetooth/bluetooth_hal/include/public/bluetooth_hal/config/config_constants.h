@@ -22,9 +22,7 @@
 
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace config {
-namespace constants {
+namespace bluetooth_hal::config::constants {
 
 inline constexpr ::bluetooth_hal::transport::TransportType
     kDefaultBtTransportType =
@@ -53,6 +51,4 @@ inline constexpr int kDefaultLaunchRamDelayMs = 250;
 inline constexpr uint16_t kDefaultHciVscLaunchRamOpcode = 0xfc4e;
 inline constexpr size_t kDefaultFixedChunkSize = 200;
 
-}  // namespace constants
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config::constants

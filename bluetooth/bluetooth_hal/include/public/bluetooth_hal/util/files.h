@@ -21,8 +21,7 @@
 #include <string>
 #include <string_view>
 
-namespace bluetooth_hal {
-namespace os {
+namespace bluetooth_hal::util {
 
 // Get FS Debug Dump
 bool GetFsDebugDump(int fd, const std::string& debugfs);
@@ -73,5 +72,4 @@ void DeleteOldestFiles(std::string_view directory,
                        std::optional<std::string_view> file_prefix,
                        size_t files_to_keep);
 
-}  // namespace os
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

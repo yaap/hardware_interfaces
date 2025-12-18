@@ -38,9 +38,8 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/util/logging.h"
 
+namespace bluetooth_hal::util {
 namespace {
-
-using ::bluetooth_hal::util::Logger;
 
 // device node for Battery percentage.
 constexpr char kBtteryPercentageNode[] =
@@ -61,9 +60,6 @@ void HandleError(const std::string& temp_path, int* dir_fd, FILE** fp) {
 }
 
 }  // namespace
-
-namespace bluetooth_hal {
-namespace os {
 
 bool GetFsDebugDump(int fd, const std::string& debugfs) {
   std::stringstream ss;
@@ -116,14 +112,14 @@ void CreateLogFile(const std::string& log_file_path,
   LOG(INFO) << __func__ << ": log_file_path: " << log_file_path << ".";
   std::string last_file_path = GetLastLogPath(log_file_path);
 
-  if (os::FileExists(log_file_path)) {
+  if (FileExists(log_file_path)) {
     // Change the file's permissions to OWNER Read/Write, GROUP Read, OTHER Read
     if (chmod(last_file_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) !=
         0) {
       LOG(ERROR) << __func__ << ": Unable to change file permissions "
                  << last_file_path << ".";
     }
-    if (!os::RenameFile(log_file_path, last_file_path)) {
+    if (!RenameFile(log_file_path, last_file_path)) {
       LOG(ERROR) << __func__ << ": Unable to rename existing snoop log from \""
                  << log_file_path << "\" to \"" << last_file_path << "\".";
     }
@@ -371,5 +367,4 @@ void DeleteOldestFiles(std::string_view directory,
   }
 }
 
-}  // namespace os
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

@@ -31,9 +31,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ext {
+namespace bluetooth_hal::extensions::ext {
 namespace {
 
 using ::testing::_;
@@ -272,6 +270,4 @@ TEST_F(BluetoothExtHandlerTest, SetBluetoothCmdPacketReturnCommandTimeout) {
 }
 
 }  // namespace
-}  // namespace ext
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ext

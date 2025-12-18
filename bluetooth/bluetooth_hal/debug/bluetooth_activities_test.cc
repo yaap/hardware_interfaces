@@ -30,9 +30,9 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/test/mock/mock_hci_router.h"
 #include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
+#include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -179,11 +179,12 @@ TEST_F(BluetoothActivitiesTest, InitialState) {
   EXPECT_EQ(BluetoothActivities::Get().GetConnectionHandleCount(), 0);
 }
 
-class ConnectionAndDisconnectionTest
+class ActivitiesWithOneDeviceConnectionAndDisconnectionTest
     : public BluetoothActivitiesTest,
       public WithParamInterface<std::pair<HalPacket, uint16_t>> {};
 
-TEST_P(ConnectionAndDisconnectionTest, ConnectionAndDisconnection) {
+TEST_P(ActivitiesWithOneDeviceConnectionAndDisconnectionTest,
+       ActivitiesWithOneDeviceConnectionAndDisconnection) {
   const auto& [packet, connect_handle] = GetParam();
   EXPECT_FALSE(BluetoothActivities::Get().HasConnectedDevice());
   EXPECT_FALSE(BluetoothActivities::Get().IsConnected(connect_handle));
@@ -203,7 +204,8 @@ TEST_P(ConnectionAndDisconnectionTest, ConnectionAndDisconnection) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    ConnectionAndDisconnectionTest, ConnectionAndDisconnectionTest,
+    ActivitiesWithOneDeviceConnectionAndDisconnectionTest,
+    ActivitiesWithOneDeviceConnectionAndDisconnectionTest,
     Values(std::make_pair(CreateClassicConnectionCompleteEvent(device_1, true),
                           device_1.connection_handle),
            std::make_pair(CreateBleConnectionCompleteEvent(device_1, true),
@@ -215,12 +217,12 @@ INSTANTIATE_TEST_SUITE_P(
                                                                      true),
                           device_1.connection_handle)));
 
-class MultiDeviceConnectionsAndDisconnectionsTest
+class ActivitiesWithMultiDeviceConnectionsAndDisconnectionsTest
     : public BluetoothActivitiesTest,
       public WithParamInterface<std::pair<HalPacket, HalPacket>> {};
 
-TEST_P(MultiDeviceConnectionsAndDisconnectionsTest,
-       MultiDeviceConnectionsAndDisconnections) {
+TEST_P(ActivitiesWithMultiDeviceConnectionsAndDisconnectionsTest,
+       ActivitiesWithMultiDeviceConnectionsAndDisconnections) {
   const auto& [device_1_connection_event, device_2_connection_event] =
       GetParam();
   EXPECT_FALSE(BluetoothActivities::Get().HasConnectedDevice());
@@ -268,8 +270,8 @@ TEST_P(MultiDeviceConnectionsAndDisconnectionsTest,
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    MultiDeviceConnectionsAndDisconnectionsTest,
-    MultiDeviceConnectionsAndDisconnectionsTest,
+    ActivitiesWithMultiDeviceConnectionsAndDisconnectionsTest,
+    ActivitiesWithMultiDeviceConnectionsAndDisconnectionsTest,
     Values(std::make_pair(CreateClassicConnectionCompleteEvent(device_1, true),
                           CreateClassicConnectionCompleteEvent(device_2, true)),
            std::make_pair(CreateBleConnectionCompleteEvent(device_1, true),
@@ -286,11 +288,11 @@ INSTANTIATE_TEST_SUITE_P(
                CreateBleEnhancedConnectionCompleteV1Event(device_1, true),
                CreateClassicConnectionCompleteEvent(device_2, true))));
 
-class ConnectionFailTest
+class ActivitiesWithConnectionFailTest
     : public BluetoothActivitiesTest,
       public WithParamInterface<std::pair<HalPacket, uint16_t>> {};
 
-TEST_P(ConnectionFailTest, ConnectionFail) {
+TEST_P(ActivitiesWithConnectionFailTest, ActivitiesWithConnectionFail) {
   const auto& [packet, connect_handle] = GetParam();
   EXPECT_FALSE(BluetoothActivities::Get().HasConnectedDevice());
   EXPECT_FALSE(BluetoothActivities::Get().IsConnected(connect_handle));
@@ -304,7 +306,7 @@ TEST_P(ConnectionFailTest, ConnectionFail) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    ConnectionFailTest, ConnectionFailTest,
+    ActivitiesWithConnectionFailTest, ActivitiesWithConnectionFailTest,
     Values(std::make_pair(CreateClassicConnectionCompleteEvent(device_1, false),
                           device_1.connection_handle),
            std::make_pair(CreateBleConnectionCompleteEvent(device_1, false),
@@ -316,6 +318,127 @@ INSTANTIATE_TEST_SUITE_P(
                                                                      false),
                           device_1.connection_handle)));
 
+TEST_F(BluetoothActivitiesTest, RegisterConnectionCountChangedCallback) {
+  set_com_android_bluetooth_bluetooth_hal_flags_bt_activities_subscription(
+      true);
+
+  size_t callback_count_1 = 0;
+  auto subscription_1 =
+      BluetoothActivities::Get().RegisterConnectionCountChangedCallback(
+          [&](size_t count) { callback_count_1 = count; });
+
+  // Connect with device_1
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor,
+      CreateClassicConnectionCompleteEvent(device_1, true));
+  EXPECT_EQ(callback_count_1, 1);
+
+  // Connect with device_2
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor,
+      CreateClassicConnectionCompleteEvent(device_2, true));
+  EXPECT_EQ(callback_count_1, 2);
+
+  // Disconnect with device_1
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor, CreateDisconnectionCompleteEvent(device_1, true));
+  EXPECT_EQ(callback_count_1, 1);
+
+  // Disconnect with device_2
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor, CreateDisconnectionCompleteEvent(device_2, true));
+  EXPECT_EQ(callback_count_1, 0);
+}
+
+TEST_F(BluetoothActivitiesTest,
+       MultipleSubscriberRegisterConnectionCountChangedCallback) {
+  set_com_android_bluetooth_bluetooth_hal_flags_bt_activities_subscription(
+      true);
+
+  size_t callback_count_1 = 0, callback_count_2 = 0;
+  auto subscription_1 =
+      BluetoothActivities::Get().RegisterConnectionCountChangedCallback(
+          [&](size_t count) { callback_count_1 = count; });
+
+  // Connect with device_1
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor,
+      CreateClassicConnectionCompleteEvent(device_1, true));
+  EXPECT_EQ(callback_count_1, 1);
+  EXPECT_EQ(callback_count_2, 0);
+
+  // Register second callback after the first connection
+  auto subscription_2 =
+      BluetoothActivities::Get().RegisterConnectionCountChangedCallback(
+          [&](size_t count) { callback_count_2 = count; });
+
+  // Connect with device_2
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor,
+      CreateClassicConnectionCompleteEvent(device_2, true));
+  EXPECT_EQ(callback_count_1, 2);
+  EXPECT_EQ(callback_count_2, 2);
+
+  // Disconnect with device_1
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor, CreateDisconnectionCompleteEvent(device_1, true));
+  EXPECT_EQ(callback_count_1, 1);
+  EXPECT_EQ(callback_count_2, 1);
+
+  // Disconnect with device_2
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor, CreateDisconnectionCompleteEvent(device_2, true));
+  EXPECT_EQ(callback_count_1, 0);
+  EXPECT_EQ(callback_count_2, 0);
+}
+
+TEST_F(BluetoothActivitiesTest,
+       AutomaticallyUnregisterConnectionCallbackSubscription) {
+  set_com_android_bluetooth_bluetooth_hal_flags_bt_activities_subscription(
+      true);
+
+  size_t callback_count_1 = 0;
+  {
+    auto subscription_1 =
+        BluetoothActivities::Get().RegisterConnectionCountChangedCallback(
+            [&](size_t count) { callback_count_1 = count; });
+
+    // Connect with device_1
+    BluetoothActivities::Get().OnMonitorPacketCallback(
+        MonitorMode::kMonitor,
+        CreateClassicConnectionCompleteEvent(device_1, true));
+    EXPECT_EQ(callback_count_1, 1);
+  }
+
+  // Connect with device_2, subscription_1 should be unregistered
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor,
+      CreateClassicConnectionCompleteEvent(device_2, true));
+  EXPECT_EQ(callback_count_1, 1);
+}
+
+TEST_F(BluetoothActivitiesTest,
+       ConnectionCallbackCountChangedCallbackOnBluetoothChipClosed) {
+  set_com_android_bluetooth_bluetooth_hal_flags_bt_activities_subscription(
+      true);
+
+  size_t callback_count_1 = 0;
+  auto subscription_1 =
+      BluetoothActivities::Get().RegisterConnectionCountChangedCallback(
+          [&](size_t count) { callback_count_1 = count; });
+
+  // Connect with device_1
+  BluetoothActivities::Get().OnMonitorPacketCallback(
+      MonitorMode::kMonitor,
+      CreateClassicConnectionCompleteEvent(device_1, true));
+  EXPECT_EQ(callback_count_1, 1);
+  EXPECT_TRUE(BluetoothActivities::Get().HasConnectedDevice());
+
+  // Simulate Bluetooth chip closed
+  BluetoothActivities::Get().OnBluetoothChipClosed();
+  EXPECT_EQ(callback_count_1, 0);
+  EXPECT_FALSE(BluetoothActivities::Get().HasConnectedDevice());
+}
+
 }  // namespace
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

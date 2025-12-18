@@ -19,8 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/debug/vnd_snoop_logger.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 VndSnoopLogger& VndSnoopLogger::GetLogger() {
   if (!MockVndSnoopLogger::mock_vnd_snoop_logger_) {
@@ -35,5 +34,4 @@ void MockVndSnoopLogger::SetMockVndSnoopLogger(MockVndSnoopLogger* logger) {
   mock_vnd_snoop_logger_ = logger;
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

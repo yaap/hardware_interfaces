@@ -43,8 +43,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 namespace {
 
 using ::bluetooth_hal::debug::DebugCentral;
@@ -229,5 +228,4 @@ void BqrHandler::OnBluetoothDisabled() {
   UnregisterMonitor(vendor_capability_monitor_);
 }
 
-}  //  namespace bqr
-}  //  namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

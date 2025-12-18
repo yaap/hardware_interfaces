@@ -18,8 +18,7 @@
 
 #include <string>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class AndroidBaseWrapper {
  public:
@@ -92,5 +91,4 @@ class AndroidBaseWrapper {
   virtual bool ParseUint(const std::string& s, uint8_t* out, uint8_t max) = 0;
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

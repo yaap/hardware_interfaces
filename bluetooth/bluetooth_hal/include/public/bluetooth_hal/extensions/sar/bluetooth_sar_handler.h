@@ -25,9 +25,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace sar {
+namespace bluetooth_hal::extensions::sar {
 
 // OGC 0x03 | OCF 0x0269
 constexpr uint16_t kHciVscSetPowerCapOpcode = 0xfe69;
@@ -104,6 +102,4 @@ class BluetoothSarHandler : public ::bluetooth_hal::hci::HciRouterClient,
   bool is_ble_non_connection_enabled_ = false;
 };
 
-}  // namespace sar
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::sar

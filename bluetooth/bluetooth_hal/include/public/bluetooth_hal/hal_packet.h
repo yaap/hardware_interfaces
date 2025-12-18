@@ -27,8 +27,7 @@
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 class HalPacket : public std::vector<uint8_t> {
  public:
@@ -461,5 +460,4 @@ class HalPacket : public std::vector<uint8_t> {
  */
 using HalPacketCallback = std::function<void(const HalPacket& packet)>;
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

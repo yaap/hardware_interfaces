@@ -32,9 +32,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 namespace {
 
 using ::testing::_;
@@ -597,6 +595,4 @@ TEST_F(StartFinderProcessTest, StartPofFailOnStartPof) {
 }
 
 }  // namespace
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder

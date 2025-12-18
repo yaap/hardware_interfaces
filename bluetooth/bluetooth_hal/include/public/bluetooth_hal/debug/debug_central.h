@@ -82,8 +82,7 @@
   ([](auto&& logger) -> auto&& { return logger; })( \
       ::bluetooth_hal::debug::LogHelper(::android::base::severity, LOG_TAG))
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class DurationTracker {
  public:
@@ -281,5 +280,4 @@ class LogHelper {
   const char* tag_;
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

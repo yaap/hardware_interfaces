@@ -28,3 +28,10 @@ flag {
     description: "Flag for the HCI router to handle recursive packets from clients"
     bug: "439994729"
 }
+
+flag {
+    name: "bt_activities_subscription"
+    namespace: "pixel_bluetooth"
+    description: "Flag for adding bt activities subscription"
+    bug: "454214776"
+}

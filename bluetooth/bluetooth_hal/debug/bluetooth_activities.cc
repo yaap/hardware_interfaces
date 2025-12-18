@@ -39,8 +39,7 @@
 #include "bluetooth_hal/util/logging.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 namespace {
 
 namespace hal_flags = ::com::android::bluetooth::bluetooth_hal::flags;
@@ -102,6 +101,9 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
   void OnBluetoothEnabled() override {};
   void OnBluetoothDisabled() override {};
 
+  ConnectionCallbackSubscription RegisterConnectionCountChangedCallback(
+      ConnectionCountChangedCallback callback) override;
+
 #ifndef UNIT_TEST
   std::vector<Coredump> Dump() override;
 #endif
@@ -115,6 +117,12 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
     std::string timestamp;
   };
 
+  void OnDeviceConnected(const BluetoothAddress& bd_address,
+                         uint16_t connection_handle);
+  void OnDeviceDisconnected(uint16_t connection_handle);
+  void OnAllDevicesDisconnected();
+  void UnregisterConnectionCountChangedCallback(uint32_t id);
+
   void UpdateConnectionHistory(const ConnectionActivity& device);
 
   HciBleMetaEventMonitor ble_connection_complete_event_monitor_;
@@ -125,6 +133,9 @@ class BluetoothActivitiesImpl : public BluetoothActivities,
 
   std::list<ConnectionActivity> connection_history_;
   std::unordered_map<uint16_t, BluetoothAddress> connected_device_address_;
+  std::unordered_map<uint32_t, ConnectionCountChangedCallback>
+      connection_count_changed_callbacks_;
+  uint32_t next_callback_id_ = 0;
 };
 
 BluetoothActivitiesImpl::BluetoothActivitiesImpl()
@@ -198,8 +209,29 @@ void BluetoothActivitiesImpl::OnBluetoothChipReady() {
 }
 
 void BluetoothActivitiesImpl::OnBluetoothChipClosed() {
-  connected_device_address_.clear();
-  CLIENT_LOG(INFO) << __func__ << ": " << "Clear connected devices.";
+  OnAllDevicesDisconnected();
+}
+
+BluetoothActivities::ConnectionCallbackSubscription
+BluetoothActivitiesImpl::RegisterConnectionCountChangedCallback(
+    ConnectionCountChangedCallback callback) {
+  if (!hal_flags::bt_activities_subscription()) {
+    return ConnectionCallbackSubscription([] {});
+  }
+
+  uint32_t id = next_callback_id_++;
+  connection_count_changed_callbacks_[id] = std::move(callback);
+  return ConnectionCallbackSubscription(
+      [this, id] { UnregisterConnectionCountChangedCallback(id); });
+}
+
+void BluetoothActivitiesImpl::UnregisterConnectionCountChangedCallback(
+    uint32_t id) {
+  if (!hal_flags::bt_activities_subscription()) {
+    return;
+  }
+
+  connection_count_changed_callbacks_.erase(id);
 }
 
 void BluetoothActivitiesImpl::HandleBleMetaEvent(const HalPacket& event) {
@@ -216,7 +248,7 @@ void BluetoothActivitiesImpl::HandleBleMetaEvent(const HalPacket& event) {
   UpdateConnectionHistory(activity);
 
   if (event_status == static_cast<uint8_t>(EventResultCode::kSuccess)) {
-    connected_device_address_[activity.connection_handle] = activity.bd_address;
+    OnDeviceConnected(activity.bd_address, activity.connection_handle);
     CLIENT_LOG(INFO) << __func__ << ": " << activity.event
                      << ", connection handle: "
                      << ToHexString(activity.connection_handle,
@@ -240,7 +272,7 @@ void BluetoothActivitiesImpl::HandleConnectCompleteEvent(
   UpdateConnectionHistory(activity);
 
   if (event_status == static_cast<uint8_t>(EventResultCode::kSuccess)) {
-    connected_device_address_[activity.connection_handle] = activity.bd_address;
+    OnDeviceConnected(activity.bd_address, activity.connection_handle);
     CLIENT_LOG(INFO) << __func__ << ": " << activity.event
                      << ", connection handle: "
                      << ToHexString(activity.connection_handle,
@@ -253,10 +285,11 @@ void BluetoothActivitiesImpl::HandleConnectCompleteEvent(
 void BluetoothActivitiesImpl::HandleDisconnectCompleteEvent(
     const HalPacket& event) {
   uint8_t event_status = event.At(kDisconnectionEventStatusOffset);
+  uint16_t connection_handle =
+      event.AtUint16LittleEndian(kDisconnectionHandleOffset);
   ConnectionActivity activity{
-      .connection_handle =
-          event.AtUint16LittleEndian(kDisconnectionHandleOffset),
-      .bd_address = connected_device_address_[activity.connection_handle],
+      .connection_handle = connection_handle,
+      .bd_address = connected_device_address_[connection_handle],
       .event = "Disconnect Complete " +
                ToHexString(event.GetEventCode(), kUint8HexStringDigit),
       .status = std::string(GetResultString(event_status)),
@@ -265,13 +298,45 @@ void BluetoothActivitiesImpl::HandleDisconnectCompleteEvent(
   UpdateConnectionHistory(activity);
 
   if (event_status == static_cast<uint8_t>(EventResultCode::kSuccess)) {
-    connected_device_address_.erase(activity.connection_handle);
+    OnDeviceDisconnected(activity.connection_handle);
     CLIENT_LOG(INFO) << __func__ << ": " << activity.event
                      << ", connection handle: "
                      << ToHexString(activity.connection_handle,
                                     kUint16HexStringDigit)
                      << ", BD address: " << activity.bd_address.ToString()
                      << ".";
+  }
+}
+
+void BluetoothActivitiesImpl::OnDeviceConnected(
+    const BluetoothAddress& bd_address, uint16_t connection_handle) {
+  connected_device_address_[connection_handle] = bd_address;
+
+  if (hal_flags::bt_activities_subscription()) {
+    for (const auto& [_, callback] : connection_count_changed_callbacks_) {
+      callback(connected_device_address_.size());
+    }
+  }
+}
+
+void BluetoothActivitiesImpl::OnDeviceDisconnected(uint16_t connection_handle) {
+  connected_device_address_.erase(connection_handle);
+
+  if (hal_flags::bt_activities_subscription()) {
+    for (const auto& [_, callback] : connection_count_changed_callbacks_) {
+      callback(connected_device_address_.size());
+    }
+  }
+}
+
+void BluetoothActivitiesImpl::OnAllDevicesDisconnected() {
+  connected_device_address_.clear();
+  CLIENT_LOG(INFO) << __func__ << ": " << "Clear connected devices.";
+
+  if (hal_flags::bt_activities_subscription()) {
+    for (const auto& [_, callback] : connection_count_changed_callbacks_) {
+      callback(0);
+    }
   }
 }
 
@@ -307,5 +372,4 @@ std::vector<Coredump> BluetoothActivitiesImpl::Dump() {
 }
 #endif
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

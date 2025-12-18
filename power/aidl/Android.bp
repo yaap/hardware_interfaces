@@ -81,11 +81,11 @@ aidl_interface {
         },
 
     ],
-    frozen: true,
+    frozen: false,
     host_supported: true,
 }
 
-power_version = "android.hardware.power-V6"
+power_version = "android.hardware.power-V7"
 
 cc_defaults {
     name: "android.hardware.power-ndk_shared",

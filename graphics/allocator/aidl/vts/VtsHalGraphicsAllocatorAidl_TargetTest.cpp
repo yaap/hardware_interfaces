@@ -329,10 +329,13 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownUsages) {
     }
 
     constexpr auto FirstInvalidV2Usage = static_cast<BufferUsage>(1LL << 33);
+    constexpr auto FirstInvalidV3Usage = static_cast<BufferUsage>(1LL << 34);
 
     BufferUsage invalidUsage;
     switch (allocatorVersion()) {
-        case 3:  // V3 didn't add any new usages; use the same as V2
+        case 3:
+            invalidUsage = FirstInvalidV3Usage;
+            break;
         case 2:
             invalidUsage = FirstInvalidV2Usage;
             break;

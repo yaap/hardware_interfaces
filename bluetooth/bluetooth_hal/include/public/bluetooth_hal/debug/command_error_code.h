@@ -19,8 +19,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 /* HCI connect/disconnect event result codes to human readable strings. */
 inline constexpr std::string_view kResultCodeToStrings[] = {
@@ -64,5 +63,4 @@ inline std::string_view GetResultString(const uint8_t result_code) {
   return kResultCodeToStrings[result_code];
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

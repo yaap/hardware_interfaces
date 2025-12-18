@@ -21,9 +21,7 @@
 
 #include "aidl/android/hardware/bluetooth/ranging/VendorSpecificData.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 class BluetoothChannelSoundingSessionInterface {
  public:
@@ -37,6 +35,4 @@ class BluetoothChannelSoundingSessionInterface {
   virtual bool ShouldEnableMode0ChannelMap() = 0;
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs

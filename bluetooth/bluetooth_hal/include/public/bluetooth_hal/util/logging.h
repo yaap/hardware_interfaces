@@ -26,8 +26,7 @@
                               tag, -1)                                       \
       .stream()
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class Logger {
  public:
@@ -57,5 +56,4 @@ class Logger {
   static std::string GetFileFormatTimestamp();
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

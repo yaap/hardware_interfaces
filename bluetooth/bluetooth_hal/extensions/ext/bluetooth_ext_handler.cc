@@ -30,9 +30,7 @@
 #include "android-base/stringprintf.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ext {
+namespace bluetooth_hal::extensions::ext {
 
 constexpr int kMaxCommandWaitTimeMs = 1000;
 
@@ -106,6 +104,4 @@ void BluetoothExtHandler::OnCommandCallback(
   command_promise_.set_value();
 }
 
-}  // namespace ext
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ext

@@ -21,8 +21,7 @@
 
 #include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class VendorPacketValidator
     : public bluetooth_hal::transport::VendorPacketValidatorInterface {
@@ -43,5 +42,4 @@ class VendorPacketValidator
   bool IsValidVendorSpecificEvent(std::span<const uint8_t> data) const override;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

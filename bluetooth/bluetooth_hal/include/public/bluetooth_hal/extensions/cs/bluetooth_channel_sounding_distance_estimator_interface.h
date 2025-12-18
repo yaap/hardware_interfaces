@@ -20,9 +20,7 @@
 
 #include "bluetooth_hal/util/provider_factory.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 class ChannelSoundingDistanceEstimator;
 
@@ -89,6 +87,4 @@ class ChannelSoundingDistanceEstimatorInterface
   virtual double EstimateDistanceImpl(const std::any& data) = 0;
 };
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::cs
