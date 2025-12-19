@@ -606,6 +606,25 @@ ScopedAStatus Usb::enableContaminantPresenceDetection(const string& in_portName,
     return ScopedAStatus::ok();
 }
 
+ScopedAStatus Usb::queryStaticPortInformation(const string& in_portName, int64_t in_transactionId) {
+    shared_ptr<IUsbCallback> callback;
+
+    pthread_mutex_lock(&mLock);
+    callback = mCallback;
+    pthread_mutex_unlock(&mLock);
+
+    if (callback != nullptr) {
+        ScopedAStatus ret = callback->notifyQueryStaticPortInformation(
+                in_portName, StaticPortInformation{}, Status::NOT_SUPPORTED, in_transactionId);
+        if (!ret.isOk())
+            ALOGE("queryStaticPortInformation for queryStaticPortInfo error %s",
+                  ret.getDescription().c_str());
+    } else {
+        ALOGE("Not notifying the userspace. Callback is not set");
+    }
+
+    return ScopedAStatus::ok();
+}
 
 struct data {
     int uevent_fd;

@@ -32,13 +32,17 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.usb;
-@VintfStability
-parcelable PortPartnerStatus {
-  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
-  android.hardware.usb.PowerProfile[] sinkPowerProfiles = {};
-  android.hardware.usb.PowerProfile[] sourcePowerProfiles = {};
-  android.hardware.usb.AltModeData[] supportedAltModes = {};
-  android.hardware.usb.PortPowerRole activePowerRole = android.hardware.usb.PortPowerRole.NONE;
-  android.hardware.usb.PortDataRole activeDataRole = android.hardware.usb.PortDataRole.NONE;
-  @nullable android.hardware.usb.PeripheralIdentity identity;
+@Backing(type="int") @VintfStability
+enum UsbSpeed {
+  UNKNOWN = (-1) /* -1 */,
+  OTHER = 0,
+  USB1_1P5_MBITPS = 1,
+  USB1_12_MBITPS = 2,
+  USB2_480_MBITPS = 3,
+  USB3_5_GBITPS = 4,
+  USB3_10_GBITPS = 5,
+  USB3_20_GBITPS = 6,
+  USB4_20_GBITPS = 7,
+  USB4_40_GBITPS = 8,
+  USB4_80_GBITPS = 9,
 }

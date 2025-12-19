@@ -7,7 +7,7 @@
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
+ * Unless required by applicable law of agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
@@ -33,12 +33,10 @@
 
 package android.hardware.usb;
 @VintfStability
-parcelable PortPartnerStatus {
-  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
-  android.hardware.usb.PowerProfile[] sinkPowerProfiles = {};
-  android.hardware.usb.PowerProfile[] sourcePowerProfiles = {};
-  android.hardware.usb.AltModeData[] supportedAltModes = {};
-  android.hardware.usb.PortPowerRole activePowerRole = android.hardware.usb.PortPowerRole.NONE;
-  android.hardware.usb.PortDataRole activeDataRole = android.hardware.usb.PortDataRole.NONE;
-  @nullable android.hardware.usb.PeripheralIdentity identity;
+parcelable PeripheralIdentity {
+  android.hardware.usb.UsbPdRev pdRevision = android.hardware.usb.UsbPdRev.UNKNOWN;
+  int idHeader;
+  int certStat;
+  int productVdo;
+  int[] productTypeVdos = {};
 }

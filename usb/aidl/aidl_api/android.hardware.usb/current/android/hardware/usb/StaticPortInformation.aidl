@@ -33,12 +33,20 @@
 
 package android.hardware.usb;
 @VintfStability
-parcelable PortPartnerStatus {
-  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
-  android.hardware.usb.PowerProfile[] sinkPowerProfiles = {};
-  android.hardware.usb.PowerProfile[] sourcePowerProfiles = {};
-  android.hardware.usb.AltModeData[] supportedAltModes = {};
-  android.hardware.usb.PortPowerRole activePowerRole = android.hardware.usb.PortPowerRole.NONE;
-  android.hardware.usb.PortDataRole activeDataRole = android.hardware.usb.PortDataRole.NONE;
-  @nullable android.hardware.usb.PeripheralIdentity identity;
+parcelable StaticPortInformation {
+  String portName = "";
+  String sysfsPath = "";
+  android.hardware.usb.ConnectorType connectorType = android.hardware.usb.ConnectorType.UNKNOWN;
+  android.hardware.usb.PhysicalLocation physicalLocation;
+  android.hardware.usb.Capability[] capabilities = {};
+  android.hardware.usb.PortPowerRole[] powerRolesSupported = {android.hardware.usb.PortPowerRole.NONE};
+  android.hardware.usb.PortDataRole[] dataRolesSupported = {android.hardware.usb.PortDataRole.NONE};
+  String[] linkedHostUSBPortPaths = {};
+  String[] linkedDeviceUSBPortPaths = {};
+  String[] linkedDisplayPaths = {};
+  String[] linkedUsb4TbtPaths = {};
+  String[] linkedPowerSupplyPaths = {};
+  android.hardware.usb.UsbSpeed[] usbRootHubSpeedsSupported = {};
+  android.hardware.usb.UsbSpeed[] usb4TbtSpeedsSupported = {};
+  android.hardware.usb.DisplayLinkSpeed[] displayLinkSpeedsSupported = {};
 }

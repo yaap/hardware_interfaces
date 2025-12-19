@@ -16,7 +16,11 @@
 
 package android.hardware.usb;
 
+import android.hardware.usb.AltModeData;
 import android.hardware.usb.Bc12Type;
+import android.hardware.usb.PeripheralIdentity;
+import android.hardware.usb.PortDataRole;
+import android.hardware.usb.PortPowerRole;
 import android.hardware.usb.PowerProfile;
 
 /**
@@ -37,4 +41,20 @@ parcelable PortPartnerStatus {
      * Lists the port partner's source power profiles
      */
     PowerProfile[] sourcePowerProfiles = {};
+    /**
+     * A list of alternate modes supported by the partner.
+     */
+    AltModeData[] supportedAltModes = {};
+    /**
+     * The active power role of the partner.
+     */
+    PortPowerRole activePowerRole = PortPowerRole.NONE;
+    /**
+     * The active data role of the partner.
+     */
+    PortDataRole activeDataRole = PortDataRole.NONE;
+    /**
+     * The identity of the partner.
+     */
+    @nullable PeripheralIdentity identity;
 }

@@ -52,6 +52,8 @@ struct Usb : public BnUsb {
     ScopedAStatus enableContaminantPresenceDetection(const std::string& in_portName,
             bool in_enable, int64_t in_transactionId) override;
     ScopedAStatus queryPortStatus(int64_t in_transactionId) override;
+    ScopedAStatus queryStaticPortInformation(const string& in_portName,
+            int64_t in_transactionId) override;
     ScopedAStatus setCallback(const shared_ptr<IUsbCallback>& in_callback) override;
     ScopedAStatus switchRole(const string& in_portName, const PortRole& in_role,
             int64_t in_transactionId) override;

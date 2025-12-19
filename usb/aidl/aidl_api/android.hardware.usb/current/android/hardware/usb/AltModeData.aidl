@@ -35,6 +35,8 @@ package android.hardware.usb;
 @VintfStability
 union AltModeData {
   android.hardware.usb.AltModeData.DisplayPortAltModeData displayPortAltModeData;
+  android.hardware.usb.AltModeData.Thunderbolt3AltModeData thunderbolt3AltModeData;
+  android.hardware.usb.AltModeData.VendorAltModeData vendorAltModeData;
   @VintfStability
   parcelable DisplayPortAltModeData {
     android.hardware.usb.DisplayPortAltModeStatus partnerSinkStatus = android.hardware.usb.DisplayPortAltModeStatus.UNKNOWN;
@@ -42,5 +44,15 @@ union AltModeData {
     android.hardware.usb.DisplayPortAltModePinAssignment pinAssignment = android.hardware.usb.DisplayPortAltModePinAssignment.NONE;
     boolean hpd = false;
     android.hardware.usb.LinkTrainingStatus linkTrainingStatus = android.hardware.usb.LinkTrainingStatus.UNKNOWN;
+    @nullable android.hardware.usb.AltModeCommonData commonData;
+  }
+  @VintfStability
+  parcelable Thunderbolt3AltModeData {
+    @nullable android.hardware.usb.AltModeCommonData commonData;
+  }
+  @VintfStability
+  parcelable VendorAltModeData {
+    int svid = (-1) /* -1 */;
+    @nullable android.hardware.usb.AltModeCommonData commonData;
   }
 }
