@@ -56,8 +56,8 @@ parcelable PeripheralIdentity {
      * The raw Product Type VDOs.
      *
      * Representation Note: Although defined as a signed int in AIDL, this field
-     * represents a raw 32-bit unsigned value as defined by the USB Power Delivery
-     * specification.
+     * represents an array of 32-bit unsigned values as defined by the USB Power
+     * Delivery specification.
      */
     int[] productTypeVdos = {};
 }

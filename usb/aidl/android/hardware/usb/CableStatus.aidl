@@ -25,7 +25,7 @@ import android.hardware.usb.PeripheralIdentity;
  */
 parcelable CableStatus {
     /**
-     * The identity of the cable, if it is an e-marked cable.
+     * The identity of the cable. This can be null if the cable is not e-marked.
      */
     @nullable PeripheralIdentity identity;
     /**

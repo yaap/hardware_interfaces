@@ -35,6 +35,10 @@ parcelable AltModeCommonData {
      * relevant for PortPartnerStatus#supportedAltModes.
      * It is used to determine the order in which alt mode entry attempts are
      * made, with the lower number indicating a higher priority.
+     *
+     * A priority or -1 indicates the it is unknown or should not be taken into
+     * account for the AltMode (e.g. for port partner or cable alt modes). A
+     * valid priority is between 0 and 255.
      */
     int priority = -1;
     /**
