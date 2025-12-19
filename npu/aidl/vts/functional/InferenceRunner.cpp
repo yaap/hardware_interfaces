@@ -33,6 +33,10 @@ bool InferenceRunner::runInference(const InferenceOptions& options) {
         command += " --original-uid " + std::to_string(options.originalUid);
     }
 
+    if (options.uid >= 0) {
+        command = std::string("su ") + std::to_string(options.uid) + " " + command;
+    }
+
     return std::system(command.c_str()) == 0;
 }
 
