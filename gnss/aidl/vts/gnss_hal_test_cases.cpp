@@ -2001,7 +2001,7 @@ TEST_P(GnssHalTest, TestGnssAssistanceExtension) {
             // Inject a valid IonexAssistance.
             IonexAssistance validIonex;
             IonexAssistance::TecMapSnapshot snapshot;
-            snapshot.tecMap = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
+            snapshot.tecMap = {100, 200, 300, 400, 500, 600, 700, 800, 900};
             validIonex.header.axesInfo.latitudeAxis.numPoints = 3;
             validIonex.header.axesInfo.longitudeAxis.numPoints = 3;
             validIonex.tecMapSnapshot = snapshot;

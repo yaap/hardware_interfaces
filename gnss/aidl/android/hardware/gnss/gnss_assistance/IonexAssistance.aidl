@@ -47,12 +47,10 @@ parcelable IonexAssistance {
      *
      * @hide
      */
-    @VintfStability
     parcelable Header {
         /**
          * Enumeration of mapping functions for TEC determination.
          */
-        @VintfStability
         @Backing(type="int")
         enum MappingFunction {
             /** No mapping function. */
@@ -86,7 +84,6 @@ parcelable IonexAssistance {
      *
      * @hide
      */
-    @VintfStability
     parcelable Axes {
         /** The definition for the latitude axis. */
         Axis latitudeAxis;
@@ -104,7 +101,6 @@ parcelable IonexAssistance {
      *
      * @hide
      */
-    @VintfStability
     parcelable Axis {
         /** The starting value of the axis, in degrees. */
         double startDeg;
@@ -121,7 +117,6 @@ parcelable IonexAssistance {
      *
      * @hide
      */
-    @VintfStability
     parcelable TecMapSnapshot {
         /**
          * The epoch of the TEC map, in seconds since the Unix epoch (UTC).
@@ -129,18 +124,23 @@ parcelable IonexAssistance {
         long epochTimeSeconds;
 
         /**
-         * A flattened 2D array of values in Total Electron Content units (TECU), where
+         * A flattened representation of a 2D geographical map of Total Electron Content values.
+         *
+         * The values in this array are stored as 16-bit unsigned integers (char) with a
+         * unit of Deci-TECU (Total Electron Content Unit). To obtain the value in TECU,
+         * divide the stored value by 10.
+         *
          * 1 TECU = 10^16 electrons/m^2.
          *
          * The Ionospheric delay, in meters, of a signal propagating from the zenith
          * is given by the formula:
          *
-         * (40.3 / f^2) * (VTEC * 10^16)
+         * Delay = (40.3 / f^2) * (VTEC * 10^16)
          *
          * Where:
          * - 40.3 is a constant in m^3/s^2
          * - f is the signal frequency in Hz
-         * - VTEC is in TECU (1 TECU = 10^16 electrons/m^2)
+         * - VTEC (Vertical Total Electron Content) is in TECU (1 TECU = 10^16 electrons/m^2)
          *
          * See: "NTCM-G Ionospheric Model Description." (2022)
          *
@@ -150,20 +150,20 @@ parcelable IonexAssistance {
          * The total number of values must be:
          * latitudeAxis.numPoints * longitudeAxis.numPoints
          *
-         * Non-available TEC values are represented as NaN.
+         * Non-available TEC values are represented as 9999.
          *
          * To compute the latitude and longitude for a given zero-based index i:
          * n = latitudeAxis.numPoints
          * latitude_deg = latitudeAxis.startDeg + (i / n) * latitudeAxis.deltaDeg
          * longitude_deg = longitudeAxis.startDeg + (i % n) * longitudeAxis.deltaDeg
          */
-        float[] tecMap;
+        char[] tecMap;
 
         /**
-         * An optional flattened 2D array of TEC Root-Mean-Square (RMS) error values in TECU.
+         * An optional flattened 2D array of TEC Root-Mean-Square (RMS) error values in 0.1 TECU.
          * Values are formatted exactly in the same way as TEC values.
          * If not available, this array will be empty.
          */
-        float[] rmsMap;
+        char[] rmsMap;
     }
 }
