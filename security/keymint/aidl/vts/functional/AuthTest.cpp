@@ -724,9 +724,12 @@ TEST_P(AuthTest, ImportWrappedKeyAuthPerOperation) {
     if (!GatekeeperAvailable()) {
         GTEST_SKIP() << "No Gatekeeper available";
     }
-    if (SecLevel() == SecurityLevel::STRONGBOX &&
-        get_vendor_api_level() <= AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__)) {
-        GTEST_SKIP() << "Skip test on StrongBox device with vendor-api-level <= __ANDROID_API_V__ ";
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (vendor_api_level <= last_unsupported_api_level) {
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
     }
 
     // Construct a SecureKeyWrapper as explained below:
