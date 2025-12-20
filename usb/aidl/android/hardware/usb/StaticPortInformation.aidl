@@ -117,7 +117,7 @@ parcelable StaticPortInformation {
     /**
      * For Type-C ports that can sink power only. The sysfs paths of the power
      * supply entries that are linked to this port.
-     * e.g., "/sys/class/power_supply/CROS_USBPD_CHARGER0"
+     * e.g., "/sys/class/power_supply/<power_supply_name>"
      */
     String[] linkedPowerSupplyPaths = {};
 

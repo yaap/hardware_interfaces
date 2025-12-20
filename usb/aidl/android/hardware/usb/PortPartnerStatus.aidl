@@ -54,7 +54,8 @@ parcelable PortPartnerStatus {
      */
     PortDataRole activeDataRole = PortDataRole.NONE;
     /**
-     * The identity of the partner.
+     * The identity of the partner. This can be null if the partner does not
+     * report identity or if the information has not been retrieved yet.
      */
     @nullable PeripheralIdentity identity;
 }
