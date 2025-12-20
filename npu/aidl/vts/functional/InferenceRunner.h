@@ -13,6 +13,7 @@ const int DEFAULT_ORIGINAL_UID = -1;
 struct InferenceOptions {
     int priority = DEFAULT_PRIORITY;
     int originalUid = DEFAULT_ORIGINAL_UID;
+    int uid = -1;
 };
 
 class InferenceRunner : public ::android::RefBase {
