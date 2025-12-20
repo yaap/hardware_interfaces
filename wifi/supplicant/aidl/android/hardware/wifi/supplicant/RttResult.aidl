@@ -197,7 +197,7 @@ parcelable RttResult {
      *
      * Note: A required field for IEEE 802.11az result.
      */
-    long ntbMinMeasurementTime;
+    long ntbMinMeasurementTimeIn100Us;
 
     /**
      * Maximum non-trigger based (non-TB) dynamic measurement time in units of 10 milliseconds
@@ -215,7 +215,7 @@ parcelable RttResult {
      *
      * Note: A required field for IEEE 802.11az result.
      */
-    long ntbMaxMeasurementTime;
+    long ntbMaxMeasurementTimeIn10Ms;
 
     /**
      * Number of transmit space-time streams used. Value is in the range 1 to 8.
