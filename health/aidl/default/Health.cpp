@@ -166,6 +166,25 @@ ndk::ScopedAStatus Health::getBatteryHealthData(BatteryHealthData* out) {
     }
     out->batteryPartStatus = static_cast<BatteryPartStatus>(part_status);
 
+    if (auto res = battery_monitor_.getManufacturer(); res.ok()) {
+        out->batteryManufacturer = *res;
+    } else {
+        LOG(WARNING) << "Cannot get Battery_manufacturer: " << res.error().code().print();
+    }
+
+    if (auto res = battery_monitor_.getModelName(); res.ok()) {
+        out->batteryModelName = *res;
+    } else {
+        LOG(WARNING) << "Cannot get Battery_model_name: " << res.error().code().print();
+    }
+
+    if (auto res = battery_monitor_.getVoltageMinDesign(); res.ok()) {
+        // Return 0 if voltage_min_design does not exist
+        out->batteryVoltageMinDesignUv = *res;
+    } else {
+        LOG(WARNING) << "Cannot get Battery_voltage_min_design: " << res.error().code().print();
+    }
+
     return ndk::ScopedAStatus::ok();
 }
 
