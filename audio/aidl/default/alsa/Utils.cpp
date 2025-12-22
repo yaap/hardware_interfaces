@@ -284,6 +284,7 @@ unsigned int getChannelCountFromChannelMask(const AudioChannelLayout& channelMas
         case AudioChannelLayout::Tag::none:
         case AudioChannelLayout::Tag::invalid:
         case AudioChannelLayout::Tag::voiceMask:
+        case AudioChannelLayout::Tag::acnMask:
         default:
             return 0;
     }
