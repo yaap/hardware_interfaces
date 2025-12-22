@@ -60,9 +60,8 @@ digraph stream_out_async_state_machine {
     DRAIN_PAUSED -> IDLE [label="flush"];             // buffer is cleared
     DRAIN_PAUSED -> DRAIN_PAUSED [label="flushFromFrame"];  // see IStreamDescriptor.Command.flushFromFrame
 
-    // IMPORTANT: The behavior below is only expected from the HAL when
-    // it exposes 'aosp.clipTransitionSupport' vendor property. It will be
-    // required starting from HAL V5.
+    // IMPORTANT: The behavior below is only expected from the HAL V3 and V4 when
+    // it exposes 'aosp.clipTransitionSupport' vendor property.
     //
     // Note that the states in both clusters are combined with 'DRAINING' and 'DRAIN_PAUSED'
     // state at the API level. The 'en' and 'en_sent' attributes only belong to the internal

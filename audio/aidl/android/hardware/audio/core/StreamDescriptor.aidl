@@ -193,9 +193,8 @@ parcelable StreamDescriptor {
          * intended for transitioning between two clips. Both 'DRAINING' and
          * 'DRAIN_PAUSED' states have "sub-states" not visible via the API. See
          * the details in the 'stream-out-async-sm.gv' state machine
-         * description. In the HAL API V3 this behavior is enabled when the
-         * HAL exposes "aosp.clipTransitionSupport" property, and in the HAL
-         * API V4 it is the default behavior.
+         * description. In the HAL API V3 and V4 this behavior is enabled when the
+         * HAL exposes "aosp.clipTransitionSupport" property.
          */
         DRAINING = 5,
         /**
@@ -246,11 +245,10 @@ parcelable StreamDescriptor {
          * for gapless playback. The exact amount of provided time is specific
          * to the HAL implementation.
          *
-         * In the HAL API V3, the HAL sends two 'onDrainReady' notifications:
+         * In the HAL API V3 and V4, the HAL sends two 'onDrainReady' notifications:
          * one to indicate readiness to receive next clip data, and another when
          * the previous clip has finished playing. This behavior is enabled when
-         * the HAL exposes "aosp.clipTransitionSupport" property, and in the HAL
-         * API V4 it is the default behavior.
+         * the HAL exposes "aosp.clipTransitionSupport" property.
          */
         DRAIN_EARLY_NOTIFY = 2,
     }
