@@ -34,23 +34,8 @@
 package android.hardware.bluetooth.gatt;
 @VintfStability
 interface IBluetoothGattCallback {
-  void registerServiceComplete(int sessionId, in android.hardware.bluetooth.gatt.IBluetoothGattCallback.Status status, in String reason);
-  void unregisterServiceComplete(int sessionId, in String reason);
-  void clearServicesComplete(int aclConnectionHandle, in String reason);
-  void errorReport(in int aclConnectionHandle, in int localCid, in android.hardware.bluetooth.gatt.IBluetoothGattCallback.Error error, in String reason);
-  @Backing(type="int") @VintfStability
-  enum Error {
-    UNKNOWN,
-    DATABASE_OUT_OF_SYNC,
-    RESPONSE_TIMEOUT,
-    PROTOCOL_VIOLATION,
-  }
-  @Backing(type="int") @VintfStability
-  enum Status {
-    SUCCESS = 0,
-    INVALID_ENDPOINT_ID,
-    UNSUPPORTED_ROLE,
-    INSUFFICIENT_RESOURCES,
-    FAILURE,
-  }
+  oneway void registerServiceComplete(int sessionId, in android.hardware.bluetooth.gatt.Status status, in String reason);
+  oneway void unregisterServiceComplete(int sessionId, in String reason);
+  oneway void clearServicesComplete(int aclConnectionHandle, in String reason);
+  oneway void errorReport(in android.hardware.bluetooth.gatt.ErrorReport report);
 }

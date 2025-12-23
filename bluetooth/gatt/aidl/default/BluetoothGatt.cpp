@@ -24,7 +24,7 @@ BluetoothGatt::~BluetoothGatt() {}
 ::ndk::ScopedAStatus BluetoothGatt::init(
     const std::shared_ptr<IBluetoothGattCallback>& in_callback) {
   if (in_callback == nullptr) {
-    return ndk::ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    return ::ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
   }
   callback_ = in_callback;
   return ::ndk::ScopedAStatus::ok();
@@ -38,12 +38,8 @@ BluetoothGatt::~BluetoothGatt() {}
 }
 
 ::ndk::ScopedAStatus BluetoothGatt::registerService(
-    int32_t /* in_sessionId */, int32_t /* in_aclConnectionHandle */,
-    int32_t /* in_attMtu */, IBluetoothGatt::Role /* in_role */,
-    const Uuid& /* in_serviceUuid */,
-    const std::vector<GattCharacteristic>& /* in_characteristics */,
-    const ::aidl::android::hardware::contexthub::
-        EndpointId& /* in_endpointId */) {
+    const ::aidl::android::hardware::bluetooth::gatt::
+        GattSession& /* in_session */) {
   return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 

@@ -17,24 +17,21 @@
 #include <aidl/Gtest.h>
 #include <aidl/Vintf.h>
 #include <aidl/android/hardware/bluetooth/gatt/BnBluetoothGattCallback.h>
+#include <aidl/android/hardware/bluetooth/gatt/GattSession.h>
 #include <aidl/android/hardware/bluetooth/gatt/IBluetoothGatt.h>
 #include <aidl/android/hardware/bluetooth/gatt/IBluetoothGattCallback.h>
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
-#include <binder/IServiceManager.h>
 #include <gmock/gmock.h>
 #include <utils/Log.h>
 
-#include <functional>
 #include <future>
 
 using ::aidl::android::hardware::bluetooth::gatt::BnBluetoothGattCallback;
 using ::aidl::android::hardware::bluetooth::gatt::GattCapabilities;
-using ::aidl::android::hardware::bluetooth::gatt::GattCharacteristic;
+using ::aidl::android::hardware::bluetooth::gatt::GattSession;
 using ::aidl::android::hardware::bluetooth::gatt::IBluetoothGatt;
-using ::aidl::android::hardware::bluetooth::gatt::IBluetoothGattCallback;
-using ::aidl::android::hardware::bluetooth::gatt::Uuid;
 using ::ndk::ScopedAStatus;
 using ::testing::_;
 
@@ -46,7 +43,8 @@ constexpr int32_t kGattPropertyNotify = 0x10;
 class MockBluetoothGattCallback : public BnBluetoothGattCallback {
  public:
   MOCK_METHOD(ScopedAStatus, registerServiceComplete,
-              (int32_t in_sessionId, IBluetoothGattCallback::Status in_status,
+              (int32_t in_sessionId,
+               ::aidl::android::hardware::bluetooth::gatt::Status in_status,
                const std::string& in_reason),
               (override));
   MOCK_METHOD(ScopedAStatus, unregisterServiceComplete,
@@ -55,9 +53,8 @@ class MockBluetoothGattCallback : public BnBluetoothGattCallback {
               (int32_t in_acl_connection_handle, const std::string& in_reason),
               (override));
   MOCK_METHOD(ScopedAStatus, errorReport,
-              (int32_t in_acl_connection_handle, int32_t in_local_cid,
-               IBluetoothGattCallback::Error in_error,
-               const std::string& in_reason),
+              (const ::aidl::android::hardware::bluetooth::gatt::ErrorReport&
+                   in_report),
               (override));
 };
 
@@ -82,7 +79,7 @@ class BluetoothGattTest : public ::testing::TestWithParam<std::string> {
     ASSERT_TRUE(status.isOk());
   }
 
-  void RegisterService(IBluetoothGatt::Role role);
+  void RegisterService(GattSession::Role role);
 
   std::shared_ptr<IBluetoothGatt> bluetooth_gatt_;
   GattCapabilities gatt_capabilities_;
@@ -93,9 +90,15 @@ TEST_P(BluetoothGattTest, init) {
   EXPECT_CALL(*callback, registerServiceComplete(_, _, _)).Times(0);
   EXPECT_CALL(*callback, unregisterServiceComplete(_, _)).Times(0);
   EXPECT_CALL(*callback, clearServicesComplete(_, _)).Times(0);
-  EXPECT_CALL(*callback, errorReport(_, _, _, _)).Times(0);
+  EXPECT_CALL(*callback, errorReport(_)).Times(0);
   ScopedAStatus status = bluetooth_gatt_->init(callback);
   ASSERT_TRUE(status.isOk());
+}
+
+TEST_P(BluetoothGattTest, init_nullptrCallback) {
+  ScopedAStatus status = bluetooth_gatt_->init(nullptr);
+  ASSERT_FALSE(status.isOk());
+  EXPECT_EQ(status.getExceptionCode(), EX_ILLEGAL_ARGUMENT);
 }
 
 TEST_P(BluetoothGattTest, GetGattCapabilities) {
@@ -117,7 +120,7 @@ TEST_P(BluetoothGattTest, RegisterClientService) {
   if (!gatt_capabilities_.supportedGattClientProperties) {
     GTEST_SKIP() << "Gatt client is not supported";
   }
-  RegisterService(IBluetoothGatt::Role::CLIENT);
+  RegisterService(GattSession::Role::CLIENT);
 }
 
 TEST_P(BluetoothGattTest, RegisterServerService) {
@@ -125,7 +128,7 @@ TEST_P(BluetoothGattTest, RegisterServerService) {
   if (!gatt_capabilities_.supportedGattServerProperties) {
     GTEST_SKIP() << "Gatt server is not supported";
   }
-  RegisterService(IBluetoothGatt::Role::SERVER);
+  RegisterService(GattSession::Role::SERVER);
 }
 
 TEST_P(BluetoothGattTest, UnregisterService) {
@@ -143,7 +146,7 @@ TEST_P(BluetoothGattTest, UnregisterService) {
         return ::ndk::ScopedAStatus::ok();
       });
   EXPECT_CALL(*callback, clearServicesComplete(_, _)).Times(0);
-  EXPECT_CALL(*callback, errorReport(_, _, _, _)).Times(0);
+  EXPECT_CALL(*callback, errorReport(_)).Times(0);
 
   // Subsequent calls to this method must replace the previously registered one.
   bluetooth_gatt_->init(old_callback);
@@ -183,7 +186,7 @@ TEST_P(BluetoothGattTest, ClearService) {
         clear_service_cb_promise.set_value();
         return ::ndk::ScopedAStatus::ok();
       });
-  EXPECT_CALL(*callback, errorReport(_, _, _, _)).Times(0);
+  EXPECT_CALL(*callback, errorReport(_)).Times(0);
 
   // Subsequent calls to this method must replace the previously registered one.
   bluetooth_gatt_->init(old_callback);
@@ -208,7 +211,7 @@ TEST_P(BluetoothGattTest, ClearService) {
   }
 }
 
-void BluetoothGattTest::RegisterService(IBluetoothGatt::Role role) {
+void BluetoothGattTest::RegisterService(GattSession::Role role) {
   auto old_callback = ndk::SharedRefBase::make<MockBluetoothGattCallback>();
   auto callback = ndk::SharedRefBase::make<MockBluetoothGattCallback>();
   std::promise<void> register_service_cb_promise;
@@ -223,7 +226,7 @@ void BluetoothGattTest::RegisterService(IBluetoothGatt::Role role) {
       });
   EXPECT_CALL(*callback, unregisterServiceComplete(_, _)).Times(0);
   EXPECT_CALL(*callback, clearServicesComplete(_, _)).Times(0);
-  EXPECT_CALL(*callback, errorReport(_, _, _, _)).Times(0);
+  EXPECT_CALL(*callback, errorReport(_)).Times(0);
 
   // Subsequent calls to this method must replace the previously registered one.
   bluetooth_gatt_->init(old_callback);
@@ -231,17 +234,13 @@ void BluetoothGattTest::RegisterService(IBluetoothGatt::Role role) {
   GattCapabilities gatt_capabilities;
   bluetooth_gatt_->getGattCapabilities(&gatt_capabilities);
 
-  int32_t session_id = 1;
-  int32_t acl_connection_handle = 2;
-  int32_t att_mtu = 100;
-  IBluetoothGatt::Role gatt_role = role;
-  Uuid service_uuid;
-  std::vector<GattCharacteristic> characteristics;
-  ::aidl::android::hardware::contexthub::EndpointId endpoint_id;
+  ::aidl::android::hardware::bluetooth::gatt::GattSession session;
+  session.sessionId = 1;
+  session.aclConnectionHandle = 2;
+  session.attMtu = 100;
+  session.role = role;
 
-  ScopedAStatus status = bluetooth_gatt_->registerService(
-      session_id, acl_connection_handle, att_mtu, gatt_role, service_uuid,
-      characteristics, endpoint_id);
+  ScopedAStatus status = bluetooth_gatt_->registerService(session);
   std::chrono::milliseconds timeout{kCallbackTimeoutMs};
   if (status.isOk()) {
     // If IBluetoothGatt.registerService() returns success, the callback
