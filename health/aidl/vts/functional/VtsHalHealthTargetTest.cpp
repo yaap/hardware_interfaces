@@ -53,10 +53,13 @@ using testing::Eq;
 using testing::ExplainMatchResult;
 using testing::Ge;
 using testing::Gt;
+using testing::IsNull;
 using testing::Le;
 using testing::Lt;
 using testing::Matcher;
 using testing::Not;
+using testing::Optional;
+using testing::SizeIs;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
@@ -94,6 +97,19 @@ MATCHER(IsValidSerialNumber, "") {
     }
     for (const auto& c : *arg) {
         if (!isalnum(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+MATCHER(IsPrintableString, "") {
+    if (!arg) {
+        return true;
+    }
+    for (const auto& c : *arg) {
+        if (!isprint(c)) {
+            *result_listener << "contains non-printable character: " << testing::PrintToString(c);
             return false;
         }
     }
@@ -325,6 +341,24 @@ MATCHER_P(IsValidHealthData, version, "") {
     if (!ExplainMatchResult(IsValidEnum<BatteryPartStatus>(), arg.batteryPartStatus,
                             result_listener)) {
         *result_listener << " for batteryPartStatus.";
+        return false;
+    }
+    if (!ExplainMatchResult(
+                AnyOf(Eq(std::nullopt), AllOf(Optional(SizeIs(Ge(2))), IsPrintableString())),
+                arg.batteryManufacturer, result_listener)) {
+        *result_listener << " for batteryManufacturer.";
+        return false;
+    }
+
+    if (!ExplainMatchResult(
+                AnyOf(Eq(std::nullopt), AllOf(Optional(SizeIs(Ge(2))), IsPrintableString())),
+                arg.batteryModelName, result_listener)) {
+        *result_listener << " for batteryModelName.";
+        return false;
+    }
+    if (!ExplainMatchResult(AnyOf(Eq(0), Ge(2000000)), arg.batteryVoltageMinDesignUv,
+                            result_listener)) {
+        *result_listener << " for batteryVoltageMinDesignUv";
         return false;
     }
 

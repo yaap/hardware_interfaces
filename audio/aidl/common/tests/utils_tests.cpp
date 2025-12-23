@@ -111,6 +111,29 @@ TEST(UtilsTest, ChannelCountForVoiceMask) {
     }
 }
 
+TEST(UtilsTest, ChannelCountForAcnMask) {
+    using Tag = AudioChannelLayout::Tag;
+    for (unsigned order = AudioChannelLayout::Ambisonics::MIN_ORDER;
+         order <= AudioChannelLayout::Ambisonics::MAX_ORDER; ++order) {
+        {
+            const size_t channelCount = (order + 1) * (order + 1);
+            AudioChannelLayout::Ambisonics acnMask;
+            acnMask.channelCount = channelCount;
+            acnMask.layout = AudioChannelLayout::Ambisonics::SourceLayout::FULL_SPHERE;
+            const auto l = AudioChannelLayout::make<Tag::acnMask>(acnMask);
+            EXPECT_EQ(channelCount, getChannelCount(l)) << l.toString();
+        }
+        {
+            const size_t channelCount = 2 * order + 1;
+            AudioChannelLayout::Ambisonics acnMask;
+            acnMask.channelCount = channelCount;
+            acnMask.layout = AudioChannelLayout::Ambisonics::SourceLayout::HORIZONTAL;
+            const auto l = AudioChannelLayout::make<Tag::acnMask>(acnMask);
+            EXPECT_EQ(channelCount, getChannelCount(l)) << l.toString();
+        }
+    }
+}
+
 namespace {
 
 AudioChannelLayout make_AudioChannelLayout_Mono() {
