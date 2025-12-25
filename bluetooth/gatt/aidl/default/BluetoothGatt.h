@@ -15,6 +15,7 @@
  */
 
 #include <aidl/android/hardware/bluetooth/gatt/BnBluetoothGatt.h>
+#include <aidl/android/hardware/bluetooth/gatt/GattSession.h>
 
 namespace aidl::android::hardware::bluetooth::gatt::impl {
 
@@ -31,13 +32,7 @@ class BluetoothGatt : public BnBluetoothGatt {
       ::aidl::android::hardware::bluetooth::gatt::GattCapabilities*
           _aidl_return) override;
   ::ndk::ScopedAStatus registerService(
-      int32_t in_sessionId, int32_t in_aclConnectionHandle, int32_t in_attMtu,
-      ::aidl::android::hardware::bluetooth::gatt::IBluetoothGatt::Role in_role,
-      const ::aidl::android::hardware::bluetooth::gatt::Uuid& in_serviceUuid,
-      const std::vector<
-          ::aidl::android::hardware::bluetooth::gatt::GattCharacteristic>&
-          in_characteristics,
-      const ::aidl::android::hardware::contexthub::EndpointId& in_endpointId)
+      const ::aidl::android::hardware::bluetooth::gatt::GattSession& in_session)
       override;
   ::ndk::ScopedAStatus unregisterService(int32_t in_sessionId) override;
   ::ndk::ScopedAStatus clearServices(int32_t in_aclConnectionHandle) override;

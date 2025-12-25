@@ -32,12 +32,11 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.bluetooth.gatt;
-@VintfStability
-interface IBluetoothGatt {
-  void init(in android.hardware.bluetooth.gatt.IBluetoothGattCallback callback);
-  android.hardware.bluetooth.gatt.GattCapabilities getGattCapabilities();
-  void registerService(in android.hardware.bluetooth.gatt.GattSession session);
-  void unregisterService(in int sessionId);
-  void clearServices(in int aclConnectionHandle);
-  const int EX_BLUETOOTH_GATT_UNSPECIFIED = (-1) /* -1 */;
+@Backing(type="int") @VintfStability
+enum Status {
+  SUCCESS = 0,
+  INVALID_ENDPOINT_ID,
+  UNSUPPORTED_ROLE,
+  INSUFFICIENT_RESOURCES,
+  FAILURE,
 }
