@@ -5360,6 +5360,7 @@ TEST_P(AudioStreamOut, LatencyMode) {
     }
 }
 
+// @VsrTest = VSR-5.5-004|VSR-5.5-005
 TEST_P(AudioStreamOut, PlaybackRate) {
     static const auto kStatuses = {EX_NONE, EX_UNSUPPORTED_OPERATION};
     const auto offloadMixPorts =
