@@ -83,6 +83,12 @@ class AsyncChipProvisioner {
    */
   void PostResetFirmware();
 
+  /**
+   * @brief Stops any ongoing chip provisioning activity.
+   *
+   */
+  void Stop();
+
  private:
   void ProcessMessage(ChipProvisionMessage message);
   void HandleInitialize(const InitializePayload& payload);
