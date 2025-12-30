@@ -34,11 +34,13 @@ enum MotionState {
     LOCAL_MOTION = 2,
 
     // Device is likely to be moving in a way that may produce a meaningful change in semantic
-    // location, for example sustained walking, running, or biking, or riding in a moving vehicle.
+    // location, for example walking, running, or biking, or riding in a moving vehicle that is
+    // sustained for long enough to be detected.
     // For the purposes of defining detection latency, the starting point is considered the time in
     // which the device started moving in a recognized pattern, not necessarily the point in which
     // the device has moved a significant amount.
-    // Note that depending on the motion pattern and detection mechanism, achievable latency may be
-    // higher, but nearly all scenarios must be detected within 5 minutes.
+    // Implementations should strive to confidently detect location changing motion within 15
+    // seconds. Note that depending on the motion pattern and detection mechanism, achievable
+    // latency may be higher, but nearly all scenarios must be detected within 5 minutes.
     LOCATION_CHANGING_MOTION = 3,
 }
