@@ -111,7 +111,9 @@ constexpr size_t getChannelCount(
             return __builtin_popcount(layout.get<Tag::voiceMask>() & mask);
         case Tag::acnMask:
             // acnMask specifies channel count.
-            return layout.get<Tag::acnMask>().channelCount;
+            return layout.get<Tag::acnMask>() &
+                   ::aidl::android::media::audio::common::AudioChannelLayout::
+                           ACN_CHANNEL_COUNT_BIT_MASK;
     }
     return 0;
 }
@@ -159,6 +161,16 @@ constexpr bool isTelephonyDeviceType(
 constexpr bool isValidAudioMode(::aidl::android::media::audio::common::AudioMode mode) {
     return std::find(kValidAudioModes.begin(), kValidAudioModes.end(), mode) !=
            kValidAudioModes.end();
+}
+
+constexpr ::aidl::android::media::audio::common::AudioChannelLayout makeAcnAudioChannelLayout(
+        ::aidl::android::media::audio::common::AudioChannelLayout::Ambisonics::SourceLayout layout,
+        int channelCount) {
+    using ::aidl::android::media::audio::common::AudioChannelLayout;
+    return AudioChannelLayout::make<AudioChannelLayout::Tag::acnMask>(
+            ((static_cast<int32_t>(layout) << AudioChannelLayout::ACN_SOURCE_LAYOUT_BIT_SHIFT) &
+             AudioChannelLayout::ACN_SOURCE_LAYOUT_BIT_MASK) |
+            (channelCount & AudioChannelLayout::ACN_CHANNEL_COUNT_BIT_MASK));
 }
 
 static inline bool maybeVendorExtension(const std::string& s) {
