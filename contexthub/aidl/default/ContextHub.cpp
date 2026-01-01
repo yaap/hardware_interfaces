@@ -30,6 +30,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <optional>
+#include <queue>
 #include <thread>
 
 #include "data_flow/host/notification_manager.h"
