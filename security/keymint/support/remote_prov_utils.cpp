@@ -941,18 +941,27 @@ ErrMsgOr<bool> compareRootPublicKeysInDiceChains(const std::vector<uint8_t>& enc
     return *result;
 }
 
-ErrMsgOr<bool> verifyComponentNameInKeyMintDiceChain(const std::vector<uint8_t>& encodedCsr) {
-    auto diceChain = getDiceChain(encodedCsr, /*isFactory=*/false, /*allowAnyMode=*/true,
-                                  DEFAULT_INSTANCE_NAME);
+ErrMsgOr<std::string> getLeafComponentNameFromDiceChain(const std::vector<uint8_t>& encodedCsr,
+                                                        std::string_view instanceName) {
+    auto diceChain =
+            getDiceChain(encodedCsr, /*isFactory=*/false, /*allowAnyMode=*/true, instanceName);
     if (!diceChain) {
-        return diceChain.message();
+        return ErrMsgOr<std::string>::Err(diceChain.message());
     }
 
-    auto componentName = diceChain->leafComponentName();
-    if (!componentName.ok()) {
-        return componentName.error().message();
+    auto leafComponentName = diceChain->leafComponentName();
+    if (!leafComponentName.ok()) {
+        return ErrMsgOr<std::string>::Err(leafComponentName.error().message());
     }
 
+    return ErrMsgOr<std::string>::Ok(std::move(*leafComponentName));
+}
+
+ErrMsgOr<bool> verifyComponentNameInKeyMintDiceChain(const std::vector<uint8_t>& encodedCsr) {
+    auto componentName = getLeafComponentNameFromDiceChain(encodedCsr, DEFAULT_INSTANCE_NAME);
+    if (!componentName) {
+        return componentName.message();
+    }
     return componentName->find(kKeyMintComponentName) != std::string::npos;
 }
 
