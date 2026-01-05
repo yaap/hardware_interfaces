@@ -377,6 +377,8 @@ std::optional<ModuleConfig::SrcSinkPair> ModuleConfig::getRoutableSrcSinkPair(bo
             const auto devicePortIt = findById<AudioPort>(mPorts, *srcPortIdIt);
             const auto mixPortIt = findById<AudioPort>(mPorts, route.sinkPortId);
             if (devicePortIt == mPorts.end() || mixPortIt == mPorts.end()) continue;
+            // Exclude device-to-device routes.
+            if (mixPortIt->ext.getTag() != AudioPortExt::Tag::mix) continue;
             auto devicePortConfig = getSingleConfigForDevicePort(*devicePortIt);
             auto mixPortConfig = getSingleConfigForMixPort(isInput, *mixPortIt);
             if (!mixPortConfig.has_value()) continue;
@@ -389,6 +391,8 @@ std::optional<ModuleConfig::SrcSinkPair> ModuleConfig::getRoutableSrcSinkPair(bo
             const auto mixPortIt = findById<AudioPort>(mPorts, route.sourcePortIds[0]);
             const auto devicePortIt = findById<AudioPort>(mPorts, route.sinkPortId);
             if (devicePortIt == mPorts.end() || mixPortIt == mPorts.end()) continue;
+            // Exclude device-to-device routes.
+            if (mixPortIt->ext.getTag() != AudioPortExt::Tag::mix) continue;
             auto mixPortConfig = getSingleConfigForMixPort(isInput, *mixPortIt);
             auto devicePortConfig = getSingleConfigForDevicePort(*devicePortIt);
             if (!mixPortConfig.has_value()) continue;
@@ -411,6 +415,8 @@ std::vector<ModuleConfig::SrcSinkGroup> ModuleConfig::getRoutableSrcSinkGroups(b
             if (srcPortIds.empty()) continue;
             const auto mixPortIt = findById<AudioPort>(mPorts, route.sinkPortId);
             if (mixPortIt == mPorts.end()) continue;
+            // Exclude device-to-device routes.
+            if (mixPortIt->ext.getTag() != AudioPortExt::Tag::mix) continue;
             auto mixPortConfig = getSingleConfigForMixPort(isInput, *mixPortIt);
             if (!mixPortConfig.has_value()) continue;
             std::vector<SrcSinkPair> pairs;
@@ -436,6 +442,8 @@ std::vector<ModuleConfig::SrcSinkGroup> ModuleConfig::getRoutableSrcSinkGroups(b
             for (const auto srcPortId : route.sourcePortIds) {
                 const auto mixPortIt = findById<AudioPort>(mPorts, srcPortId);
                 if (mixPortIt == mPorts.end()) continue;
+                // Exclude device-to-device routes.
+                if (mixPortIt->ext.getTag() != AudioPortExt::Tag::mix) continue;
                 // Using all configs for every source would be too much.
                 auto mixPortConfig = getSingleConfigForMixPort(isInput, *mixPortIt);
                 if (mixPortConfig.has_value()) {
