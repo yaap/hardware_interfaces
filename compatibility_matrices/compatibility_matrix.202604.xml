@@ -356,14 +356,6 @@
         </interface>
     </hal>
     <hal format="aidl">
-        <name>android.hardware.security.factory_reset_protection</name>
-        <version>1</version>
-        <interface>
-            <name>IFactoryResetProtection</name>
-            <instance>default</instance>
-        </interface>
-    </hal>
-    <hal format="aidl">
         <name>android.hardware.light</name>
         <version>2-3</version>
         <interface>
