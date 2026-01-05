@@ -24,6 +24,7 @@
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
 #include <aidl/android/hardware/graphics/common/PixelFormat.h>
 #include <aidlcommonsupport/NativeHandle.h>
+#include <android-base/properties.h>
 #include <android/binder_manager.h>
 #include <android/dlext.h>
 #include <android/hardware/graphics/mapper/4.0/IMapper.h>
@@ -386,6 +387,9 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownOptions) {
 }
 
 TEST_P(GraphicsAllocatorAidlTests, RejectsZeroLayerCount) {
+    if (base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "layerCount = 0 behavior wasn't previously enforced, skipping for old HALs";
+    }
     BufferDescriptorInfo info{
             .name = {"CPU_8888"},
             .width = 64,
