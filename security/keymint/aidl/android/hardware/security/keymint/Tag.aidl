@@ -251,7 +251,8 @@ enum Tag {
     /**
      * Tag::ACTIVE_DATETIME specifies the date and time at which the key becomes active, in
      * milliseconds since Jan 1, 1970.  If a key with this tag is used prior to the specified date
-     * and time, IKeyMintDevice::begin() must return ErrorCode::KEY_NOT_YET_VALID;
+     * and time, IKeyMintDevice::begin() must return ErrorCode::KEY_NOT_YET_VALID (if the tag is
+     * hardware-enforced).
      *
      * Need not be hardware-enforced.
      */
@@ -261,7 +262,7 @@ enum Tag {
      * Tag::ORIGINATION_EXPIRE_DATETIME specifies the date and time at which the key expires for
      * signing and encryption purposes.  After this time, any attempt to use a key with
      * KeyPurpose::SIGN or KeyPurpose::ENCRYPT provided to begin() must fail with
-     * ErrorCode::KEY_EXPIRED.
+     * ErrorCode::KEY_EXPIRED (if the tag is hardware-enforced).
      *
      * The value is a 64-bit integer representing milliseconds since January 1, 1970.
      *
@@ -273,7 +274,7 @@ enum Tag {
      * Tag::USAGE_EXPIRE_DATETIME specifies the date and time at which the key expires for
      * verification and decryption purposes.  After this time, any attempt to use a key with
      * KeyPurpose::VERIFY or KeyPurpose::DECRYPT provided to begin() must fail with
-     * ErrorCode::KEY_EXPIRED.
+     * ErrorCode::KEY_EXPIRED (if the tag is hardware-enforced).
      *
      * The value is a 64-bit integer representing milliseconds since January 1, 1970.
      *
