@@ -8957,6 +8957,21 @@ TEST_P(VsrRequirementTest, Vsr16Test) {
     EXPECT_GE(AidlVersion(), 4) << "VSR 16+ requires KeyMint version 4 in TEE";
 }
 
+// @VsrTest = GMS-VSR-3.10
+TEST_P(VsrRequirementTest, Vsr17Test) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (vendor_api_level <= last_unsupported_api_level) {
+        GTEST_SKIP() << "Applies only to vendor API level > " << last_unsupported_api_level
+                     << ", but this device is: " << vendor_api_level;
+    }
+    if (SecLevel() == SecurityLevel::STRONGBOX) {
+        EXPECT_GE(AidlVersion(), 4) << "VSR 17+ requires KeyMint version 4 in StrongBox";
+    } else {
+        EXPECT_GE(AidlVersion(), 5) << "VSR 17+ requires KeyMint version 5 in TEE";
+    }
+}
+
 INSTANTIATE_KEYMINT_AIDL_TEST(VsrRequirementTest);
 
 class InstanceTest : public testing::Test {
