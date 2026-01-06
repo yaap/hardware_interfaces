@@ -187,11 +187,22 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     ErrorCode UpdateAad(const string& input);
     ErrorCode Update(const string& input, string* output) { return Update(input, output, {}, {}); }
     ErrorCode Update(const string& input, string* output, std::optional<HardwareAuthToken> hat,
+                     std::optional<secureclock::TimeStampToken> time_token) {
+        return Update(&op_, input, output, hat, time_token);
+    }
+    ErrorCode Update(std::shared_ptr<IKeyMintOperation>* op, const string& input, string* output,
+                     std::optional<HardwareAuthToken> hat,
                      std::optional<secureclock::TimeStampToken> time_token);
 
-    ErrorCode Finish(const string& message, const string& signature, string* output,
+    ErrorCode Finish(std::shared_ptr<IKeyMintOperation>* op, const string& message,
+                     const string& signature, string* output,
                      std::optional<HardwareAuthToken> hat = std::nullopt,
                      std::optional<secureclock::TimeStampToken> time_token = std::nullopt);
+    ErrorCode Finish(const string& message, const string& signature, string* output,
+                     std::optional<HardwareAuthToken> hat = std::nullopt,
+                     std::optional<secureclock::TimeStampToken> time_token = std::nullopt) {
+        return Finish(&op_, message, signature, output, hat, time_token);
+    }
     ErrorCode Finish(const string& message, string* output) {
         return Finish(message, {} /* signature */, output);
     }
