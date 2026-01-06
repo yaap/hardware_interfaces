@@ -88,6 +88,8 @@ parcelable SharedDataRegion {
     int producerFlags;
     android.hardware.contexthub.SharedDataRegion.EndpointIdFixedSize id;
     int consumerFlags;
+    int initialHeadBlockOffsetBytes;
+    int initialBlockListEpoch;
     boolean isOverwritable;
     byte[11] reserved;
     @Backing(type="int") @VintfStability
