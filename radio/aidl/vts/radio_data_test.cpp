@@ -949,13 +949,13 @@ TEST_P(RadioDataTest, notifyImsDataNetwork) {
     }
 
     serial = GetRandomSerialNumber();
-    AccessNetwork accessNetwork = AccessNetwork::EUTRAN;
-    DataNetworkState dataNetworkState = DataNetworkState::CONNECTED;
-    TransportType physicalTransportType = TransportType::WWAN;
-    int physicalNetworkModemId = 0;
+    ImsDataNetworkInfo info;
+    info.accessNetwork = AccessNetwork::EUTRAN;
+    info.dataNetworkState = DataNetworkState::CONNECTED;
+    info.physicalTransportType = TransportType::WWAN;
+    info.physicalNetworkModemId = 0;
 
-    radio_data->notifyImsDataNetwork(serial, accessNetwork, dataNetworkState, physicalTransportType,
-                                     physicalNetworkModemId);
+    radio_data->notifyImsDataNetwork(serial, info);
 
     EXPECT_EQ(std::cv_status::no_timeout, wait());
     EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_data->rspInfo.type);
