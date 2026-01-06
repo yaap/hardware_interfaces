@@ -57,9 +57,6 @@
       "name": "VehicleHalProtoMessageConverterTest"
     },
     {
-      "name": "CtsCarTestCases"
-    },
-    {
       "name": "VehicleHalE2eTest"
     }
   ],

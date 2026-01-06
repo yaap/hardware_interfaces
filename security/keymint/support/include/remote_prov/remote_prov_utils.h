@@ -222,6 +222,10 @@ ErrMsgOr<bool> compareRootPublicKeysInDiceChains(const std::vector<uint8_t>& csr
                                                  const std::vector<uint8_t>& csr2,
                                                  std::string_view instanceName2);
 
+/** Returns the leaf component name of DICE chain. */
+ErrMsgOr<std::string> getLeafComponentNameFromDiceChain(const std::vector<uint8_t>& encodedCsr,
+                                                        std::string_view instanceName);
+
 /** Checks whether the component name in the configuration descriptor in the leaf certificate
  * of the primary KeyMint instance's DICE certificate chain contains "keymint"
  */
