@@ -767,7 +767,7 @@ TEST_P(MediaQualityAidl, TestSendInvalidSoundParameters) {
     std::vector<SoundParameter> soundParams;
     SoundParameter soundParam;
 
-    soundParam.set<SoundParameter::Tag::mtLatencyUs>(-51);
+    soundParam.set<SoundParameter::Tag::btLatencyUs>(-51);
     soundParams.push_back(soundParam);
 
     soundParameters.soundParameters = soundParams;

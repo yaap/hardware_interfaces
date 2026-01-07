@@ -56,7 +56,7 @@ union SoundParameter {
   int balanceBluetooth;
   int balanceHeadphone;
   boolean hiResAudio;
-  int mtLatencyUs;
+  int btLatencyUs;
   boolean adSpeakerEnable;
   boolean adHeadphoneEnable;
   int adVolume;
