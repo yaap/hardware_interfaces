@@ -62,6 +62,8 @@ const std::unordered_map<uint16_t, BqrVersion> kVersionToBqrMap = {
 
 }  // namespace
 
+std::unique_ptr<BqrHandler> BqrHandler::handler_ptr_;
+
 BqrHandler::BqrHandler()
     : local_supported_bqr_version_(BqrVersion::kNone),
       vendor_capability_monitor_(HciCommandCompleteEventMonitor(

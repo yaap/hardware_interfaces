@@ -155,7 +155,7 @@ class ThreadHandler : public ::bluetooth_hal::hci::HciRouterClient {
  private:
   std::unique_ptr<ThreadDaemon> thread_daemon_;
   static inline std::mutex mutex_;
-  static inline std::unique_ptr<ThreadHandler> handler_{nullptr};
+  static std::unique_ptr<ThreadHandler> handler_;
   ::bluetooth_hal::hci::HciThreadMonitor thread_data_monitor_;
 };
 

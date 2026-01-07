@@ -76,6 +76,8 @@ std::string ToHexString(uint16_t value, int num_of_digits) {
 
 }  // namespace
 
+std::unique_ptr<BluetoothActivities> BluetoothActivities::instance_ = nullptr;
+
 class BluetoothActivitiesImpl : public BluetoothActivities,
                                 public ::bluetooth_hal::hci::HciRouterClient,
                                 public DebugClient {
