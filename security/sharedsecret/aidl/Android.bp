@@ -16,8 +16,14 @@ aidl_interface {
     ],
     stability: "vintf",
     backend: {
+        cpp: {
+            enabled: true,
+        },
         java: {
             sdk_version: "module_current",
+        },
+        ndk: {
+            enabled: true,
         },
         rust: {
             enabled: true,
