@@ -762,47 +762,48 @@ ErrorCode KeyMintAidlTestBase::UpdateAad(const string& input) {
                                              {} /* verificationToken */));
 }
 
-ErrorCode KeyMintAidlTestBase::Update(const string& input, string* output,
-                                      std::optional<HardwareAuthToken> hat,
+ErrorCode KeyMintAidlTestBase::Update(std::shared_ptr<IKeyMintOperation>* op, const string& input,
+                                      string* output, std::optional<HardwareAuthToken> hat,
                                       std::optional<secureclock::TimeStampToken> time_token) {
     SCOPED_TRACE("Update");
 
     Status result;
     if (!output) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
-    EXPECT_NE(op_, nullptr);
-    if (!op_) return ErrorCode::UNEXPECTED_NULL_POINTER;
+    EXPECT_NE((*op), nullptr);
+    if (!(*op)) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
     std::vector<uint8_t> o_put;
-    result = op_->update(vector<uint8_t>(input.begin(), input.end()), hat, time_token, &o_put);
+    result = (*op)->update(vector<uint8_t>(input.begin(), input.end()), hat, time_token, &o_put);
 
     if (result.isOk()) {
         output->append(o_put.begin(), o_put.end());
     } else {
         // Failure always terminates the operation.
-        op_ = {};
+        (*op) = {};
     }
 
     return GetReturnErrorCode(result);
 }
 
-ErrorCode KeyMintAidlTestBase::Finish(const string& input, const string& signature, string* output,
+ErrorCode KeyMintAidlTestBase::Finish(std::shared_ptr<IKeyMintOperation>* op, const string& input,
+                                      const string& signature, string* output,
                                       std::optional<HardwareAuthToken> hat,
                                       std::optional<secureclock::TimeStampToken> time_token) {
     SCOPED_TRACE("Finish");
     Status result;
 
-    EXPECT_NE(op_, nullptr);
-    if (!op_) return ErrorCode::UNEXPECTED_NULL_POINTER;
+    EXPECT_NE((*op), nullptr);
+    if (!(*op)) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
     vector<uint8_t> oPut;
-    result = op_->finish(vector<uint8_t>(input.begin(), input.end()),
-                         vector<uint8_t>(signature.begin(), signature.end()), hat, time_token,
-                         {} /* confirmationToken */, &oPut);
+    result = (*op)->finish(vector<uint8_t>(input.begin(), input.end()),
+                           vector<uint8_t>(signature.begin(), signature.end()), hat, time_token,
+                           {} /* confirmationToken */, &oPut);
 
     if (result.isOk()) output->append(oPut.begin(), oPut.end());
 
-    op_ = {};
+    (*op) = {};
     return GetReturnErrorCode(result);
 }
 

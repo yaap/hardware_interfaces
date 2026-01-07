@@ -53,7 +53,7 @@ parcelable GnssAlmanac {
     int weekNumber;
 
     /**
-     * Almanac reference time in seconds.
+     * Almanac reference Time of Availability (TOA) in seconds.
      *
      * This is unused for Beidou.
      * For Beidou, each satellite has its own toaSeconds.
@@ -136,7 +136,7 @@ parcelable GnssAlmanac {
         double af1;
 
         /**
-         * Almanac reference time in seconds.
+         * Almanac reference Time of Applicability (TOA) in seconds.
          *
          * This is unused for GPS/QZSS/Galileo.
          * For Beidou, each satellite has its own toaSeconds.

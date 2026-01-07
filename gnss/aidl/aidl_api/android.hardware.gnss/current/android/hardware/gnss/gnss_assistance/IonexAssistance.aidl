@@ -38,13 +38,12 @@ parcelable IonexAssistance {
   android.hardware.gnss.gnss_assistance.IonexAssistance.Header header;
   android.hardware.gnss.gnss_assistance.IonexAssistance.TecMapSnapshot tecMapSnapshot;
   /* @hide */
-  @VintfStability
   parcelable Header {
     android.hardware.gnss.gnss_assistance.IonexAssistance.Header.MappingFunction mappingFunction;
     float baseRadiusKm;
     float heightKm;
     android.hardware.gnss.gnss_assistance.IonexAssistance.Axes axesInfo;
-    @Backing(type="int") @VintfStability
+    @Backing(type="int")
     enum MappingFunction {
       NONE = 0,
       COSZ = 1,
@@ -52,23 +51,20 @@ parcelable IonexAssistance {
     }
   }
   /* @hide */
-  @VintfStability
   parcelable Axes {
     android.hardware.gnss.gnss_assistance.IonexAssistance.Axis latitudeAxis;
     android.hardware.gnss.gnss_assistance.IonexAssistance.Axis longitudeAxis;
   }
   /* @hide */
-  @VintfStability
   parcelable Axis {
     double startDeg;
     double deltaDeg;
     int numPoints;
   }
   /* @hide */
-  @VintfStability
   parcelable TecMapSnapshot {
     long epochTimeSeconds;
-    float[] tecMap;
-    float[] rmsMap;
+    char[] tecMap;
+    char[] rmsMap;
   }
 }

@@ -23,8 +23,7 @@ extern crate alloc;
 use kmr_common::crypto;
 use kmr_crypto_boring::rng::BoringRng;
 use kmr_ta::device::{
-    BootloaderDone, CsrSigningAlgorithm, FrpDataStorage, FrpSecretStorage, Implementation,
-    TrustedPresenceUnsupported,
+    BootloaderDone, CsrSigningAlgorithm, Implementation, TrustedPresenceUnsupported,
 };
 use kmr_ta::{HardwareInfo, KeyMintTa, RpcInfo, RpcInfoV3};
 use kmr_wire::keymint::SecurityLevel;
@@ -33,7 +32,6 @@ use log::info;
 
 pub mod attest;
 pub mod clock;
-pub mod frp;
 pub mod rpc;
 pub mod soft;
 
@@ -48,20 +46,12 @@ pub fn boringssl_crypto_impls() -> crypto::Implementation {
 /// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use.
 pub fn build_ta() -> kmr_ta::KeyMintTa {
     let rpc_sign_algo = CsrSigningAlgorithm::EdDSA;
-    build_ta_with(
-        Box::new(soft::RpcArtifacts::new(soft::Derive::default(), rpc_sign_algo)),
-        Some(Box::new(frp::InMemorySecretStorage::new())),
-        Some(Box::new(frp::InMemoryDataStorage::new())),
-    )
+    build_ta_with(Box::new(soft::RpcArtifacts::new(soft::Derive::default(), rpc_sign_algo)))
 }
 
 /// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use, including some specified trait
 /// implementations.
-pub fn build_ta_with(
-    rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts>,
-    frp_secret_storage: Option<Box<dyn FrpSecretStorage>>,
-    frp_data_storage: Option<Box<dyn FrpDataStorage>>,
-) -> kmr_ta::KeyMintTa {
+pub fn build_ta_with(rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts>) -> kmr_ta::KeyMintTa {
     info!("Building NON-SECURE KeyMint Rust TA");
     let hw_info = HardwareInfo {
         version_number: 1,
@@ -94,8 +84,6 @@ pub fn build_ta_with(
         // No support for converting previous implementation's keyblobs.
         legacy_key: None,
         rpc,
-        frp_secret_storage,
-        frp_data_storage,
     };
     KeyMintTa::new(hw_info, RpcInfo::V3(rpc_info_v3), boringssl_crypto_impls(), dev)
 }
