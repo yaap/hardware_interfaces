@@ -68,7 +68,7 @@ class BqrHandler : public ::bluetooth_hal::hci::HciRouterClient {
   ::bluetooth_hal::hci::HciBqrEventMonitor bqr_event_monitor_;
 
  private:
-  static inline std::unique_ptr<BqrHandler> handler_ptr_;
+  static std::unique_ptr<BqrHandler> handler_ptr_;
 };
 
 }  // namespace bluetooth_hal::bqr

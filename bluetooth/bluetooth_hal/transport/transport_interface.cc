@@ -37,6 +37,8 @@ namespace bluetooth_hal::transport {
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::HalConfigLoader;
 
+std::unique_ptr<TransportInterface> TransportInterface::current_transport_;
+
 TransportInterface& TransportInterface::GetTransport() {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
