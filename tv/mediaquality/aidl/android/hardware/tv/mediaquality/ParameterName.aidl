@@ -136,5 +136,5 @@ enum ParameterName {
     BALANCE_BLUETOOTH,
     BALANCE_HEADPHONE,
     HI_RES_AUDIO,
-    MT_LATENCY_US,
+    BT_LATENCY_US,
 }
