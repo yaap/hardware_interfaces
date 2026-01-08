@@ -44,7 +44,6 @@ namespace {
 using ::android::contexthub::data_flow::AllocatorRegion;
 using ::android::contexthub::data_flow::Consumer;
 using ::android::contexthub::data_flow::ConsumerPolicyBuilder;
-using ::android::contexthub::data_flow::createQueue;
 using ::android::contexthub::data_flow::DataNotifier;
 using ::android::contexthub::data_flow::NotificationManager;
 using ::android::contexthub::data_flow::Producer;
@@ -929,24 +928,10 @@ void ContextHub::HubInterface::createEchoDataFlow(
     }
     AllocatorRegion& hostRegion = hostProdRegionRes.value();
 
-    // Initialize Queue
-    DataNotifier dataNotifier;
-
-    constexpr size_t kQueueBlockCapacity = 1024;
-    pw::Result<void*> queueRes =
-            createQueue<uint8_t, kQueueBlockCapacity>(*hostRegion.allocator, /*local=*/false);
-    if (!queueRes.ok()) {
-        ALOGE("Echo: createQueue failed");
-        return;
-    }
-    void* queuePtr = queueRes.value();
-
-    // Calculate offset for HAL
-    size_t queueOffset = reinterpret_cast<uintptr_t>(queuePtr) - hostRegion.base;
-    ALOGD("Echo: Queue allocated at offset: %zu", queueOffset);
-
     // Create Producer
-    auto producerRes = Producer<uint8_t>::createRemote(hostRegion, queuePtr,
+    DataNotifier dataNotifier;
+    constexpr size_t kQueueBlockCapacity = 1024;
+    auto producerRes = Producer<uint8_t>::createRemote(hostRegion, kQueueBlockCapacity,
                                                        16,  // max blocks
                                                        1,   // min blocks
                                                        dataNotifier,
@@ -957,6 +942,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
     }
     std::optional<Producer<uint8_t>> producerOpt;
     producerOpt.emplace(std::move(producerRes.value()));
+    size_t queueOffset = producerOpt->getQueueOffset();
+    ALOGD("Echo: Queue allocated at offset: %zu", queueOffset);
 
     // ========================================================================
     // Setup the consumer and send back to VTS
@@ -1043,14 +1030,11 @@ void ContextHub::HubInterface::createEchoDataFlow(
     // Starts thread for echo data flow
     // ========================================================================
 
-    auto* allocatorPtr = hostRegion.allocator;
-
     ALOGE("Echo: starting echo thread");
     std::shared_ptr<HubInterface> lifebuoy = ref<HubInterface>();
     std::thread([this, lifebuoy, producerOpt = std::move(producerOpt),
                  consumerOpt = std::move(consumerOpt), notificationManager, waiterPtr,
-                 hostProducerId, flowIdVal, consumerHandleId, outputSharedRegionId, allocatorPtr,
-                 queuePtr]() mutable {
+                 hostProducerId, flowIdVal, consumerHandleId, outputSharedRegionId]() mutable {
         while (!waiterPtr->isStopped()) {
             waiterPtr->waitAndDispatch();
 
@@ -1076,9 +1060,6 @@ void ContextHub::HubInterface::createEchoDataFlow(
         // fault.
         consumerOpt.reset();
         producerOpt.reset();
-        if (allocatorPtr) {
-            allocatorPtr->Deallocate(queuePtr, queueLayout());
-        }
         notificationManager->disableHostConsumer(consumerHandleId);
         mRegionManager.unlinkHostConsumerDataFlow(consumerHandleId);
         notificationManager->removeHostProducerDataFlow(flowIdVal);
