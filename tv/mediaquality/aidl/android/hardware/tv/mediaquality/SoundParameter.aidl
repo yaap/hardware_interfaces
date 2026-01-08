@@ -131,10 +131,10 @@ union SoundParameter {
     boolean hiResAudio;
 
     /**
-     * Reports the audio latency of the connected media device in microseconds.
+     * Reports the audio latency of the connected Bluetooth device in microseconds.
      * This value can be used by A/V sync logic to maintain lip-sync.
      */
-    int mtLatencyUs;
+    int btLatencyUs;
 
     /**
      * Controls the output routing of the Audio Description track to the internal speakers.

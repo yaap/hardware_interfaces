@@ -432,26 +432,26 @@ mod tests {
     }
 
     #[test]
-    fn test_mt_latency_us_range() {
+    fn test_bt_latency_us_range() {
         let service = MediaQualityService::new();
 
         // Test with a valid (non-negative) value
         let params_valid = SoundParameters {
-            soundParameters: vec![SoundParameter::MtLatencyUs(500)],
+            soundParameters: vec![SoundParameter::BtLatencyUs(500)],
             vendorSoundParameters: Default::default(),
         };
         assert!(service.sendDefaultSoundParameters(&params_valid).is_ok());
 
         // Test with another valid value (boundary case)
         let params_boundary = SoundParameters {
-            soundParameters: vec![SoundParameter::MtLatencyUs(0)],
+            soundParameters: vec![SoundParameter::BtLatencyUs(0)],
             vendorSoundParameters: Default::default(),
         };
         assert!(service.sendDefaultSoundParameters(&params_boundary).is_ok());
 
         // Test with an invalid (negative) value
         let params_invalid = SoundParameters {
-            soundParameters: vec![SoundParameter::MtLatencyUs(-1)],
+            soundParameters: vec![SoundParameter::BtLatencyUs(-1)],
             vendorSoundParameters: Default::default(),
         };
         assert!(service.sendDefaultSoundParameters(&params_invalid).is_err());

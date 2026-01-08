@@ -314,6 +314,26 @@ class MlDsaTest : public KeyMintAidlTestBase {
 
         LocalVerifyMlDsaRaw(message, signature, variant, info.pubkey);
     }
+
+    void CheckMlDsaKey(MlDsaVariant variant, KeyOrigin origin) {
+        EXPECT_GT(key_blob_.size(), 0U);
+
+        CheckCommonParams(key_characteristics_, origin);
+        CheckCharacteristics(key_blob_, key_characteristics_);
+
+        EXPECT_GT(cert_chain_.size(), 0);
+        EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
+
+        AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics_);
+        EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
+        EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
+                << "Variant " << variant << " missing";
+
+        // Check a signature against public key locally created from the seed.
+        string message = "12345678901234567890123456789012";
+        string signature = SignMessage(message, AuthorizationSetBuilder().Digest(Digest::NONE));
+        DefaultSeedVerify(message, signature, variant);
+    }
 };
 
 TEST_P(MlDsaTest, KeyGeneration) {
@@ -331,14 +351,14 @@ TEST_P(MlDsaTest, KeyGeneration) {
         CheckBaseParams(key_characteristics);
         CheckCharacteristics(key_blob, key_characteristics);
 
-        ASSERT_GT(cert_chain_.size(), 0);
+        EXPECT_GT(cert_chain_.size(), 0);
         EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
 
         AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics);
 
         EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
         EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
-                << "Variant " << variant << "missing";
+                << "Variant " << variant << " missing";
     }
 }
 
@@ -361,13 +381,13 @@ TEST_P(MlDsaTest, GenerateWithAttestation) {
         CheckBaseParams(key_characteristics);
         CheckCharacteristics(key_blob, key_characteristics);
 
-        ASSERT_GT(cert_chain_.size(), 0);
+        EXPECT_GT(cert_chain_.size(), 0);
         EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
 
         AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics);
         EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
         EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
-                << "Variant " << variant << "missing";
+                << "Variant " << variant << " missing";
 
         AuthorizationSet hw_enforced = HwEnforcedAuthorizations(key_characteristics);
         AuthorizationSet sw_enforced = SwEnforcedAuthorizations(key_characteristics);
@@ -551,24 +571,8 @@ TEST_P(MlDsaTest, ImportRawSeed) {
         SCOPED_TRACE(testing::Message() << variant);
 
         ErrorCode result = ImportKey(KeyParams(variant), KeyFormat::RAW, kSeed);
-        EXPECT_EQ(result, ErrorCode::OK);
-        ASSERT_GT(key_blob_.size(), 0U);
-
-        CheckCommonParams(key_characteristics_, KeyOrigin::IMPORTED);
-        CheckCharacteristics(key_blob_, key_characteristics_);
-
-        ASSERT_GT(cert_chain_.size(), 0);
-        EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
-
-        AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics_);
-        EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
-        EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
-                << "Variant " << variant << "missing";
-
-        // Check a signature against public key locally created from the seed.
-        string message = "12345678901234567890123456789012";
-        string signature = SignMessage(message, AuthorizationSetBuilder().Digest(Digest::NONE));
-        DefaultSeedVerify(message, signature, variant);
+        ASSERT_EQ(result, ErrorCode::OK);
+        CheckMlDsaKey(variant, KeyOrigin::IMPORTED);
     }
 }
 
@@ -629,25 +633,8 @@ TEST_P(MlDsaTest, ImportPkcs8SeedUnspecifiedVariant) {
 
         string data = kPkcs8SeedData.at(variant);
         ErrorCode result = ImportKey(ImportParams(), KeyFormat::PKCS8, data);
-        EXPECT_EQ(result, ErrorCode::OK);
-        ASSERT_GT(key_blob_.size(), 0U);
-
-        CheckCommonParams(key_characteristics_, KeyOrigin::IMPORTED);
-        CheckCharacteristics(key_blob_, key_characteristics_);
-
-        ASSERT_GT(cert_chain_.size(), 0);
-        EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
-
-        AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics_);
-        EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
-        // Characteristics should inclkude the variant deduced from the PKCS#8 data.
-        EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
-                << "Variant " << variant << "missing";
-
-        // Check a signature against public key locally created from the seed.
-        string message = "12345678901234567890123456789012";
-        string signature = SignMessage(message, AuthorizationSetBuilder().Digest(Digest::NONE));
-        DefaultSeedVerify(message, signature, variant);
+        ASSERT_EQ(result, ErrorCode::OK);
+        CheckMlDsaKey(variant, KeyOrigin::IMPORTED);
     }
 }
 
@@ -658,24 +645,8 @@ TEST_P(MlDsaTest, ImportPkcs8SeedMatchingVariant) {
         string data = kPkcs8SeedData.at(variant);
         ErrorCode result = ImportKey(ImportParams().Authorization(TAG_ML_DSA_VARIANT, variant),
                                      KeyFormat::PKCS8, data);
-        EXPECT_EQ(result, ErrorCode::OK);
-        ASSERT_GT(key_blob_.size(), 0U);
-
-        CheckCommonParams(key_characteristics_, KeyOrigin::IMPORTED);
-        CheckCharacteristics(key_blob_, key_characteristics_);
-
-        ASSERT_GT(cert_chain_.size(), 0);
-        EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
-
-        AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics_);
-        EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
-        EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
-                << "Variant " << variant << "missing";
-
-        // Check a signature against public key locally created from the seed.
-        string message = "12345678901234567890123456789012";
-        string signature = SignMessage(message, AuthorizationSetBuilder().Digest(Digest::NONE));
-        DefaultSeedVerify(message, signature, variant);
+        ASSERT_EQ(result, ErrorCode::OK);
+        CheckMlDsaKey(variant, KeyOrigin::IMPORTED);
     }
 }
 
@@ -733,11 +704,11 @@ TEST_P(MlDsaTest, AttestToEcdsaKey) {
 
         CheckCommonParams(attest_key_chars, KeyOrigin::GENERATED);
         CheckCharacteristics(attest_key.keyBlob, attest_key_chars);
-        ASSERT_GT(cert_chain_.size(), 0);
+        EXPECT_GT(cert_chain_.size(), 0);
         AuthorizationSet crypto_params = SecLevelAuthorizations(attest_key_chars);
         EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
         EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
-                << "Variant " << variant << "missing";
+                << "Variant " << variant << " missing";
 
         // Generate an ECDSA P256 key that is attested to by ML-DSA.
         auto challenge = "foo";
@@ -755,7 +726,7 @@ TEST_P(MlDsaTest, AttestToEcdsaKey) {
                                              &attested_key_characteristics, &attested_key_chain));
         KeyBlobDeleter attested_deleter(keymint_, attested_key_blob);
 
-        ASSERT_GT(attested_key_chain.size(), 0);
+        EXPECT_GT(attested_key_chain.size(), 0);
 
         // Attestation by itself is not valid (last entry is not self-signed).
         EXPECT_FALSE(ChainSignaturesAreValid(attested_key_chain));

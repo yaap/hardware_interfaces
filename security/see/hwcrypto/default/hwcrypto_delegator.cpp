@@ -15,17 +15,22 @@
  */
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
 #include <getopt.h>
 #include <string>
 #include "delegatorhelpers.h"
 #include "hwcryptokeyimpl.h"
-#ifdef ENABLE_SHARED_SECRET_HAL
 #include "hwcryptosharedsecretimpl.h"
-#endif
 
 const char* APP_NAME = "android.hardware.trusty.hwcryptohal-service";
+const char* REGISTER_SHARED_SECRET = "ro.vendor.trusty.hwcryptohal.register_shared_secret";
+
+bool register_hwcrypto_isharedsecret() {
+    auto register_shared_secret = android::base::GetBoolProperty(REGISTER_SHARED_SECRET, false);
+    return register_shared_secret;
+}
 
 int main(int argc, char* argv[]) {
     char* device_name;
@@ -46,22 +51,22 @@ int main(int argc, char* argv[]) {
     }
     CHECK_EQ(status, STATUS_OK);
 
-#ifdef ENABLE_SHARED_SECRET_HAL
-    auto sharedSecretServer =
-            android::trusty::hwcryptohalservice::HwCryptoSharedSecret::Create(device_name);
-    if (sharedSecretServer == nullptr) {
-        LOG(ERROR) << "couldn't create hwcrypto shared secret service";
-        exit(EXIT_FAILURE);
+    if (register_hwcrypto_isharedsecret()) {
+        auto sharedSecretServer =
+                android::trusty::hwcryptohalservice::HwCryptoSharedSecret::Create(device_name);
+        if (sharedSecretServer == nullptr) {
+            LOG(ERROR) << "couldn't create hwcrypto shared secret service";
+            exit(EXIT_FAILURE);
+        }
+        const std::string sharedSecretInstance =
+                std::string() + ndk_sharedsecret::ISharedSecret::descriptor + "/hwcrypto";
+        status = AServiceManager_addService(sharedSecretServer->asBinder().get(),
+                                            sharedSecretInstance.c_str());
+        if (status != STATUS_OK) {
+            LOG(ERROR) << "couldn't register hwcrypto shared secret service";
+        }
+        CHECK_EQ(status, STATUS_OK);
     }
-    const std::string sharedSecretInstance =
-            std::string() + ndk_sharedsecret::ISharedSecret::descriptor + "/hwcrypto";
-    status = AServiceManager_addService(sharedSecretServer->asBinder().get(),
-                                        sharedSecretInstance.c_str());
-    if (status != STATUS_OK) {
-        LOG(ERROR) << "couldn't register hwcrypto shared secret service";
-    }
-    CHECK_EQ(status, STATUS_OK);
-#endif
 
     ABinderProcess_joinThreadPool();
 
