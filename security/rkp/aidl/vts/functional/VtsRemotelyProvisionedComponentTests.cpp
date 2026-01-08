@@ -505,6 +505,46 @@ TEST(NonParameterizedTests, DefaultKeyMintInstanceHasZeroRkpVmMarkers) {
     ASSERT_EQ(*markerCount, 0) << "For KeyMint in TEE, expected 0 RKP VM markers.";
 }
 
+/**
+ * Verify that the DICE chains for the AVF instance have the
+ * correct number of trailing RKP VM markers.
+ */
+// @VsrTest = 7.1-004.002
+TEST(NonParameterizedTests, AvfInstanceHasTrailingRkpVmMarkers) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "AVF instance is not present on this device.";
+    }
+
+    int vendorApiLevel = get_vendor_api_level();
+    if (vendorApiLevel < __ANDROID_API_V__) {
+        GTEST_SKIP() << "Applies only to vendor API level >= 202404. This "
+                     << "device has vendor API level: " << vendorApiLevel;
+    }
+
+    if (!::android::base::GetBoolProperty("ro.boot.hypervisor.protected_vm.supported", false)) {
+        GTEST_SKIP() << "Protected VMs are not supported on this device.";
+    }
+
+    auto rkpVmRpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rkpVmRpc, nullptr);
+
+    bytevec challenge = randomBytes(64);
+    bytevec rkpVmCsr;
+    auto rkpVmStatus =
+            rkpVmRpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &rkpVmCsr);
+    ASSERT_TRUE(rkpVmStatus.isOk()) << rkpVmStatus.getDescription();
+
+    auto isProperResult = isCsrWithProperDiceChain(rkpVmCsr, RKPVM_INSTANCE_NAME);
+    ASSERT_TRUE(isProperResult) << isProperResult.message();
+    if (!*isProperResult) {
+        GTEST_FAIL() << "AVF instance must have a proper DICE chain.";
+    }
+
+    auto markerCount = countTrailingRkpVmMarkersInCsr(rkpVmCsr, RKPVM_INSTANCE_NAME);
+    ASSERT_TRUE(markerCount) << markerCount.message();
+    ASSERT_GE(*markerCount, 2) << "For AVF instance, expected at least 2 trailing RKP VM markers.";
+}
+
 using GetHardwareInfoTests = VtsRemotelyProvisionedComponentTests;
 
 INSTANTIATE_REM_PROV_AIDL_TEST(GetHardwareInfoTests);
