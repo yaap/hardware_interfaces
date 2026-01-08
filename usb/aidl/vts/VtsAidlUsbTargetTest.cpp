@@ -846,56 +846,80 @@ TEST_P(UsbAidlTestV4, verifyPowerProfileMatchResults) {
         GTEST_SKIP();
     }
 
-    int numPortSinkPowerProfiles = usb_last_port_status.sinkPowerProfiles.size();
-    int numPortSourcePowerProfiles = usb_last_port_status.sourcePowerProfiles.size();
-    int numPartnerSinkPowerProfiles = usb_last_port_status.partnerStatus->sinkPowerProfiles.size();
-    int numPartnerSourcePowerProfiles =
-            usb_last_port_status.partnerStatus->sourcePowerProfiles.size();
+    EXPECT_TRUE(usb_last_port_status.sinkPowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.sourcePowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.partnerStatus->sinkPowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.partnerStatus->sourcePowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.sinkMatchResults.has_value());
+    EXPECT_TRUE(usb_last_port_status.sourceMatchResults.has_value());
+
+    std::vector<std::optional<PowerProfile>> portSinkProfiles =
+            usb_last_port_status.sinkPowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> portSourceProfiles =
+            usb_last_port_status.sourcePowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> partnerSinkProfiles =
+            usb_last_port_status.partnerStatus->sinkPowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> partnerSourceProfiles =
+            usb_last_port_status.partnerStatus->sourcePowerProfiles.value();
+    std::vector<std::optional<PowerProfileMatchResult>> sinkMatchResults =
+            usb_last_port_status.sinkMatchResults.value();
+    std::vector<std::optional<PowerProfileMatchResult>> sourceMatchResults =
+            usb_last_port_status.sourceMatchResults.value();
+
+    int numPortSinkPowerProfiles = portSinkProfiles.size();
+    int numPortSourcePowerProfiles = portSourceProfiles.size();
+    int numPartnerSinkPowerProfiles = partnerSinkProfiles.size();
+    int numPartnerSourcePowerProfiles = partnerSourceProfiles.size();
     PowerProfile portProfile, partnerProfile;
 
-    for (PowerProfileMatchResult matchResult : usb_last_port_status.sinkMatchResults) {
+    for (std::optional<PowerProfileMatchResult> matchResult : sinkMatchResults) {
+        /* Verify that each matchResult is properly initialized */
+        EXPECT_TRUE(matchResult.has_value());
+
         /* Verify that portIndex and partnerIndex point towards PowerProfile objects */
-        EXPECT_TRUE(matchResult.portIndex >= 0 && matchResult.portIndex < numPortSinkPowerProfiles);
-        EXPECT_TRUE(matchResult.partnerIndex >= 0 &&
-                    matchResult.partnerIndex < numPartnerSourcePowerProfiles);
+        EXPECT_TRUE(matchResult->portIndex >= 0 &&
+                    matchResult->portIndex < numPortSinkPowerProfiles);
+        EXPECT_TRUE(matchResult->partnerIndex >= 0 &&
+                    matchResult->partnerIndex < numPartnerSourcePowerProfiles);
         /*
          * Validate that if neither local port nor partner port PowerProfile is a vendor profile,
          * the PowerProfileMatchResult and two PowerProfile objects have the same type.
          */
-        portProfile = usb_last_port_status.sinkPowerProfiles[matchResult.portIndex];
-        partnerProfile =
-                usb_last_port_status.partnerStatus->sourcePowerProfiles[matchResult.partnerIndex];
+        portProfile = portSinkProfiles[matchResult->portIndex].value();
+        partnerProfile = partnerSourceProfiles[matchResult->partnerIndex].value();
         if (portProfile.getTag() == PowerProfile::vendorProfile ||
             partnerProfile.getTag() == PowerProfile::vendorProfile) {
             continue;
         }
-        EXPECT_TRUE(matchResult.result.getTag() == portProfile.getTag() &&
+        EXPECT_TRUE(matchResult->result.getTag() == portProfile.getTag() &&
                     portProfile.getTag() == partnerProfile.getTag());
     }
 
-    for (PowerProfileMatchResult matchResult : usb_last_port_status.sourceMatchResults) {
+    for (std::optional<PowerProfileMatchResult> matchResult : sourceMatchResults) {
+        /* Verify that each matchResult is properly initialized */
+        EXPECT_TRUE(matchResult.has_value());
+
         /* Verify that portIndex and partnerIndex point towards PowerProfile objects */
-        EXPECT_TRUE(matchResult.portIndex >= 0 &&
-                    matchResult.portIndex < numPortSourcePowerProfiles);
-        EXPECT_TRUE(matchResult.partnerIndex >= 0 &&
-                    matchResult.partnerIndex < numPartnerSinkPowerProfiles);
+        EXPECT_TRUE(matchResult->portIndex >= 0 &&
+                    matchResult->portIndex < numPortSourcePowerProfiles);
+        EXPECT_TRUE(matchResult->partnerIndex >= 0 &&
+                    matchResult->partnerIndex < numPartnerSinkPowerProfiles);
         /*
          * Validate that if neither local port nor partner port PowerProfile is a vendor profile,
          * the PowerProfileMatchResult and two PowerProfile objects have the same type.
          */
-        portProfile = usb_last_port_status.sourcePowerProfiles[matchResult.portIndex];
-        partnerProfile =
-                usb_last_port_status.partnerStatus->sinkPowerProfiles[matchResult.partnerIndex];
+        portProfile = portSourceProfiles[matchResult->portIndex].value();
+        partnerProfile = partnerSinkProfiles[matchResult->partnerIndex].value();
         if (portProfile.getTag() == PowerProfile::vendorProfile ||
             partnerProfile.getTag() == PowerProfile::vendorProfile) {
             continue;
         }
-        EXPECT_TRUE(matchResult.result.getTag() == portProfile.getTag() &&
+        EXPECT_TRUE(matchResult->result.getTag() == portProfile.getTag() &&
                     portProfile.getTag() == partnerProfile.getTag());
     }
 }
 
-void verifyPortUsbPd5vSupportHelper(std::vector<PowerProfile> profiles) {
+void verifyPortUsbPd5vSupportHelper(std::vector<std::optional<PowerProfile>> profiles) {
     bool supportsAnyPd = false, supports5vFixedPd = false;
     UsbPdFixed fixedProfile;
 
@@ -907,8 +931,11 @@ void verifyPortUsbPd5vSupportHelper(std::vector<PowerProfile> profiles) {
      * Go through each power profile. Record if any USB PD power profile is supported, record
      * if a Fixed power profile rated for 5V is supported.
      */
-    for (PowerProfile profile : profiles) {
-        switch (profile.getTag()) {
+    for (std::optional<PowerProfile> profile : profiles) {
+        /* Verify that each profile is properly initialized */
+        EXPECT_TRUE(profile.has_value());
+
+        switch (profile->getTag()) {
             case PowerProfile::variableProfile:
             case PowerProfile::batteryProfile:
             case PowerProfile::sprPpsProfile:
@@ -917,7 +944,7 @@ void verifyPortUsbPd5vSupportHelper(std::vector<PowerProfile> profiles) {
                 break;
             case PowerProfile::fixedProfile:
                 supportsAnyPd = true;
-                fixedProfile = profile.get<PowerProfile::fixedProfile>();
+                fixedProfile = profile->get<PowerProfile::fixedProfile>();
                 if (fixedProfile.voltageMv == 5000) {
                     supports5vFixedPd = true;
                 }
@@ -955,8 +982,16 @@ TEST_P(UsbAidlTestV4, verifyPortUsbPd5vSupport) {
         GTEST_SKIP();
     }
 
-    verifyPortUsbPd5vSupportHelper(usb_last_port_status.sinkPowerProfiles);
-    verifyPortUsbPd5vSupportHelper(usb_last_port_status.sourcePowerProfiles);
+    EXPECT_TRUE(usb_last_port_status.sinkPowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.sourcePowerProfiles.has_value());
+
+    std::vector<std::optional<PowerProfile>> portSinkProfiles =
+            usb_last_port_status.sinkPowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> portSourceProfiles =
+            usb_last_port_status.sourcePowerProfiles.value();
+
+    verifyPortUsbPd5vSupportHelper(portSinkProfiles);
+    verifyPortUsbPd5vSupportHelper(portSourceProfiles);
 }
 
 template <typename T>
