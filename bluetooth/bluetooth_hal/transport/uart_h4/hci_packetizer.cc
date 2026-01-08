@@ -46,8 +46,9 @@ std::string GenerateUnimplementedPacketLog(HciPacketType packet_type,
                                            std::span<const uint8_t> buffer) {
   std::ostringstream oss;
   oss << "Host Received Unimplemented Packet Type: " << std::hex
-      << std::uppercase << static_cast<uint8_t>(packet_type)
-      << ", bytes_read: " << buffer.size() << ", packet:";
+      << std::uppercase << std::setw(2) << std::setfill('0')
+      << static_cast<int>(packet_type) << ", bytes_read: " << buffer.size()
+      << ", packet:";
 
   const unsigned long max_bytes_to_print =
       std::min(buffer.size(), kLogByteLimit);

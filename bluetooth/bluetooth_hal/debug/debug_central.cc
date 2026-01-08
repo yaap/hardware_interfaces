@@ -264,8 +264,9 @@ void DebugCentralImpl::ReportBqrError(BqrErrorCode error,
       {0xff, 0x04, 0x58, 0x05, 0x00, static_cast<uint8_t>(error)});
 
   HAL_LOG(ERROR) << extra_info;
-  LOG(ERROR) << __func__ << ": Root inflamed event with error_code: ("
-             << static_cast<uint8_t>(error) << "), error_info: " << extra_info
+  LOG(ERROR) << __func__ << ": Root inflamed event with error_code: (0x"
+             << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+             << static_cast<int>(error) << "), error_info: " << extra_info
              << ".";
   // report bqr root inflamed event to Stack
   HciRouter::GetRouter().SendPacketToStack(bqr_event);
