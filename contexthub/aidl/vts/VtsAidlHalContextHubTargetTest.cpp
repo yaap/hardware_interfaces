@@ -79,11 +79,9 @@ using ::android::contexthub::data_flow::AllocatorRegion;
 using ::android::contexthub::data_flow::Consumer;
 using ::android::contexthub::data_flow::ConsumerManager;
 using ::android::contexthub::data_flow::ConsumerPolicyBuilder;
-using ::android::contexthub::data_flow::createQueue;
 using ::android::contexthub::data_flow::DataNotifier;
 using ::android::contexthub::data_flow::NotificationManager;
 using ::android::contexthub::data_flow::Producer;
-using ::android::contexthub::data_flow::queueLayout;
 using ::android::contexthub::data_flow::Region;
 using ::android::contexthub::data_flow::RegionManager;
 using ::android::contexthub::data_flow::RemoteNotifyArgs;
@@ -1334,31 +1332,10 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
             << "mapHostProducerRegion failed: " << hostProdRegionRes.status().str();
     AllocatorRegion& hostRegion = hostProdRegionRes.value();
 
-    // 3. Initialize Queue
+    // 3. Create Producer
     DataNotifier dataNotifier;
-
     constexpr size_t kQueueBlockCapacity = 1024;
-    pw::Result<void*> queueRes =
-            createQueue<uint8_t, kQueueBlockCapacity>(*hostRegion.allocator, /*local=*/false);
-
-    ASSERT_TRUE(queueRes.ok()) << "Queue creation failed with status: "
-                               << static_cast<int>(queueRes.status().code());
-    void* queuePtr = queueRes.value();
-
-    auto queueDeleter = [&](void* ptr) {
-        if (hostRegion.allocator && ptr) {
-            hostRegion.allocator->Deallocate(ptr, queueLayout());
-            ALOGD("VTS: Queue memory deallocated via RAII");
-        }
-    };
-    std::unique_ptr<void, decltype(queueDeleter)> queueGuard(queuePtr, queueDeleter);
-
-    // Calculate offset for HAL
-    size_t queueOffset = reinterpret_cast<uintptr_t>(queuePtr) - hostRegion.base;
-    ALOGD("VTS: Queue allocated at offset: %zu", queueOffset);
-
-    // 4. Create Producer
-    auto producerRes = Producer<uint8_t>::createRemote(hostRegion, queuePtr,
+    auto producerRes = Producer<uint8_t>::createRemote(hostRegion, kQueueBlockCapacity,
                                                        16,  // max blocks
                                                        1,   // min blocks
                                                        dataNotifier,
@@ -1367,8 +1344,10 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
                                   << producerRes.status().str();
     std::optional<Producer<uint8_t>> producerOpt;
     producerOpt.emplace(std::move(producerRes.value()));
+    size_t queueOffset = producerOpt->getQueueOffset();
+    ALOGD("VTS: Queue allocated at offset: %zu", queueOffset);
 
-    // 5. Setup Notifications
+    // 4. Setup Notifications
     auto prepRes = mNotificationManager->prepareHostProducerDataFlowInfo();
     ASSERT_TRUE(prepRes.ok());
     auto [dfInfo, notifyHandle] = std::move(prepRes.value());
@@ -1376,7 +1355,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     dfInfo.region.id = regionId;
     dfInfo.metadataOffsetBytes = queueOffset;
 
-    // 6. Register Producer
+    // 5. Register Producer
     EndpointId hostEndpoint;
     hostEndpoint.hubId = kDefaultHubId;
     hostEndpoint.id = 0x1234;
@@ -1389,7 +1368,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     ASSERT_TRUE(mRegionManager->linkHostProducerDataFlowToRegion(regionId, flowIdVal).ok());
     ALOGD("VTS: Host Producer Activated and Linked");
 
-    // 7. Register Consumer (HAL)
+    // 6. Register Consumer (HAL)
     ALOGD("VTS: Attempting to add consumer");
     pw::Result<DataFlowConsumerHandle> halConsHandleRes =
             mNotificationManager->addOffloadConsumerAndCreateHandle(flowIdVal, halEndpointId);
@@ -1405,7 +1384,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
                                                           halEndpointId, callback, std::nullopt, -1)
                         .isOk());
 
-    // 8. Wait for Echo Setup
+    // 7. Wait for Echo Setup
     ALOGD("VTS: Waiting for Echo Callback...");
     {
         std::unique_lock<std::mutex> lock(mEndpointCb->getMutex());
@@ -1446,7 +1425,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     std::optional<Consumer<uint8_t>> consumerOpt;
     consumerOpt.emplace(std::move(consumerRes.value()));
 
-    // 9. Verify Echo
+    // 8. Verify Echo
     uint8_t testVal = 0x42;
     producerOpt->push(testVal);
     mNotificationManager->notifyOffloadConsumer(halEndpointId, true);
