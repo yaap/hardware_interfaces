@@ -194,9 +194,8 @@ ScopedAStatus RadioData::setUserDataRoamingEnabled(int32_t serial, bool enabled)
     return ok();
 }
 
-ScopedAStatus RadioData::notifyImsDataNetwork(int32_t serial, aidlCommon::AccessNetwork,
-                                              aidl::DataNetworkState, aidl::TransportType,
-                                              int32_t /* physicalNetworkModemId */) {
+ScopedAStatus RadioData::notifyImsDataNetwork(int32_t serial,
+                                              const aidl::ImsDataNetworkInfo& /*info*/) {
     LOG_CALL << serial;
     respond()->notifyImsDataNetworkResponse(notSupported(serial));
     return ok();
