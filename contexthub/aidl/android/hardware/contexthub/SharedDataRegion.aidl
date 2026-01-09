@@ -240,12 +240,22 @@ parcelable SharedDataRegion {
         /**
          * ATOMIC. The current read index. The distance to the producer can be calculated by
          * subtracting the read index from the write index. Set by the consumer.
+         *
+         * NOTE: The producer initializes this field to {@link ProducerDesc#writeIndex} before
+         * sharing the data flow with the consumer. This allows the consumer to read from the data
+         * flow at the point that the producer has initialized the consumer descriptor rather than
+         * losing all of the data written after descriptor initialization in shared memory and
+         * remote consumer initialization.
          */
         int readIndex;
 
         /**
          * The correction used to determine the array index within the tail block. The block index
          * calculation is the same as for the producer's indexCorrection.
+         *
+         * NOTE: The producer initializes this field to {@link ProducerDesc#indexCorrection} before
+         * sharing the data flow with the consumer. See the note on {@link #readIndex} for more
+         * details.
          */
         int indexCorrection;
 
@@ -268,6 +278,21 @@ parcelable SharedDataRegion {
 
         /** See {@link #producerFlags}. {0-15: {@link ConsumerFlags} | 16-31: counter } */
         int consumerFlags;
+
+        /**
+         * The producer initializes this field to {@link ProducerDesc#tailBlockOffsetBytes} before
+         * sharing the data flow with the consumer. See the note on {@link #readIndex} for more
+         * details.
+         */
+        int initialHeadBlockOffsetBytes;
+
+        /**
+         * The producer initializes this field to {@link DataFlowMetadata#blockListEpoch} before
+         * sharing the data flow with the consumer. This allows the consumer to handle overwrite
+         * correctly when initializing from the descriptor. See the note on {@link #readIndex} for
+         * more details.
+         */
+        int initialBlockListEpoch;
 
         /**
          * ATOMIC. Set by the producer to indicate that it may overwrite this consumer's position

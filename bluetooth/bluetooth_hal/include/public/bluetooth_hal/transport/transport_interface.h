@@ -261,7 +261,7 @@ class TransportInterface {
 
   static inline TransportType current_transport_type_{TransportType::kUnknown};
   static inline std::recursive_mutex transport_mutex_;
-  static inline std::unique_ptr<TransportInterface> current_transport_;
+  static std::unique_ptr<TransportInterface> current_transport_;
 };
 
 }  // namespace bluetooth_hal::transport
