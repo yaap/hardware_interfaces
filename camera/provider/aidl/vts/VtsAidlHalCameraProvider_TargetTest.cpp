@@ -2614,7 +2614,7 @@ TEST_P(CameraAidlTest, switchToOffline) {
         auto offlineResultQueueRet =
                 offlineSession->getCaptureResultMetadataQueue(&offlineResultDescriptor);
         std::shared_ptr<ResultMetadataQueue> offlineResultQueue =
-                std::make_shared<ResultMetadataQueue>(descriptor);
+                std::make_shared<ResultMetadataQueue>(offlineResultDescriptor);
         if (!offlineResultQueue->isValid() || offlineResultQueue->availableToWrite() <= 0) {
             ALOGE("%s: offline session returns empty result metadata fmq, not use it", __func__);
             offlineResultQueue = nullptr;
