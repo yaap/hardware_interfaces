@@ -16,6 +16,7 @@
 //! Attestation keys and certificates.
 //!
 //! Hard-coded keys and certs copied from system/keymaster/context/soft_attestation_cert.cpp
+//! trusty/user/app/keymint/secure_storage_manager/software.rs also contains the same keys and certs
 
 use kmr_common::{
     crypto::ec, crypto::rsa, crypto::CurveType, crypto::KeyMaterial, wire::keymint,
@@ -217,21 +218,21 @@ const RSA_ATTEST_ROOT_CERT: &str = concat!(
 /// ```
 /// SEQUENCE {
 ///   INTEGER { 1 }
-///   OCTET_STRING { `21e086432a15198459cf363a50fc14c9daadf935f527c2dfd71e4d6dbc42e544` }
+///   OCTET_STRING { `7c5f132f5c2824aff2287717a99559ac90d40e3daca757136ab5e7ab79e0669a` }
 ///   [0] {
 ///     # secp256r1
 ///     OBJECT_IDENTIFIER { 1.2.840.10045.3.1.7 }
 ///   }
 ///   [1] {
-///     BIT_STRING { `00` `04eb9e79f8426359accb2a914c8986cc70ad90669382a9732613feaccbf821274c2174974a2afea5b94d7f66d4e065106635bc53b7a0a3a671583edb3e11ae1014` }
+///     BIT_STRING { `00` `043e88029b9a9a4e57ff6ce540c67ec73bcf694c4d931e493ebfa67123482c00b156fa0473a6f00ee8702e8ed6a992a3c8b4a1aad6d325d53a31a0cecdd24962a6` }
 ///   }
 /// }
 /// ```
 const EC_ATTEST_KEY: &str = concat!(
-    "3077020101042021e086432a15198459cf363a50fc14c9daadf935f527c2dfd7",
-    "1e4d6dbc42e544a00a06082a8648ce3d030107a14403420004eb9e79f8426359",
-    "accb2a914c8986cc70ad90669382a9732613feaccbf821274c2174974a2afea5",
-    "b94d7f66d4e065106635bc53b7a0a3a671583edb3e11ae1014",
+    "307702010104207c5f132f5c2824aff2287717a99559ac90d40e3daca757136a",
+    "b5e7ab79e0669aa00a06082a8648ce3d030107a144034200043e88029b9a9a4e",
+    "57ff6ce540c67ec73bcf694c4d931e493ebfa67123482c00b156fa0473a6f00e",
+    "e8702e8ed6a992a3c8b4a1aad6d325d53a31a0cecdd24962a6",
 );
 
 /// Attestation certificate corresponding to [`EC_ATTEST_KEY`], signed by the key in
@@ -243,59 +244,64 @@ const EC_ATTEST_KEY: &str = concat!(
 /// Certificate:
 ///     Data:
 ///         Version: 3 (0x2)
-///         Serial Number: 4097 (0x1001)
-///     Signature Algorithm: ECDSA-SHA256
-///         Issuer: C=US, O=Google, Inc., OU=Android, L=Mountain View, ST=California, CN=Android Keystore Software Attestation Root
-///         Validity:
-///             Not Before: 2016-01-11 00:46:09 +0000 UTC
-///             Not After : 2026-01-08 00:46:09 +0000 UTC
-///         Subject: C=US, O=Google, Inc., OU=Android, ST=California, CN=Android Keystore Software Attestation Intermediate
+///         Serial Number:
+///             71:27:2d:e1:9b:3d:be:a9:10:b8:e3:4a:df:86:04:4e:61:12:23:47
+///         Signature Algorithm: ecdsa-with-SHA256
+///         Issuer: C=US, ST=California, L=Mountain View, O=Google, Inc., OU=Android, CN=Android Keystore Software Attestation Root
+///         Validity
+///             Not Before: Jan  9 23:10:04 2026 GMT
+///             Not After : Dec 16 23:10:04 2125 GMT
+///         Subject: C=US, ST=California, L=Mountain View, O=Google, Inc., OU=Android, CN=Android Keystore Software Attestation Intermediate
 ///         Subject Public Key Info:
 ///             Public Key Algorithm: id-ecPublicKey
-///                 Public Key: (256 bit)
+///                 Public-Key: (256 bit)
 ///                 pub:
-///                     04:eb:9e:79:f8:42:63:59:ac:cb:2a:91:4c:89:86:
-///                     cc:70:ad:90:66:93:82:a9:73:26:13:fe:ac:cb:f8:
-///                     21:27:4c:21:74:97:4a:2a:fe:a5:b9:4d:7f:66:d4:
-///                     e0:65:10:66:35:bc:53:b7:a0:a3:a6:71:58:3e:db:
-///                     3e:11:ae:10:14:
+///                     04:3e:88:02:9b:9a:9a:4e:57:ff:6c:e5:40:c6:7e:
+///                     c7:3b:cf:69:4c:4d:93:1e:49:3e:bf:a6:71:23:48:
+///                     2c:00:b1:56:fa:04:73:a6:f0:0e:e8:70:2e:8e:d6:
+///                     a9:92:a3:c8:b4:a1:aa:d6:d3:25:d5:3a:31:a0:ce:
+///                     cd:d2:49:62:a6
 ///                 ASN1 OID: prime256v1
+///                 NIST CURVE: P-256
 ///         X509v3 extensions:
-///             X509v3 Authority Key Identifier:
-///                 keyid:c8ade9774c45c3a3cf0d1610e479433a215a30cf
 ///             X509v3 Subject Key Identifier:
-///                 keyid:3ffcacd61ab13a9e8120b8d5251cc565bb1e91a9
-///             X509v3 Key Usage: critical
-///                 Digital Signature, Certificate Signing
+///                 4A:51:29:21:12:C0:EB:34:C7:3A:94:CB:C9:A7:9B:8F:2E:34:3D:0C
+///             X509v3 Authority Key Identifier:
+///                 52:BA:C5:65:BE:DC:DD:D4:6B:F8:4F:55:C1:A7:92:BD:37:86:A9:AF
 ///             X509v3 Basic Constraints: critical
-///                 CA:true, pathlen:0
-///     Signature Algorithm: ECDSA-SHA256
-///          30:45:02:20:4b:8a:9b:7b:ee:82:bc:c0:33:87:ae:2f:c0:89:
-///          98:b4:dd:c3:8d:ab:27:2a:45:9f:69:0c:c7:c3:92:d4:0f:8e:
-///          02:21:00:ee:da:01:5d:b6:f4:32:e9:d4:84:3b:62:4c:94:04:
-///          ef:3a:7c:cc:bd:5e:fb:22:bb:e7:fe:b9:77:3f:59:3f:fb:
+///                 CA:TRUE, pathlen:0
+///             X509v3 Key Usage: critical
+///                 Digital Signature, Certificate Sign
+///     Signature Algorithm: ecdsa-with-SHA256
+///     Signature Value:
+///         30:44:02:20:34:5a:2e:d2:b1:0f:30:25:1d:64:e3:7f:9e:d0:
+///         9a:ec:e1:c1:aa:a3:f7:17:d6:65:13:fe:91:00:11:8b:b7:ca:
+///         02:20:54:8e:18:96:7d:46:52:33:1b:cc:c8:0d:2d:be:6c:72:
+///         fc:52:e5:56:8b:c7:e0:a4:75:ff:b4:c3:5b:61:19:fc
 /// ```
 const EC_ATTEST_CERT: &str = concat!(
-    "308202783082021ea00302010202021001300a06082a8648ce3d040302308198",
-    "310b30090603550406130255533113301106035504080c0a43616c69666f726e",
-    "69613116301406035504070c0d4d6f756e7461696e2056696577311530130603",
-    "55040a0c0c476f6f676c652c20496e632e3110300e060355040b0c07416e6472",
-    "6f69643133303106035504030c2a416e64726f6964204b657973746f72652053",
-    "6f667477617265204174746573746174696f6e20526f6f74301e170d31363031",
-    "31313030343630395a170d3236303130383030343630395a308188310b300906",
-    "03550406130255533113301106035504080c0a43616c69666f726e6961311530",
-    "13060355040a0c0c476f6f676c652c20496e632e3110300e060355040b0c0741",
-    "6e64726f6964313b303906035504030c32416e64726f6964204b657973746f72",
-    "6520536f667477617265204174746573746174696f6e20496e7465726d656469",
-    "6174653059301306072a8648ce3d020106082a8648ce3d03010703420004eb9e",
-    "79f8426359accb2a914c8986cc70ad90669382a9732613feaccbf821274c2174",
-    "974a2afea5b94d7f66d4e065106635bc53b7a0a3a671583edb3e11ae1014a366",
-    "3064301d0603551d0e041604143ffcacd61ab13a9e8120b8d5251cc565bb1e91",
-    "a9301f0603551d23041830168014c8ade9774c45c3a3cf0d1610e479433a215a",
-    "30cf30120603551d130101ff040830060101ff020100300e0603551d0f0101ff",
-    "040403020284300a06082a8648ce3d040302034800304502204b8a9b7bee82bc",
-    "c03387ae2fc08998b4ddc38dab272a459f690cc7c392d40f8e022100eeda015d",
-    "b6f432e9d4843b624c9404ef3a7cccbd5efb22bbe7feb9773f593ffb",
+    "308202a33082024aa003020102021471272de19b3dbea910b8e34adf86044e61",
+    "122347300a06082a8648ce3d040302308198310b300906035504061302555331",
+    "13301106035504080c0a43616c69666f726e69613116301406035504070c0d4d",
+    "6f756e7461696e205669657731153013060355040a0c0c476f6f676c652c2049",
+    "6e632e3110300e060355040b0c07416e64726f69643133303106035504030c2a",
+    "416e64726f6964204b657973746f726520536f66747761726520417474657374",
+    "6174696f6e20526f6f743020170d3236303130393233313030345a180f323132",
+    "35313231363233313030345a3081a0310b300906035504061302555331133011",
+    "06035504080c0a43616c69666f726e69613116301406035504070c0d4d6f756e",
+    "7461696e205669657731153013060355040a0c0c476f6f676c652c20496e632e",
+    "3110300e060355040b0c07416e64726f6964313b303906035504030c32416e64",
+    "726f6964204b657973746f726520536f66747761726520417474657374617469",
+    "6f6e20496e7465726d6564696174653059301306072a8648ce3d020106082a86",
+    "48ce3d030107034200043e88029b9a9a4e57ff6ce540c67ec73bcf694c4d931e",
+    "493ebfa67123482c00b156fa0473a6f00ee8702e8ed6a992a3c8b4a1aad6d325",
+    "d53a31a0cecdd24962a6a3663064301d0603551d0e041604144a51292112c0eb",
+    "34c73a94cbc9a79b8f2e343d0c301f0603551d2304183016801452bac565bedc",
+    "ddd46bf84f55c1a792bd3786a9af30120603551d130101ff040830060101ff02",
+    "0100300e0603551d0f0101ff040403020284300a06082a8648ce3d0403020347",
+    "0030440220345a2ed2b10f30251d64e37f9ed09aece1c1aaa3f717d66513fe91",
+    "00118bb7ca0220548e18967d4652331bccc80d2dbe6c72fc52e5568bc7e0a475",
+    "ffb4c35b6119fc",
 );
 
 /// Attestation self-signed root certificate holding the key that signed [`EC_ATTEST_CERT`].
@@ -306,60 +312,63 @@ const EC_ATTEST_CERT: &str = concat!(
 /// Certificate:
 ///     Data:
 ///         Version: 3 (0x2)
-///         Serial Number: 11674912229752527703 (0xa2059ed10e435b57)
-///     Signature Algorithm: ECDSA-SHA256
-///         Issuer: C=US, O=Google, Inc., OU=Android, L=Mountain View, ST=California, CN=Android Keystore Software Attestation Root
-///         Validity:
-///             Not Before: 2016-01-11 00:43:50 +0000 UTC
-///             Not After : 2036-01-06 00:43:50 +0000 UTC
-///         Subject: C=US, O=Google, Inc., OU=Android, L=Mountain View, ST=California, CN=Android Keystore Software Attestation Root
+///         Serial Number:
+///             19:2e:3a:11:4f:a0:d8:f6:58:be:a0:c6:d4:63:9e:cc:34:6e:e4:fb
+///         Signature Algorithm: ecdsa-with-SHA256
+///         Issuer: C=US, ST=California, L=Mountain View, O=Google, Inc., OU=Android, CN=Android Keystore Software Attestation Root
+///         Validity
+///             Not Before: Jan  9 23:07:55 2026 GMT
+///             Not After : Dec 16 23:07:55 2125 GMT
+///         Subject: C=US, ST=California, L=Mountain View, O=Google, Inc., OU=Android, CN=Android Keystore Software Attestation Root
 ///         Subject Public Key Info:
 ///             Public Key Algorithm: id-ecPublicKey
-///                 Public Key: (256 bit)
+///                 Public-Key: (256 bit)
 ///                 pub:
-///                     04:ee:5d:5e:c7:e1:c0:db:6d:03:a6:7e:e6:b6:1b:
-///                     ec:4d:6a:5d:6a:68:2e:0f:ff:7f:49:0e:7d:77:1f:
-///                     44:22:6d:bd:b1:af:fa:16:cb:c7:ad:c5:77:d2:56:
-///                     9c:aa:b7:b0:2d:54:01:5d:3e:43:2b:2a:8e:d7:4e:
-///                     ec:48:75:41:a4:
+///                     04:32:ab:e4:f6:0d:9c:57:84:8e:a3:d5:24:ae:50:
+///                     87:e6:0e:82:4d:d9:60:ca:26:90:97:28:e9:0d:75:
+///                     1f:f0:f8:d5:a3:db:e5:14:28:ed:ff:4c:2d:49:4d:
+///                     8d:f9:f4:47:7e:fa:22:89:29:92:8a:fa:30:75:e6:
+///                     fd:89:07:a3:e3
 ///                 ASN1 OID: prime256v1
+///                 NIST CURVE: P-256
 ///         X509v3 extensions:
-///             X509v3 Authority Key Identifier:
-///                 keyid:c8ade9774c45c3a3cf0d1610e479433a215a30cf
 ///             X509v3 Subject Key Identifier:
-///                 keyid:c8ade9774c45c3a3cf0d1610e479433a215a30cf
-///             X509v3 Key Usage: critical
-///                 Digital Signature, Certificate Signing
+///                 52:BA:C5:65:BE:DC:DD:D4:6B:F8:4F:55:C1:A7:92:BD:37:86:A9:AF
+///             X509v3 Authority Key Identifier:
+///                 52:BA:C5:65:BE:DC:DD:D4:6B:F8:4F:55:C1:A7:92:BD:37:86:A9:AF
 ///             X509v3 Basic Constraints: critical
-///                 CA:true
-///     Signature Algorithm: ECDSA-SHA256
-///          30:44:02:20:35:21:a3:ef:8b:34:46:1e:9c:d5:60:f3:1d:58:
-///          89:20:6a:dc:a3:65:41:f6:0d:9e:ce:8a:19:8c:66:48:60:7b:
-///          02:20:4d:0b:f3:51:d9:30:7c:7d:5b:da:35:34:1d:a8:47:1b:
-///          63:a5:85:65:3c:ad:4f:24:a7:e7:4d:af:41:7d:f1:bf:
+///                 CA:TRUE
+///             X509v3 Key Usage: critical
+///                 Digital Signature, Certificate Sign
+///     Signature Algorithm: ecdsa-with-SHA256
+///     Signature Value:
+///         30:46:02:21:00:89:76:47:3f:5d:a0:24:dd:02:c9:25:d6:da:
+///         a7:34:a8:e9:e3:7d:66:e8:73:45:6e:3b:05:c6:75:8d:b7:5a:
+///         6a:02:21:00:85:8f:47:8e:cb:6d:08:4c:16:a4:5b:ed:62:f6:
+///         21:56:52:39:57:36:fc:60:72:8d:d2:56:4b:90:eb:2b:55:0b
 /// ```
 const EC_ATTEST_ROOT_CERT: &str = concat!(
-    "3082028b30820232a003020102020900a2059ed10e435b57300a06082a8648ce",
-    "3d040302308198310b30090603550406130255533113301106035504080c0a43",
-    "616c69666f726e69613116301406035504070c0d4d6f756e7461696e20566965",
-    "7731153013060355040a0c0c476f6f676c652c20496e632e3110300e06035504",
-    "0b0c07416e64726f69643133303106035504030c2a416e64726f6964204b6579",
-    "73746f726520536f667477617265204174746573746174696f6e20526f6f7430",
-    "1e170d3136303131313030343335305a170d3336303130363030343335305a30",
-    "8198310b30090603550406130255533113301106035504080c0a43616c69666f",
-    "726e69613116301406035504070c0d4d6f756e7461696e205669657731153013",
-    "060355040a0c0c476f6f676c652c20496e632e3110300e060355040b0c07416e",
-    "64726f69643133303106035504030c2a416e64726f6964204b657973746f7265",
-    "20536f667477617265204174746573746174696f6e20526f6f74305930130607",
-    "2a8648ce3d020106082a8648ce3d03010703420004ee5d5ec7e1c0db6d03a67e",
-    "e6b61bec4d6a5d6a682e0fff7f490e7d771f44226dbdb1affa16cbc7adc577d2",
-    "569caab7b02d54015d3e432b2a8ed74eec487541a4a3633061301d0603551d0e",
-    "04160414c8ade9774c45c3a3cf0d1610e479433a215a30cf301f0603551d2304",
-    "1830168014c8ade9774c45c3a3cf0d1610e479433a215a30cf300f0603551d13",
-    "0101ff040530030101ff300e0603551d0f0101ff040403020284300a06082a86",
-    "48ce3d040302034700304402203521a3ef8b34461e9cd560f31d5889206adca3",
-    "6541f60d9ece8a198c6648607b02204d0bf351d9307c7d5bda35341da8471b63",
-    "a585653cad4f24a7e74daf417df1bf",
+    "3082029a3082023fa0030201020214192e3a114fa0d8f658bea0c6d4639ecc34",
+    "6ee4fb300a06082a8648ce3d040302308198310b300906035504061302555331",
+    "13301106035504080c0a43616c69666f726e69613116301406035504070c0d4d",
+    "6f756e7461696e205669657731153013060355040a0c0c476f6f676c652c2049",
+    "6e632e3110300e060355040b0c07416e64726f69643133303106035504030c2a",
+    "416e64726f6964204b657973746f726520536f66747761726520417474657374",
+    "6174696f6e20526f6f743020170d3236303130393233303735355a180f323132",
+    "35313231363233303735355a308198310b300906035504061302555331133011",
+    "06035504080c0a43616c69666f726e69613116301406035504070c0d4d6f756e",
+    "7461696e205669657731153013060355040a0c0c476f6f676c652c20496e632e",
+    "3110300e060355040b0c07416e64726f69643133303106035504030c2a416e64",
+    "726f6964204b657973746f726520536f66747761726520417474657374617469",
+    "6f6e20526f6f743059301306072a8648ce3d020106082a8648ce3d0301070342",
+    "000432abe4f60d9c57848ea3d524ae5087e60e824dd960ca26909728e90d751f",
+    "f0f8d5a3dbe51428edff4c2d494d8df9f4477efa228929928afa3075e6fd8907",
+    "a3e3a3633061301d0603551d0e0416041452bac565bedcddd46bf84f55c1a792",
+    "bd3786a9af301f0603551d2304183016801452bac565bedcddd46bf84f55c1a7",
+    "92bd3786a9af300f0603551d130101ff040530030101ff300e0603551d0f0101",
+    "ff040403020284300a06082a8648ce3d04030203490030460221008976473f5d",
+    "a024dd02c925d6daa734a8e9e37d66e873456e3b05c6758db75a6a022100858f",
+    "478ecb6d084c16a45bed62f6215652395736fc60728dd2564b90eb2b550b",
 );
 
 /// Per-algorithm attestation certificate signing information.
