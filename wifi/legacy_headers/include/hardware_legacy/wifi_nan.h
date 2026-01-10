@@ -3524,6 +3524,26 @@ wifi_error nan_bootstrapping_request(transaction_id id, wifi_interface_handle if
 wifi_error nan_bootstrapping_indication_response(transaction_id id, wifi_interface_handle iface,
                                                  NanBootstrappingIndicationResponse* msg);
 
+/**@brief nan_suspend_request
+ * Request that the specified NAN session be suspended.
+ * @param transaction_id: NAN transaction id
+ * @param wifi_interface_handle
+ * @param NanSuspendRequest request message
+ * @return Synchronous wifi_error
+ */
+wifi_error nan_suspend_request(transaction_id id, wifi_interface_handle iface,
+                               NanSuspendRequest *msg);
+
+/**@brief nan_resume_request
+ * Request that the specified NAN session be resumed.
+ * @param transaction_id: NAN transaction id
+ * @param wifi_interface_handle
+ * @param NanResumeRequest request message
+ * @return Synchronous wifi_error
+ */
+wifi_error nan_resume_request(transaction_id id, wifi_interface_handle iface,
+                              NanResumeRequest *msg);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

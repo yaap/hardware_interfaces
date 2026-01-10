@@ -85,9 +85,10 @@ class UsbPowerProfileMonitor {
 
     Bc12Type getBc12Type(string portName);
 
-    void populatePowerProfiles(string portName, std::vector<PowerProfile>* profiles,
-                               ProfileType profileType);
-    void populateTypecProfiles(string portName, std::vector<PowerProfile>* profiles);
+    std::vector<std::optional<PowerProfile>> populatePowerProfiles(string portName,
+                                                                   ProfileType profileType);
+    void populateTypecProfiles(string portName, std::vector<std::optional<PowerProfile>>* profiles);
+
     void handlePowerProfileEvent(bool remove, string pdName);
     void updateBc12State();
     void updatePowerProfiles(string portName, PortStatus* portStatus);

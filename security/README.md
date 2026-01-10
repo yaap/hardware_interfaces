@@ -51,9 +51,9 @@ based on a pre-provisioned shared secret.  This HAL can be implemented by any se
 User authentication operations are also timestamped, but a StrongBox KeyMint instance may not have
 access to a secure time source that is aligned with the authenticator's time source.
 
-To allow for this, the **`ISecureClock`** HAL (in `hardware/interfaces/secureclock`) describes a
-challenge-based timestamp authentication protocol.  This HAL is optional; it need only be
-implemented if there is a KeyMint instance without a secure source of time.
+To allow for this, the **`ISecureClock`** HAL (in `hardware/interfaces/security/secureclock`)
+describes a challenge-based timestamp authentication protocol.  This HAL is optional; it need only
+be implemented if there is a KeyMint instance without a secure source of time.
 
 ## Attestation Key Provisioning
 

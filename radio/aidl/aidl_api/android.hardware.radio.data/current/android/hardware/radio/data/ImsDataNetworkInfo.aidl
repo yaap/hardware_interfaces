@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright (C) 2026 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,14 +31,12 @@
 // with such a backward incompatible change, it has a high risk of breaking
 // later when a module using the interface is updated, e.g., Mainline modules.
 
-package android.hardware.usb;
-@VintfStability
-parcelable PortPartnerStatus {
-  android.hardware.usb.Bc12Type bc12Type = android.hardware.usb.Bc12Type.UNKNOWN;
-  @nullable android.hardware.usb.PowerProfile[] sinkPowerProfiles;
-  @nullable android.hardware.usb.PowerProfile[] sourcePowerProfiles;
-  android.hardware.usb.AltModeData[] supportedAltModes = {};
-  android.hardware.usb.PortPowerRole activePowerRole = android.hardware.usb.PortPowerRole.NONE;
-  android.hardware.usb.PortDataRole activeDataRole = android.hardware.usb.PortDataRole.NONE;
-  @nullable android.hardware.usb.PeripheralIdentity identity;
+package android.hardware.radio.data;
+/* @hide */
+@JavaDerive(toString=true) @RustDerive(Clone=true, Eq=true, PartialEq=true) @VintfStability
+parcelable ImsDataNetworkInfo {
+  android.hardware.radio.AccessNetwork accessNetwork = android.hardware.radio.AccessNetwork.UNKNOWN;
+  android.hardware.radio.data.DataNetworkState dataNetworkState = android.hardware.radio.data.DataNetworkState.UNKNOWN;
+  android.hardware.radio.data.TransportType physicalTransportType = android.hardware.radio.data.TransportType.WWAN;
+  int physicalNetworkModemId;
 }
