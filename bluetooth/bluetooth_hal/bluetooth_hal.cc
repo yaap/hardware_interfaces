@@ -18,6 +18,7 @@
 
 #include "bluetooth_hal/bluetooth_hal.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,6 +37,10 @@
 #include "bluetooth_hal/hci_proxy_ffi.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 
+#if defined(USE_RANGING_V1) || defined(USE_RANGING_V2)
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
+#endif
+
 namespace bluetooth_hal {
 namespace {
 
@@ -44,6 +49,10 @@ using ::bluetooth_hal::HciProxyAidl;
 using ::bluetooth_hal::bqr::BqrHandler;
 using ::bluetooth_hal::chip::ChipProvisionerInterface;
 using ::bluetooth_hal::extensions::BluetoothHalExtensionInitializer;
+
+#if defined(USE_RANGING_V1) || defined(USE_RANGING_V2)
+using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingHandler;
+#endif
 
 using ::bluetooth_hal::extensions::cs::
     ChannelSoundingDistanceEstimatorInterface;
@@ -88,6 +97,15 @@ void BluetoothHal::RegisterVendorChannelSoundingDistanceEstimator(
       RegisterVendorChannelSoundingDistanceEstimator(std::move(factory));
 }
 
+void BluetoothHal::SetCsVendorSpecificDataMask(uint32_t /*mask*/) {
+#if defined(USE_RANGING_V1) || defined(USE_RANGING_V2)
+  BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(mask);
+#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
+#else
+  LOG(INFO) << __func__ << ": No ranging service is registered!";
+#endif
+}
+
 void BluetoothHal::Start() {
   StartHalClients();
 
@@ -98,7 +116,7 @@ void BluetoothHal::Start() {
   if (status == STATUS_OK) {
     ABinderProcess_joinThreadPool();
   } else {
-    LOG(ERROR) << "Could not register as a service!";
+    LOG(ERROR) << __func__ << ": Could not register as a service!";
   }
 }
 

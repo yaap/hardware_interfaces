@@ -774,7 +774,13 @@ struct VendorSpecificDataMaskTestParams {
 
 class HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest
     : public BluetoothChannelSoundingHandlerTest,
-      public WithParamInterface<VendorSpecificDataMaskTestParams> {};
+      public WithParamInterface<VendorSpecificDataMaskTestParams> {
+  void SetUp() override {
+    BluetoothChannelSoundingHandlerTest::SetUp();
+    // Reset to the default mask.
+    BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(0xFFFFFFFF);
+  }
+};
 
 TEST_P(HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
        VerifyMaskApplication) {
@@ -813,7 +819,7 @@ TEST_P(HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
   bluetooth_channel_sounding_handler_->TestOnCommandCallback(event);
 
   if (params.set_mask.has_value()) {
-    bluetooth_channel_sounding_handler_->SetCsVendorSpecificDataMask(
+    BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(
         params.set_mask.value());
   }
 

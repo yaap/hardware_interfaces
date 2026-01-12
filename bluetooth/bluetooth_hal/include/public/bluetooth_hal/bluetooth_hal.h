@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cstdint>
 #include <memory>
 
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
@@ -33,6 +34,7 @@ class BluetoothHal {
   void RegisterVendorChannelSoundingDistanceEstimator(
       ::bluetooth_hal::extensions::cs::
           ChannelSoundingDistanceEstimatorInterface::FactoryFn factory);
+  void SetCsVendorSpecificDataMask(uint32_t mask);
   void Start();
   void StartOffloadHal();
 
