@@ -136,7 +136,6 @@ Result CanBusSlcan::preUp() {
         return Result::UNKNOWN_ERROR;
     }
 
-    // TODO(b/144775286): set open flag & support listen only
     if (!WriteStringToFd(slcanprotocol::kOpenCommand, mFd)) {
         PLOG(ERROR) << "Failed to set open flag";
         return Result::UNKNOWN_ERROR;
