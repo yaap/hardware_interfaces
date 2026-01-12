@@ -845,9 +845,6 @@ oneway interface IRadioNetwork {
      * This is an optional API. It must be implemented if
      * {@link #enablePrioritizedNetworkScan} is implemented.
      *
-     * <p>If the device is already attached to a prioritized network provided by
-     * {@link enablePrioritizedNetworkScan}, it should detach from it.
-     *
      * @param serial Serial number of request.
      *
      * Response function is IRadioNetworkResponse.disablePrioritizedNetworkScanResponse()
