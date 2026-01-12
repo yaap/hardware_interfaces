@@ -77,6 +77,16 @@ class KeyBlobDeleter {
     vector<uint8_t> key_blob_;
 };
 
+// Wrapped key information.
+struct WrappedKeyInfo {
+    // Wrapped key data as an ASN.1 DER-encoded `SecureKeyWrapper`.
+    std::vector<uint8_t> wrapped_key_data;
+    // Keyblob data for the KeyMint wrapping key.
+    std::vector<uint8_t> wrapping_key_blob;
+    // Masking key value.
+    std::vector<uint8_t> masking_key;
+};
+
 class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
   public:
     struct KeyData {
@@ -137,6 +147,17 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     ErrorCode ImportKey(const AuthorizationSet& key_desc, KeyFormat format,
                         const string& key_material);
 
+    void WrapKey(const vector<uint8_t>& key_to_wrap, KeyFormat key_format,
+                 const AuthorizationSet& key_desc, WrappedKeyInfo* wrap_info);
+
+    ErrorCode ImportWrappedKey(const WrappedKeyInfo& wrap_info, int64_t password_sid,
+                               int64_t biometric_sid) {
+        auto params =
+                AuthorizationSetBuilder().Digest(Digest::SHA_2_256).Padding(PaddingMode::RSA_OAEP);
+        return ImportWrappedKey(wrap_info.wrapped_key_data, wrap_info.wrapping_key_blob,
+                                wrap_info.masking_key, params.vector_data(), password_sid,
+                                biometric_sid);
+    }
     ErrorCode ImportWrappedKey(const vector<uint8_t>& wrapped_key,
                                const vector<uint8_t>& wrapping_key_blob,
                                const vector<uint8_t>& masking_key,
@@ -465,6 +486,7 @@ bool verify_attestation_record(int aidl_version,                       //
 
 string hex2str(string a);
 string bin2hex(const vector<uint8_t>& data);
+std::vector<uint8_t> random_vector(size_t len);
 
 // Information held in the SubjectPublicKeyInfo of a certificate.
 struct SubjectPublicKeyInfo {
