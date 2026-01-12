@@ -73,6 +73,8 @@ class BluetoothChannelSoundingHandler
       std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
                           IBluetoothChannelSoundingSession>* return_value);
 
+  void SetCsVendorSpecificDataMask(uint32_t mask);
+
  protected:
   void OnBluetoothChipReady() override {};
   void OnBluetoothChipClosed() override {};
@@ -106,6 +108,8 @@ class BluetoothChannelSoundingHandler
       cs_procedure_enable_subevent_monitor_;
 
   std::vector<uint8_t> local_capabilities_;
+
+  uint32_t cs_vendor_specific_data_mask_{0xFFFFFFFF};
 
   std::unordered_map<uint16_t, SessionTracker> session_trackers_;
 

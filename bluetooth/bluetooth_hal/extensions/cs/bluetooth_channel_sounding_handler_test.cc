@@ -65,7 +65,9 @@ using ::aidl::android::hardware::bluetooth::ranging::SessionType;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 
 using ::bluetooth_hal::config::MockCsConfigLoader;
+using ::bluetooth_hal::hci::EventCode;
 using ::bluetooth_hal::hci::HalPacket;
+using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::hci::MockHciRouter;
 using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;
@@ -94,6 +96,9 @@ class TestBluetoothChannelSoundingHandler
     return GetTracker(connection_handle);
   }
   void TestOnBluetoothEnabled() { OnBluetoothEnabled(); }
+  void TestOnCommandCallback(const HalPacket& packet) {
+    OnCommandCallback(packet);
+  }
 };
 
 class BluetoothChannelSoundingHandlerTest : public Test {
@@ -759,6 +764,90 @@ INSTANTIATE_TEST_SUITE_P(
             .test_name = "InvalidMode0MapValue",
             .command_value = {kDataTypeReply, 0x02, 0, 0, 0, 0x02, 0x03},
             .expect_open_failed = true}),
+    [](const auto& info) { return info.param.test_name; });
+
+struct VendorSpecificDataMaskTestParams {
+  std::string test_name;
+  std::optional<uint32_t> set_mask;
+  uint32_t expected_effective_mask;
+};
+
+class HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest
+    : public BluetoothChannelSoundingHandlerTest,
+      public WithParamInterface<VendorSpecificDataMaskTestParams> {};
+
+TEST_P(HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
+       VerifyMaskApplication) {
+  const auto& params = GetParam();
+
+  MockAndroidBaseWrapper mock_android_base_wrapper;
+  MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
+
+  EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _))
+      .Times(1)
+      .WillOnce(Return(false));
+
+  const auto calibration_commands = std::vector<HalPacket>{
+      HalPacket({0x01, 0x02, 0x03, 0x04}), HalPacket({0x01, 0x05, 0x06, 0x07})};
+  EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
+      .Times(1)
+      .WillOnce(ReturnRef(calibration_commands));
+
+  // Set local capability.
+  HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
+  EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _))
+      .Times(1);
+  bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
+
+  // Create a command complete event with capabilities.
+  auto event = HalPacket(
+      {static_cast<uint8_t>(HciPacketType::kEvent),
+       static_cast<uint8_t>(EventCode::kCommandComplete),
+       0x09,        // Parameter Total Length.
+       0x01,        // Num Allowed Command Packets.
+       0x0B, 0xFF,  // OpCode (0xFF0B - kHciVscSpecialRangingSettingOpcode).
+       0x00,        // Status (Success).
+       0x01,        // Sub-opcode (kHciVscReadLocalCapabilitySubOpCode).
+       // Capabilities (4 bytes).
+       0xFF, 0xFF, 0xFF, 0xFF});
+  bluetooth_channel_sounding_handler_->TestOnCommandCallback(event);
+
+  if (params.set_mask.has_value()) {
+    bluetooth_channel_sounding_handler_->SetCsVendorSpecificDataMask(
+        params.set_mask.value());
+  }
+
+  std::optional<std::vector<std::optional<VendorSpecificData>>> data;
+  EXPECT_TRUE(
+      bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
+
+  EXPECT_TRUE(data.has_value());
+  EXPECT_GE(data->size(), 1);
+  const auto& capability = (*data)[0];
+  EXPECT_TRUE(capability.has_value());
+  // opaqueValue[0] is kDataTypeData (0x01).
+  // opaqueValue[1..] are capabilities.
+  for (size_t i = 1; i < capability->opaqueValue.size(); ++i) {
+    uint8_t mask_byte =
+        (params.expected_effective_mask >> ((i - 1) * 8)) & 0xFF;
+    EXPECT_EQ(capability->opaqueValue[i], 0xFF & mask_byte);
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    VendorSpecificDataMaskTests,
+    HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
+    Values(
+        VendorSpecificDataMaskTestParams{.test_name = "Mask0xF0F0F0F0",
+                                         .set_mask = 0xF0F0F0F0,
+                                         .expected_effective_mask = 0xF0F0F0F0},
+        VendorSpecificDataMaskTestParams{.test_name = "Mask0x00000000",
+                                         .set_mask = 0x00000000,
+                                         .expected_effective_mask = 0x00000000},
+        VendorSpecificDataMaskTestParams{
+            .test_name = "MaskNotSet",
+            .set_mask = std::nullopt,
+            .expected_effective_mask = 0xFFFFFFFF}),
     [](const auto& info) { return info.param.test_name; });
 
 }  // namespace

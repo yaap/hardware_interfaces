@@ -35,6 +35,7 @@
 #include "android-base/logging.h"
 #include "android/binder_interface_utils.h"
 #include "bluetooth_hal/config/cs_config_loader.h"
+#include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_util.h"
 #include "bluetooth_hal/hal_packet.h"
@@ -63,6 +64,7 @@ using ::aidl::android::hardware::bluetooth::ranging::Reason;
 using ::aidl::android::hardware::bluetooth::ranging::SessionType;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 using ::bluetooth_hal::config::CsConfigLoader;
+using ::bluetooth_hal::config::HalConfigLoader;
 
 using ::bluetooth_hal::config::CsConfigLoader;
 using ::bluetooth_hal::hci::EventCode;
@@ -163,6 +165,11 @@ BluetoothChannelSoundingHandler::~BluetoothChannelSoundingHandler() {
   UnregisterMonitor(cs_procedure_enable_subevent_monitor_);
 }
 
+void BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(
+    uint32_t mask) {
+  cs_vendor_specific_data_mask_ = mask;
+}
+
 bool BluetoothChannelSoundingHandler::GetVendorSpecificData(
     std::optional<std::vector<std::optional<VendorSpecificData>>>*
         return_value) {
@@ -201,8 +208,12 @@ bool BluetoothChannelSoundingHandler::GetVendorSpecificData(
   VendorSpecificData capability;
   capability.characteristicUuid = kUuidSpecialRangingSettingCapability;
   capability.opaqueValue = {kDataTypeData};
-  for (int i = 0; i < kCommandCompleteReadLocalCapabilityValueLength; i++) {
-    capability.opaqueValue.push_back(local_capabilities_[i]);
+
+  uint32_t mask = cs_vendor_specific_data_mask_;
+  for (int i = 0; i < kCommandCompleteReadLocalCapabilityValueLength; ++i) {
+    uint8_t mask_byte = 0xFF;
+    mask_byte = (mask >> (i * 8)) & 0xFF;
+    capability.opaqueValue.push_back(local_capabilities_[i] & mask_byte);
   }
   (*return_value)->push_back(capability);
 
