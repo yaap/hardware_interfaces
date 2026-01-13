@@ -29,6 +29,7 @@ cc_library {
     visibility: [
         ":__subpackages__",
         "//hardware/interfaces/security/keymint/aidl/vts/functional",
+        "//hardware/interfaces/security/rkp/aidl/vts/functional",
     ],
     defaults: [
         "keymint_use_latest_hal_aidl_ndk_shared",
