@@ -545,6 +545,29 @@ TEST(NonParameterizedTests, AvfInstanceHasTrailingRkpVmMarkers) {
     ASSERT_GE(*markerCount, 2) << "For AVF instance, expected at least 2 trailing RKP VM markers.";
 }
 
+/**
+ * Verifies that the DICE chains for KeyMint running in a protected VM have the
+ * correct minimum number of trailing RKP VM markers.
+ */
+TEST(NonParameterizedTests, KeyMintInVmHasTrailingRkpVmMarkers) {
+    if (!::android::base::GetBoolProperty("trusty.security_vm.keymint.enabled", false)) {
+        GTEST_SKIP() << "KeyMint in VM is not enabled on this device.";
+    }
+
+    auto rpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
+    ASSERT_NE(rpc, nullptr);
+
+    bytevec challenge = randomBytes(64);
+    bytevec csr;
+    auto status = rpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &csr);
+    ASSERT_TRUE(status.isOk()) << status.getDescription();
+
+    auto markerCount = countTrailingRkpVmMarkersInCsr(csr, DEFAULT_INSTANCE_NAME);
+    ASSERT_TRUE(markerCount) << markerCount.message();
+
+    ASSERT_GE(*markerCount, 3) << "For KeyMint in VM, expected at least 3 trailing RKP VM markers.";
+}
+
 using GetHardwareInfoTests = VtsRemotelyProvisionedComponentTests;
 
 INSTANTIATE_REM_PROV_AIDL_TEST(GetHardwareInfoTests);
