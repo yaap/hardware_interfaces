@@ -45,10 +45,10 @@ interface IEndpointCommunication {
   void unregister();
   android.hardware.contexthub.SharedDataRegion allocateSharedDataRegion(in android.hardware.contexthub.SharedDataRegionRequirements requirements);
   void freeSharedDataRegion(int id);
-  int registerDataFlowHostProducer(in android.hardware.contexthub.EndpointId endpoint, in android.hardware.contexthub.DataFlowInfo info);
-  void unregisterDataFlowHostProducer(int id);
-  void registerDataFlowOffloadConsumer(in android.hardware.contexthub.DataFlowConsumerHandle handle, in android.hardware.contexthub.EndpointId consumerId, in android.hardware.contexthub.IEndpointCommunication.IRegisterOffloadConsumerCallback callback, in @nullable android.hardware.contexthub.Message msg, int sessionId);
-  void unregisterDataFlowHostConsumer(in android.hardware.contexthub.EndpointId consumerId, in android.hardware.contexthub.DataFlowId dataFlowId);
+  int registerDataFlowHostSource(in android.hardware.contexthub.EndpointId endpoint, in android.hardware.contexthub.DataFlowInfo info);
+  void unregisterDataFlowHostSource(int id);
+  void registerDataFlowOffloadSink(in android.hardware.contexthub.DataFlowSinkRegistrationParams params, in android.hardware.contexthub.IEndpointCommunication.IRegisterOffloadSinkCallback callback);
+  void unregisterDataFlowHostSink(in android.hardware.contexthub.EndpointId sinkId, in android.hardware.contexthub.DataFlowId dataFlowId);
   const int SESSION_ID_INVALID = (-1) /* -1 */;
   @VintfStability
   enum SharedDataErrors {
@@ -56,7 +56,7 @@ interface IEndpointCommunication {
     ERR_INVALID_CONFIGURATION = 2,
   }
   @VintfStability
-  interface IRegisterOffloadConsumerCallback {
-    long addConsumerInRegion(in @nullable android.hardware.contexthub.SharedDataRegion region);
+  interface IRegisterOffloadSinkCallback {
+    long addSinkInRegion(in @nullable android.hardware.contexthub.SharedDataRegion region);
   }
 }
