@@ -902,7 +902,6 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
      *   RadioError:INTERNAL_ERR
-     *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:INVALID_STATE
      */
     void enablePrioritizedNetworkScanResponse(in RadioResponseInfo info);
@@ -918,7 +917,6 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
      *   RadioError:INTERNAL_ERR
-     *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:INVALID_STATE
      */
     void disablePrioritizedNetworkScanResponse(in RadioResponseInfo info);
