@@ -97,10 +97,9 @@ void BluetoothHal::RegisterVendorChannelSoundingDistanceEstimator(
       RegisterVendorChannelSoundingDistanceEstimator(std::move(factory));
 }
 
-void BluetoothHal::SetCsVendorSpecificDataMask(uint32_t /*mask*/) {
+void BluetoothHal::SetCsVendorSpecificDataMask([[maybe_unused]] uint32_t mask) {
 #if defined(USE_RANGING_V1) || defined(USE_RANGING_V2)
   BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(mask);
-#include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
 #else
   LOG(INFO) << __func__ << ": No ranging service is registered!";
 #endif
