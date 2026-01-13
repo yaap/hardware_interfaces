@@ -17,7 +17,6 @@
 package android.hardware.usb;
 
 import android.hardware.usb.AltModeData;
-import android.hardware.usb.CableStatus;
 import android.hardware.usb.ComplianceWarning;
 import android.hardware.usb.ContaminantDetectionStatus;
 import android.hardware.usb.ContaminantProtectionMode;
@@ -26,12 +25,13 @@ import android.hardware.usb.PlugOrientation;
 import android.hardware.usb.PortDataRole;
 import android.hardware.usb.PortMode;
 import android.hardware.usb.PortPartnerStatus;
+import android.hardware.usb.CableStatus;
+import android.hardware.usb.UsbDeviceRef;
 import android.hardware.usb.PortPowerRole;
 import android.hardware.usb.PowerBrickStatus;
 import android.hardware.usb.PowerProfile;
 import android.hardware.usb.PowerProfileMatchResult;
 import android.hardware.usb.UsbDataStatus;
-import android.hardware.usb.UsbDeviceRef;
 
 @VintfStability
 parcelable PortStatus {
@@ -165,21 +165,21 @@ parcelable PortStatus {
     /**
      * Lists the local port's sink power profiles
      */
-    @nullable PowerProfile[] sinkPowerProfiles;
+    PowerProfile[] sinkPowerProfiles = {};
     /**
      * Lists the local port's source power profiles
      */
-    @nullable PowerProfile[] sourcePowerProfiles;
+    PowerProfile[] sourcePowerProfiles = {};
     /**
      * Contains the match results of local port sink power profiles against partner port source
      * power profiles.
      */
-    @nullable PowerProfileMatchResult[] sinkMatchResults;
+    PowerProfileMatchResult[] sinkMatchResults = {};
     /**
      * Contains the match results of local port source power profiles against partner port sink
      * power profiles.
      */
-    @nullable PowerProfileMatchResult[] sourceMatchResults;
+    PowerProfileMatchResult[] sourceMatchResults = {};
     /**
      * The status of the connected cable, if any.
      */
