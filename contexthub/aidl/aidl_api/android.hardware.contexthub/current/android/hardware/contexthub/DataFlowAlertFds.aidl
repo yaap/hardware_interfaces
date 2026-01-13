@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,14 +33,8 @@
 
 package android.hardware.contexthub;
 @VintfStability
-interface IEndpointCallback {
-  oneway void onEndpointStarted(in android.hardware.contexthub.EndpointInfo[] endpointInfos);
-  oneway void onEndpointStopped(in android.hardware.contexthub.EndpointId[] endpointIds, android.hardware.contexthub.Reason reason);
-  oneway void onMessageReceived(int sessionId, in android.hardware.contexthub.Message msg);
-  oneway void onMessageDeliveryStatusReceived(int sessionId, in android.hardware.contexthub.MessageDeliveryStatus msgStatus);
-  oneway void onEndpointSessionOpenRequest(int sessionId, in android.hardware.contexthub.EndpointId destination, in android.hardware.contexthub.EndpointId initiator, in @nullable String serviceDescriptor);
-  oneway void onCloseEndpointSession(int sessionId, in android.hardware.contexthub.Reason reason);
-  oneway void onEndpointSessionOpenComplete(int sessionId);
-  oneway void onDataFlowHostSinkRegistered(in android.hardware.contexthub.DataFlowSinkRegistrationParams params);
-  oneway void onDataFlowOffloadEndpointUnregistered(in android.hardware.contexthub.DataFlowId dataFlowId, in android.hardware.contexthub.EndpointId endpointId, in android.hardware.contexthub.EndpointId[] destinationIds);
+parcelable DataFlowAlertFds {
+  ParcelFileDescriptor waking;
+  ParcelFileDescriptor nonWaking;
+  @nullable ParcelFileDescriptor halAck;
 }

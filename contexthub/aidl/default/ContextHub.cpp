@@ -585,9 +585,9 @@ ScopedAStatus ContextHub::HubInterface::freeSharedDataRegion(int32_t in_id) {
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(const EndpointId& in_endpoint,
-                                                                     const DataFlowInfo& in_info,
-                                                                     int32_t* _aidl_return) {
+ScopedAStatus ContextHub::HubInterface::registerDataFlowHostSource(const EndpointId& in_endpoint,
+                                                                   const DataFlowInfo& in_info,
+                                                                   int32_t* _aidl_return) {
     if (!mActive) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
@@ -600,7 +600,7 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(const Endpo
     // Verifies if region exists
     auto regionIt = mAllocatedRegions.find(in_info.region.id);
     if (regionIt == mAllocatedRegions.end()) {
-        ALOGE("registerDataFlowHostProducer: region %d not found", in_info.region.id);
+        ALOGE("registerDataFlowHostSource: region %d not found", in_info.region.id);
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
@@ -609,23 +609,23 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(const Endpo
     // Stores data flow information
     DataFlow flow;
     flow.id = dataFlowId;
-    flow.producerId = in_endpoint;
+    flow.sourceId = in_endpoint;
     flow.info.region.id = in_info.region.id;
     flow.info.metadataOffsetBytes = in_info.metadataOffsetBytes;
-    if (in_info.notificationFds.waking.get() < 0) {
-        ALOGE("registerDataFlowHostProducer: invalid notificationFds.waking");
+    if (in_info.alertFds.waking.get() < 0) {
+        ALOGE("registerDataFlowHostSource: invalid alertFds.waking");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-    } else if (in_info.notificationFds.nonWaking.get() < 0) {
-        ALOGE("registerDataFlowHostProducer: invalid notificationFds.nonWaking");
+    } else if (in_info.alertFds.nonWaking.get() < 0) {
+        ALOGE("registerDataFlowHostSource: invalid alertFds.nonWaking");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
-    auto maybeFds = ::android::contexthub::data_flow::dupEventFds(in_info.notificationFds,
+    auto maybeFds = ::android::contexthub::data_flow::dupEventFds(in_info.alertFds,
                                                                   /*needsHalAck=*/true);
     if (!maybeFds.ok()) {
-        ALOGE("registerDataFlowHostProducer: failed to dup notificationFds");
+        ALOGE("registerDataFlowHostSource: failed to dup alertFds");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
-    flow.info.notificationFds = std::move(*maybeFds);
+    flow.info.alertFds = std::move(*maybeFds);
 
     mDataFlows[dataFlowId] = std::move(flow);
 
@@ -633,11 +633,11 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowHostProducer(const Endpo
     regionIt->second.publishedDataFlowIds.insert(dataFlowId);
 
     *_aidl_return = dataFlowId;
-    ALOGD("Registered Host Producer DataFlow ID %d in Region %d", dataFlowId, in_info.region.id);
+    ALOGD("Registered Host Source DataFlow ID %d in Region %d", dataFlowId, in_info.region.id);
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostProducer(int32_t in_id) {
+ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostSource(int32_t in_id) {
     if (!mActive) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
@@ -645,7 +645,7 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostProducer(int32_t i
     std::lock_guard lock(mSharedDataMutex);
     auto flowIt = mDataFlows.find(in_id);
     if (flowIt == mDataFlows.end()) {
-        ALOGE("unregisterDataFlowHostProducer: data flow %d not found", in_id);
+        ALOGE("unregisterDataFlowHostSource: data flow %d not found", in_id);
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
@@ -658,63 +658,60 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostProducer(int32_t i
 
     // Removes data flow
     mDataFlows.erase(flowIt);
-    ALOGD("Unregistered Host Producer DataFlow ID %d", in_id);
+    ALOGD("Unregistered Host Source DataFlow ID %d", in_id);
 
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
-        const DataFlowConsumerHandle& in_handle, const EndpointId& in_consumerId,
-        const std::shared_ptr<IEndpointCommunication::IRegisterOffloadConsumerCallback>&
-                in_callback,
-        const std::optional<Message>& /*in_msg*/, int32_t /*in_sessionId*/) {
+ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadSink(
+        const DataFlowSinkRegistrationParams& in_params,
+        const std::shared_ptr<IEndpointCommunication::IRegisterOffloadSinkCallback>& in_callback) {
     if (!mActive) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
 
-    // Checks consumer (mock endpoint) validity
-    bool consumerIsValid = findEndpoint(in_consumerId, &kMockEndpointInfos[0],
-                                        &kMockEndpointInfos[kMockEndpointCount]);
-    if (!consumerIsValid) {
-        ALOGE("registerDataFlowOffloadConsumer: consumer endpoint invalid");
+    // Checks sink (mock endpoint) validity
+    bool sinkIsValid = findEndpoint(in_params.sinkId, &kMockEndpointInfos[0],
+                                    &kMockEndpointInfos[kMockEndpointCount]);
+    if (!sinkIsValid) {
+        ALOGE("registerDataFlowOffloadSink: sink endpoint invalid");
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
-    EndpointId hostProducerId;
+    EndpointId hostSourceId;
     {
         std::lock_guard lock(mSharedDataMutex);
         // Checks if data flow exists
-        auto flowIt = mDataFlows.find(in_handle.id.id);
+        auto flowIt = mDataFlows.find(in_params.context.id.id);
         if (flowIt == mDataFlows.end()) {
-            ALOGE("registerDataFlowOffloadConsumer: data flow %d not found", in_handle.id.id);
+            ALOGE("registerDataFlowOffloadSink: data flow %d not found", in_params.context.id.id);
             return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
         }
 
-        // Checks if consumer Hub is in the region of targetHubIds.
+        // Checks if sink Hub is in the region of targetHubIds.
         auto regionIt = mAllocatedRegions.find(flowIt->second.info.region.id);
         if (regionIt == mAllocatedRegions.end()) {
-            ALOGE("registerDataFlowOffloadConsumer: region %d not found for data flow %d",
-                  flowIt->second.info.region.id, in_handle.id.id);
+            ALOGE("registerDataFlowOffloadSink: region %d not found for data flow %d",
+                  flowIt->second.info.region.id, in_params.context.id.id);
             return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
         }
 
         bool isHubTargeted = false;
         for (int64_t targetHubId : regionIt->second.targetHubIds) {
-            if (targetHubId == in_consumerId.hubId) {
+            if (targetHubId == in_params.sinkId.hubId) {
                 isHubTargeted = true;
                 break;
             }
         }
 
         if (!isHubTargeted) {
-            ALOGE("registerDataFlowOffloadConsumer: consumer hub %" PRIu64
-                  " is not a target for region %d",
-                  in_consumerId.hubId, flowIt->second.info.region.id);
+            ALOGE("registerDataFlowOffloadSink: sink hub %" PRIu64 " is not a target for region %d",
+                  in_params.sinkId.hubId, flowIt->second.info.region.id);
             return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
         }
 
-        flowIt->second.offloadConsumerIds.insert(in_consumerId.id);
-        hostProducerId = flowIt->second.producerId;
+        flowIt->second.offloadSinkIds.insert(in_params.sinkId.id);
+        hostSourceId = flowIt->second.sourceId;
 
         // Prepares metadata region if exists
         std::optional<SharedDataRegion> metadataRegion;
@@ -732,22 +729,22 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadConsumer(
         metadataRegion->sizeBytes = kEchoMetadataRegionSize;
         metadataRegion->sharedMemory.set(outputFd);  // Take outputFd's ownership
         metadataRegion->permissions = {};
-        int64_t consumerMetadataOffset;
-        auto status = in_callback->addConsumerInRegion(metadataRegion, &consumerMetadataOffset);
+        int64_t sinkMetadataOffset;
+        auto status = in_callback->addSinkInRegion(metadataRegion, &sinkMetadataOffset);
         if (!status.isOk()) {
-            ALOGE("registerDataFlowOffloadConsumer: callback addConsumerInRegion failed");
+            ALOGE("registerDataFlowOffloadSink: callback addSinkInRegion failed");
             return status;
         }
 
-        createEchoDataFlow(in_handle, consumerMetadataOffset, in_consumerId, hostProducerId,
+        createEchoDataFlow(in_params.context, sinkMetadataOffset, in_params.sinkId, hostSourceId,
                            regionIt->second, flowIt->second, metadataRegion);
     }
 
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostConsumer(
-        const EndpointId& in_consumerId, const DataFlowId& in_dataFlowId) {
+ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostSink(
+        const EndpointId& in_sinkId, const DataFlowId& in_dataFlowId) {
     if (!mActive) {
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
@@ -755,15 +752,15 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostConsumer(
     std::lock_guard lock(mEchoDataFlowMutex);
     auto it = mEchoDataFlows.find(in_dataFlowId.id);
     if (it == mEchoDataFlows.end()) {
-        ALOGE("unregisterDataFlowHostConsumer: data flow %d not found", in_dataFlowId.id);
+        ALOGE("unregisterDataFlowHostSink: data flow %d not found", in_dataFlowId.id);
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
     // Verifies if Customer ID matches
-    if (it->second.hostConsumerId.id != in_consumerId.id) {
-        ALOGE("unregisterDataFlowHostConsumer: consumer ID mismatch (expected %" PRIu64
-              ", got %" PRIu64 ")",
-              it->second.hostConsumerId.id, in_consumerId.id);
+    if (it->second.hostSinkId.id != in_sinkId.id) {
+        ALOGE("unregisterDataFlowHostSink: sink ID mismatch (expected %" PRIu64 ", got %" PRIu64
+              ")",
+              it->second.hostSinkId.id, in_sinkId.id);
         return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
     }
 
@@ -773,8 +770,7 @@ ScopedAStatus ContextHub::HubInterface::unregisterDataFlowHostConsumer(
 
     // Remove echo data flow record.
     mEchoDataFlows.erase(it);
-    ALOGD("Unregistered Host Consumer %" PRIu64 " from DataFlow %d", in_consumerId.id,
-          in_dataFlowId.id);
+    ALOGD("Unregistered Host Sink %" PRIu64 " from DataFlow %d", in_sinkId.id, in_dataFlowId.id);
 
     return ScopedAStatus::ok();
 }
@@ -824,8 +820,8 @@ class EchoEpollWaiter : public NotificationManager::EpollWaiter {
 };
 
 void ContextHub::HubInterface::createEchoDataFlow(
-        const DataFlowConsumerHandle& in_handle, int64_t consumerMetadataOffset,
-        const EndpointId& in_consumerId, const EndpointId& hostProducerId,
+        const DataFlowSinkContext& in_context, int64_t sinkMetadataOffset,
+        const EndpointId& in_sinkId, const EndpointId& hostSourceId,
         const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
         const std::optional<SharedDataRegion>& metadataRegion) {
     // ========================================================================
@@ -838,7 +834,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
             std::move(waiter), [](DataFlowId /*flowId*/, bool /*waking*/) {});
 
     // ========================================================================
-    // Setup consumer (host -> HAL)
+    // Setup sink (host -> HAL)
     // ========================================================================
     RegionManager::RegionToMap regionToMap;
     regionToMap.id = dataFlow.info.region.id;
@@ -854,36 +850,35 @@ void ContextHub::HubInterface::createEchoDataFlow(
     }
 
     auto mapConsRes = mRegionManager.mapHostConsumerRegions(
-            std::move(regionToMap), std::move(metadataRegionToMap), in_handle.id);
+            std::move(regionToMap), std::move(metadataRegionToMap), in_context.id);
     if (!mapConsRes.ok()) {
         ALOGE("Echo: mapHostConsumerRegions failed, status: %s", mapConsRes.status().str());
         return;
     }
     auto [echoRegion, echoMetadataRegion] = std::move(mapConsRes.value());
 
-    // Enables host consumer on the echo data flow.
-    auto consumerHandleId = in_handle.id;
+    // Enables host sink on the echo data flow.
+    auto sinkContextId = in_context.id;
 
-    DataFlowNotificationFds notifyHostFds, notifyOffloadFds;
-    notifyOffloadFds.waking = ScopedFileDescriptor(dup(dataFlow.info.notificationFds.waking.get()));
-    notifyOffloadFds.nonWaking =
-            ScopedFileDescriptor(dup(dataFlow.info.notificationFds.nonWaking.get()));
+    DataFlowAlertFds notifyHostFds, notifyOffloadFds;
+    notifyOffloadFds.waking = ScopedFileDescriptor(dup(dataFlow.info.alertFds.waking.get()));
+    notifyOffloadFds.nonWaking = ScopedFileDescriptor(dup(dataFlow.info.alertFds.nonWaking.get()));
     notifyOffloadFds.halAck = ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
 
-    notifyHostFds.waking = ScopedFileDescriptor(dup(in_handle.notificationFds.waking.get()));
-    notifyHostFds.nonWaking = ScopedFileDescriptor(dup(in_handle.notificationFds.nonWaking.get()));
+    notifyHostFds.waking = ScopedFileDescriptor(dup(in_context.alertFds.waking.get()));
+    notifyHostFds.nonWaking = ScopedFileDescriptor(dup(in_context.alertFds.nonWaking.get()));
     notifyHostFds.halAck = ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
 
     auto status = notificationManager->enableHostConsumerFromEventFds(
-            consumerHandleId, std::move(notifyHostFds), std::move(notifyOffloadFds));
+            sinkContextId, std::move(notifyHostFds), std::move(notifyOffloadFds));
     if (!status.ok()) {
         ALOGE("Echo: enableHostConsumerFromHandle failed, status: %s", status.str());
         return;
     }
 
     auto consumerRes = Consumer<uint8_t>::createRemote(
-            echoRegion, echoMetadataRegion, dataFlow.info.metadataOffsetBytes,
-            consumerMetadataOffset, RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+            echoRegion, echoMetadataRegion, dataFlow.info.metadataOffsetBytes, sinkMetadataOffset,
+            RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
     if (!consumerRes.ok()) {
         ALOGE("Echo: Consumer<uint8_t>::createRemote failed, status: %s",
               consumerRes.status().str());
@@ -946,7 +941,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
     ALOGD("Echo: Queue allocated at offset: %zu", queueOffset);
 
     // ========================================================================
-    // Setup the consumer and send back to VTS
+    // Setup the sink and send back to VTS
     // ========================================================================
 
     auto prepRes = notificationManager->prepareHostProducerDataFlowInfo();
@@ -989,25 +984,27 @@ void ContextHub::HubInterface::createEchoDataFlow(
     }
     ALOGD("Echo: Consumer Descriptor Added at offset: %u", consDescOffsetRes.value());
 
-    pw::Result<DataFlowConsumerHandle> consumerHandleRes =
-            notificationManager->addOffloadConsumerAndCreateHandle(flowIdVal, hostProducerId);
+    pw::Result<DataFlowSinkContext> consumerHandleRes =
+            notificationManager->addOffloadConsumerAndCreateHandle(flowIdVal, hostSourceId);
     if (!consumerHandleRes.ok()) {
         ALOGE("Echo: addOffloadConsumerAndCreateHandle failed");
         return;
     }
-    consumerHandleRes.value().id.hubId = in_consumerId.hubId;
-    consumerHandleRes.value().id.id = flowIdVal;
-    consumerHandleRes.value().metadataOffsetBytes = consDescOffsetRes.value();
-    consumerHandleRes.value().info = std::move(dfInfo);
-    consumerHandleRes.value().notificationFds.halAck =
-            ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
+    DataFlowSinkRegistrationParams params;
+    params.context = std::move(consumerHandleRes.value());
+    params.context.id.hubId = in_sinkId.hubId;
+    params.context.id.id = flowIdVal;
+    params.context.metadataOffsetBytes = consDescOffsetRes.value();
+    params.context.info = std::move(dfInfo);
+    params.context.alertFds.halAck = ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
+    params.sinkId = in_sinkId;
+    params.sourceId = hostSourceId;
+    params.sessionId = IEndpointCommunication::SESSION_ID_INVALID;
 
     // Callback to send the consumer DataFlowConsumerHandle back to VTS.
     if (mEndpointCallback != nullptr) {
-        mEndpointCallback->onDataFlowHostConsumerRegistered(
-                std::move(consumerHandleRes).value(), in_consumerId, hostProducerId, std::nullopt,
-                IEndpointCommunication::SESSION_ID_INVALID);
-        ALOGD("Echo: called onDataFlowHostConsumerRegistered callback function");
+        mEndpointCallback->onDataFlowHostSinkRegistered(params);
+        ALOGD("Echo: called onDataFlowHostSinkRegistered callback function");
     }
 
     // Register flow locally
@@ -1020,8 +1017,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
         std::lock_guard lock(mEchoDataFlowMutex);
         EchoDataFlow echoFlow;
         echoFlow.id = flowIdVal;
-        echoFlow.offloadProducerId = in_consumerId;
-        echoFlow.hostConsumerId = hostProducerId;
+        echoFlow.offloadSourceId = in_sinkId;
+        echoFlow.hostSinkId = hostSourceId;
         echoFlow.stopFd = stopFd;
         mEchoDataFlows[flowIdVal] = echoFlow;
     }
@@ -1033,8 +1030,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
     ALOGE("Echo: starting echo thread");
     std::shared_ptr<HubInterface> lifebuoy = ref<HubInterface>();
     std::thread([this, lifebuoy, producerOpt = std::move(producerOpt),
-                 consumerOpt = std::move(consumerOpt), notificationManager, waiterPtr,
-                 hostProducerId, flowIdVal, consumerHandleId, outputSharedRegionId]() mutable {
+                 consumerOpt = std::move(consumerOpt), notificationManager, waiterPtr, hostSourceId,
+                 flowIdVal, sinkContextId, outputSharedRegionId]() mutable {
         while (!waiterPtr->isStopped()) {
             waiterPtr->waitAndDispatch();
 
@@ -1049,7 +1046,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
                 }
                 auto value = popRes.value();
                 producerOpt->push(value);
-                notificationManager->notifyOffloadConsumer(hostProducerId, true);
+                notificationManager->notifyOffloadConsumer(hostSourceId, true);
             }
         }
 
@@ -1060,8 +1057,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
         // fault.
         consumerOpt.reset();
         producerOpt.reset();
-        notificationManager->disableHostConsumer(consumerHandleId);
-        mRegionManager.unlinkHostConsumerDataFlow(consumerHandleId);
+        notificationManager->disableHostConsumer(sinkContextId);
+        mRegionManager.unlinkHostConsumerDataFlow(sinkContextId);
         notificationManager->removeHostProducerDataFlow(flowIdVal);
         mRegionManager.unmapHostProducerRegion(outputSharedRegionId);
     }).detach();

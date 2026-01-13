@@ -95,17 +95,16 @@ class ContextHub : public BnContextHub {
                 const SharedDataRegionRequirements& in_requirements,
                 SharedDataRegion* _aidl_return) override;
         ::ndk::ScopedAStatus freeSharedDataRegion(int32_t in_id) override;
-        ::ndk::ScopedAStatus registerDataFlowHostProducer(const EndpointId& in_endpoint,
-                                                          const DataFlowInfo& in_info,
-                                                          int32_t* _aidl_return) override;
-        ::ndk::ScopedAStatus unregisterDataFlowHostProducer(int32_t in_id) override;
-        ::ndk::ScopedAStatus registerDataFlowOffloadConsumer(
-                const DataFlowConsumerHandle& in_handle, const EndpointId& in_consumerId,
-                const std::shared_ptr<IEndpointCommunication::IRegisterOffloadConsumerCallback>&
-                        in_callback,
-                const std::optional<Message>& in_msg, int32_t in_sessionId) override;
-        ::ndk::ScopedAStatus unregisterDataFlowHostConsumer(
-                const EndpointId& in_consumerId, const DataFlowId& in_dataFlowId) override;
+        ::ndk::ScopedAStatus registerDataFlowHostSource(const EndpointId& in_endpoint,
+                                                        const DataFlowInfo& in_info,
+                                                        int32_t* _aidl_return) override;
+        ::ndk::ScopedAStatus unregisterDataFlowHostSource(int32_t in_id) override;
+        ::ndk::ScopedAStatus registerDataFlowOffloadSink(
+                const DataFlowSinkRegistrationParams& in_params,
+                const std::shared_ptr<IEndpointCommunication::IRegisterOffloadSinkCallback>&
+                        in_callback) override;
+        ::ndk::ScopedAStatus unregisterDataFlowHostSink(const EndpointId& in_sinkId,
+                                                        const DataFlowId& in_dataFlowId) override;
 
       private:
         friend class ContextHub;
@@ -127,15 +126,15 @@ class ContextHub : public BnContextHub {
 
         struct DataFlow {
             int32_t id;
-            EndpointId producerId;
+            EndpointId sourceId;
             DataFlowInfo info;
-            std::unordered_set<uint64_t> offloadConsumerIds;
+            std::unordered_set<uint64_t> offloadSinkIds;
         };
 
         struct EchoDataFlow {
             int32_t id;
-            EndpointId offloadProducerId;
-            EndpointId hostConsumerId;
+            EndpointId offloadSourceId;
+            EndpointId hostSinkId;
             int stopFd;
         };
 
@@ -178,9 +177,8 @@ class ContextHub : public BnContextHub {
         ::android::contexthub::data_flow::RegionManager mRegionManager;
 
         // Helper function to create the echo data flow in echo service thread
-        void createEchoDataFlow(const DataFlowConsumerHandle& in_handle,
-                                int64_t consumerMetadataOffset, const EndpointId& in_consumerId,
-                                const EndpointId& hostProducerId,
+        void createEchoDataFlow(const DataFlowSinkContext& in_context, int64_t sinkMetadataOffset,
+                                const EndpointId& in_sinkId, const EndpointId& hostSourceId,
                                 const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
                                 const std::optional<SharedDataRegion>& metadataRegion);
     };

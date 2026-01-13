@@ -36,6 +36,6 @@ package android.hardware.contexthub;
 parcelable DataFlowInfo {
   android.hardware.contexthub.SharedDataRegion region;
   long metadataOffsetBytes;
-  android.hardware.contexthub.DataFlowNotificationFds notificationFds;
+  android.hardware.contexthub.DataFlowAlertFds alertFds;
   String debugName;
 }

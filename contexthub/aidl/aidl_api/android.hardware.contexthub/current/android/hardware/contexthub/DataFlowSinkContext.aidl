@@ -33,10 +33,10 @@
 
 package android.hardware.contexthub;
 @VintfStability
-parcelable DataFlowConsumerHandle {
+parcelable DataFlowSinkContext {
   android.hardware.contexthub.DataFlowId id;
   @nullable android.hardware.contexthub.DataFlowInfo info;
-  @nullable android.hardware.contexthub.SharedDataRegion consumerRegion;
+  @nullable android.hardware.contexthub.SharedDataRegion sinkMetadataRegion;
   long metadataOffsetBytes;
-  android.hardware.contexthub.DataFlowNotificationFds notificationFds;
+  android.hardware.contexthub.DataFlowAlertFds alertFds;
 }
