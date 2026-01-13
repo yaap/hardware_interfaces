@@ -69,152 +69,119 @@ parcelable SharedDataRegion {
     ///
     /// Different endpoints, in particular on offload cores, will likely be using different versions
     /// of the library. As such, the first field of the metadata structs whose offsets are shared
-    /// over AIDL (Queue and ConsumerDesc) is a version field that allows the endpoint on the other
-    /// side to determine which fields in all of the structures, and thus which features, are
-    /// supported. ProducerDesc and BlockHeader, which are nested within other structures and so
-    /// have a fixed maximum size include reserved fields to enable future expansion without
-    /// changing the major version. If the reserved fields are exhausted, the major version is
-    /// incremented, and new structures are defined. Any replacements for Queue and ConsumerDesc in
-    /// later versions will keep the same Version field at the start.
+    /// over AIDL ({@link DataFlowMetadata} and {@link DataFlowSinkMetadata}) is a {@link Version}
+    /// field that allows the endpoint on the other side to determine which fields in all of the
+    /// structures, and thus which features, are supported. {@link DataFlowSourceMetadata} and
+    /// {@link DataFlowBlockHeader}, which are nested within other structures and so have a fixed
+    /// maximum size include reserved fields to enable future expansion without changing the major
+    /// version. If the reserved fields are exhausted, the major version is incremented, and new
+    /// structures are defined. Any replacements for {@link DataFlowMetadata} and {@link
+    /// DataFlowSinkMetadata} in later versions will keep the same Version field at the start.
+
+    /** Analog to nullptr for offsets in shared memory. All offsets are 32-bit unsigned values. */
+    const int OFFSET_INVALID = 0xFFFFFFFF;
 
     /**
      * The metadata for a data flow, found at {@link DataFlowId#metadataOffset} from the base of
-     * the region. It contains fixed fields describing the data produced in the flow, points to the
-     * producer descriptor (contains the write index and tail data block offset), and an epoch
-     * counter for the data storage block list. Read-only to consumers if memory protection is
-     * supported in the consumer context.
+     * the region. It contains fixed fields describing the data sent over the flow, points to the
+     * source descriptor (contains the write index and tail data block offset), and an epoch
+     * counter for the data storage block list. Read-only to sinks if memory protection is
+     * supported in the sink context.
      */
     @FixedSize
     @VintfStability
     parcelable DataFlowMetadata {
         /**
-         * The producer's version of the data flow implementation. Fixed during data flow creation.
+         * The source's version of the data flow implementation. Fixed during data flow creation.
          */
         Version version;
 
-        /** ATOMIC. The region offset of the ProducerDesc, set by the producer. */
-        int producerDescOffsetBytes;
+        /** ATOMIC. The region offset of the SourceMetadata, set by the source. */
+        int sourceMetadataOffsetBytes;
 
-        /** The producer's endpoint ID. Fixed during data flow creation. */
-        EndpointIdFixedSize producerId;
+        /** The source's endpoint ID. Fixed during data flow creation. */
+        EndpointIdFixedSize sourceId;
 
         /**
          * ATOMIC. A combination of the current data storage block count and the epoch of the block
          * list. This is used to determine if the block list has been updated, which can affect how
-         * an overwritten consumer catches up. The epoch is incremented on any change to the block
+         * an overwritten sink catches up. The epoch is incremented on any change to the block
          * list. The block count can be used to determine the current capacity of the data flow.
          * { 0-15: epoch counter | 16-31: block count }
          */
         int blockListEpoch;
 
-        /** The block capacity in elements. Fixed during data flow creation. */
-        int blockCapacity;
+        /** The block capacity in bytes. Fixed during data flow creation. */
+        int blockCapacityBytes;
 
-        /** Configuration of data in this flow. Fixed during data flow creation. */
-        DataConfig dataConfig;
+        /** Configuration of elements in this flow. Fixed during data flow creation. */
+        DataFlowElementConfig elementConfig;
 
         /**
-         * 1 iff this data flow is local to an execution context, i.e. notifications can be
+         * 1 iff this data flow is local to an execution context, i.e. alerts can be
          * implemented via a local function call. This must be 0 for data flows accessed via the
          * ContextHub HAL.
          */
         byte localNotify;
 
         /** Reserved for future use. */
-        byte[7] reserved;
+        byte[11] reserved;
     }
 
     /**
-     * Configuration of data in a flow.
+     * Configuration of elements in a data flow.
      *
-     * NOTE: This parcelable should have been a union, however that breaks the cpp backend. There
-     * are currently AIDL cpp backend dependencies on this AIDL. If those can be made ndk-only, this
-     * can be changed back to a union.
+     * NOTE: New configurations must be <= 8 bytes and at most 4-byte aligned to not change the
+     * layout of this union.
      */
     @FixedSize
     @VintfStability
-    parcelable DataConfig {
-        /** The type of data configuration. Determines the contents of {@link #configBytes}. */
-        Type type;
+    union DataFlowElementConfig {
+        FixedSize fixedSize;
+        VariableSize variableSize;
 
-        /**
-         * Bytes containing the configuration. The contents are one of the configuration
-         * parcelables below depending on the mode. If any field in the configuration has 8-byte
-         * alignment, it must be 4-bytes after the start of the configuration struct to not change
-         * the ABI.
-         */
-        byte[12] configRawBytes;
-
-        /** The types of data configuration. */
-        @Backing(type="int")
-        @VintfStability
-        enum Type {
-            /**
-             * Fixed-size data, i.e. data storage is an aligned array of elements following the
-             * {@link BlockHeader} structure.
-             */
-            FIXED_SIZE = 0,
-
-            /**
-             * Trivial configuration for variable-size data with no alignment requirement. Data
-             * storage is an array of bytes following the {@link VariableSizeBlockHeader} structure.
-             * Variable-size elements are prefixed by a 4-byte 4-byte-aligned size.
-             *
-             * {@link DataConfig#configBytes} is unused.
-             */
-            VARIABLE_SIZE_BASIC = 1,
-
-            /**
-             * Configuration for variable-size data with element header size and alignment, as well
-             * as data alignment, specified.
-             */
-            VARIABLE_SIZE_ALIGNED = 2
-        }
-
-        /** Configuration for {@link Type#FIXED_SIZE}. */
+        /** Configuration for a data flow of fixed-size elements. */
         @FixedSize
         @VintfStability
         parcelable FixedSize {
             int elementSizeBytes;
             char elementAlignmentBytes;
-            byte[6] reserved;
+            byte[2] reserved;
         }
 
-        /** Configuration for {@link Type#VARIABLE_SIZE_ALIGNED}. */
+        /** Configuration for a data flow of variable-size elements. */
         @FixedSize
         @VintfStability
-        parcelable VariableSizeAligned {
-            int headerSizeBytes;
-            char headerAlignmentBytes;
+        parcelable VariableSize {
             char elementAlignmentBytes;
-            byte[4] reserved;
+            byte[6] reserved;
         }
     }
 
     /**
-     * The current producer state, including the write index and a correction used to determine
+     * The current source state, including the write index and a correction used to determine
      * the array index within the tail block. Points to the current tail block. Read-only to
-     * consumers if memory protection is supported in the consumer context.
+     * sinks if memory protection is supported in the sink context.
      */
     @FixedSize
     @VintfStability
-    parcelable ProducerDesc {
+    parcelable DataFlowSourceMetadata {
         /**
          * ATOMIC. The current write index. Incremented by 1 for each element (or byte for
-         * variable-size data) written. Set by the producer.
+         * variable-size data) written. Set by the source.
          */
         int writeIndex;
 
         /**
          * The correction used to determine the array index within the tail block. The block index
          * is calculated as (writeIndex + indexCorrection) % blockCapacity. This enables the
-         * producer to skip to a newly allocated block if it would be blocked by a slow consumer.
+         * source to skip to a newly allocated block if it would be blocked by a slow sink.
          */
         int indexCorrection;
 
         /**
          * The region offset of the block containing the current write index. Initialized to point
-         * to the current tail block whenever the producer initializes its descriptor while entering
+         * to the current tail block whenever the source initializes its descriptor while entering
          * the block.
          */
         int tailBlockOffsetBytes;
@@ -224,78 +191,78 @@ parcelable SharedDataRegion {
     }
 
     /**
-     * The current consumer state. Contains the read index, flags used to indicate
-     * exceptional state, and the id used to route notifications to the consumer. Read-write to both
-     * the producer and consumer.
+     * The current sink state. Contains the read index, flags used to indicate
+     * exceptional state, and the id used to route alerts to the sink. Read-write to both
+     * the source and sink.
      */
     @FixedSize
     @VintfStability
-    parcelable ConsumerDesc {
+    parcelable DataFlowSinkMetadata {
         /**
-         * The version of the consumer implementation. Must be the first field so that the consumer
+         * The version of the sink implementation. Must be the first field so that the sink
          * version can be checked before accessing other fields.
          */
         Version version;
 
         /**
-         * ATOMIC. The current read index. The distance to the producer can be calculated by
-         * subtracting the read index from the write index. Set by the consumer.
+         * ATOMIC. The current read index. The distance to the source can be calculated by
+         * subtracting the read index from the write index. Set by the sink.
          *
-         * NOTE: The producer initializes this field to {@link ProducerDesc#writeIndex} before
-         * sharing the data flow with the consumer. This allows the consumer to read from the data
-         * flow at the point that the producer has initialized the consumer descriptor rather than
+         * NOTE: The source initializes this field to {@link DataFlowSourceMetadata#writeIndex}
+         * before sharing the data flow with the sink. This allows the sink to read from the data
+         * flow at the point that the source has initialized the sink metadata rather than
          * losing all of the data written after descriptor initialization in shared memory and
-         * remote consumer initialization.
+         * remote sink initialization.
          */
         int readIndex;
 
         /**
          * The correction used to determine the array index within the tail block. The block index
-         * calculation is the same as for the producer's indexCorrection.
+         * calculation is the same as for the source's indexCorrection.
          *
-         * NOTE: The producer initializes this field to {@link ProducerDesc#indexCorrection} before
-         * sharing the data flow with the consumer. See the note on {@link #readIndex} for more
+         * NOTE: The source initializes this field to {@link DataFlowSourceMetadata#indexCorrection}
+         * before sharing the data flow with the sink. See the note on {@link #readIndex} for more
          * details.
          */
         int indexCorrection;
 
         /**
-         * ATOMIC. This field is used together with {@link #consumerFlags} to emulate a single flag
-         * that would be set by the producer to indicate exceptional state and would be atomically
-         * cleared by the consumer using a read-modify-write operation. As endpoints interacting
+         * ATOMIC. This field is used together with {@link #sinkFlags} to emulate a single flag
+         * that would be set by the source to indicate exceptional state and would be atomically
+         * cleared by the sink using a read-modify-write operation. As endpoints interacting
          * over a data flow may be on different core clusters, the consistency of state after
          * read-modify-write operations is not guaranteed. As such, the single logical flag is split
-         * into two fields. The producerFlags contains the latest value set by the producer along
-         * with a counter that the producer increments each time it sets the flag. Each time the
-         * consumer wants to "clear" the flag, it sets a counter in consumerFlags to the count
-         * associated with the flag value to be cleared. Only the latest producerFlags value is
-         * relevant. { 0-15: {@link ProducerFlags} | 16-31: counter }
+         * into two fields. The sourceFlags contains the latest value set by the source along
+         * with a counter that the source increments each time it sets the flag. Each time the
+         * sink wants to "clear" the flag, it sets a counter in sinkFlags to the count
+         * associated with the flag value to be cleared. Only the latest sourceFlags value is
+         * relevant. { 0-15: {@link SourceFlags} | 16-31: counter }
          */
-        int producerFlags;
+        int sourceFlags;
 
-        /** The id used to route notifications to the consumer. */
+        /** The id used to route alerts to the sink. */
         EndpointIdFixedSize id;
 
-        /** See {@link #producerFlags}. {0-15: {@link ConsumerFlags} | 16-31: counter } */
-        int consumerFlags;
+        /** See {@link #sourceFlags}. {0-15: {@link SinkFlags} | 16-31: counter } */
+        int sinkFlags;
 
         /**
-         * The producer initializes this field to {@link ProducerDesc#tailBlockOffsetBytes} before
-         * sharing the data flow with the consumer. See the note on {@link #readIndex} for more
+         * The source initializes this field to {@link DataFlowSourceMetadata#tailBlockOffsetBytes}
+         * before sharing the data flow with the sink. See the note on {@link #readIndex} for more
          * details.
          */
         int initialHeadBlockOffsetBytes;
 
         /**
-         * The producer initializes this field to {@link DataFlowMetadata#blockListEpoch} before
-         * sharing the data flow with the consumer. This allows the consumer to handle overwrite
+         * The source initializes this field to {@link DataFlowMetadata#blockListEpoch} before
+         * sharing the data flow with the sink. This allows the sink to handle overwrite
          * correctly when initializing from the descriptor. See the note on {@link #readIndex} for
          * more details.
          */
         int initialBlockListEpoch;
 
         /**
-         * ATOMIC. Set by the producer to indicate that it may overwrite this consumer's position
+         * ATOMIC. Set by the source to indicate that it may overwrite this sink's position
          * if required.
          */
         boolean isOverwritable;
@@ -304,7 +271,7 @@ parcelable SharedDataRegion {
         byte[11] reserved;
 
         /**
-         * The flags that can be set by the producer. Non-overlapping bits to allow for the
+         * The flags that can be set by the source. Non-overlapping bits to allow for the
          * possibility of multiple flags being set at the same time.
          *
          * NOTE: This enum should be backed by a 16-bit type, however AIDL does not support this.
@@ -314,78 +281,78 @@ parcelable SharedDataRegion {
          */
         @VintfStability
         @Backing(type="int")
-        enum ProducerFlags {
+        enum SourceFlags {
             NONE = 0,
 
             /**
-             * Set when the producer initializes the ConsumerDesc. Cleared by the consumer on
+             * Set when the source initializes the DataFlowSinkMetadata. Cleared by the sink on
              * initialization.
              */
             PENDING_INIT = 1,
 
-            /** The producer is blocked on this consumer. */
+            /** The source is blocked on this sink. */
             BLOCKING = 1 << 1,
 
-            /** The producer overwrote this consumer. */
+            /** The source overwrote this sink. */
             OVERWRITE = 1 << 2,
 
-            /** The producer has torn down and the data flow is no longer valid. */
+            /** The source has torn down and the data flow is no longer valid. */
             FINISHED = 1 << 3,
 
             /**
-             * The producer detected that the consumer endpoint disconnected. The consumer must
+             * The source detected that the sink endpoint disconnected. The sink must
              * request access to the data flow again.
              */
             DISCONNECTED = 1 << 4
         }
 
         /**
-         * The values the consumer can set in {@link #consumerFlags}. This is backed by an int for
-         * the same reason as {@link ProducerFlags}.
+         * The values the sink can set in {@link #sinkFlags}. This is backed by an int for
+         * the same reason as {@link SourceFlags}.
          */
         @VintfStability
         @Backing(type="int")
-        enum ConsumerFlags {
-            /** The consumer has cleared a {@link ProducerFlags} value at some flag count. */
+        enum SinkFlags {
+            /** The sink has cleared a {@link SourceFlags} value at some flag count. */
             CLEARED = 0,
 
-            /** The consumer has stopped reading on the data flow. */
+            /** The sink has stopped reading on the data flow. */
             FINISHED = 1
         }
     }
 
     /**
-     * The header preceding each block of data storage. The current active producer descriptor
-     * ({@link DataFlowMetadata#producerDescOffset}) is in the header of one of the current data
-     * storage blocks, though it must be accessed via the {@link DataFlowMetadata}. Read-only to
-     * consumers if memory protection is supported in the consumer context.
+     * The header preceding each block of data storage. The current active source metadata
+     * ({@link DataFlowMetadata#sourceMetadataOffsetBytes}) is in the header of one of the current
+     * data storage blocks, though it must be accessed via the {@link DataFlowMetadata}. Read-only
+     * to sinks if memory protection is supported in the sink context.
      */
     @FixedSize
     @VintfStability
-    parcelable BlockHeader {
-        /** The current producer descriptor. */
-        ProducerDesc producerDesc;
+    parcelable DataFlowBlockHeader {
+        /** The current source metadata. */
+        DataFlowSourceMetadata sourceMetadata;
 
         /**
-         * ATOMIC. The region offset of the next block block list. Set by the producer whenever
+         * ATOMIC. The region offset of the next block block list. Set by the source whenever
          * adding or removing blocks.
          */
         int nextBlockOffsetBytes;
 
         /**
          * ATOMIC. The base index for reading/writing this block. Initialized to 0. Set by the
-         * producer when it returns to a block that was skipped from on the previous visit. The base
+         * source when it returns to a block that was skipped from on the previous visit. The base
          * index is set to the current skip index and the skip index is reset to the block capacity.
          */
         int baseIndex;
 
         /**
          * ATOMIC. The index at which to jump to the next block. Initialized to the block capacity.
-         * Set by the producer whenever overwriting a slow consumer is avoided by skipping to a
+         * Set by the source whenever overwriting a slow sink is avoided by skipping to a
          * newly allocated block. It is set to what would have been the next write index within the
-         * block when the producer skipped forward. The producer's {@link
-         * ProducerDesc#indexCorrection} is updated so that the writeIndex/readIndex difference is
-         * unaffected.
+         * block when the source skipped forward. The source's {@link
+         * DataFlowSourceMetadata#indexCorrection} is updated so that the writeIndex/readIndex
+         * difference is unaffected.
          */
         int skipIndex;
 
@@ -393,15 +360,15 @@ parcelable SharedDataRegion {
         byte[12] reserved;
     }
 
-    /** The header preceding a block of variable-size data storage. */
+    /** The header preceding a block of variable-size element storage. */
     @FixedSize
     @VintfStability
-    parcelable VariableSizeBlockHeader {
+    parcelable DataFlowVariableSizeBlockHeader {
         /**
-         * The base BlockHeader. Must be the first element so that BlockHeader* and
-         * VariableSizeBlockHeader* can be statically cast to each other.
+         * The base DataFlowBlockHeader. Must be the first element so that DataFlowBlockHeader* and
+         * DataFlowVariableSizeBlockHeader* can be statically cast to each other.
          */
-        BlockHeader blockHeader;
+        DataFlowBlockHeader blockHeader;
 
         /**
          * The index within the data storage byte array of the first element header in this block.
@@ -414,19 +381,16 @@ parcelable SharedDataRegion {
         byte[12] reserved;
     }
 
-    /**
-     * The header preceding a variable-size element if the configuration is
-     * DataConfig#variableSizeBasic.
-     */
+    /** The header preceding a variable-size element. */
     @FixedSize
     @VintfStability
-    parcelable VariableSizeDataBasicHeader {
+    parcelable DataFlowVariableSizeElementHeader {
         /** The size of the element following this header in bytes. */
         int sizeBytes;
     }
 
     /**
-     * The id used to route notifications an endpoint. This is the same as {@link EndpointId} but
+     * The id used to route alerts an endpoint. This is the same as {@link EndpointId} but
      * @FixedSize for use in these structures.
      */
     @FixedSize
