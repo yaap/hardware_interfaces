@@ -208,15 +208,8 @@ PowerProfile createPowerProfile(string pathPd, string type, bool sink) {
  * createTypecProfiles - adds Type-C PowerProfile objects to profiles based on
  * the maximum current supported.
  */
-void createTypecProfiles(std::vector<std::optional<PowerProfile>>* profiles, int maxCurrentMa) {
+void createTypecProfiles(std::vector<PowerProfile>* profiles, int maxCurrentMa) {
     PowerProfile profile;
-
-    /* ----- Input Handling ----- */
-    if (!profiles) {
-        ALOGE("%s: provided PowerProfile vector is not initialized", __func__);
-        return;
-    }
-    /* ----- */
 
     if (maxCurrentMa >= 500) {
         profile = createPowerProfile("", "typec_default", false);
@@ -238,11 +231,10 @@ void createTypecProfiles(std::vector<std::optional<PowerProfile>>* profiles, int
 /**
  * matchPowerProfiles - performs matching on portProfiles to partnerProfiles
  */
-std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
-        const std::vector<std::optional<PowerProfile>>& portProfiles,
-        const std::vector<std::optional<PowerProfile>>& partnerProfiles,
-        ProfileType portProfileType) {
-    std::vector<std::optional<PowerProfileMatchResult>> matchResults;
+void matchPowerProfiles(const std::vector<PowerProfile>& portProfiles,
+                        const std::vector<PowerProfile>& partnerProfiles,
+                        std::vector<PowerProfileMatchResult>* matchResults,
+                        ProfileType portProfileType) {
     bool match;
     /* Voltage */
     int portMinVoltageMv, partnerMinVoltageMv;
@@ -259,19 +251,8 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
 
     /* Perform initial matching based on voltage equivalents */
     for (int i = 0; i < portProfiles.size(); i++) {
-        /* portProfiles has type optional<PowerProfile>, need to check if it exists */
-        if (!portProfiles[i].has_value()) {
-            ALOGE("%s: provided partner PowerProfile is not initialized", __func__);
-            continue;
-        }
         for (int j = 0; j < partnerProfiles.size(); j++) {
-            /* partnerProfiles has type optional<PowerProfile>, need to check if it exists */
-            if (!partnerProfiles[j].has_value()) {
-                ALOGE("%s: provided partner PowerProfile is not initialized", __func__);
-                continue;
-            }
-
-            if (portProfiles[i]->getTag() == partnerProfiles[j]->getTag()) {
+            if (portProfiles[i].getTag() == partnerProfiles[j].getTag()) {
                 PowerProfileMatchResult matchResult;
                 PowerProfile matchProfile;
                 TypecDefault typecDefaultProfile;
@@ -280,7 +261,7 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
                 UsbPdSprAvs sprAvsProfile;
                 match = true;
 
-                switch (portProfiles[i]->getTag()) {
+                switch (portProfiles[i].getTag()) {
                     case PowerProfile::typecDefaultProfile:
                         typecDefaultProfile.maxCurrentMa = 500;
                         matchProfile.set<PowerProfile::typecDefaultProfile>(typecDefaultProfile);
@@ -292,8 +273,8 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
                         matchProfile.set<PowerProfile::typec30AProfile>(true);
                         break;
                     case PowerProfile::fixedProfile:
-                        portFixed = portProfiles[i]->get<PowerProfile::fixedProfile>();
-                        partnerFixed = partnerProfiles[j]->get<PowerProfile::fixedProfile>();
+                        portFixed = portProfiles[i].get<PowerProfile::fixedProfile>();
+                        partnerFixed = partnerProfiles[j].get<PowerProfile::fixedProfile>();
 
                         portMaxVoltageMv = portFixed.voltageMv;
                         partnerMaxVoltageMv = partnerFixed.voltageMv;
@@ -310,8 +291,8 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
                         matchProfile.set<PowerProfile::fixedProfile>(fixedProfile);
                         break;
                     case PowerProfile::sprPpsProfile:
-                        portSprPps = portProfiles[i]->get<PowerProfile::sprPpsProfile>();
-                        partnerSprPps = partnerProfiles[j]->get<PowerProfile::sprPpsProfile>();
+                        portSprPps = portProfiles[i].get<PowerProfile::sprPpsProfile>();
+                        partnerSprPps = partnerProfiles[j].get<PowerProfile::sprPpsProfile>();
 
                         portMinVoltageMv = portSprPps.minVoltageMv;
                         portMaxVoltageMv = portSprPps.maxVoltageMv;
@@ -344,8 +325,8 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
                         matchProfile.set<PowerProfile::sprPpsProfile>(sprPpsProfile);
                         break;
                     case PowerProfile::sprAvsProfile:
-                        portSprAvs = portProfiles[i]->get<PowerProfile::sprAvsProfile>();
-                        partnerSprAvs = partnerProfiles[j]->get<PowerProfile::sprAvsProfile>();
+                        portSprAvs = portProfiles[i].get<PowerProfile::sprAvsProfile>();
+                        partnerSprAvs = partnerProfiles[j].get<PowerProfile::sprAvsProfile>();
                         portMaxCurrent15vMa = portSprAvs.maxCurrent15vMa;
                         partnerMaxCurrent15vMa = partnerSprAvs.maxCurrent15vMa;
                         portMaxCurrent20vMa = portSprAvs.maxCurrent20vMa;
@@ -370,13 +351,11 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
                     matchResult.portIndex = i;
                     matchResult.partnerIndex = j;
                     matchResult.result = matchProfile;
-                    matchResults.push_back(matchResult);
+                    (*matchResults).push_back(matchResult);
                 }
             }
         }
     }
-
-    return matchResults;
 }
 
 /**
@@ -385,17 +364,9 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
  *                                 frameworks layer, we split an AVS PDO into two power profiles
  *                                 that cover the 9V-15V range and the 15V-20V range separately.
  */
-void handleAvsPowerProfileCreation(PowerProfile* profile,
-                                   std::vector<std::optional<PowerProfile>>* profiles) {
+void handleAvsPowerProfileCreation(PowerProfile* profile, std::vector<PowerProfile>* profiles) {
     PowerProfile newProfile;
     UsbPdSprAvs avsCurr, avsNew;
-
-    /* ----- Input Handling ----- */
-    if (!profiles || !profile) {
-        ALOGE("%s: provided PowerProfile or PowerProfile vector is not initialized", __func__);
-        return;
-    }
-    /* ----- */
 
     if ((*profile).getTag() != PowerProfile::sprAvsProfile) {
         return;
@@ -453,27 +424,15 @@ Bc12Type UsbPowerProfileMonitor::getBc12Type(string portName) {
  * @param portName          The id of port to populate Type-C PowerProfiles for
  * @param profiles          The PowerProfile vector to update
  */
-void UsbPowerProfileMonitor::populateTypecProfiles(
-        string portName, std::vector<std::optional<PowerProfile>>* profiles) {
+void UsbPowerProfileMonitor::populateTypecProfiles(string portName,
+                                                   std::vector<PowerProfile>* profiles) {
     bool pdSupported = false;
     UsbPdFixed profileFixed;
     int maxCurrentMa = 0;
 
-    /* ----- Input Handling ----- */
-    if (!profiles) {
-        ALOGE("%s: provided PowerProfile vector is not initialized", __func__);
-        return;
-    }
-    /* ----- */
-
-    for (std::optional<PowerProfile> profile : *profiles) {
-        if (!profile.has_value()) {
-            ALOGE("%s: provided PowerProfile is not initialized", __func__);
-            continue;
-        }
-
-        if (profile->getTag() == PowerProfile::fixedProfile) {
-            profileFixed = profile->get<PowerProfile::fixedProfile>();
+    for (PowerProfile profile : (*profiles)) {
+        if (profile.getTag() == PowerProfile::fixedProfile) {
+            profileFixed = profile.get<PowerProfile::fixedProfile>();
             if (profileFixed.voltageMv == 5000) {
                 pdSupported = true;
                 maxCurrentMa = profileFixed.maxCurrentMa;
@@ -513,10 +472,12 @@ void UsbPowerProfileMonitor::populateTypecProfiles(
  * populatePowerProfiles - populates profiles with PowerProfile objects for a given port
  *
  * @param portName          The id of port to populate PowerProfiles for
+ * @param profiles          The PowerProfile vector to update
  * @param profileType       Describes which PortStatus field is provided in @profiles
  */
-std::vector<std::optional<PowerProfile>> UsbPowerProfileMonitor::populatePowerProfiles(
-        string portName, ProfileType profileType) {
+void UsbPowerProfileMonitor::populatePowerProfiles(string portName,
+                                                   std::vector<PowerProfile>* profiles,
+                                                   ProfileType profileType) {
     UsbPortInfo portInfo = mUsbPortInfo[portName];
     DIR* dirCaps;
     string pathCaps, pathPd, namePd, nameDt, strCaps;
@@ -525,7 +486,6 @@ std::vector<std::optional<PowerProfile>> UsbPowerProfileMonitor::populatePowerPr
     std::smatch matches;
     PowerProfile profile, profileExtra;
     bool isSink = false;
-    std::vector<std::optional<PowerProfile>> profiles = {};
 
     switch (profileType) {
         case ProfileType::PORT_SINK:
@@ -561,7 +521,7 @@ std::vector<std::optional<PowerProfile>> UsbPowerProfileMonitor::populatePowerPr
     dirCaps = opendir(pathCaps.c_str());
     if (!dirCaps) {
         ALOGE("%s: couldn't open %s", __func__, pathCaps.c_str());
-        return profiles;
+        return;
     }
     while ((ep = readdir(dirCaps))) {
         if (ep->d_type == DT_DIR) {
@@ -569,17 +529,16 @@ std::vector<std::optional<PowerProfile>> UsbPowerProfileMonitor::populatePowerPr
             if (std::regex_search(nameDt, matches, pattern) && matches.size() == 2) {
                 pathPd = pathCaps + nameDt + "/";
                 profile = createPowerProfile(pathPd, matches[1].str(), isSink);
-                handleAvsPowerProfileCreation(&profile, &profiles);
+                handleAvsPowerProfileCreation(&profile, profiles);
                 ALOGI("adding profile %s", profile.toString().c_str());
-                profiles.push_back(profile);
+                (*profiles).push_back(profile);
             }
         }
     }
     closedir(dirCaps);
 
 populate_typec:
-    populateTypecProfiles(portName, &profiles);
-    return profiles;
+    populateTypecProfiles(portName, profiles);
 }
 
 /**
@@ -590,12 +549,6 @@ populate_typec:
  */
 void UsbPowerProfileMonitor::updatePowerProfiles(string portName, PortStatus* portStatus) {
     string pathUsbpd;
-    std::vector<std::optional<PowerProfile>> sinkPowerProfiles;
-    std::vector<std::optional<PowerProfile>> sourcePowerProfiles;
-    std::vector<std::optional<PowerProfile>> partnerSinkPowerProfiles;
-    std::vector<std::optional<PowerProfile>> partnerSourcePowerProfiles;
-    std::vector<std::optional<PowerProfileMatchResult>> sinkMatchResults;
-    std::vector<std::optional<PowerProfileMatchResult>> sourceMatchResults;
 
     if (!mSupportsPowerProfiles) {
         return;
@@ -611,25 +564,22 @@ void UsbPowerProfileMonitor::updatePowerProfiles(string portName, PortStatus* po
 
     /* Populate local port sink power profiles */
     ALOGI("%s: populating local port sink power profiles", __func__);
-    sinkPowerProfiles = populatePowerProfiles(portName, PORT_SINK);
+    populatePowerProfiles(portName, &portStatus->sinkPowerProfiles, PORT_SINK);
     ALOGI("%s: populating local port source power profiles", __func__);
-    sourcePowerProfiles = populatePowerProfiles(portName, PORT_SOURCE);
+    populatePowerProfiles(portName, &portStatus->sourcePowerProfiles, PORT_SOURCE);
     ALOGI("%s: populating partner port sink power profiles", __func__);
-    partnerSinkPowerProfiles = populatePowerProfiles(portName, PARTNER_SINK);
+    populatePowerProfiles(portName, &portStatus->partnerStatus->sinkPowerProfiles, PARTNER_SINK);
     ALOGI("%s: populating partner port source power profiles", __func__);
-    partnerSourcePowerProfiles = populatePowerProfiles(portName, PARTNER_SOURCE);
+    populatePowerProfiles(portName, &portStatus->partnerStatus->sourcePowerProfiles,
+                          PARTNER_SOURCE);
 
     /* Perform Matching */
-    sinkMatchResults = matchPowerProfiles(sinkPowerProfiles, partnerSourcePowerProfiles, PORT_SINK);
-    sourceMatchResults =
-            matchPowerProfiles(sourcePowerProfiles, partnerSinkPowerProfiles, PORT_SOURCE);
-
-    (*portStatus).sinkPowerProfiles = sinkPowerProfiles;
-    (*portStatus).sourcePowerProfiles = sourcePowerProfiles;
-    (*portStatus).partnerStatus->sinkPowerProfiles = partnerSinkPowerProfiles;
-    (*portStatus).partnerStatus->sourcePowerProfiles = partnerSourcePowerProfiles;
-    (*portStatus).sinkMatchResults = sinkMatchResults;
-    (*portStatus).sourceMatchResults = sourceMatchResults;
+    matchPowerProfiles(portStatus->sinkPowerProfiles,
+                       portStatus->partnerStatus->sourcePowerProfiles,
+                       &portStatus->sinkMatchResults, PORT_SINK);
+    matchPowerProfiles(portStatus->sourcePowerProfiles,
+                       portStatus->partnerStatus->sinkPowerProfiles,
+                       &portStatus->sourceMatchResults, PORT_SOURCE);
 }
 
 UsbPowerProfileMonitor::UsbPowerProfileMonitor(bool supportsPartnerBc12Reporting,
