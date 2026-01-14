@@ -62,6 +62,7 @@ interface IGnssCallback {
   const int CAPABILITY_SATELLITE_PVT = (1 << 13) /* 8192 */;
   const int CAPABILITY_MEASUREMENT_CORRECTIONS_FOR_DRIVING = (1 << 14) /* 16384 */;
   const int CAPABILITY_ACCUMULATED_DELTA_RANGE = (1 << 15) /* 32768 */;
+  const int CAPABILITY_ENGINE_RESTART_AFTER_POWER_MODE_CHANGE = (1 << 16) /* 65536 */;
   @Backing(type="int") @VintfStability
   enum GnssStatusValue {
     NONE = 0,

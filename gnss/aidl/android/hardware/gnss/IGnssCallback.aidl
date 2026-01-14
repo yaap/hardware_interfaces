@@ -93,6 +93,13 @@ interface IGnssCallback {
     const int CAPABILITY_ACCUMULATED_DELTA_RANGE = 1 << 15;
 
     /**
+     * Capability bit mask indicating that the GNSS engine will restart if the
+     * user requests a power mode change (e.g., changing from duty cycling mode
+     * to full tracking mode)
+     */
+    const int CAPABILITY_ENGINE_RESTART_AFTER_POWER_MODE_CHANGE = 1 << 16;
+
+    /**
      * Callback to inform framework of the GNSS HAL implementation's capabilities.
      *
      * @param capabilities Capability parameter is a bit field of the Capability bit masks.
