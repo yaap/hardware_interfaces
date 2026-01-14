@@ -478,6 +478,10 @@ void HciRouterImpl::Close() {
 void HciRouterImpl::Cleanup() {
   is_cleaning_up_ = true;
 
+#ifndef UNIT_TEST
+  AsyncChipProvisioner::GetProvisioner().Stop();
+#endif
+
   std::scoped_lock<std::recursive_mutex> lock(mutex_);
   HAL_LOG(INFO) << "Shutting down the HciRouter";
 

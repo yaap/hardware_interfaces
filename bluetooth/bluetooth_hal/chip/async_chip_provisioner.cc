@@ -95,6 +95,12 @@ void AsyncChipProvisioner::PostResetFirmware() {
   worker_.Post(ChipProvisionMessage::CreateResetFirmware());
 }
 
+void AsyncChipProvisioner::Stop() {
+  if (chip_provisioner_) {
+    chip_provisioner_->Stop();
+  }
+}
+
 void AsyncChipProvisioner::ProcessMessage(ChipProvisionMessage message) {
   LOG(DEBUG) << __func__
              << ": Message type: " << MessageTypeToString(message.type);

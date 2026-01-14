@@ -102,20 +102,29 @@ void ChipProvisioner::Initialize(
   on_hal_state_update_ = std::move(on_hal_state_update);
 }
 
+void ChipProvisioner::Stop() {
+  stop_requested_.store(true);
+}
+
 bool ChipProvisioner::DownloadFirmware() {
   LOG(INFO) << __func__;
+  stop_requested_.store(false);
 
   UpdateHalState(HalState::kPreFirmwareDownload);
   state_ = ProvisioningState::kInitialReset;
   RunProvisioningSequence();
 
-  if (state_ != ProvisioningState::kDone) {
-    // TODO: b/372148907 - Need to report error (kill self if needed).
+  if (state_ != ProvisioningState::kDone && !stop_requested_.load()) {
     LOG(FATAL) << __func__
                << ": Failed to complete download firmware. Final state: "
                << static_cast<int>(state_);
+  } else {
+    LOG(ERROR) << __func__
+               << ": Firmware download stopped. Final state: "
+               << static_cast<int>(state_);
     return false;
   }
+
   LOG(INFO) << __func__ << ": Firmware download completed successfully.";
   return true;
 }
@@ -183,7 +192,7 @@ bool ChipProvisioner::SendCommandAndWait(const HalPacket& packet) {
     return false;
   }
   command_promise_ = std::promise<void>();
-  return firmware_command_success_;
+  return firmware_command_success_ && !stop_requested_.load();
 }
 
 void ChipProvisioner::OnCommandCallback(const HalPacket& callback_event) {
@@ -365,7 +374,7 @@ bool ChipProvisioner::SendCommandNoAck(const HalPacket& packet) {
  */
 void ChipProvisioner::RunProvisioningSequence() {
   bool running = true;
-  while (running) {
+  while (running && !stop_requested_.load()) {
     LOG(INFO) << __func__ << ": Executing provisioning state: "
               << ProvisioningStateToString(state_) << " ("
               << static_cast<int>(state_) << ")";
@@ -507,6 +516,9 @@ bool ChipProvisioner::WriteFwPatchramPacket() {
   std::optional<DataPacket> data_packet;
   size_t files_completed = 0;
   while ((data_packet = config_loader_.GetNextFirmwareData()).has_value()) {
+    if (stop_requested_.load()) {
+      return false;
+    }
     if (data_packet->GetDataType() == config::DataType::kDataFragment) {
       if (!SendCommandNoAck(data_packet->GetPayload())) {
         LOG(ERROR) << __func__ << ": Failed to send firmware data fragment.";
