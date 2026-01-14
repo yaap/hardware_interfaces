@@ -675,8 +675,6 @@ class BluetoothAudioProviderFactoryAidl
       SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
       SessionType::A2DP_SOFTWARE_DECODING_DATAPATH,
       SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH,
-      SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
-      SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH,
   };
 
   static constexpr SessionType kAndroidVSessionType[] = {
@@ -687,6 +685,8 @@ class BluetoothAudioProviderFactoryAidl
   static constexpr SessionType kAndroidVISessionType[] = {
       SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH,
       SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH,
+      SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH,
+      SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH,
   };
 
   BluetoothAudioHalVersion GetProviderFactoryInterfaceVersion() {
@@ -755,13 +755,16 @@ TEST_P(BluetoothAudioProviderFactoryAidl,
   if (GetProviderFactoryInterfaceVersion() >=
       BluetoothAudioHalVersion::VERSION_AIDL_V6) {
     for (auto session_type : kAndroidVISessionType) {
-      // getProviderCapability is not supported by peripheral sessions
+      if (session_type == SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH) {
+        continue;
+      }
+      // getProviderCapability is not supported by peripheral and
+      // broadcast decoding offload sessions
       auto aidl_retval = provider_factory_->getProviderCapabilities(
           session_type, &temp_provider_capabilities_);
       ASSERT_EQ(aidl_retval.getExceptionCode(), EX_UNSUPPORTED_OPERATION);
       OpenProviderHelper(session_type);
-      EXPECT_TRUE(temp_provider_capabilities_.empty() ||
-                  audio_provider_ != nullptr);
+      EXPECT_TRUE(temp_provider_capabilities_.empty() || audio_provider_ != nullptr);
     }
   }
 }
@@ -4512,6 +4515,10 @@ class BluetoothAudioProviderLeAudioBroadcastInputSoftwareAidl
     : public BluetoothAudioProviderFactoryAidl {
  public:
   virtual void SetUp() override {
+    if (GetProviderFactoryInterfaceVersion() <
+        BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+      GTEST_SKIP() << "Skipping: LE Audio broadcast sink requires AIDL V6+";
+    }
     BluetoothAudioProviderFactoryAidl::SetUp();
     GetProviderCapabilitiesHelper(
         SessionType::LE_AUDIO_BROADCAST_SOFTWARE_DECODING_DATAPATH);
@@ -5044,6 +5051,10 @@ class BluetoothAudioProviderLeAudioBroadcastInputHardwareAidl
     : public BluetoothAudioProviderLeAudioBroadcastOutputHardwareAidl {
  public:
   virtual void SetUp() override {
+    if (GetProviderFactoryInterfaceVersion() <
+        BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+      GTEST_SKIP() << "Skipping: LE Audio broadcast sink requires AIDL V6+";
+    }
     BluetoothAudioProviderFactoryAidl::SetUp();
     GetProviderInfoHelper(
         SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH);
@@ -5076,10 +5087,6 @@ TEST_P(BluetoothAudioProviderLeAudioBroadcastInputHardwareAidl,
 TEST_P(
     BluetoothAudioProviderLeAudioBroadcastInputHardwareAidl,
     StartAndEndLeAudioBroadcastSessionWithPossibleBroadcastConfigFromProviderInfo) {
-  if (GetProviderFactoryInterfaceVersion() <
-      BluetoothAudioHalVersion::VERSION_AIDL_V4) {
-    GTEST_SKIP();
-  }
   if (!IsBroadcastOffloadProviderInfoSupported()) {
     return;
   }
@@ -5427,6 +5434,10 @@ class BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl
     : public BluetoothAudioProviderFactoryAidl {
  public:
   virtual void SetUp() override {
+    if (GetProviderFactoryInterfaceVersion() <
+        BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+      GTEST_SKIP() << "Skipping: LE Audio peripheral requires AIDL V6+";
+    }
     BluetoothAudioProviderFactoryAidl::SetUp();
 
     // getProviderCapability is not supported by peripheral sessions
@@ -5471,11 +5482,6 @@ TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
 
 TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
        GetLeAudioPeripheralAseCodecConfigured) {
-  if (GetProviderFactoryInterfaceVersion() <
-      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
-    GTEST_SKIP();
-  }
-
   if (!IsUnicastPeripheralOffloadOutputProviderInfoSupported()) {
     GTEST_SKIP();
   }
@@ -5510,11 +5516,6 @@ TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
 
 TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
        GetLeAudioPeripheralVendorSpecificCapabilities) {
-  if (GetProviderFactoryInterfaceVersion() <
-      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
-    GTEST_SKIP();
-  }
-
   if (!IsUnicastPeripheralOffloadOutputProviderInfoSupported()) {
     GTEST_SKIP();
   }
@@ -5545,11 +5546,6 @@ TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
  */
 TEST_P(BluetoothAudioProviderLeAudioPeripheralOutputOffloadAidl,
        LeAudioPeripheralCapabilities_AreUnique_SortMethod) {
-  if (GetProviderFactoryInterfaceVersion() <
-      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
-    GTEST_SKIP();
-  }
-
   if (!IsUnicastPeripheralOffloadOutputProviderInfoSupported()) {
     GTEST_SKIP();
   }
@@ -5595,6 +5591,10 @@ class BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl
     : public BluetoothAudioProviderFactoryAidl {
  public:
   virtual void SetUp() override {
+    if (GetProviderFactoryInterfaceVersion() <
+        BluetoothAudioHalVersion::VERSION_AIDL_V6) {
+      GTEST_SKIP() << "Skipping: LE Audio peripheral requires AIDL V6+";
+    }
     BluetoothAudioProviderFactoryAidl::SetUp();
 
     // getProviderCapability is not supported by peripheral sessions
@@ -5635,11 +5635,6 @@ class BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl
  */
 TEST_P(BluetoothAudioProviderLeAudioPeripheralInputOffloadAidl,
        LeAudioPeripheralCapabilities_AreUnique_SortMethod) {
-  if (GetProviderFactoryInterfaceVersion() <
-      BluetoothAudioHalVersion::VERSION_AIDL_V6) {
-    GTEST_SKIP();
-  }
-
   if (!IsUnicastPeripheralOffloadInputProviderInfoSupported()) {
     GTEST_SKIP();
   }

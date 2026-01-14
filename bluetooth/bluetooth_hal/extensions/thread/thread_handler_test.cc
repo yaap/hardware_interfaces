@@ -73,5 +73,44 @@ TEST_F(ThreadHandlerTest, IsSameHandler) {
   EXPECT_EQ(&ThreadHandler::GetHandler(), &ThreadHandler::GetHandler());
 }
 
+TEST_F(ThreadHandlerTest, CleanupResetsHandler) {
+  // Initialize the handler and verify it's running.
+  ThreadHandler::Initialize();
+  EXPECT_TRUE(ThreadHandler::IsHandlerRunning());
+
+  // Cleanup the handler.
+  ThreadHandler::Cleanup();
+
+  // Verify the handler is no longer running.
+  EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
+
+  // Verify that getting the handler now results in a fatal error.
+  EXPECT_DEATH(ThreadHandler::GetHandler(), "");
+}
+
+TEST_F(ThreadHandlerTest, InitializeIsIdempotent) {
+  // First initialization.
+  ThreadHandler::Initialize();
+  auto* handler1 = &ThreadHandler::GetHandler();
+
+  // Second initialization should not create a new instance.
+  ThreadHandler::Initialize();
+  auto* handler2 = &ThreadHandler::GetHandler();
+
+  // The handler instance should be the same.
+  EXPECT_EQ(handler1, handler2);
+}
+
+TEST_F(ThreadHandlerTest, CleanupIsSafeWhenNotInitialized) {
+  // Verify handler is not running initially.
+  EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
+
+  // Calling Cleanup on a non-existent handler should be a safe no-op.
+  ASSERT_NO_FATAL_FAILURE(ThreadHandler::Cleanup());
+
+  // Verify handler is still not running.
+  EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
+}
+
 }  // namespace
 }  // namespace bluetooth_hal::thread

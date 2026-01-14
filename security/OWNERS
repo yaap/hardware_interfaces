@@ -2,13 +2,14 @@
 
 # Please assign all bugs related to /hardware/interfaces/security/ to the team alias:
 #
-#    android-hardware-security@google.com
+#    hwtrust@google.com
 #
 # This will get them auto-assigned to the on-call triage engineer, ensuring quickest response.
 
 ascull@google.com
+cvlasov@google.com
 drysdale@google.com
 hasinitg@google.com
 jbires@google.com
+kwadhera@google.com
 sethmo@google.com
-zeuthen@google.com
