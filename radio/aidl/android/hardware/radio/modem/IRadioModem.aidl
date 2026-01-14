@@ -86,6 +86,7 @@ oneway interface IRadioModem {
      * Response function is IRadioModemResponse.getHardwareConfigResponse()
      *
      * This is available when android.hardware.telephony is defined.
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void getHardwareConfig(in int serial);
 

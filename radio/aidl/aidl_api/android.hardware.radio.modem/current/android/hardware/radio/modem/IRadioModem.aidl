@@ -41,6 +41,9 @@ interface IRadioModem {
    * @deprecated use getImei(int serial)
    */
   oneway void getDeviceIdentity(in int serial);
+  /**
+   * @deprecated Android Telephony framework doesn't use this.
+   */
   oneway void getHardwareConfig(in int serial);
   oneway void getModemActivityInfo(in int serial);
   oneway void getModemStackStatus(in int serial);
