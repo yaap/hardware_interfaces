@@ -17,8 +17,8 @@ cc_test {
         "libutils",
     ],
     static_libs: [
-        "android.hardware.bluetooth.socket-V1-ndk",
-        "android.hardware.contexthub-V4-ndk",
+        "android.hardware.bluetooth.socket-V2-ndk",
+        "android.hardware.contexthub-V5-ndk",
     ],
     test_suites: [
         "general-tests",

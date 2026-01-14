@@ -2,14 +2,13 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-cc_library_static {
-    name: "android.hardware.bluetooth.socket-impl",
+cc_defaults {
+    name: "android.hardware.bluetooth.socket-impl-defaults",
     vendor: true,
     srcs: [
         "BluetoothSocket.cpp",
     ],
     shared_libs: [
-        "android.hardware.bluetooth.socket-V1-ndk",
         "libbase",
         "libbinder_ndk",
         "libhidlbase",
@@ -17,6 +16,22 @@ cc_library_static {
         "liblog",
     ],
     export_include_dirs: ["."],
+}
+
+cc_library_static {
+    name: "android.hardware.bluetooth.socket-V1-impl",
+    defaults: ["android.hardware.bluetooth.socket-impl-defaults"],
+    shared_libs: [
+        "android.hardware.bluetooth.socket-V1-ndk",
+    ],
+}
+
+cc_library_static {
+    name: "android.hardware.bluetooth.socket-V2-impl",
+    defaults: ["android.hardware.bluetooth.socket-impl-defaults"],
+    shared_libs: [
+        "android.hardware.bluetooth.socket-V2-ndk",
+    ],
 }
 
 cc_fuzz {
@@ -31,7 +46,7 @@ cc_fuzz {
         "liblog",
     ],
     static_libs: [
-        "android.hardware.bluetooth.socket-impl",
+        "android.hardware.bluetooth.socket-V1-impl",
         "android.hardware.bluetooth.socket-V1-ndk",
         "android.hardware.contexthub-V4-ndk",
     ],
