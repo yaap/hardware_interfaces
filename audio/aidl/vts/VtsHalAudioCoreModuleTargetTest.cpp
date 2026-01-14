@@ -5632,12 +5632,14 @@ class AudioStreamIo : public AudioCoreModuleBase,
                                       AudioOutputFlags::COMPRESS_OFFLOAD);
             const bool isCompressOffload =
                     isOffload && portConfig.format.value().type == AudioFormatType::NON_PCM;
+            const bool isMmap = hasMmapFlag(portConfig.flags.value());
             if (auto streamType =
                         std::get<NAMED_CMD_STREAM_TYPE>(std::get<PARAM_CMD_SEQ>(GetParam()));
                 (isNonBlocking && streamType == StreamTypeFilter::SYNC) ||
                 (!isNonBlocking && streamType == StreamTypeFilter::ASYNC) ||
                 (!isOffload && (streamType == StreamTypeFilter::OFFLOAD ||
-                                streamType == StreamTypeFilter::PCM_OFFLOAD))) {
+                                streamType == StreamTypeFilter::PCM_OFFLOAD)) ||
+                (isMmap && streamType == StreamTypeFilter::PCM_OFFLOAD)) {
                 continue;
             }
             const auto configBase = AudioConfigBase{portConfig.sampleRate->value,
