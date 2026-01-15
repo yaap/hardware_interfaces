@@ -16,26 +16,26 @@
 
 package android.hardware.contexthub;
 
-import android.hardware.contexthub.DataFlowNotificationFds;
+import android.hardware.contexthub.DataFlowAlertFds;
 import android.hardware.contexthub.SharedDataRegion;
 import android.os.ParcelFileDescriptor;
 
-/** Contains the core data flow information common to both producer and consumer endpoints. */
+/** Contains the core data flow information common to both source and sink endpoints. */
 @VintfStability
 parcelable DataFlowInfo {
     /**
-     * The primary shared data region. Contains the producer descriptor and data storage. May also
-     * contain consumer descriptors, see {@link DataFlowConsumer}. When sending to the HAL, the
-     * client must set the region id and set the other fields to null. When sending to clients, the
-     * HAL must populate all fields.
+     * The primary shared data region. Contains the source metadata and data storage. May also
+     * contain sink metadata, see {@link DataFlowSinkContext}. When sending to the HAL, the
+     * client must only set the region id, leaving the other fields null. When sending to clients,
+     * the HAL must populate all fields.
      */
     SharedDataRegion region;
 
     /** The offset in bytes from the start of the region to the data flow's metadata. */
     long metadataOffsetBytes;
 
-    /** The eventfds used to propagate notifications from consumers to the producer. */
-    DataFlowNotificationFds notificationFds;
+    /** The eventfds used to propagate alerts from sinks to the source. */
+    DataFlowAlertFds alertFds;
 
     /** A brief human-readable identifier for this data flow. Must only be used for debugging. */
     String debugName;

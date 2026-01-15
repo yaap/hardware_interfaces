@@ -91,6 +91,11 @@ class ChipProvisioner : public ChipProvisionerInterface,
    */
   bool ResetFirmware() override;
 
+  /**
+   * @brief Stops any ongoing chip provisioning activity.
+   */
+  void Stop() override;
+
  protected:
   // HciRouterClient overrides.
   void OnCommandCallback(
@@ -126,6 +131,7 @@ class ChipProvisioner : public ChipProvisionerInterface,
   std::promise<void> command_promise_;
   bool firmware_command_success_;
   ProvisioningState state_{ProvisioningState::kIdle};
+  std::atomic_bool stop_requested_{false};
 };
 
 }  // namespace bluetooth_hal::chip

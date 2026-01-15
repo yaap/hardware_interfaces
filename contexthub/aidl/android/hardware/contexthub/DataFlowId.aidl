@@ -19,7 +19,7 @@ package android.hardware.contexthub;
 /** A unique identifier for a data flow. */
 @VintfStability
 parcelable DataFlowId {
-    /** The id of the message hub that this data flow's producer is associated with. */
+    /** The id of the message hub that this data flow's source is associated with. */
     long hubId;
 
     /** The id of the data flow, scoped to hubId. */

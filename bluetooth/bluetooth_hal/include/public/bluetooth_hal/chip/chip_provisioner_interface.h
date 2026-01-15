@@ -70,6 +70,11 @@ class ChipProvisionerInterface
    * @return True if firmware reset is successful, false otherwise.
    */
   virtual bool ResetFirmware() = 0;
+
+  /**
+   * @brief Stops any ongoing chip provisioning activity.
+   */
+  virtual void Stop() = 0;
 };
 
 }  // namespace bluetooth_hal::chip
