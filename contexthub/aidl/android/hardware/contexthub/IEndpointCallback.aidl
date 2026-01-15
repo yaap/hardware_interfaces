@@ -132,9 +132,9 @@ oneway interface IEndpointCallback {
      * Callback indicating that an offload endpoint has stopped accessing a data flow. This will
      * only notify a host endpoint that has not unregistered the data flow yet via
      * IEndpointCommunication::unregisterDataFlowHostSource() or
-     * IEndpointCommunication::unregisterDataFlowHostSink(). The HAL will not call this callback
-     * in the case that the offload endpoint crashed, as that is already communicated via
-     * onEndpointStopped().
+     * IEndpointCommunication::unregisterDataFlowHostSink(). It will be called both in the case that
+     * the offload endpoint crashed and when the endpoint intentionally stops accessing the data
+     * flow.
      *
      * This callback is required to handle the case that an endpoint on the other side of the data
      * flow has not correctly updated metadata in the shared data region(s) and notified the host
