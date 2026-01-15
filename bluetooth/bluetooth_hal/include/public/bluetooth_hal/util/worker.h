@@ -102,6 +102,8 @@ class Worker {
     return message_queue_.size();
   }
 
+  std::thread::id GetThreadId() { return worker_thread_.get_id(); }
+
  private:
   void RunWorkerLoop() {
     while (running_) {

@@ -49,7 +49,7 @@ class HciRouterAsync : public ::bluetooth_hal::util::Worker<RouterTask> {
   virtual bool SynchronousDoInRouterThread(std::function<void()> task);
   virtual ::bluetooth_hal::HalState GetHalState();
 
-  // Internal handlers meant to be called by the worker thread
+  // Internal handlers meant to be called by the router thread
   virtual bool InitializeModules(
       ::bluetooth_hal::transport::TransportInterfaceCallback*
           transport_callback);

@@ -25,6 +25,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "bluetooth_hal/chip/async_chip_provisioner.h"
@@ -114,6 +115,12 @@ bool HciRouterAsync::DoInRouterThread(std::function<void()> task) {
 }
 
 bool HciRouterAsync::SynchronousDoInRouterThread(std::function<void()> task) {
+  if (std::this_thread::get_id() == Worker::GetThreadId()) {
+    // If the caller thread is the router thread, run the task directly.
+    task();
+    return true;
+  }
+
   std::promise<void> promise;
   auto future = promise.get_future();
   bool status = DoInRouterThread([&promise, task = std::move(task)]() {

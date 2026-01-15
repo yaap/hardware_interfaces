@@ -141,6 +141,18 @@ TEST_F(HciRouterAsyncTest, SynchronousDoInRouterThread) {
   EXPECT_TRUE(task_executed);
 }
 
+TEST_F(HciRouterAsyncTest, SynchronousDoInRouterThreadFromRouterThread) {
+  std::promise<void> promise;
+  auto future = promise.get_future();
+
+  bool result = router_->DoInRouterThread([this, &promise]() {
+    router_->SynchronousDoInRouterThread([&promise]() { promise.set_value(); });
+  });
+  EXPECT_TRUE(result);
+  EXPECT_EQ(future.wait_for(std::chrono::seconds(1)),
+            std::future_status::ready);
+}
+
 TEST_F(HciRouterAsyncTest, SendAclData) {
   HalPacket acl_data({0x01, 0x02, 0x03});
   acl_data.SetSource(PacketSource::kStack);
