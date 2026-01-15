@@ -475,7 +475,7 @@ class StreamCommonDelegator : public BnStreamCommon {
         return delegate != nullptr ? delegate->removeEffect(in_effect)
                                    : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
-    ndk::ScopedAStatus createMmapBuffer(MmapBufferDescriptor* _aidl_return) {
+    ndk::ScopedAStatus createMmapBuffer(MmapBufferDescriptor* _aidl_return) override {
         auto delegate = mDelegate.lock();
         return delegate != nullptr ? delegate->createMmapBuffer(_aidl_return)
                                    : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
