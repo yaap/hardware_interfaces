@@ -40,6 +40,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
+#include "bluetooth_hal/hci_router_interface.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
@@ -747,8 +748,13 @@ void HciRouterImpl::OnTransportClosed() {
 }
 
 HciRouter& HciRouter::GetRouter() {
-  static HciRouterImpl router;
-  return router;
+  if (hal_flags::async_hci_router()) {
+    static HciRouterInterface router;
+    return router;
+  } else {
+    static HciRouterImpl router;
+    return router;
+  }
 }
 
 }  // namespace bluetooth_hal::hci

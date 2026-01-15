@@ -78,6 +78,8 @@ class HciRouterTest : public Test {
   static void SetUpTestSuite() {}
 
   void SetUp() override {
+    set_com_android_bluetooth_bluetooth_hal_flags_async_hci_router(false);
+
     MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
     fake_hci_callback_ = std::make_shared<FakeHciRouterCallback>();
 

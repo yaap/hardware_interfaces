@@ -43,6 +43,7 @@ enum class AnchorType : uint8_t {
   kRouterInitialize,
   kTxTask,
   kRxTask,
+  kRouterTask,
 
   // Thread
   kThreadAcceptClient,
