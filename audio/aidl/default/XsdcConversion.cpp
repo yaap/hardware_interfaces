@@ -286,7 +286,14 @@ ConversionResult<int> convertGainModeToAidl(const std::vector<ap_xsd::AudioGainM
             gainModeMask |= static_cast<int>(legacyGainMode);
         }
     }
-    return gainModeMask;
+    ConversionResult<int> result = legacy2aidl_audio_gain_mode_t_int32_t_mask(
+            static_cast<audio_gain_mode_t>(gainModeMask));
+    if (!result.ok()) {
+        LOG(ERROR) << __func__ << " Review Audio Policy config, " << gainModeMask
+                   << " has invalid gain mode(s).";
+        return unexpected(BAD_VALUE);
+    }
+    return result;
 }
 
 ConversionResult<AudioChannelLayout> convertChannelMaskToAidl(
