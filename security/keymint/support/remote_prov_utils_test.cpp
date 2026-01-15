@@ -978,7 +978,7 @@ TEST(RemoteProvUtilsTest, allowDegenerateDiceChainWhenDegenerate) {
 
     const auto keysToSign = keysToSignPtr->asArray();
     auto csr = verifyFactoryCsr(*keysToSign, kCsrWithDegenerateDiceChain, kRpcHardwareInfo,
-                                DEFAULT_INSTANCE_NAME, kChallenge,
+                                DEFAULT_INSTANCE_NAME, kChallenge, /*strict=*/true,
                                 /*allowDegenerate=*/true, /*requireUdsCerts=*/false);
     ASSERT_TRUE(csr) << csr.message();
 }
@@ -989,7 +989,7 @@ TEST(RemoteProvUtilsTest, disallowDegenerateDiceChainWhenDegenerate) {
 
     const auto keysToSign = keysToSignPtr->asArray();
     auto csr = verifyFactoryCsr(*keysToSign, kCsrWithDegenerateDiceChain, kRpcHardwareInfo,
-                                DEFAULT_INSTANCE_NAME, kChallenge,
+                                DEFAULT_INSTANCE_NAME, kChallenge, /*strict=*/false,
                                 /*allowDegenerate=*/false, /*requireUdsCerts=*/false);
     ASSERT_FALSE(csr);
     ASSERT_THAT(csr.message(), testing::HasSubstr(kErrorDiceChainIsDegenerate));
@@ -1001,7 +1001,7 @@ TEST(RemoteProvUtilsTest, requireUdsCertsWhenPresent) {
 
     const auto keysToSign = keysToSignPtr->asArray();
     auto csr = verifyFactoryCsr(*keysToSign, kCsrWithUdsCerts, kRpcHardwareInfo,
-                                DEFAULT_INSTANCE_NAME, kChallenge,
+                                DEFAULT_INSTANCE_NAME, kChallenge, /*strict=*/false,
                                 /*allowDegenerate=*/false, /*requireUdsCerts=*/true);
     ASSERT_TRUE(csr) << csr.message();
 }
@@ -1012,15 +1012,15 @@ TEST(RemoteProvUtilsTest, dontRequireUdsCertsWhenPresent) {
 
     const auto* keysToSign = keysToSignPtr->asArray();
     auto csr = verifyFactoryCsr(*keysToSign, kCsrWithUdsCerts, kRpcHardwareInfo,
-                                DEFAULT_INSTANCE_NAME, kChallenge,
+                                DEFAULT_INSTANCE_NAME, kChallenge, /*strict=*/true,
                                 /*allowDegenerate=*/false, /*requireUdsCerts=*/false);
     ASSERT_TRUE(csr) << csr.message();
 }
 
 TEST(RemoteProvUtilsTest, requireUdsCertsWhenNotPresent) {
     auto csr = verifyFactoryCsr(/*keysToSign=*/Array(), kCsrWithoutUdsCerts, kRpcHardwareInfo,
-                                DEFAULT_INSTANCE_NAME, kChallenge, /*allowDegenerate=*/false,
-                                /*requireUdsCerts=*/true);
+                                DEFAULT_INSTANCE_NAME, kChallenge, /*strict=*/true,
+                                /*allowDegenerate=*/false, /*requireUdsCerts=*/true);
     ASSERT_FALSE(csr);
     ASSERT_THAT(csr.message(), testing::HasSubstr(kErrorUdsCertsAreRequired));
 }
@@ -1031,7 +1031,7 @@ TEST(RemoteProvUtilsTest, dontRequireUdsCertsWhenNotPresent) {
 
     const auto* keysToSign = keysToSignPtr->asArray();
     auto csr = verifyFactoryCsr(*keysToSign, kCsrWithoutUdsCerts, kRpcHardwareInfo,
-                                DEFAULT_INSTANCE_NAME, kChallenge,
+                                DEFAULT_INSTANCE_NAME, kChallenge, /*strict=*/false,
                                 /*allowDegenerate=*/false, /*requireUdsCerts=*/false);
     ASSERT_TRUE(csr) << csr.message();
 }
