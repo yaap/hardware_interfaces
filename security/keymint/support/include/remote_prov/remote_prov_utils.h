@@ -241,4 +241,8 @@ ErrMsgOr<std::vector<BccEntryData>> validateBcc(const cppbor::Array* bcc,
                                                 bool allowDegenerate,
                                                 const std::string& instanceName);
 
+/** Counts the number of trailing RKP VM markers at the end of the DICE chain. */
+ErrMsgOr<int> countTrailingRkpVmMarkersInCsr(const std::vector<uint8_t>& encodedCsr,
+                                             std::string_view instanceName);
+
 }  // namespace aidl::android::hardware::security::keymint::remote_prov
