@@ -40,6 +40,35 @@ struct BufferPoolData {
     ~BufferPoolData() {}
 };
 
+// A cached item to BufferPool
+//
+// A cached item to bufferpool is tied to a specific bufferpool buffer which
+// can be created via allocate or receive.
+// Type for a cached item is a type hint to the cached item type,
+// and it verifies if it is the proper derived type of BufferPoolCachedItem.
+// The life cycle of a cached item is same to the specific bufferpool buffer.
+// If the buffer is destroyed and not cached in the process, the cached items
+// will be also destroyed(invalidated).
+//
+// A cached item to bufferpool should inherit this struct.
+struct BufferPoolCachedItem {
+    virtual std::string getType() = 0;
+
+    virtual ~BufferPoolCachedItem() = default;
+};
+
+
+// A key to BufferPool cache update/retrieval
+//
+// BufferPool returns this key when a specific cache is enabled. A cache is
+// tied to a buffer which is obtained from a BufferPool connection.
+// The returned key is in the form of shared pointer. BufferPool checks
+// if the pointer is the same and the key value is the same when a cache
+// update/retrieval is requested.
+struct BufferPoolCacheKey {
+    int64_t key;
+};
+
 namespace implementation {
 
 using aidl::android::hardware::common::fmq::SynchronizedReadWrite;
