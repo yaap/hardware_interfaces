@@ -79,9 +79,16 @@ aidl_interface {
                 "android.hardware.common-V2",
             ],
         },
+        {
+            version: "7",
+            imports: [
+                "android.hardware.common.fmq-V1",
+                "android.hardware.common-V2",
+            ],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
     host_supported: true,
 }
 

@@ -48,12 +48,17 @@ aidl_interface {
             enabled: false,
         },
     },
-    frozen: false,
+    frozen: true,
     versions_with_info: [
         {
             version: "1",
             imports: ["android.hardware.contexthub-V4"],
         },
+        {
+            version: "2",
+            imports: ["android.hardware.contexthub-V5"],
+        },
+
     ],
 
 }

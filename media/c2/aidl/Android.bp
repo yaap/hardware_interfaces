@@ -57,7 +57,15 @@ aidl_interface {
                 "android.hardware.media.bufferpool2-V2",
             ],
         },
+        {
+            version: "2",
+            imports: [
+                "android.hardware.common-V2",
+                "android.hardware.media.bufferpool2-V2",
+            ],
+        },
+
     ],
-    frozen: false,
+    frozen: true,
 
 }
