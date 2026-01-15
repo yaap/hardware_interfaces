@@ -124,6 +124,6 @@ parcelable EndpointInfo {
         SharedDataRegion.Version version;
 
         /** Minimum major version the endpoint can interact with. */
-        int minimumCompatibleMajorVersion;
+        byte minimumCompatibleMajorVersion;
     }
 }

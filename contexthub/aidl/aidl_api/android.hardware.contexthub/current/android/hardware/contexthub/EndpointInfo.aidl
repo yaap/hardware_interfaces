@@ -53,6 +53,6 @@ parcelable EndpointInfo {
   @VintfStability
   parcelable SharedDataSupportVersion {
     android.hardware.contexthub.SharedDataRegion.Version version;
-    int minimumCompatibleMajorVersion;
+    byte minimumCompatibleMajorVersion;
   }
 }

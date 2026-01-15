@@ -38,62 +38,55 @@ parcelable SharedDataRegion {
   @nullable ParcelFileDescriptor sharedMemory;
   long sizeBytes;
   @nullable String[] permissions;
+  const int OFFSET_INVALID = 0xFFFFFFFF;
   @FixedSize @VintfStability
   parcelable DataFlowMetadata {
     android.hardware.contexthub.SharedDataRegion.Version version;
-    int producerDescOffsetBytes;
-    android.hardware.contexthub.SharedDataRegion.EndpointIdFixedSize producerId;
+    int sourceMetadataOffsetBytes;
+    android.hardware.contexthub.SharedDataRegion.EndpointIdFixedSize sourceId;
     int blockListEpoch;
-    int blockCapacity;
-    android.hardware.contexthub.SharedDataRegion.DataConfig dataConfig;
+    int blockCapacityBytes;
+    android.hardware.contexthub.SharedDataRegion.DataFlowElementConfig elementConfig;
     byte localNotify;
-    byte[7] reserved;
+    byte[11] reserved;
   }
   @FixedSize @VintfStability
-  parcelable DataConfig {
-    android.hardware.contexthub.SharedDataRegion.DataConfig.Type type;
-    byte[12] configRawBytes;
-    @Backing(type="int") @VintfStability
-    enum Type {
-      FIXED_SIZE = 0,
-      VARIABLE_SIZE_BASIC = 1,
-      VARIABLE_SIZE_ALIGNED = 2,
-    }
+  union DataFlowElementConfig {
+    android.hardware.contexthub.SharedDataRegion.DataFlowElementConfig.FixedSize fixedSize;
+    android.hardware.contexthub.SharedDataRegion.DataFlowElementConfig.VariableSize variableSize;
     @FixedSize @VintfStability
     parcelable FixedSize {
       int elementSizeBytes;
       char elementAlignmentBytes;
-      byte[6] reserved;
+      byte[2] reserved;
     }
     @FixedSize @VintfStability
-    parcelable VariableSizeAligned {
-      int headerSizeBytes;
-      char headerAlignmentBytes;
+    parcelable VariableSize {
       char elementAlignmentBytes;
-      byte[4] reserved;
+      byte[6] reserved;
     }
   }
   @FixedSize @VintfStability
-  parcelable ProducerDesc {
+  parcelable DataFlowSourceMetadata {
     int writeIndex;
     int indexCorrection;
     int tailBlockOffsetBytes;
     byte[12] reserved;
   }
   @FixedSize @VintfStability
-  parcelable ConsumerDesc {
+  parcelable DataFlowSinkMetadata {
     android.hardware.contexthub.SharedDataRegion.Version version;
     int readIndex;
     int indexCorrection;
-    int producerFlags;
+    int sourceFlags;
     android.hardware.contexthub.SharedDataRegion.EndpointIdFixedSize id;
-    int consumerFlags;
+    int sinkFlags;
     int initialHeadBlockOffsetBytes;
     int initialBlockListEpoch;
     boolean isOverwritable;
     byte[11] reserved;
     @Backing(type="int") @VintfStability
-    enum ProducerFlags {
+    enum SourceFlags {
       NONE = 0,
       PENDING_INIT = 1,
       BLOCKING = (1 << 1) /* 2 */,
@@ -102,27 +95,27 @@ parcelable SharedDataRegion {
       DISCONNECTED = (1 << 4) /* 16 */,
     }
     @Backing(type="int") @VintfStability
-    enum ConsumerFlags {
+    enum SinkFlags {
       CLEARED = 0,
       FINISHED = 1,
     }
   }
   @FixedSize @VintfStability
-  parcelable BlockHeader {
-    android.hardware.contexthub.SharedDataRegion.ProducerDesc producerDesc;
+  parcelable DataFlowBlockHeader {
+    android.hardware.contexthub.SharedDataRegion.DataFlowSourceMetadata sourceMetadata;
     int nextBlockOffsetBytes;
     int baseIndex;
     int skipIndex;
     byte[12] reserved;
   }
   @FixedSize @VintfStability
-  parcelable VariableSizeBlockHeader {
-    android.hardware.contexthub.SharedDataRegion.BlockHeader blockHeader;
+  parcelable DataFlowVariableSizeBlockHeader {
+    android.hardware.contexthub.SharedDataRegion.DataFlowBlockHeader blockHeader;
     int firstElementIndex;
     byte[12] reserved;
   }
   @FixedSize @VintfStability
-  parcelable VariableSizeDataBasicHeader {
+  parcelable DataFlowVariableSizeElementHeader {
     int sizeBytes;
   }
   @FixedSize @VintfStability
