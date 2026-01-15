@@ -220,6 +220,10 @@ ScopedAStatus ContextHub::getHubs(std::vector<HubInfo>* _aidl_return) {
 
     HubInfo hubInfo1 = {};
     hubInfo1.hubId = kMockVendorHubId;
+    SharedDataCapabilities capabilities = {
+            .dataFlowsSupported = true,
+    };
+    hubInfo1.sharedDataCapabilities = capabilities;
     hubInfo1.hubDetails =
             HubInfo::HubDetails::make<HubInfo::HubDetails::Tag::vendorHubInfo>(vendorHub);
 
@@ -997,11 +1001,13 @@ void ContextHub::HubInterface::createEchoDataFlow(
     params.context.metadataOffsetBytes = consDescOffsetRes.value();
     params.context.info = std::move(dfInfo);
     params.context.alertFds.halAck = ScopedFileDescriptor(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
-    params.sinkId = in_sinkId;
-    params.sourceId = hostSourceId;
+    // Note that the IDs are reversed, since we are now creating a source/sink pair in the
+    // opposite direction.
+    params.sinkId = hostSourceId;
+    params.sourceId = in_sinkId;
     params.sessionId = IEndpointCommunication::SESSION_ID_INVALID;
 
-    // Callback to send the consumer DataFlowConsumerHandle back to VTS.
+    // Callback to send the consumer DataFlowConsumerHandle back to the host.
     if (mEndpointCallback != nullptr) {
         mEndpointCallback->onDataFlowHostSinkRegistered(params);
         ALOGD("Echo: called onDataFlowHostSinkRegistered callback function");
@@ -1027,7 +1033,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
     // Starts thread for echo data flow
     // ========================================================================
 
-    ALOGE("Echo: starting echo thread");
+    ALOGI("Echo: starting echo thread");
     std::shared_ptr<HubInterface> lifebuoy = ref<HubInterface>();
     std::thread([this, lifebuoy, producerOpt = std::move(producerOpt),
                  consumerOpt = std::move(consumerOpt), notificationManager, waiterPtr, hostSourceId,
