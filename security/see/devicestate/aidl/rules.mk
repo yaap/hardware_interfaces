@@ -16,13 +16,13 @@
 
 LOCAL_DIR := $(GET_LOCAL_DIR)
 
-AIDL_DIR := $(LOCAL_DIR)
-
 MODULE := $(LOCAL_DIR)
 
-MODULE_AIDL_STABLE := false
+MODULE_AIDL_STABLE := true
 
 MODULE_AIDL_VERSION := 1
+
+AIDL_DIR := $(LOCAL_DIR)/aidl_api/android.hardware.security.see.devicestate/$(MODULE_AIDL_VERSION)
 
 # TODO(b/462054024): The build system does not attach the version flag
 # for unfrozen AIDLs, but VTS requires a valid version.
