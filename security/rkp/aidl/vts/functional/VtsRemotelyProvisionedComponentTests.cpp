@@ -219,16 +219,15 @@ class VtsRemotelyProvisionedComponentTests : public testing::TestWithParam<std::
         }
         ASSERT_NE(provisionable_, nullptr);
         auto status = provisionable_->getHardwareInfo(&rpcHardwareInfo);
-        isAvfInstance_ = GetParam() == AVF_INSTANCE_NAME;
-        if (isAvfInstance_) {
+        isRkpVmInstance_ = GetParam() == RKPVM_INSTANCE_NAME;
+        if (isRkpVmInstance_) {
             if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
-                GTEST_SKIP() << "AVF is not supported on this system.";
+                GTEST_SKIP() << "The RKP VM is not supported on this system.";
             }
             int vendorApiLevel = get_vendor_api_level();
             if (vendorApiLevel < __ANDROID_API_V__) {
-                GTEST_SKIP()
-                        << "AVF instance is supported only on vendor API level >= 202404. This "
-                        << "device has vendor API level: " << vendorApiLevel;
+                GTEST_SKIP() << "The RKP VM is supported only on vendor API level >= 202404. This "
+                             << "device has vendor API level: " << vendorApiLevel;
             }
         }
         ASSERT_TRUE(status.isOk());
@@ -242,7 +241,7 @@ class VtsRemotelyProvisionedComponentTests : public testing::TestWithParam<std::
   protected:
     std::shared_ptr<IRemotelyProvisionedComponent> provisionable_;
     RpcHardwareInfo rpcHardwareInfo;
-    bool isAvfInstance_;
+    bool isRkpVmInstance_;
 };
 
 /**
@@ -257,8 +256,8 @@ TEST(NonParameterizedTests, eachRpcHasAUniqueId) {
 
         RpcHardwareInfo hwInfo;
         auto status = rpc->getHardwareInfo(&hwInfo);
-        if (hal == AVF_INSTANCE_NAME && status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
-            GTEST_SKIP() << "AVF is not supported on this system.";
+        if (hal == RKPVM_INSTANCE_NAME && status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
+            GTEST_SKIP() << "The RKP VM is not supported on this system.";
         }
         ASSERT_TRUE(status.isOk());
 
@@ -312,27 +311,26 @@ TEST(NonParameterizedTests, requireDiceOnDefaultInstanceIfProtectedVmSupported) 
  * chain has the same root public key, i.e., the same UDS public key
  */
 // @VsrTest = 7.1-003.001
-TEST(NonParameterizedTests, equalUdsPubInDiceCertChainForAvfAndPrimaryKeyMintInstances) {
-    if (!AServiceManager_isDeclared(AVF_INSTANCE_NAME.c_str())) {
-        GTEST_SKIP() << "The AVF instance (" << AVF_INSTANCE_NAME
-                     << ") is not present on this device.";
+TEST(NonParameterizedTests, equalUdsPubInDiceCertChainForRkpVmAndPrimaryKeyMintInstances) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "The RKP VM (" << RKPVM_INSTANCE_NAME << ") is not present on this device.";
     }
 
-    auto avfRpc = getHandle<IRemotelyProvisionedComponent>(AVF_INSTANCE_NAME);
-    ASSERT_NE(avfRpc, nullptr) << "The AVF instance (" << AVF_INSTANCE_NAME
-                               << ") RPC is unavailable.";
+    auto rkpVmRpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rkpVmRpc, nullptr) << "The RKP VM (" << RKPVM_INSTANCE_NAME
+                                 << ") RPC is unavailable.";
 
     RpcHardwareInfo hardwareInfo;
-    auto status = avfRpc->getHardwareInfo(&hardwareInfo);
+    auto status = rkpVmRpc->getHardwareInfo(&hardwareInfo);
     if (!status.isOk()) {
-        GTEST_SKIP() << "AVF is not supported on this system.";
+        GTEST_SKIP() << "The RKP VM is not supported on this system.";
     }
 
-    bytevec avfChallenge = randomBytes(MAX_CHALLENGE_SIZE);
-    bytevec avfCsr;
-    auto avfStatus =
-            avfRpc->generateCertificateRequestV2({} /* keysToSign */, avfChallenge, &avfCsr);
-    ASSERT_TRUE(avfStatus.isOk()) << avfStatus.getDescription();
+    bytevec rkpVmChallenge = randomBytes(MAX_CHALLENGE_SIZE);
+    bytevec rkpVmCsr;
+    auto rkpVmStatus =
+            rkpVmRpc->generateCertificateRequestV2({} /* keysToSign */, rkpVmChallenge, &rkpVmCsr);
+    ASSERT_TRUE(rkpVmStatus.isOk()) << rkpVmStatus.getDescription();
 
     auto primaryKeyMintRpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
     ASSERT_NE(primaryKeyMintRpc, nullptr)
@@ -344,10 +342,10 @@ TEST(NonParameterizedTests, equalUdsPubInDiceCertChainForAvfAndPrimaryKeyMintIns
             {} /* keysToSign */, primaryKeyMintChallenge, &primaryKeyMintCsr);
     ASSERT_TRUE(primaryKeyMintStatus.isOk()) << primaryKeyMintStatus.getDescription();
 
-    auto equal = compareRootPublicKeysInDiceChains(avfCsr, AVF_INSTANCE_NAME, primaryKeyMintCsr,
+    auto equal = compareRootPublicKeysInDiceChains(rkpVmCsr, RKPVM_INSTANCE_NAME, primaryKeyMintCsr,
                                                    DEFAULT_INSTANCE_NAME);
     ASSERT_TRUE(equal) << equal.message();
-    ASSERT_TRUE(*equal) << "Primary KeyMint and AVF instance RPCs have different UDS public keys";
+    ASSERT_TRUE(*equal) << "Primary KeyMint and RKP VM RPCs have different UDS public keys";
 }
 
 /**
@@ -396,10 +394,10 @@ TEST(NonParameterizedTests, componentNameInConfigurationDescriptorForPrimaryKeyM
  * This test verifies the component name in the configuration descriptor of the
  * leaf certificate in the DICE chain for the AVF ("avf") instance.
  *
- * For AVF instance, a strict `== "rkp_vm"` check is enforced.
+ * For RKP VM (instance name "avf"), a strict `== "rkp_vm"` check is enforced.
  */
 TEST(NonParameterizedTests, leafComponentNameInDICEisValidForAvfInstance) {
-    if (!AServiceManager_isDeclared(AVF_INSTANCE_NAME.c_str())) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
         GTEST_SKIP() << "AVF is not present on this device.";
     }
 
@@ -413,17 +411,18 @@ TEST(NonParameterizedTests, leafComponentNameInDICEisValidForAvfInstance) {
         GTEST_SKIP() << "Protected VMs are not supported on this device.";
     }
 
-    auto avfRpc = getHandle<IRemotelyProvisionedComponent>(AVF_INSTANCE_NAME);
-    ASSERT_NE(avfRpc, nullptr);
+    auto rkpVmRpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rkpVmRpc, nullptr);
 
     bytevec challenge = randomBytes(64);
-    bytevec avfCsr;
-    auto avfStatus = avfRpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &avfCsr);
-    ASSERT_TRUE(avfStatus.isOk()) << avfStatus.getDescription();
+    bytevec rkpVmCsr;
+    auto rkpVmStatus =
+            rkpVmRpc->generateCertificateRequestV2({} /* keysToSign */, challenge, &rkpVmCsr);
+    ASSERT_TRUE(rkpVmStatus.isOk()) << rkpVmStatus.getDescription();
 
-    auto avfComponentName = getLeafComponentNameFromDiceChain(avfCsr, AVF_INSTANCE_NAME);
-    ASSERT_TRUE(avfComponentName) << avfComponentName.message();
-    EXPECT_EQ(*avfComponentName, "rkp_vm");
+    auto rkpVmComponentName = getLeafComponentNameFromDiceChain(rkpVmCsr, RKPVM_INSTANCE_NAME);
+    ASSERT_TRUE(rkpVmComponentName) << rkpVmComponentName.message();
+    EXPECT_EQ(*rkpVmComponentName, "rkp_vm");
 }
 
 /**
@@ -431,21 +430,21 @@ TEST(NonParameterizedTests, leafComponentNameInDICEisValidForAvfInstance) {
  * is not "green" if and only if the mode on at least one certificate in the DICE chain
  * is non-normal.
  */
-TEST(NonParameterizedTests, unlockedBootloaderStatesImpliesNonNormalAvfDiceChain) {
-    if (!AServiceManager_isDeclared(AVF_INSTANCE_NAME.c_str())) {
-        GTEST_SKIP() << "AVF (" << AVF_INSTANCE_NAME << ") is not present on this device.";
+TEST(NonParameterizedTests, unlockedBootloaderStatesImpliesNonNormalRkpVmDiceChain) {
+    if (!AServiceManager_isDeclared(RKPVM_INSTANCE_NAME.c_str())) {
+        GTEST_SKIP() << "The RKP VM (" << RKPVM_INSTANCE_NAME << ") is not present on this device.";
     }
 
-    auto rpc = getHandle<IRemotelyProvisionedComponent>(AVF_INSTANCE_NAME);
-    ASSERT_NE(rpc, nullptr) << "The AVF instance (" << AVF_INSTANCE_NAME << ") RPC is unavailable.";
+    auto rpc = getHandle<IRemotelyProvisionedComponent>(RKPVM_INSTANCE_NAME);
+    ASSERT_NE(rpc, nullptr) << "The RKP VM (" << RKPVM_INSTANCE_NAME << ") RPC is unavailable.";
 
     RpcHardwareInfo hardwareInfo;
     auto status = rpc->getHardwareInfo(&hardwareInfo);
     if (!status.isOk()) {
-        GTEST_SKIP() << "AVF is not supported on this system.";
+        GTEST_SKIP() << "The RKP VM is not supported on this system.";
     }
 
-    unlockedBootloaderStatesImpliesNonNormalDiceChain(AVF_INSTANCE_NAME, rpc);
+    unlockedBootloaderStatesImpliesNonNormalDiceChain(RKPVM_INSTANCE_NAME, rpc);
 }
 
 /**
@@ -1018,7 +1017,7 @@ TEST_P(CertificateRequestV2Test, EmptyRequest) {
         ASSERT_TRUE(status.isOk()) << status.getDescription();
 
         auto result = verifyProductionCsr(cppbor::Array(), csr, rpcHardwareInfo, GetParam(),
-                                          challenge, isAvfInstance_);
+                                          challenge, isRkpVmInstance_);
         ASSERT_TRUE(result) << result.message();
     }
 }
@@ -1040,7 +1039,7 @@ TEST_P(CertificateRequestV2Test, NonEmptyRequest) {
         ASSERT_TRUE(status.isOk()) << status.getDescription();
 
         auto result = verifyProductionCsr(cborKeysToSign_, csr, rpcHardwareInfo, GetParam(),
-                                          challenge, isAvfInstance_);
+                                          challenge, isRkpVmInstance_);
         ASSERT_TRUE(result) << result.message();
     }
 }
@@ -1071,14 +1070,14 @@ TEST_P(CertificateRequestV2Test, NonEmptyRequestReproducible) {
     ASSERT_TRUE(status.isOk()) << status.getDescription();
 
     auto firstCsr = verifyProductionCsr(cborKeysToSign_, csr, rpcHardwareInfo, GetParam(),
-                                        challenge_, isAvfInstance_);
+                                        challenge_, isRkpVmInstance_);
     ASSERT_TRUE(firstCsr) << firstCsr.message();
 
     status = provisionable_->generateCertificateRequestV2(keysToSign_, challenge_, &csr);
     ASSERT_TRUE(status.isOk()) << status.getDescription();
 
     auto secondCsr = verifyProductionCsr(cborKeysToSign_, csr, rpcHardwareInfo, GetParam(),
-                                         challenge_, isAvfInstance_);
+                                         challenge_, isRkpVmInstance_);
     ASSERT_TRUE(secondCsr) << secondCsr.message();
 
     ASSERT_EQ(**firstCsr, **secondCsr);
@@ -1097,7 +1096,7 @@ TEST_P(CertificateRequestV2Test, NonEmptyRequestMultipleKeys) {
     ASSERT_TRUE(status.isOk()) << status.getDescription();
 
     auto result = verifyProductionCsr(cborKeysToSign_, csr, rpcHardwareInfo, GetParam(), challenge_,
-                                      isAvfInstance_);
+                                      isRkpVmInstance_);
     ASSERT_TRUE(result) << result.message();
 }
 
