@@ -12,7 +12,7 @@ cc_binary {
         "service.cpp",
     ],
     shared_libs: [
-        "android.hardware.bluetooth.socket-V1-ndk",
+        "android.hardware.bluetooth.socket-V2-ndk",
         "libbase",
         "libbinder_ndk",
         "libhidlbase",
@@ -20,7 +20,7 @@ cc_binary {
         "liblog",
     ],
     static_libs: [
-        "android.hardware.bluetooth.socket-impl",
+        "android.hardware.bluetooth.socket-V2-impl",
     ],
 }
 

@@ -36,11 +36,11 @@ parcelable PortPartnerStatus {
     /**
      * Lists the port partner's sink power profiles
      */
-    PowerProfile[] sinkPowerProfiles = {};
+    @nullable PowerProfile[] sinkPowerProfiles;
     /**
      * Lists the port partner's source power profiles
      */
-    PowerProfile[] sourcePowerProfiles = {};
+    @nullable PowerProfile[] sourcePowerProfiles;
     /**
      * A list of alternate modes supported by the partner.
      */

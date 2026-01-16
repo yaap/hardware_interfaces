@@ -62,7 +62,12 @@
   ],
   "postsubmit": [
     {
-      "name": "VehicleHalProtoMessageConverterTest"
+      "name": "VehicleHalProtoMessageConverterTest",
+      "options": [
+        {
+          "native-test-timeout": "300000"
+        }
+      ]
     }
   ]
 }

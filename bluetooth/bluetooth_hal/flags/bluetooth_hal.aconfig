@@ -35,3 +35,10 @@ flag {
     description: "Flag for adding bt activities subscription"
     bug: "454214776"
 }
+
+flag {
+    name: "async_hci_router"
+    namespace: "pixel_bluetooth"
+    description: "A mutex free asynchronous HCI router"
+    bug: "465886035"
+}

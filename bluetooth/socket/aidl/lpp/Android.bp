@@ -20,7 +20,7 @@ cc_binary {
         "liblog",
     ],
     static_libs: [
-        "android.hardware.bluetooth.socket-impl",
+        "android.hardware.bluetooth.socket-V1-impl",
     ],
 }
 
