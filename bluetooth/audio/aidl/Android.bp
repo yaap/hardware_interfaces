@@ -94,9 +94,17 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "6",
+            imports: [
+                "android.hardware.audio.common-V5",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version

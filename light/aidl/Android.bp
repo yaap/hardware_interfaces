@@ -14,7 +14,7 @@ aidl_interface {
         "android/hardware/light/*.aidl",
     ],
     stability: "vintf",
-    frozen: false,
+    frozen: true,
     backend: {
         java: {
             sdk_version: "module_current",
@@ -30,6 +30,10 @@ aidl_interface {
         },
         {
             version: "2",
+            imports: [],
+        },
+        {
+            version: "3",
             imports: [],
         },
 

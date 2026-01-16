@@ -56,7 +56,15 @@ aidl_interface {
             version: "3",
             imports: [],
         },
+        {
+            version: "4",
+            imports: [
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+                "android.media.audio.common.types-V5",
+            ],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
 }
