@@ -56,6 +56,7 @@ cc_test {
     srcs: [
         "VtsNfcBehaviorChangesTest.cpp",
         "CondVar.cpp",
+        "NfcProprietaryCaps.cpp",
     ],
     include_dirs: [
         "packages/modules/Nfc/libnfc-nci/src/gki/common",
