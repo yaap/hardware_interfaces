@@ -845,11 +845,14 @@ ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyCsr(
     return std::unique_ptr<cppbor::Array>(csrPayloadDecoded.release()->asArray());
 }
 
-ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(
-        const cppbor::Array& keysToSign, const std::vector<uint8_t>& csr,
-        const RpcHardwareInfo& rpcHardwareInfo, const std::string& instanceName,
-        const std::vector<uint8_t>& challenge, bool allowDegenerate, bool requireUdsCerts) {
-    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, /*isFactory=*/true,
+ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(const cppbor::Array& keysToSign,
+                                                          const std::vector<uint8_t>& csr,
+                                                          const RpcHardwareInfo& rpcHardwareInfo,
+                                                          const std::string& instanceName,
+                                                          const std::vector<uint8_t>& challenge,
+                                                          bool strict, bool allowDegenerate,
+                                                          bool requireUdsCerts) {
+    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, strict,
                      /*allowAnyMode=*/false, allowDegenerate, requireUdsCerts);
 }
 
