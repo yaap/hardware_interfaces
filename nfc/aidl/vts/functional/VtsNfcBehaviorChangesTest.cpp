@@ -31,6 +31,7 @@
 #include <future>
 
 #include "NfcAdaptation.h"
+#include "NfcProprietaryCaps.h"
 #include "SyncEvent.h"
 #include "nci_defs.h"
 #include "nfa_api.h"
@@ -45,7 +46,7 @@ static SyncEvent sNfaEnableEvent;  // event for NFA_Enable()
 static SyncEvent sNfaVsCommand;    // event for VS commands
 static SyncEvent sNfaEnableDisablePollingEvent;
 static SyncEvent sNfaPowerChangeEvent;
-static std::vector<uint8_t> sCaps(0);
+static NfcProprietaryCaps sCaps = NfcProprietaryCaps(std::vector<uint8_t>());
 static uint8_t sObserveModeState;
 static bool sIsNfaEnabled;
 static tNFA_STATUS sVSCmdStatus;
@@ -211,7 +212,9 @@ void static nfaVSCallback(uint8_t event, uint16_t param_len, uint8_t* p_param) {
                 case NCI_ANDROID_GET_CAPS: {
                     sVSCmdStatus = p_param[4];
                     SyncEventGuard guard(sNfaVsCommand);
-                    sCaps.assign(p_param + 8, p_param + param_len);
+                    static std::vector<uint8_t> caps_bytes(0);
+                    caps_bytes.assign(p_param + 8, p_param + param_len);
+                    sCaps = NfcProprietaryCaps(caps_bytes);
                     sNfaVsCommand.notifyOne();
                 } break;
                 default:
@@ -372,21 +375,6 @@ tNFA_STATUS static nfaGetCaps() {
     return status;
 }
 
-/*
- * Get observe mode capabilities.
- */
-uint8_t static getCapsPassiveObserverModeValue() {
-    return sCaps[2];
-}
-
-/*
- * Get number of exit frame entries from capabilities.
- */
-uint8_t static getCapsNumExitFrameEntries() {
-    // Index 11 is for number of exit frame entries.
-    return sCaps[11];
-}
-
 class NfcBehaviorChanges : public testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
@@ -463,7 +451,8 @@ TEST_P(NfcBehaviorChanges, SetPassiveObserverTech_getCaps) {
     tNFC_STATUS status = nfaGetCaps();
 
     ASSERT_EQ(status, NFC_STATUS_OK);
-    ASSERT_EQ(getCapsPassiveObserverModeValue(), 0x2);
+    ASSERT_EQ(sCaps.getPassiveObserveMode(),
+              NfcProprietaryCaps::PassiveObserveMode::SUPPORT_WITHOUT_RF_DEACTIVATION);
 }
 
 /*
@@ -534,6 +523,21 @@ TEST_P(NfcBehaviorChanges, SetPassiveObserverTech_testThroughput) {
 }
 
 /*
+ * setTechAPollingLoopAnnotation_getCaps:
+ * Verifies GET_CAPS returns get correct value for reader mode annotation capabilities.
+ */
+TEST_P(NfcBehaviorChanges, setTechAPollingLoopAnnotation_getCaps) {
+    if (get_vsr_api_level() < 202604) {
+        GTEST_SKIP() << "Skipping test for board API level < 202604";
+    }
+
+    tNFC_STATUS status = nfaGetCaps();
+
+    ASSERT_EQ(status, NFC_STATUS_OK);
+    ASSERT_EQ(sCaps.isReaderModeAnnotationSupported(), true);
+}
+
+/*
  * SetTechAPollingLoopAnnotation_test:
  * Verifies setTechAPollingLoopAnnotation can be enabled and disabled repeatedly without timing out
  * or erroring.
@@ -590,10 +594,10 @@ TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_test_pattern) {
 }
 
 /*
- * GetCaps_numExitFrameEntries:
+ * SetFirmwareExitFrameTable_getCaps_numExitFrameEntries:
  * Verifies GET_CAPS returns at least 5 for number of exit frame entries.
  */
-TEST_P(NfcBehaviorChanges, GetCaps_numExitFrameEntries) {
+TEST_P(NfcBehaviorChanges, SetFirmwareExitFrameTable_getCaps_numExitFrameEntries) {
     if (get_vsr_api_level() < 202604) {
         GTEST_SKIP() << "Skipping test for board API level < 202604";
     }
@@ -601,7 +605,7 @@ TEST_P(NfcBehaviorChanges, GetCaps_numExitFrameEntries) {
     tNFC_STATUS status = nfaGetCaps();
 
     ASSERT_EQ(status, NFC_STATUS_OK);
-    ASSERT_GE(getCapsNumExitFrameEntries(), 5);
+    ASSERT_GE(sCaps.getNumberOfExitFramesSupported(), 5);
 }
 
 /*

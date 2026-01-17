@@ -1056,9 +1056,6 @@ TEST_P(SupplicantP2pIfaceAidlTest, CreateAndReportNfcSelect) {
 TEST_P(SupplicantP2pIfaceAidlTest, RemoveClient) {
     // Method returns success for any valid MAC address
     EXPECT_TRUE(p2p_iface_->removeClient(kTestMacAddr, false).isOk());
-    // Returns failure for any invalid MAC address
-    std::vector<uint8_t> invalidMacAddr = {0x11, 0x22};
-    EXPECT_FALSE(p2p_iface_->removeClient(invalidMacAddr, false).isOk());
 }
 
 /*

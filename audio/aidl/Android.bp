@@ -44,7 +44,7 @@ aidl_interface {
         "android/hardware/audio/common/SinkMetadata.aidl",
         "android/hardware/audio/common/SourceMetadata.aidl",
     ],
-    frozen: false,
+    frozen: true,
     backend: {
         cpp: {
             enabled: true,
@@ -84,6 +84,10 @@ aidl_interface {
         {
             version: "4",
             imports: ["android.media.audio.common.types-V4"],
+        },
+        {
+            version: "5",
+            imports: ["android.media.audio.common.types-V5"],
         },
 
         // IMPORTANT: Update latest_android_hardware_audio_common every time you
@@ -209,11 +213,22 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "4",
+            imports: [
+                "android.media.audio.common.types-V5",
+                "android.hardware.audio.effect-V4",
+                "android.hardware.audio.core.sounddose-V4",
+                "android.hardware.audio.common-V5",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_core every time you
         // add the latest frozen version to versions_with_info
     ],
-    frozen: false,
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version
@@ -282,11 +297,15 @@ aidl_interface {
             version: "3",
             imports: ["android.media.audio.common.types-V4"],
         },
+        {
+            version: "4",
+            imports: ["android.media.audio.common.types-V5"],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_core_sounddose every time you
         // add the latest frozen version to versions_with_info
     ],
-    frozen: false,
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version
@@ -411,9 +430,19 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "4",
+            imports: [
+                "android.media.audio.eraser.types-V2",
+                "android.media.audio.common.types-V5",
+                "android.hardware.audio.common-V5",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
 
 }
 

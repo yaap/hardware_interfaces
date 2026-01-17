@@ -13,7 +13,7 @@ aidl_interface {
     host_supported: true,
     vendor_available: true,
     srcs: ["android/hardware/camera/device/*.aidl"],
-    frozen: false,
+    frozen: true,
     stability: "vintf",
     defaults: [
         "android.hardware.graphics.common-latest",
@@ -65,6 +65,16 @@ aidl_interface {
                 "android.hardware.camera.common-V1",
                 "android.hardware.camera.metadata-V3",
                 "android.hardware.graphics.common-V7",
+            ],
+        },
+        {
+            version: "4",
+            imports: [
+                "android.hardware.graphics.common-V7",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+                "android.hardware.camera.common-V1",
+                "android.hardware.camera.metadata-V3",
             ],
         },
 

@@ -14,7 +14,7 @@ aidl_interface {
         "android/hardware/npu/*.aidl",
     ],
     stability: "vintf",
-    frozen: false,
+    frozen: true,
     backend: {
         java: {
             sdk_version: "system_current",
@@ -40,4 +40,11 @@ aidl_interface {
             enabled: true,
         },
     },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
 }

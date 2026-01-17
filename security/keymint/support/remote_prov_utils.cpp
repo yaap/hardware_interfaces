@@ -845,11 +845,14 @@ ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyCsr(
     return std::unique_ptr<cppbor::Array>(csrPayloadDecoded.release()->asArray());
 }
 
-ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(
-        const cppbor::Array& keysToSign, const std::vector<uint8_t>& csr,
-        const RpcHardwareInfo& rpcHardwareInfo, const std::string& instanceName,
-        const std::vector<uint8_t>& challenge, bool allowDegenerate, bool requireUdsCerts) {
-    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, /*isFactory=*/true,
+ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(const cppbor::Array& keysToSign,
+                                                          const std::vector<uint8_t>& csr,
+                                                          const RpcHardwareInfo& rpcHardwareInfo,
+                                                          const std::string& instanceName,
+                                                          const std::vector<uint8_t>& challenge,
+                                                          bool strict, bool allowDegenerate,
+                                                          bool requireUdsCerts) {
+    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, strict,
                      /*allowAnyMode=*/false, allowDegenerate, requireUdsCerts);
 }
 
@@ -979,6 +982,32 @@ ErrMsgOr<bool> hasNonNormalModeInDiceChain(const std::vector<uint8_t>& encodedCs
     }
 
     return *hasNonNormalModeInDiceChain;
+}
+
+ErrMsgOr<int> countTrailingRkpVmMarkersInCsr(const std::vector<uint8_t>& encodedCsr,
+                                             std::string_view instanceName) {
+    auto diceChainKind = getDiceChainKind();
+    if (!diceChainKind) {
+        return diceChainKind.message();
+    }
+
+    auto csr = hwtrust::Csr::validate(encodedCsr, *diceChainKind, /*isFactory=*/false,
+                                      /*allowAnyMode=*/true, deviceSuffix(instanceName));
+    if (!csr.ok()) {
+        return csr.error().message();
+    }
+
+    auto diceChain = csr->getDiceChain();
+    if (!diceChain.ok()) {
+        return diceChain.error().message();
+    }
+
+    auto result = diceChain->countTrailingRkpVmMarkers();
+    if (!result.ok()) {
+        return result.error().message();
+    }
+
+    return *result;
 }
 
 }  // namespace aidl::android::hardware::security::keymint::remote_prov

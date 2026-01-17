@@ -45,5 +45,12 @@ aidl_interface {
             min_sdk_version: "33",
         },
     },
-    frozen: false,
+    frozen: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: ["android.hardware.contexthub-V4"],
+        },
+    ],
+
 }

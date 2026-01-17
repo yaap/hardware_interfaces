@@ -39,6 +39,7 @@ SYSTEM_MATRIX_DEPS_A17 = [
     "framework_compatibility_matrix.202404.xml",
     "framework_compatibility_matrix.202504.xml",
     "framework_compatibility_matrix.202604.xml",
+    "framework_compatibility_matrix.202604.xml",
     "framework_compatibility_matrix.device.xml",
 ]
 
@@ -50,6 +51,7 @@ SYSTEM_MATRIX_DEPS_A16 = [
     "framework_compatibility_matrix.8.xml",
     "framework_compatibility_matrix.202404.xml",
     "framework_compatibility_matrix.202504.xml",
+    "framework_compatibility_matrix.202604.xml",
     "framework_compatibility_matrix.device.xml",
 ]
 

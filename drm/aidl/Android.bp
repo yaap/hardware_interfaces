@@ -17,7 +17,7 @@ aidl_interface {
     vendor_available: true,
     srcs: ["android/hardware/drm/*.aidl"],
     stability: "vintf",
-    frozen: false,
+    frozen: true,
     imports: [
         "android.hardware.common-V2",
         "android.hardware.drm.common-V1",
@@ -45,6 +45,14 @@ aidl_interface {
                 "android.hardware.drm.common-V1",
             ],
         },
+        {
+            version: "2",
+            imports: [
+                "android.hardware.common-V2",
+                "android.hardware.drm.common-V1",
+            ],
+        },
+
     ],
 
 }
