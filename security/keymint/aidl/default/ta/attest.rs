@@ -385,6 +385,10 @@ pub struct CertSignInfo {
 
 impl CertSignInfo {
     /// Create a new cert signing impl.
+    ///
+    /// Note that this implementation returns keys and chains that are not secure and are not rooted
+    /// at the Google attestation keys; as such, this implementation is only suitable for use in
+    /// testing or non-secure environments (e.g. emulators such as Cuttlefish).
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         CertSignInfo {

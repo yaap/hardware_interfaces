@@ -43,13 +43,16 @@ pub fn boringssl_crypto_impls() -> crypto::Implementation {
     kmr_crypto_boring::implementation(Box::new(rng), Box::new(clock))
 }
 
-/// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use.
+/// Build a [`kmr_ta::KeyMintTa`] instance for non-secure use.
 pub fn build_ta() -> kmr_ta::KeyMintTa {
     let rpc_sign_algo = CsrSigningAlgorithm::EdDSA;
-    build_ta_with(Box::new(soft::RpcArtifacts::new(soft::Derive::default(), rpc_sign_algo)))
+    build_ta_with(Box::new(soft::RpcArtifacts::new(
+        soft::Derive::default(),
+        rpc_sign_algo,
+    )))
 }
 
-/// Build a [`kmr_ta::KeyMintTa`] instance for nonsecure use, including some specified trait
+/// Build a [`kmr_ta::KeyMintTa`] instance for non-secure use, including some specified trait
 /// implementations.
 pub fn build_ta_with(rpc: Box<dyn kmr_ta::device::RetrieveRpcArtifacts>) -> kmr_ta::KeyMintTa {
     info!("Building NON-SECURE KeyMint Rust TA");

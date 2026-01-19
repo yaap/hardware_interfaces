@@ -40,6 +40,9 @@ pub trait DeriveBytes {
 }
 
 /// Common emulated implementation of RPC artifact retrieval.
+///
+/// This implementation is only suitable for use in non-secure environments (e.g. emulators such as
+/// Cuttlefish), as it uses non-persistent key material to produce a degenerate DICE chain.
 pub struct Artifacts<T: DeriveBytes> {
     derive: T,
     profile_name: Option<String>,
