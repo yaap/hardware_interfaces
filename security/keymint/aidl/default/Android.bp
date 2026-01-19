@@ -152,6 +152,8 @@ prebuilt_etc {
     src: "android.hardware.hardware_keystore_V5.xml",
 }
 
+// The following library includes helper code for the KeyMint HAL that is only appropriate to use
+// in a non-secure environment (e.g. an emulator such as Cuttlefish).
 rust_library {
     name: "libkmr_hal_nonsecure",
     crate_name: "kmr_hal_nonsecure",
@@ -170,6 +172,8 @@ rust_library {
 
 }
 
+// The following library includes helper code for the KeyMint TA that is only appropriate to use
+// in a non-secure environment (e.g. an emulator such as Cuttlefish).
 rust_library {
     name: "libkmr_ta_nonsecure",
     crate_name: "kmr_ta_nonsecure",

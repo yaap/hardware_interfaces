@@ -24,6 +24,8 @@ use kmr_crypto_boring::{hmac::BoringHmac, rng::BoringRng};
 use kmr_ta::device::RetrieveKeyMaterial;
 
 /// Root key retrieval using hard-coded fake keys.
+///
+/// This implementation is not suitable for use in a real device, as it is insecure (known keys).
 pub struct Keys;
 
 impl RetrieveKeyMaterial for Keys {
@@ -71,4 +73,6 @@ impl crate::rpc::DeriveBytes for Derive {
 }
 
 /// RPC artifact retrieval using software fake key.
+///
+/// This implementation is not suitable for use in a real device, as it is insecure (known keys).
 pub type RpcArtifacts = crate::rpc::Artifacts<Derive>;
