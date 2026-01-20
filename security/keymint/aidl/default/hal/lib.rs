@@ -25,6 +25,10 @@ use std::{
 };
 
 /// Send boot info to TA via the given communication channel.
+///
+/// This function is only suitable for use in a non-secure environment such as an emulator
+/// (e.g. Cuttlefish).  On a real device, the boot information should be transferred from
+/// the bootloader to the TA in a manner that cannot be affected by userspace/Android.
 pub fn send_boot_info<T: SerializedChannel>(
     channel: &Arc<Mutex<T>>,
 ) -> Result<(), HalServiceError> {
@@ -40,6 +44,10 @@ pub fn send_boot_info<T: SerializedChannel>(
 }
 
 /// Send attestation info to TA via the given communication channel.
+///
+/// This function is only suitable for use in a non-secure environment such as an emulator
+/// (e.g. Cuttlefish).  On a real device, the device ID information should be securely provisioned
+/// in a manner that cannot be affected by userspace/Android.
 pub fn send_attestation_id_info<T: SerializedChannel>(
     channel: &Arc<Mutex<T>>,
 ) -> Result<(), HalServiceError> {
@@ -60,6 +68,9 @@ pub fn send_attestation_id_info<T: SerializedChannel>(
 }
 
 /// Send boot info and attestation info to TA via the given communication channel.
+///
+/// This function is only suitable for use in a non-secure environment such as an emulator
+/// (e.g. Cuttlefish), see [`send_boot_info`] and [`send_attestation_id_info`].
 pub fn send_boot_info_and_attestation_id_info<T: SerializedChannel>(
     channel: &Arc<Mutex<T>>,
 ) -> Result<(), HalServiceError> {
@@ -83,6 +94,10 @@ fn attestation_property(name: &str) -> Vec<u8> {
 
 /// Populate attestation ID information based on properties (where available).
 /// Retrieving the serial number requires SELinux permission.
+///
+/// This function is only suitable for use in a non-secure environment such as an emulator
+/// (e.g. Cuttlefish).  On a real device, the device ID information should be securely provisioned
+/// in a manner that cannot be affected by userspace/Android.
 pub fn attestation_id_info() -> kmr_wire::AttestationIdInfo {
     let prop = |name| {
         get_property(name).unwrap_or_else(|_| format!("{} unavailable", name)).as_bytes().to_vec()
@@ -104,6 +119,11 @@ pub fn attestation_id_info() -> kmr_wire::AttestationIdInfo {
 }
 
 /// Get boot information based on system properties.
+///
+/// This function is only suitable for use in a non-secure environment such as an emulator
+/// (e.g. Cuttlefish).  On a real device, the boot information should be transferred from
+/// the bootloader to the TA in a manner that cannot be affected by userspace/Android -- which
+/// the system properties used here can be.
 pub fn get_boot_info() -> kmr_wire::SetBootInfoRequest {
     let vbmeta_digest = get_property("ro.boot.vbmeta.digest").unwrap_or_else(|_| "00".repeat(32));
     let verified_boot_hash = hex::decode(&vbmeta_digest).unwrap_or_else(|_e| {

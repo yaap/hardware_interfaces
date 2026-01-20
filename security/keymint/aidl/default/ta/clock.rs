@@ -17,7 +17,11 @@
 
 use kmr_common::crypto;
 
-/// Monotonic clock.
+/// Monotonic clock implementation based on the system clock.
+///
+/// This implementation may not be suitable for use on a real device, depending on the local `libc`
+/// implementation.  In particular, the underlying clock should not be modifiable by
+/// Android/userspace.
 #[derive(Default)]
 pub struct StdClock;
 
