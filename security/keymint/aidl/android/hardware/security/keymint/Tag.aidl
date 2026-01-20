@@ -601,9 +601,12 @@ enum Tag {
      * getKeyCharacteristics() or exportKey() to return ErrorCode::KEY_REQUIRES_UPGRADE.  See
      * upgradeKey() for details.
      *
-     * The value of the tag is an integer of the form YYYYMM, where YYYY is the four-digit year of
-     * the last update and MM is the two-digit month of the last update.  For example, for a key
-     * generated on an Android device last updated in December 2015, the value would be 201512.
+     * The value of the tag is the Android security patch level, formatted as an integer
+     * with the version number and the dashes removed. For example, for a key generated on an
+     * Android device last updated to be compliant with either the 2026-01-01 or the 2026-01-05
+     * Android Security Bulletin, the value of the tag would be 202601. For information about
+     * what the patch level format itself means, see the Android Security Bulletin documentation
+     * at https://source.android.com/docs/security/bulletin.
      *
      * The IKeyMintDevice HAL must read the current system patchlevel from the system property
      * ro.build.version.security_patch and deliver it to the secure environment when the HAL is
@@ -799,10 +802,11 @@ enum Tag {
      * getKeyCharacteristics() or exportKey() to return ErrorCode::KEY_REQUIRES_UPGRADE.  See
      * upgradeKey() for details.
      *
-     * The value of the tag is an integer of the form YYYYMMDD, where YYYY is the four-digit year of
-     * the last update, MM is the two-digit month and DD is the two-digit day of the last
-     * update.  For example, for a key generated on an Android device last updated on June 5, 2018,
-     * the value would be 20180605.
+     * The value of the tag is the Android security patch level, formatted as an integer
+     * with the dashes removed. For example, for a key generated on an Android device last updated
+     * to be compliant with the Android Security Bulletin 2026-01-05 patch, the value of the tag
+     * would be 20260105. For information about what the patch level format itself means, see the
+     * Android Security Bulletin documentation at https://source.android.com/docs/security/bulletin.
      *
      * The IKeyMintDevice HAL must read the current vendor patchlevel from the system property
      * ro.vendor.build.security_patch and deliver it to the secure environment when the HAL is first
@@ -821,10 +825,11 @@ enum Tag {
      * cause begin(), getKeyCharacteristics() or exportKey() to return
      * ErrorCode::KEY_REQUIRES_UPGRADE.  See upgradeKey() for details.
      *
-     * The value of the tag is an integer of the form YYYYMMDD, where YYYY is the four-digit year of
-     * the last update, MM is the two-digit month and DD is the two-digit day of the last
-     * update.  For example, for a key generated on an Android device last updated on June 5, 2018,
-     * the value would be 20180605.  If the day is not known, 00 may be substituted.
+     * The value of the tag is the Android security patch level, formatted as an integer
+     * with the dashes removed. For example, for a key generated on an Android device last updated
+     * to be compliant with the Android Security Bulletin 2026-01-05 patch, the value of the tag
+     * would be 20260105. For information about what the patch level format itself means, see the
+     * Android Security Bulletin documentation at https://source.android.com/docs/security/bulletin.
      *
      * During each boot, the bootloader must provide the patch level of the boot image to the secure
      * environment (mechanism is implementation-defined).
