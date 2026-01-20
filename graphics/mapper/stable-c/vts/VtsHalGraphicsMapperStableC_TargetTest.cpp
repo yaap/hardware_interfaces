@@ -2594,7 +2594,7 @@ INSTANTIATE_TEST_CASE_P(
                                          PixelFormat::R_14_UINT, PixelFormat::RG_1212_UINT,
                                          PixelFormat::RG_1414_UINT, PixelFormat::RGBA_12121212_UINT,
                                          PixelFormat::RGBA_14141414_UINT,
-                                         PixelFormat::BGRA_1010102)),
+                                         PixelFormat::BGRA_1010102, PixelFormat::BGRX_1010102)),
         [](auto info) -> std::string {
             std::string name =
                     std::to_string(info.index) + "/" + std::get<0>(std::get<0>(info.param));
