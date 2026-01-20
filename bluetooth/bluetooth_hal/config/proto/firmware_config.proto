@@ -60,13 +60,14 @@ message FirmwareConfigForTransport {
   optional uint32 load_mini_drv_delay_ms = 5;
   optional uint32 launch_ram_delay_ms = 6;
   optional FirmwareDataLoadingType firmware_data_loading_type = 7;
-  optional SetupCommands setup_commands = 8;
+  optional uint32 accumulated_buffer_max_size = 8;
+  optional SetupCommands setup_commands = 9;
 
   // Specifies the method for reading data from the firmware file.
   // If not specified, defaults to command_based_reading.
   oneof data_reading_method {
-    CommandBasedReading command_based_reading = 9;
-    FixedSizeReading fixed_size_reading = 10;
+    CommandBasedReading command_based_reading = 10;
+    FixedSizeReading fixed_size_reading = 11;
   }
 }
 
