@@ -47,12 +47,12 @@ cc_library {
         "include",
     ],
     static_libs: [
+        "libkeymaster_messages",
         "lib_android_keymaster_keymint_utils_fake_latest",
     ],
     shared_libs: [
         "libbase",
         "libcrypto",
-        "libkeymaster_messages",
         "libkeymaster_portable",
         "libkeymint_support",
         "libutils",
