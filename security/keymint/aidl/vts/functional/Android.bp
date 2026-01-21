@@ -37,7 +37,6 @@ cc_defaults {
         "libcrypto",
         "libbase",
         "libgatekeeper",
-        "libkeymaster_messages",
         "packagemanager_aidl-cpp",
     ],
     static_libs: [
@@ -51,6 +50,7 @@ cc_defaults {
         "libcppcose_rkp",
         "libfs_mgr",
         "libjsoncpp",
+        "libkeymaster_messages",
         "libkeymaster_portable",
         "libkeymint_remote_prov_support",
         "libkeymint_support",

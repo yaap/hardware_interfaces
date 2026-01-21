@@ -32,7 +32,6 @@ cc_library_static {
         "liblog",
         "libcrypto",
         "libbinder_ndk",
-        "libkeymaster_messages",
     ],
     static_libs: [
         "libbase",
@@ -40,6 +39,7 @@ cc_library_static {
         "libcppcose_rkp",
         "libutils",
         "libsoft_attestation_cert",
+        "libkeymaster_messages",
         "libkeymaster_portable",
         "libsoft_attestation_cert",
         "libpuresoftkeymasterdevice",
@@ -98,7 +98,6 @@ cc_binary {
         "liblog",
         "libcrypto",
         "libbinder_ndk",
-        "libkeymaster_messages",
     ],
     static_libs: [
         "libbase",
@@ -106,6 +105,7 @@ cc_binary {
         "libcppcose_rkp",
         "libutils",
         "libsoft_attestation_cert",
+        "libkeymaster_messages",
         "libkeymaster_portable",
         "libsoft_attestation_cert",
         "libpuresoftkeymasterdevice",
@@ -142,7 +142,6 @@ cc_test {
     shared_libs: [
         "liblog",
         "libcrypto",
-        "libkeymaster_messages",
     ],
     static_libs: [
         "libbase",
@@ -150,6 +149,7 @@ cc_test {
         "libcppcose_rkp",
         "libutils",
         "libsoft_attestation_cert",
+        "libkeymaster_messages",
         "libkeymaster_portable",
         "libsoft_attestation_cert",
         "libpuresoftkeymasterdevice",
