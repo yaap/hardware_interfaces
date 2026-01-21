@@ -852,7 +852,8 @@ ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(const cppbor::Array& k
                                                           const std::vector<uint8_t>& challenge,
                                                           bool strict, bool allowDegenerate,
                                                           bool requireUdsCerts) {
-    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, strict,
+    bool isFactory = !strict;
+    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, isFactory,
                      /*allowAnyMode=*/false, allowDegenerate, requireUdsCerts);
 }
 
