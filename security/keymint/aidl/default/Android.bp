@@ -169,7 +169,21 @@ rust_library {
         "libkmr_wire",
     ],
     srcs: ["hal/lib.rs"],
-
+    // Limit visibility because this is a nonsecure library that should only be used in
+    // specific contexts (e.g. emulators such as Cuttlefish).
+    visibility: [
+        "//visibility:override",
+        // The following emulator targets can legitimately use nonsecure code.
+        "//device/google/cuttlefish/guest/hals/keymint/rust",
+        "//system/software_defined_vehicle/platform/third_party/sdv_keymint_nonsecure",
+        // TODO(b/477580755): remove the following use of nonsecure HAL code once the
+        // `keymint_rot_nonsecure` flag has been removed.
+        "//system/core/trusty/keymint",
+        // TODO(b/455661648): remove the following uses of nonsecure HAL code once RoT
+        // info is passed securely.
+        "//system/desktop/security/keymint_strongbox",
+        "//system/desktop/security/update-boot-info",
+    ],
 }
 
 // The following library includes helper code for the KeyMint TA that is only appropriate to use
@@ -191,6 +205,14 @@ rust_library {
         "libkmr_wire",
     ],
     srcs: ["ta/lib.rs"],
+    // Limit visibility because this is a nonsecure library that should only be used in
+    // specific contexts (e.g. emulators such as Cuttlefish).
+    visibility: [
+        "//visibility:override",
+        // The following emulator targets can legitimately use nonsecure code.
+        "//device/google/cuttlefish/host/commands/secure_env/rust",
+        "//system/software_defined_vehicle/platform/third_party/sdv_keymint_nonsecure",
+    ],
 }
 
 apex {
