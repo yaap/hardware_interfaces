@@ -39,7 +39,8 @@ class MockBluetoothActivities : public BluetoothActivities {
       BluetoothActivities::ConnectionCountChangedCallback;
   using ConnectionCallbackSubscription =
       BluetoothActivities::ConnectionCallbackSubscription;
-  MOCK_METHOD(ConnectionCallbackSubscription, RegisterConnectionCountChangedCallback,
+  MOCK_METHOD(ConnectionCallbackSubscription,
+              RegisterConnectionCountChangedCallback,
               (ConnectionCountChangedCallback callback), (override));
   MOCK_METHOD(void, OnBluetoothChipClosed, (), ());
 

@@ -133,7 +133,10 @@ HalPacket CreateIncorrectBqrHalPacket() {
 
 HalPacket CreateShortBqrPacket() {
   return HalPacket({
-      0x04, 0xff, 0x03, 0x58,
+      0x04,
+      0xff,
+      0x03,
+      0x58,
       0x02,  // A2DP Choppy
       0x01,  // Packet Types (but packet ends here)
   });

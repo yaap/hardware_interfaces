@@ -131,7 +131,10 @@ BqrEvent CreateEnergyMonitoringEvent() {
 
 BqrEvent CreateUnknownBqrEvent() {
   return BqrEvent(HalPacket({
-      0x04, 0xff, 0x02, 0x58,
+      0x04,
+      0xff,
+      0x02,
+      0x58,
       0xFF,  // Unknown Report ID
   }));
 }
