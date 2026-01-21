@@ -74,6 +74,8 @@ static constexpr uint8_t kMinLeResolvingListForBt5 = 8;
 static constexpr size_t kNumHciCommandsBandwidth = 100;
 static constexpr size_t kNumAclPacketsBandwidth = 100;
 static constexpr std::chrono::milliseconds kWaitForInitTimeout(2000);
+static constexpr std::chrono::milliseconds kWaitForDegragedHwModeInitTimeout(
+    8000);
 static constexpr std::chrono::milliseconds kWaitForHciEventTimeout(2000);
 static constexpr std::chrono::milliseconds kWaitForAclDataTimeout(1000);
 static constexpr std::chrono::milliseconds kInterfaceCloseDelayMs(200);
@@ -117,6 +119,17 @@ static bool isTv() {
 
 static bool isHandheld() {
   return testing::deviceSupportsFeature("android.hardware.type.handheld");
+}
+
+static std::chrono::milliseconds getInitTimeout() {
+  int timeout_multiplier =
+      ::android::base::GetIntProperty("ro.hw_timeout_multiplier", 1);
+  bool is_degraded_performance_mode = ::android::base::GetBoolProperty(
+      "bluetooth.hardware.degraded_performance_mode.enabled", false);
+
+  return is_degraded_performance_mode || (timeout_multiplier > 1)
+             ? kWaitForDegragedHwModeInitTimeout
+             : kWaitForInitTimeout;
 }
 
 class ThroughputLogger {
@@ -184,13 +197,14 @@ class BluetoothAidlTest : public ::testing::TestWithParam<std::string> {
     event_cb_count = 0;
     acl_cb_count = 0;
     sco_cb_count = 0;
+    std::chrono::milliseconds init_timeout = getInitTimeout();
     std::chrono::time_point<std::chrono::system_clock>
         timeout_after_initialize =
-            std::chrono::system_clock::now() + kWaitForInitTimeout;
+            std::chrono::system_clock::now() + init_timeout;
 
     ASSERT_TRUE(hci->initialize(hci_cb).isOk());
     auto future = initialized_promise.get_future();
-    auto timeout_status = future.wait_for(kWaitForInitTimeout);
+    auto timeout_status = future.wait_for(init_timeout);
     ASSERT_EQ(timeout_status, std::future_status::ready);
     ASSERT_TRUE(future.get());
     ASSERT_GE(timeout_after_initialize, time_after_initialize_complete);
