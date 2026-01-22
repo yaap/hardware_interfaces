@@ -23,6 +23,7 @@
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
+#include "bluetooth_hal/test/mock/mock_transport_factory.h"
 #include "bluetooth_hal/test/mock/mock_transport_interface.h"
 #include "bluetooth_hal/test/mock/mock_vnd_snoop_logger.h"
 #include "bluetooth_hal/test/mock/mock_wakelock.h"
@@ -36,6 +37,7 @@ namespace {
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::MockHalConfigLoader;
 using ::bluetooth_hal::debug::MockVndSnoopLogger;
+using ::bluetooth_hal::transport::MockTransportFactory;
 using ::bluetooth_hal::transport::MockTransportInterface;
 using ::bluetooth_hal::transport::TransportInterfaceCallback;
 using ::bluetooth_hal::util::power::MockWakelock;
@@ -45,6 +47,7 @@ using ::testing::DoAll;
 using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::Return;
+using ::testing::ReturnRef;
 using ::testing::SaveArg;
 using ::testing::Test;
 
@@ -73,9 +76,18 @@ class HciRouterAsyncTest : public Test {
 
     MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
     MockTransportInterface::SetMockTransport(&mock_transport_interface_);
+    MockTransportFactory::SetMockFactory(&mock_transport_factory_);
     MockHalConfigLoader::SetMockLoader(&mock_hal_config_loader_);
     MockWakelock::SetMockWakelock(&mock_wakelock_);
     MockVndSnoopLogger::SetMockVndSnoopLogger(&mock_vnd_snoop_logger_);
+
+    ON_CALL(mock_transport_factory_, GetTransport())
+        .WillByDefault(ReturnRef(mock_transport_interface_));
+    ON_CALL(mock_transport_factory_, CleanupTransport())
+        .WillByDefault(
+            Invoke([&mock_transport_interface = mock_transport_interface_]() {
+              mock_transport_interface.Cleanup();
+            }));
 
     router_ = std::make_shared<HciRouterAsync>();
 
@@ -105,6 +117,7 @@ class HciRouterAsyncTest : public Test {
     router_.reset();
     MockHciRouterClientAgent::SetMockAgent(nullptr);
     MockTransportInterface::SetMockTransport(nullptr);
+    MockTransportFactory::SetMockFactory(nullptr);
     MockHalConfigLoader::SetMockLoader(nullptr);
     MockWakelock::SetMockWakelock(nullptr);
     MockVndSnoopLogger::SetMockVndSnoopLogger(nullptr);
@@ -117,6 +130,7 @@ class HciRouterAsyncTest : public Test {
       mock_transport_interface_callback_;
   MockHciRouterClientAgent mock_hci_router_client_agent_;
   MockTransportInterface mock_transport_interface_;
+  MockTransportFactory mock_transport_factory_;
   MockHalConfigLoader mock_hal_config_loader_;
   MockWakelock mock_wakelock_;
   MockVndSnoopLogger mock_vnd_snoop_logger_;
@@ -566,7 +580,7 @@ TEST_F(HciRouterAsyncTest, UpdateHalState) {
       mock_hci_router_client_agent_,
       NotifyHalStateChange(HalState::kPreFirmwareDownload, HalState::kInit))
       .Times(1);
-  EXPECT_CALL(mock_transport_interface_,
+  EXPECT_CALL(mock_transport_factory_,
               NotifyHalStateChange(HalState::kPreFirmwareDownload))
       .Times(1);
 

@@ -26,7 +26,6 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/test/mock/mock_android_base_wrapper.h"
 #include "bluetooth_hal/test/mock/mock_transport_interface.h"
-#include "bluetooth_hal/transport/transport_interface.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -46,7 +45,6 @@ using ::testing::WithParamInterface;
 using ::bluetooth_hal::Property;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::transport::MockTransportInterface;
-using ::bluetooth_hal::transport::TransportInterface;
 using ::bluetooth_hal::transport::TransportType;
 using ::bluetooth_hal::uart::BaudRate;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;

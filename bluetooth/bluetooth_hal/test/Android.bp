@@ -17,6 +17,7 @@
 filegroup {
     name: "test_mock_transport_srcs",
     srcs: [
+        "mock/mock_transport_factory.cc",
         "mock/mock_transport_interface.cc",
     ],
 }

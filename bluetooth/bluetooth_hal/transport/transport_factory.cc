@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "bluetooth_hal.transport_interface"
+#define LOG_TAG "bluetooth_hal.transport_factory"
 
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 
 #include <algorithm>
-#include <atomic>
-#include <functional>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/hal_types.h"
+#include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/transport/uart_h4/transport_uart_h4.h"
 
 namespace bluetooth_hal::transport {
@@ -37,9 +35,10 @@ namespace bluetooth_hal::transport {
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::HalConfigLoader;
 
-std::unique_ptr<TransportInterface> TransportInterface::current_transport_;
+std::unique_ptr<TransportInterface> TransportFactory::current_transport_ =
+    nullptr;
 
-TransportInterface& TransportInterface::GetTransport() {
+TransportInterface& TransportFactory::GetTransport() {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
   if (current_transport_) {
@@ -66,7 +65,7 @@ TransportInterface& TransportInterface::GetTransport() {
 }
 
 std::pair<std::unique_ptr<TransportInterface>, TransportType>
-TransportInterface::CreateOrAcquireTransport(TransportType requested_type) {
+TransportFactory::CreateOrAcquireTransport(TransportType requested_type) {
   std::unique_ptr<TransportInterface> new_transport;
   TransportType new_transport_type = requested_type;
 
@@ -106,7 +105,7 @@ TransportInterface::CreateOrAcquireTransport(TransportType requested_type) {
   return {std::move(new_transport), new_transport_type};
 }
 
-bool TransportInterface::UpdateTransportType(TransportType requested_type) {
+bool TransportFactory::UpdateTransportType(TransportType requested_type) {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
   if (current_transport_type_ == requested_type && current_transport_) {
@@ -142,7 +141,7 @@ bool TransportInterface::UpdateTransportType(TransportType requested_type) {
   return current_transport_ != nullptr;
 }
 
-void TransportInterface::CleanupTransport() {
+void TransportFactory::CleanupTransport() {
   if (current_transport_) {
     current_transport_->Cleanup();
     current_transport_.reset();
@@ -150,8 +149,8 @@ void TransportInterface::CleanupTransport() {
   }
 }
 
-bool TransportInterface::RegisterVendorTransport(TransportType type,
-                                                 FactoryFn factory) {
+bool TransportFactory::RegisterVendorTransport(TransportType type,
+                                               FactoryFn factory) {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
   if (!factory) {
@@ -181,7 +180,7 @@ bool TransportInterface::RegisterVendorTransport(TransportType type,
   return true;
 }
 
-bool TransportInterface::UnregisterVendorTransport(TransportType type) {
+bool TransportFactory::UnregisterVendorTransport(TransportType type) {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
   if (type < TransportType::kVendorStart || type > TransportType::kVendorEnd) {
@@ -212,12 +211,12 @@ bool TransportInterface::UnregisterVendorTransport(TransportType type) {
   return true;
 }
 
-TransportType TransportInterface::GetTransportType() {
+TransportType TransportFactory::GetTransportType() {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
   return current_transport_type_;
 }
 
-void TransportInterface::NotifyHalStateChange(HalState hal_state) {
+void TransportFactory::NotifyHalStateChange(HalState hal_state) {
   if (hal_state_ == hal_state) {
     return;
   }
@@ -230,7 +229,7 @@ void TransportInterface::NotifyHalStateChange(HalState hal_state) {
   }
 }
 
-void TransportInterface::Subscribe(Subscriber& subscriber) {
+void TransportFactory::Subscribe(Subscriber& subscriber) {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
   const auto it = std::find_if(
       subscribers_.begin(), subscribers_.end(),
@@ -242,7 +241,7 @@ void TransportInterface::Subscribe(Subscriber& subscriber) {
   }
 }
 
-void TransportInterface::Unsubscribe(Subscriber& subscriber) {
+void TransportFactory::Unsubscribe(Subscriber& subscriber) {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
   const auto it = std::find_if(
       subscribers_.begin(), subscribers_.end(),

@@ -24,6 +24,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/device_control/power_manager.h"
 #include "bluetooth_hal/transport/device_control/uart_manager.h"
+#include "bluetooth_hal/transport/subscriber.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/transport/uart_h4/data_processor.h"
 #include "bluetooth_hal/util/timer_manager.h"

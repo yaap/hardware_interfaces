@@ -16,18 +16,8 @@
 
 #pragma once
 
-#include <atomic>
-#include <functional>
-#include <memory>
-#include <mutex>
-#include <unordered_map>
-#include <utility>
-#include <vector>
-
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/subscriber.h"
-#include "bluetooth_hal/util/provider_factory.h"
 
 namespace bluetooth_hal::transport {
 
@@ -68,18 +58,8 @@ class TransportInterfaceCallback {
 /**
  * @brief Abstracts the transport layer for devices, providing interfaces for
  * control and data management.
- *
- * This class also manages subscriber lists to send messages or signals,
- * notifying the underlying transport instances for further operations.
- *
  */
 class TransportInterface {
- public:
-  using VendorFactory =
-      ::bluetooth_hal::util::MultiKeyProviderFactory<TransportType,
-                                                     TransportInterface>;
-  using FactoryFn = VendorFactory::FactoryFn;
-
  public:
   virtual ~TransportInterface() = default;
 
@@ -141,127 +121,6 @@ class TransportInterface {
    *
    */
   virtual void SetHciRouterBusy(bool /*is_busy*/) {}
-
-  static TransportInterface& GetTransport();
-
-  /**
-   * @brief Cleans up the currently active transport instance.
-   *
-   * After this function is called, transport type will be set to default value.
-   *
-   */
-  static void CleanupTransport();
-
-  /**
-   * Updates the current transport type for the TransportInterface.
-   *
-   * This method allows switching the transport type used by the
-   * TransportInterface. If the provided type differs from the currently set
-   * type, the internal transport type will be updated, and subsequent calls to
-   * GetTransport() will return the transport instance corresponding to the
-   * updated type.
-   *
-   * @param requested_type The new TransportType to set.
-   *
-   * @return `true` if the transport was successfully updated, `false`
-   * otherwise.
-   *
-   */
-  static bool UpdateTransportType(TransportType requested_type);
-
-  /**
-   * Retrieves the current transport type for the TransportInterface.
-   *
-   * This method returns the transport type that is currently configured. The
-   * transport type determines the transport instance that will be used when
-   * GetTransport() is called.
-   *
-   * @return The current TransportType.
-   *
-   */
-  static TransportType GetTransportType();
-
-  /**
-   * @brief Registers a vendor-specific transport implementation.
-   *
-   * This static method allows for the registration of a custom transport
-   * mechanism provided by a vendor. Once registered,
-   * this transport can potentially be selected and used by the Bluetooth HAL.
-   *
-   * @param transport A unique pointer to an aobject that implements the
-   * TransportInterface. The ownership of this object is
-   * transferred to this class. The provided transport should
-   * not be null.
-   *
-   * @return `true` if the vendor transport was successfully registered,
-   * `false` otherwise (e.g., if the transport type is invalid or currently
-   * active).
-   */
-  static bool RegisterVendorTransport(TransportType type, FactoryFn factory);
-
-  /**
-   * @brief Unregisters a vendor-specific transport implementation.
-   *
-   * This static method allows for the removal of a previously registered
-   * custom transport mechanism.
-   *
-   * @param type The TransportType of the vendor transport to unregister.
-   *
-   * @return `true` if the vendor transport was successfully unregistered,
-   * `false` otherwise (e.g., if the transport type was not found,
-   * is not a vendor type, or is currently active).
-   *
-   */
-  static bool UnregisterVendorTransport(TransportType type);
-
-  /**
-   * @brief Notifies the transport layer of a change in the HAL state.
-   *
-   * This function should be called whenever the HAL transitions to a new state.
-   * This should be called by hci router.
-   *
-   * @param hal_state The new state of the HAL.
-   *
-   */
-  static void NotifyHalStateChange(::bluetooth_hal::HalState hal_state);
-
-  /**
-   * @brief Subscribes a new subscriber to receive notifications.
-   *
-   * This function adds the given subscriber to the list of subscribers.
-   * Once subscribed, the subscriber will receive notifications when events
-   * occur.
-   *
-   * @param subscriber The subscriber to be added. It should be passed by
-   * constant reference.
-   *
-   */
-  static void Subscribe(Subscriber& subscriber);
-
-  /**
-   * @brief Unsubscribes an existing subscriber.
-   *
-   * This function removes the given subscriber from the list of subscribers.
-   * Once unsubscribed, the subscriber will no longer receive notifications.
-   *
-   * @param subscriber The subscriber to be removed. It should be passed by
-   * constant reference.
-   *
-   */
-  static void Unsubscribe(Subscriber& subscriber);
-
- protected:
-  static inline std::atomic<::bluetooth_hal::HalState> hal_state_{
-      ::bluetooth_hal::HalState::kInit};
-  static inline std::vector<std::reference_wrapper<Subscriber>> subscribers_;
-
- private:
-  static std::pair<std::unique_ptr<TransportInterface>, TransportType>
-  CreateOrAcquireTransport(TransportType requested_type);
-
-  static inline TransportType current_transport_type_{TransportType::kUnknown};
-  static inline std::recursive_mutex transport_mutex_;
-  static std::unique_ptr<TransportInterface> current_transport_;
 };
 
 }  // namespace bluetooth_hal::transport

@@ -41,6 +41,7 @@
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 #include "bluetooth_hal/hci_router_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
@@ -56,7 +57,7 @@ using ::bluetooth_hal::config::HalConfigLoader;
 using ::bluetooth_hal::debug::VndSnoopLogger;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::thread::ThreadHandler;
-using ::bluetooth_hal::transport::TransportInterface;
+using ::bluetooth_hal::transport::TransportFactory;
 using ::bluetooth_hal::transport::TransportInterfaceCallback;
 using ::bluetooth_hal::util::power::ScopedWakelock;
 using ::bluetooth_hal::util::power::Wakelock;
@@ -251,7 +252,7 @@ class TxHandler {
   bool SendToTransport(const HalPacket& packet) {
     ScopedWakelock wakelock(WakeSource::kTx);
     HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
-    if (!TransportInterface::GetTransport().IsTransportActive()) {
+    if (!TransportFactory::GetTransport().IsTransportActive()) {
       HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
       return false;
     }
@@ -267,7 +268,7 @@ class TxHandler {
     VndSnoopLogger::GetLogger().Capture(packet,
                                         VndSnoopLogger::Direction::kOutgoing);
 
-    return TransportInterface::GetTransport().Send(packet);
+    return TransportFactory::GetTransport().Send(packet);
   }
 
   void SetBusy(bool busy) {
@@ -278,7 +279,7 @@ class TxHandler {
     }
 
     is_busy_ = busy;
-    TransportInterface::GetTransport().SetHciRouterBusy(busy);
+    TransportFactory::GetTransport().SetHciRouterBusy(busy);
   }
 
   void VoteRouterTaskWakelock() {
@@ -491,7 +492,7 @@ void HciRouterImpl::Cleanup() {
     ThreadHandler::Cleanup();
   }
 
-  TransportInterface::CleanupTransport();
+  TransportFactory::CleanupTransport();
 
   // Set HAL state back to the default state (kShutdown).
   UpdateHalState(HalState::kShutdown);
@@ -567,7 +568,7 @@ void HciRouterImpl::SendPacketToStack(const HalPacket& packet) {
 
 bool HciRouterImpl::InitializeTransport() {
   HAL_LOG(INFO) << "Initializing Bluetooth transport.";
-  return TransportInterface::GetTransport().Initialize(this);
+  return TransportFactory::GetTransport().Initialize(this);
 }
 
 void HciRouterImpl::UpdateHalState(HalState state) {
@@ -638,7 +639,7 @@ void HciRouterImpl::UpdateHalState(HalState state) {
   }
   HciRouterClientAgent::GetAgent().NotifyHalStateChange(state, old_state);
 
-  TransportInterface::NotifyHalStateChange(state);
+  TransportFactory::NotifyHalStateChange(state);
 }
 
 bool HciRouterImpl::IsHalStateValid(HalState new_state) {

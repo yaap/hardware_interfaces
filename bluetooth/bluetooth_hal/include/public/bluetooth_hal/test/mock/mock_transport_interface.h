@@ -18,7 +18,6 @@
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/subscriber.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "gmock/gmock.h"
 
@@ -26,41 +25,17 @@ namespace bluetooth_hal::transport {
 
 class MockTransportInterface : public TransportInterface {
  public:
-  MOCK_METHOD(bool, UpdateTransportType, (TransportType requested_type), ());
-
-  MOCK_METHOD(TransportType, GetTransportType, (), ());
-
-  MOCK_METHOD(void, CleanupTransport, (), ());
-
-  MOCK_METHOD(bool, RegisterVendorTransport,
-              (TransportType type, TransportInterface::FactoryFn factory), ());
-
-  MOCK_METHOD(bool, UnregisterVendorTransport, (TransportType type), ());
-
-  MOCK_METHOD(void, SetHciRouterBusy, (bool is_busy), ());
-
-  MOCK_METHOD(void, NotifyHalStateChange, (::bluetooth_hal::HalState hal_state),
-              ());
-
-  MOCK_METHOD(void, Subscribe, (Subscriber & subscriber), ());
-
-  MOCK_METHOD(void, Unsubscribe, (Subscriber & subscriber), ());
-
   MOCK_METHOD(bool, Initialize,
               (TransportInterfaceCallback * transport_interface_callback),
               (override));
-
   MOCK_METHOD(void, Cleanup, (), (override));
-
   MOCK_METHOD(bool, IsTransportActive, (), (const, override));
-
   MOCK_METHOD(bool, Send, (const ::bluetooth_hal::hci::HalPacket& packet),
               (override));
-
   MOCK_METHOD(TransportType, GetInstanceTransportType, (), (const, override));
+  MOCK_METHOD(void, SetHciRouterBusy, (bool is_busy), (override));
 
   static void SetMockTransport(MockTransportInterface* transport);
-
   static inline MockTransportInterface* mock_transport_interface_{nullptr};
 };
 

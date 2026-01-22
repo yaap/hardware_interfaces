@@ -28,6 +28,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/device_control/power_manager.h"
 #include "bluetooth_hal/transport/device_control/uart_manager.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 #include "bluetooth_hal/transport/transport_interface.h"
 #include "bluetooth_hal/transport/uart_h4/data_processor.h"
 #include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
@@ -62,7 +63,7 @@ TransportType TransportUartH4::GetInstanceTransportType() const {
 bool TransportUartH4::Initialize(
     TransportInterfaceCallback* transport_interface_callback) {
   LOG(INFO) << __func__ << ": Initializing UART H4 transport.";
-  TransportInterface::Subscribe(*this);
+  TransportFactory::Subscribe(*this);
 
   transport_interface_callback_ = transport_interface_callback;
 
@@ -111,7 +112,7 @@ bool TransportUartH4::Initialize(
 
 void TransportUartH4::Cleanup() {
   LOG(INFO) << __func__ << ": Cleaning up UART H4 transport.";
-  TransportInterface::Unsubscribe(*this);
+  TransportFactory::Unsubscribe(*this);
   data_processor_.reset();
   TerminateDataPath();
   TeardownLowPowerMode();

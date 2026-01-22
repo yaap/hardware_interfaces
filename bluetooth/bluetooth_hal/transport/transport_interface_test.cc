@@ -25,6 +25,7 @@
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_subscriber.h"
 #include "bluetooth_hal/test/mock/mock_system_call_wrapper.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -47,32 +48,32 @@ using ::bluetooth_hal::util::MockSystemCallWrapper;
 namespace cfg_consts = ::bluetooth_hal::config::constants;
 
 TEST(TransportInterfaceTest, GetTransportTypeReturnDefaultType) {
-  EXPECT_EQ(TransportInterface::GetTransportType(), TransportType::kUnknown);
+  EXPECT_EQ(TransportFactory::GetTransportType(), TransportType::kUnknown);
 }
 
 TEST(TransportInterfaceTest, HalStateNotChangeAndNotNotifySubscriber) {
   MockSubscriber subscriber;
-  TransportInterface::Subscribe(subscriber);
+  TransportFactory::Subscribe(subscriber);
 
   EXPECT_CALL(subscriber, NotifyHalStateChange(_)).Times(0);
-  TransportInterface::NotifyHalStateChange(HalState::kInit);
+  TransportFactory::NotifyHalStateChange(HalState::kInit);
 }
 
 TEST(TransportInterfaceTest, HalStateChangeAndNotifySubscriber) {
   MockSubscriber subscriber;
-  TransportInterface::Subscribe(subscriber);
+  TransportFactory::Subscribe(subscriber);
 
   EXPECT_CALL(subscriber, NotifyHalStateChange(HalState::kRunning)).Times(1);
-  TransportInterface::NotifyHalStateChange(HalState::kRunning);
+  TransportFactory::NotifyHalStateChange(HalState::kRunning);
 }
 
 TEST(TransportInterfaceTest, UnsubscribeAndNoSubscriberToNotify) {
   MockSubscriber subscriber;
-  TransportInterface::Subscribe(subscriber);
-  TransportInterface::Unsubscribe(subscriber);
+  TransportFactory::Subscribe(subscriber);
+  TransportFactory::Unsubscribe(subscriber);
 
   EXPECT_CALL(subscriber, NotifyHalStateChange(_)).Times(0);
-  TransportInterface::NotifyHalStateChange(HalState::kFirmwareReady);
+  TransportFactory::NotifyHalStateChange(HalState::kFirmwareReady);
 }
 
 TEST(TransportInterfaceTest, MultipleSubscribersReceiveNotification) {
@@ -80,23 +81,23 @@ TEST(TransportInterfaceTest, MultipleSubscribersReceiveNotification) {
   MockSubscriber subscriber2;
   MockSubscriber subscriber3;
 
-  TransportInterface::Subscribe(subscriber1);
-  TransportInterface::Subscribe(subscriber2);
-  TransportInterface::Subscribe(subscriber3);
+  TransportFactory::Subscribe(subscriber1);
+  TransportFactory::Subscribe(subscriber2);
+  TransportFactory::Subscribe(subscriber3);
 
   EXPECT_CALL(subscriber1, NotifyHalStateChange(HalState::kRunning)).Times(1);
   EXPECT_CALL(subscriber2, NotifyHalStateChange(HalState::kRunning)).Times(1);
   EXPECT_CALL(subscriber3, NotifyHalStateChange(HalState::kRunning)).Times(1);
 
-  TransportInterface::NotifyHalStateChange(HalState::kRunning);
+  TransportFactory::NotifyHalStateChange(HalState::kRunning);
 
   Mock::VerifyAndClearExpectations(&subscriber1);
   Mock::VerifyAndClearExpectations(&subscriber2);
   Mock::VerifyAndClearExpectations(&subscriber3);
 
-  TransportInterface::Unsubscribe(subscriber1);
-  TransportInterface::Unsubscribe(subscriber2);
-  TransportInterface::Unsubscribe(subscriber3);
+  TransportFactory::Unsubscribe(subscriber1);
+  TransportFactory::Unsubscribe(subscriber2);
+  TransportFactory::Unsubscribe(subscriber3);
 }
 
 TEST(TransportInterfaceTest, UnsubscribingOneOfMultipleStillNotifiesOthers) {
@@ -104,11 +105,11 @@ TEST(TransportInterfaceTest, UnsubscribingOneOfMultipleStillNotifiesOthers) {
   MockSubscriber subscriber2;
   MockSubscriber subscriber3;
 
-  TransportInterface::Subscribe(subscriber1);
-  TransportInterface::Subscribe(subscriber2);
-  TransportInterface::Subscribe(subscriber3);
+  TransportFactory::Subscribe(subscriber1);
+  TransportFactory::Subscribe(subscriber2);
+  TransportFactory::Subscribe(subscriber3);
 
-  TransportInterface::Unsubscribe(subscriber2);
+  TransportFactory::Unsubscribe(subscriber2);
 
   EXPECT_CALL(subscriber1, NotifyHalStateChange(HalState::kFirmwareReady))
       .Times(1);
@@ -116,32 +117,32 @@ TEST(TransportInterfaceTest, UnsubscribingOneOfMultipleStillNotifiesOthers) {
   EXPECT_CALL(subscriber3, NotifyHalStateChange(HalState::kFirmwareReady))
       .Times(1);
 
-  TransportInterface::NotifyHalStateChange(HalState::kFirmwareReady);
+  TransportFactory::NotifyHalStateChange(HalState::kFirmwareReady);
 
   Mock::VerifyAndClearExpectations(&subscriber1);
   Mock::VerifyAndClearExpectations(&subscriber2);
   Mock::VerifyAndClearExpectations(&subscriber3);
 
-  TransportInterface::Unsubscribe(subscriber1);
-  TransportInterface::Unsubscribe(subscriber3);
+  TransportFactory::Unsubscribe(subscriber1);
+  TransportFactory::Unsubscribe(subscriber3);
 }
 
 TEST(TransportInterfaceTest,
      SubscribingSameSubscriberMultipleTimesNotifiesOnce) {
   MockSubscriber subscriber;
 
-  TransportInterface::Subscribe(subscriber);
-  TransportInterface::Subscribe(subscriber);
-  TransportInterface::Subscribe(subscriber);
+  TransportFactory::Subscribe(subscriber);
+  TransportFactory::Subscribe(subscriber);
+  TransportFactory::Subscribe(subscriber);
 
   EXPECT_CALL(subscriber, NotifyHalStateChange(HalState::kBtChipReady))
       .Times(1);
 
-  TransportInterface::NotifyHalStateChange(HalState::kBtChipReady);
+  TransportFactory::NotifyHalStateChange(HalState::kBtChipReady);
 
   Mock::VerifyAndClearExpectations(&subscriber);
 
-  TransportInterface::Unsubscribe(subscriber);
+  TransportFactory::Unsubscribe(subscriber);
 }
 
 class MockTransportInterfaceCallback : public TransportInterfaceCallback {
@@ -204,10 +205,10 @@ class VendorTransportTest : public Test {
   }
 
   void TearDown() override {
-    TransportInterface::CleanupTransport();
+    TransportFactory::CleanupTransport();
     // No transport is active.
-    EXPECT_EQ(TransportInterface::GetTransportType(), TransportType::kUnknown);
-    TransportInterface::VendorFactory::UnregisterAllProviderFactories();
+    EXPECT_EQ(TransportFactory::GetTransportType(), TransportType::kUnknown);
+    TransportFactory::VendorFactory::UnregisterAllProviderFactories();
   }
 
   static constexpr TransportType kVendorType1 = TransportType::kVendorStart;
@@ -223,7 +224,7 @@ class VendorTransportTest : public Test {
 
 TEST_F(VendorTransportTest, RegisterNullVendorTransportReturnsFalse) {
   EXPECT_FALSE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, nullptr));
+      TransportFactory::RegisterVendorTransport(kVendorType1, nullptr));
 }
 
 TEST_F(VendorTransportTest,
@@ -232,7 +233,7 @@ TEST_F(VendorTransportTest,
   auto factory = [type]() {
     return std::make_unique<MockVendorTransport>(type);
   };
-  EXPECT_FALSE(TransportInterface::RegisterVendorTransport(type, factory));
+  EXPECT_FALSE(TransportFactory::RegisterVendorTransport(type, factory));
 }
 
 TEST_F(VendorTransportTest,
@@ -241,7 +242,7 @@ TEST_F(VendorTransportTest,
   auto factory = [type]() {
     return std::make_unique<MockVendorTransport>(type);
   };
-  EXPECT_FALSE(TransportInterface::RegisterVendorTransport(type, factory));
+  EXPECT_FALSE(TransportFactory::RegisterVendorTransport(type, factory));
 }
 
 TEST_F(VendorTransportTest, RegisterVendorTransportSuccessfully) {
@@ -251,14 +252,13 @@ TEST_F(VendorTransportTest, RegisterVendorTransportSuccessfully) {
     EXPECT_CALL(*transport, MockedCleanup()).Times(1);
     return transport;
   };
-  EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory));
+  EXPECT_TRUE(TransportFactory::RegisterVendorTransport(kVendorType1, factory));
 
   std::vector<TransportType> priorities = {kVendorType1,
                                            TransportType::kUartH4};
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities));
-  EXPECT_EQ(TransportInterface::GetTransport().GetInstanceTransportType(),
+  EXPECT_EQ(TransportFactory::GetTransport().GetInstanceTransportType(),
             kVendorType1);
 }
 
@@ -271,7 +271,7 @@ TEST_F(VendorTransportTest,
     return transport;
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory1));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory1));
 
   auto factory2 = []() {
     auto transport =
@@ -280,7 +280,7 @@ TEST_F(VendorTransportTest,
     return transport;
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory2));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory2));
 
   std::vector<TransportType> priorities = {kVendorType1,
                                            TransportType::kUartH4};
@@ -288,9 +288,9 @@ TEST_F(VendorTransportTest,
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities));
 
-  EXPECT_EQ(TransportInterface::GetTransport().GetInstanceTransportType(),
+  EXPECT_EQ(TransportFactory::GetTransport().GetInstanceTransportType(),
             kVendorType1);
-  TransportInterface::GetTransport().Cleanup();
+  TransportFactory::GetTransport().Cleanup();
 }
 
 TEST_F(VendorTransportTest,
@@ -304,18 +304,18 @@ TEST_F(VendorTransportTest,
     return transport;
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory1));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory1));
 
-  EXPECT_TRUE(TransportInterface::UpdateTransportType(kVendorType1));
-  EXPECT_TRUE(TransportInterface::GetTransport().Initialize(&mock_callback_));
+  EXPECT_TRUE(TransportFactory::UpdateTransportType(kVendorType1));
+  EXPECT_TRUE(TransportFactory::GetTransport().Initialize(&mock_callback_));
 
   auto factory2 = []() {
     return std::make_unique<StrictMock<MockVendorTransport>>(kVendorType1);
   };
   EXPECT_FALSE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory2));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory2));
 
-  TransportInterface::GetTransport().Cleanup();
+  TransportFactory::GetTransport().Cleanup();
 }
 
 TEST_F(VendorTransportTest, GetTransportSelectsHighestPriorityVendor) {
@@ -330,31 +330,31 @@ TEST_F(VendorTransportTest, GetTransportSelectsHighestPriorityVendor) {
   };
 
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory1));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory1));
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType2, factory2));
+      TransportFactory::RegisterVendorTransport(kVendorType2, factory2));
 
   std::vector<TransportType> priorities = {kVendorType2, kVendorType1,
                                            TransportType::kUartH4};
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities));
 
-  TransportInterface& transport = TransportInterface::GetTransport();
+  TransportInterface& transport = TransportFactory::GetTransport();
   EXPECT_EQ(transport.GetInstanceTransportType(), kVendorType2);
-  TransportInterface::GetTransport().Cleanup();
+  TransportFactory::GetTransport().Cleanup();
 }
 
 TEST_F(VendorTransportTest, UnregisterNonExistentVendorTransportReturnsFalse) {
-  EXPECT_FALSE(TransportInterface::UnregisterVendorTransport(
+  EXPECT_FALSE(TransportFactory::UnregisterVendorTransport(
       static_cast<TransportType>(150)));
 }
 
 TEST_F(VendorTransportTest, UnregisterInvalidVendorTransportTypeReturnsFalse) {
   EXPECT_FALSE(
-      TransportInterface::UnregisterVendorTransport(TransportType::kUartH4));
-  EXPECT_FALSE(TransportInterface::UnregisterVendorTransport(
+      TransportFactory::UnregisterVendorTransport(TransportType::kUartH4));
+  EXPECT_FALSE(TransportFactory::UnregisterVendorTransport(
       static_cast<TransportType>(99)));  // Below kVendorStart.
-  EXPECT_FALSE(TransportInterface::UnregisterVendorTransport(
+  EXPECT_FALSE(TransportFactory::UnregisterVendorTransport(
       static_cast<TransportType>(200)));  // Above kVendorEnd.
 }
 
@@ -367,8 +367,7 @@ TEST_F(VendorTransportTest, UnregisterActiveVendorTransportReturnsFalse) {
     EXPECT_CALL(*transport, MockedCleanup()).Times(1);
     return transport;
   };
-  EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory));
+  EXPECT_TRUE(TransportFactory::RegisterVendorTransport(kVendorType1, factory));
 
   std::vector<TransportType> priorities = {kVendorType1,
                                            TransportType::kUartH4};
@@ -376,13 +375,13 @@ TEST_F(VendorTransportTest, UnregisterActiveVendorTransportReturnsFalse) {
       .WillRepeatedly(ReturnRef(priorities));
 
   // Make it active.
-  EXPECT_TRUE(TransportInterface::UpdateTransportType(kVendorType1));
-  auto* transport_ptr = &TransportInterface::GetTransport();
-  TransportInterface::GetTransport().Initialize(&mock_callback_);
+  EXPECT_TRUE(TransportFactory::UpdateTransportType(kVendorType1));
+  auto* transport_ptr = &TransportFactory::GetTransport();
+  TransportFactory::GetTransport().Initialize(&mock_callback_);
 
-  EXPECT_FALSE(TransportInterface::UnregisterVendorTransport(kVendorType1));
+  EXPECT_FALSE(TransportFactory::UnregisterVendorTransport(kVendorType1));
   // Verify it's still active.
-  EXPECT_EQ(&TransportInterface::GetTransport(), transport_ptr);
+  EXPECT_EQ(&TransportFactory::GetTransport(), transport_ptr);
 
   Mock::VerifyAndClearExpectations(&mock_hal_config_loader_);
 }
@@ -402,23 +401,23 @@ TEST_F(VendorTransportTest, UnregisterInactiveVendorTransportSuccessfully) {
     return transport;
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory1));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory1));
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType2, factory2));
+      TransportFactory::RegisterVendorTransport(kVendorType2, factory2));
 
   std::vector<TransportType> priorities_2_then_default = {
       kVendorType2, TransportType::kUartH4};
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities_2_then_default));
-  EXPECT_TRUE(TransportInterface::GetTransport().Initialize(&mock_callback_));
+  EXPECT_TRUE(TransportFactory::GetTransport().Initialize(&mock_callback_));
 
   // Unregister inactive vendor transport 1.
-  EXPECT_TRUE(TransportInterface::UnregisterVendorTransport(kVendorType1));
+  EXPECT_TRUE(TransportFactory::UnregisterVendorTransport(kVendorType1));
 
   Mock::VerifyAndClearExpectations(&mock_hal_config_loader_);
 
   // Cleanup active transport and load transprot again
-  TransportInterface::CleanupTransport();
+  TransportFactory::CleanupTransport();
 
   // Verify vendor transport 1 is gone.
   std::vector<TransportType> priorities_1_then_default = {
@@ -426,19 +425,19 @@ TEST_F(VendorTransportTest, UnregisterInactiveVendorTransportSuccessfully) {
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities_1_then_default));
   // Since kVendorStart is unregistered, GetTransport should now return UartH4.
-  EXPECT_EQ(TransportInterface::GetTransport().GetInstanceTransportType(),
+  EXPECT_EQ(TransportFactory::GetTransport().GetInstanceTransportType(),
             TransportType::kUartH4);
 
   Mock::VerifyAndClearExpectations(&mock_hal_config_loader_);
 
   // Cleanup the UartH4 transport created above.
-  TransportInterface::CleanupTransport();
+  TransportFactory::CleanupTransport();
 
   // Verify vendor transport 2 is still registered and can be used.
   std::vector<TransportType> priorities_2 = {kVendorType2};
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities_2));
-  EXPECT_EQ(TransportInterface::GetTransport().GetInstanceTransportType(),
+  EXPECT_EQ(TransportFactory::GetTransport().GetInstanceTransportType(),
             kVendorType2);
 
   Mock::VerifyAndClearExpectations(&mock_hal_config_loader_);
@@ -448,16 +447,15 @@ TEST_F(VendorTransportTest, UnregisterAndThenTryToUseReturnsFallback) {
   auto factory = []() {
     return std::make_unique<StrictMock<MockVendorTransport>>(kVendorType1);
   };
-  EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory));
+  EXPECT_TRUE(TransportFactory::RegisterVendorTransport(kVendorType1, factory));
 
-  EXPECT_TRUE(TransportInterface::UnregisterVendorTransport(kVendorType1));
+  EXPECT_TRUE(TransportFactory::UnregisterVendorTransport(kVendorType1));
 
   std::vector<TransportType> priorities = {kVendorType1,
                                            TransportType::kUartH4};
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities));
-  EXPECT_EQ(TransportInterface::GetTransport().GetInstanceTransportType(),
+  EXPECT_EQ(TransportFactory::GetTransport().GetInstanceTransportType(),
             TransportType::kUartH4);
 
   Mock::VerifyAndClearExpectations(&mock_hal_config_loader_);
@@ -473,17 +471,17 @@ TEST_F(VendorTransportTest, SwitchToNonExistentVendorFailsAndPreservesCurrent) {
     return transport;
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType2, factory2));
-  EXPECT_TRUE(TransportInterface::UpdateTransportType(kVendorType2));
-  auto* transport2_ptr = &TransportInterface::GetTransport();
-  EXPECT_EQ(TransportInterface::GetTransportType(), kVendorType2);
+      TransportFactory::RegisterVendorTransport(kVendorType2, factory2));
+  EXPECT_TRUE(TransportFactory::UpdateTransportType(kVendorType2));
+  auto* transport2_ptr = &TransportFactory::GetTransport();
+  EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType2);
 
   // 2. Try to switch to kVendorType1 (not registered)
-  EXPECT_FALSE(TransportInterface::UpdateTransportType(kVendorType1));
+  EXPECT_FALSE(TransportFactory::UpdateTransportType(kVendorType1));
 
   // 3. Verify that kVendorType2 is still the current transport
-  EXPECT_EQ(TransportInterface::GetTransportType(), kVendorType2);
-  EXPECT_EQ(&TransportInterface::GetTransport(), transport2_ptr);
+  EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType2);
+  EXPECT_EQ(&TransportFactory::GetTransport(), transport2_ptr);
 }
 
 TEST_F(VendorTransportTest, RegisterTransportAfterInitSuccessfully) {
@@ -494,29 +492,29 @@ TEST_F(VendorTransportTest, RegisterTransportAfterInitSuccessfully) {
     return transport;
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType2, factory2));
+      TransportFactory::RegisterVendorTransport(kVendorType2, factory2));
 
   std::vector<TransportType> priorities = {kVendorType1, kVendorType2,
                                            TransportType::kUartH4};
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities));
 
-  auto* transport2_ptr = &TransportInterface::GetTransport();
-  EXPECT_EQ(TransportInterface::GetTransportType(), kVendorType2);
+  auto* transport2_ptr = &TransportFactory::GetTransport();
+  EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType2);
 
   auto factory1 = []() {
     return std::make_unique<StrictMock<MockVendorTransport>>(kVendorType1);
   };
   EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory1));
+      TransportFactory::RegisterVendorTransport(kVendorType1, factory1));
 
   // Transport is still kVendorType2 as it is active.
-  EXPECT_EQ(&TransportInterface::GetTransport(), transport2_ptr);
-  EXPECT_EQ(TransportInterface::GetTransportType(), kVendorType2);
+  EXPECT_EQ(&TransportFactory::GetTransport(), transport2_ptr);
+  EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType2);
 
   // Cleanup and moved back to the map.
-  TransportInterface::CleanupTransport();
-  EXPECT_EQ(TransportInterface::GetTransportType(), TransportType::kUnknown);
+  TransportFactory::CleanupTransport();
+  EXPECT_EQ(TransportFactory::GetTransportType(), TransportType::kUnknown);
 }
 
 TEST_F(VendorTransportTest, GetVendorTransportReturnSameInstance) {
@@ -533,16 +531,15 @@ TEST_F(VendorTransportTest, GetVendorTransportReturnSameInstance) {
     EXPECT_CALL(*transprot, MockedCleanup()).Times(1);
     return transprot;
   };
-  EXPECT_TRUE(
-      TransportInterface::RegisterVendorTransport(kVendorType1, factory));
+  EXPECT_TRUE(TransportFactory::RegisterVendorTransport(kVendorType1, factory));
 
-  TransportInterface* transport1 = &TransportInterface::GetTransport();
+  TransportInterface* transport1 = &TransportFactory::GetTransport();
   EXPECT_EQ(transport1->GetInstanceTransportType(), kVendorType1);
-  EXPECT_EQ(TransportInterface::GetTransportType(), kVendorType1);
+  EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType1);
 
-  TransportInterface* transport2 = &TransportInterface::GetTransport();
+  TransportInterface* transport2 = &TransportFactory::GetTransport();
   EXPECT_EQ(transport1, transport2);
-  EXPECT_EQ(TransportInterface::GetTransportType(), kVendorType1);
+  EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType1);
 }
 
 }  // namespace

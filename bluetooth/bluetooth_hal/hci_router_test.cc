@@ -31,6 +31,7 @@
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
+#include "bluetooth_hal/test/mock/mock_transport_factory.h"
 #include "bluetooth_hal/test/mock/mock_transport_interface.h"
 #include "bluetooth_hal/test/mock/mock_vnd_snoop_logger.h"
 #include "bluetooth_hal/test/mock/mock_wakelock.h"
@@ -48,12 +49,14 @@ using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::Mock;
 using ::testing::Return;
+using ::testing::ReturnRef;
 using ::testing::SaveArg;
 using ::testing::Test;
 
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::MockHalConfigLoader;
 using ::bluetooth_hal::debug::MockVndSnoopLogger;
+using ::bluetooth_hal::transport::MockTransportFactory;
 using ::bluetooth_hal::transport::MockTransportInterface;
 using ::bluetooth_hal::transport::TransportInterfaceCallback;
 using ::bluetooth_hal::util::power::MockWakelock;
@@ -79,9 +82,23 @@ class HciRouterTest : public Test {
 
   void SetUp() override {
     set_com_android_bluetooth_bluetooth_hal_flags_async_hci_router(false);
+    fake_hci_callback_ = std::make_shared<FakeHciRouterCallback>();
 
     MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
-    fake_hci_callback_ = std::make_shared<FakeHciRouterCallback>();
+    MockTransportInterface::SetMockTransport(&mock_transport_interface_);
+    MockTransportFactory::SetMockFactory(&mock_transport_factory_);
+    MockHalConfigLoader::SetMockLoader(&mock_hal_config_loader_);
+    MockTransportInterface::SetMockTransport(&mock_transport_interface_);
+    MockWakelock::SetMockWakelock(&mock_wakelock_);
+    MockVndSnoopLogger::SetMockVndSnoopLogger(&mock_vnd_snoop_logger_);
+
+    ON_CALL(mock_transport_factory_, GetTransport())
+        .WillByDefault(ReturnRef(mock_transport_interface_));
+    ON_CALL(mock_transport_factory_, CleanupTransport())
+        .WillByDefault(
+            Invoke([&mock_transport_interface = mock_transport_interface_]() {
+              mock_transport_interface.Cleanup();
+            }));
 
     ON_CALL(mock_transport_interface_, IsTransportActive())
         .WillByDefault(Return(true));
@@ -105,11 +122,6 @@ class HciRouterTest : public Test {
         .WillByDefault(
             DoAll(SaveArg<0>(&hal_packet_), Return(MonitorMode::kNone)));
 
-    MockTransportInterface::SetMockTransport(&mock_transport_interface_);
-    MockHalConfigLoader::SetMockLoader(&mock_hal_config_loader_);
-    MockWakelock::SetMockWakelock(&mock_wakelock_);
-    MockVndSnoopLogger::SetMockVndSnoopLogger(&mock_vnd_snoop_logger_);
-
     router_ = &HciRouter::GetRouter();
     InitializeHciRouter();
   }
@@ -127,8 +139,7 @@ class HciRouterTest : public Test {
   }
 
   void CleanupHciRouter() {
-    EXPECT_CALL(mock_transport_interface_, CleanupTransport())
-        .Times(AtLeast(1));
+    EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(AtLeast(1));
     router_->Cleanup();
     ASSERT_EQ(new_state_, HalState::kShutdown);
     ASSERT_EQ(router_->GetHalState(), HalState::kShutdown);
@@ -276,7 +287,7 @@ class HciRouterTest : public Test {
     EXPECT_CALL(mock_hci_router_client_agent_,
                 NotifyHalStateChange(new_state, old_state))
         .Times(count);
-    EXPECT_CALL(mock_transport_interface_, NotifyHalStateChange(new_state))
+    EXPECT_CALL(mock_transport_factory_, NotifyHalStateChange(new_state))
         .Times(count);
   }
 
@@ -291,6 +302,7 @@ class HciRouterTest : public Test {
   HalPacket hal_packet_;
   TransportInterfaceCallback* transport_interface_callback_;
   MockTransportInterface mock_transport_interface_;
+  MockTransportFactory mock_transport_factory_;
   MockHalConfigLoader mock_hal_config_loader_;
   MockWakelock mock_wakelock_;
   MockVndSnoopLogger mock_vnd_snoop_logger_;
@@ -867,7 +879,7 @@ TEST_F(HciRouterTest, HandleCleanupAndRxAtTheSameTime) {
   bool rx_dispatched = false;
 
   // Override CleanupTransport(), force it wait for the next RX to be completed.
-  ON_CALL(mock_transport_interface_, CleanupTransport())
+  ON_CALL(mock_transport_factory_, CleanupTransport())
       .WillByDefault(Invoke([&m, &cv, &rx_dispatched]() {
         std::unique_lock<std::mutex> lock(m);
         bool result = cv.wait_for(lock, std::chrono::seconds(3),
@@ -894,7 +906,7 @@ TEST_F(HciRouterTest, HandleCleanupAndRxAtTheSameTime) {
   cleanup_thread.join();
 
   // Reset CleanupTransport() for TearDown.
-  ON_CALL(mock_transport_interface_, CleanupTransport())
+  ON_CALL(mock_transport_factory_, CleanupTransport())
       .WillByDefault(Invoke([]() {}));
 }
 
@@ -905,7 +917,7 @@ TEST_F(HciRouterTest, HandleTxAfterAnotherThreadCallingCleanup) {
   std::condition_variable cv_cleanup_started;
 
   // Override CleanupTransport(), force it wait for the send to be attempted.
-  ON_CALL(mock_transport_interface_, CleanupTransport())
+  ON_CALL(mock_transport_factory_, CleanupTransport())
       .WillByDefault(Invoke([&]() {
         std::lock_guard<std::mutex> lock(m);
         cv_cleanup_started.notify_one();
@@ -925,7 +937,7 @@ TEST_F(HciRouterTest, HandleTxAfterAnotherThreadCallingCleanup) {
 
   cleanup_thread.join();
 
-  ON_CALL(mock_transport_interface_, CleanupTransport())
+  ON_CALL(mock_transport_factory_, CleanupTransport())
       .WillByDefault(Invoke([]() {}));
 }
 
