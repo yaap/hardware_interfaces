@@ -30,7 +30,6 @@
 #include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v6.h"
 #include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v7.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
-#include "bluetooth_hal/bqr/bqr_link_quality_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v1_to_v3.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v4.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v5.h"
@@ -41,7 +40,6 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_monitor.h"
-#include "bluetooth_hal/hci_router_client.h"
 
 namespace bluetooth_hal::bqr {
 namespace {

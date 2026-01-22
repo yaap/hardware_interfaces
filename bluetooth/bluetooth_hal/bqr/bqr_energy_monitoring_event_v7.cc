@@ -18,12 +18,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iomanip>
 #include <sstream>
 #include <string>
 
 #include "bluetooth_hal/bqr/bqr_energy_monitoring_event_v6.h"
-#include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
 namespace bluetooth_hal::bqr {

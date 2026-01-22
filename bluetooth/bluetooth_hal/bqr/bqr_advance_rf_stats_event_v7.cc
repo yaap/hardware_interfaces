@@ -18,13 +18,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iomanip>
 #include <ios>
 #include <sstream>
 #include <string>
 
 #include "bluetooth_hal/bqr/bqr_advance_rf_stats_event.h"
-#include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
 namespace bluetooth_hal::bqr {
