@@ -16,17 +16,10 @@
 
 //! VTS test library for HwCrypto functionality.
 //! It provides the base clases necessaries to write HwCrypto VTS tests
-use anyhow::Result;
-use android_hardware_security_see_hwcrypto::aidl::android::hardware::security::see::hwcrypto::IHwCryptoKey::IHwCryptoKey;
+
 use hwcrypto_thal::HwCryptoKey;
 
 pub const HWCRYPTO_SERVICE: &str = "android.hardware.security.see.hwcrypto.IHwCryptoKey";
-
-/// Get a HwCryptoKey binder service object using the service manager
-pub fn get_hwcryptokey() -> Result<binder::Strong<dyn IHwCryptoKey>, binder::Status> {
-    let interface_name = HWCRYPTO_SERVICE.to_owned() + "/default";
-    Ok(binder::get_interface(&interface_name)?)
-}
 
 /// Get a new `HwCryptoKey` client using HwCryptoKey binder service object
 pub fn new_hwcryptokey() -> hwcrypto_thal::Result<HwCryptoKey>  {

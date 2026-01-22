@@ -102,9 +102,7 @@ void ChipProvisioner::Initialize(
   on_hal_state_update_ = std::move(on_hal_state_update);
 }
 
-void ChipProvisioner::Stop() {
-  stop_requested_.store(true);
-}
+void ChipProvisioner::Stop() { stop_requested_.store(true); }
 
 bool ChipProvisioner::DownloadFirmware() {
   LOG(INFO) << __func__;
@@ -119,8 +117,7 @@ bool ChipProvisioner::DownloadFirmware() {
                << ": Failed to complete download firmware. Final state: "
                << static_cast<int>(state_);
   } else {
-    LOG(ERROR) << __func__
-               << ": Firmware download stopped. Final state: "
+    LOG(ERROR) << __func__ << ": Firmware download stopped. Final state: "
                << static_cast<int>(state_);
     return false;
   }
