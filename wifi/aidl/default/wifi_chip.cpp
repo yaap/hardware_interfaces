@@ -1920,14 +1920,18 @@ void WifiChip::deleteApIface(const std::string& if_name) {
     for (auto const& it : br_ifaces_ap_instances_) {
         if (it.first == if_name) {
             const auto iface = findUsingName(ap_ifaces_, if_name);
-            if (iface.get() && !iface->usesMlo()) {
-                for (auto const& instance : it.second) {
-                    iface_util_->removeIfaceFromBridge(if_name, instance);
-                    legacy_hal_.lock()->deleteVirtualInterface(instance);
+            if (iface.get()) {
+                if (iface->usesMlo()) {
+                    legacy_hal_.lock()->deleteVirtualInterface(if_name);
+                } else {
+                    for (auto const& instance : it.second) {
+                        iface_util_->removeIfaceFromBridge(if_name, instance);
+                        legacy_hal_.lock()->deleteVirtualInterface(instance);
+                    }
+                    iface_util_->deleteBridge(if_name);
                 }
-                iface_util_->deleteBridge(if_name);
                 br_ifaces_ap_instances_.erase(if_name);
-                // ifname is non mlo bridged AP, return here.
+                // ifname is bridged AP, return here.
                 return;
             }
         }
