@@ -23,7 +23,6 @@
 #include <thread>
 #include <vector>
 
-#include "android-base/logging.h"
 #include "gtest/gtest.h"
 
 namespace bluetooth_hal::util {
