@@ -19,7 +19,6 @@
 #include "bluetooth_hal/bluetooth_hci.h"
 
 #include <atomic>
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <sstream>
@@ -31,7 +30,6 @@
 #include "bluetooth_hal/extensions/finder/bluetooth_finder_handler.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 

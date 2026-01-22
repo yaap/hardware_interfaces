@@ -18,8 +18,6 @@
 
 #include <memory>
 
-#include "bluetooth_hal/hal_packet.h"
-#include "bluetooth_hal/hal_types.h"
 #include "hal/ffi.h"
 
 namespace bluetooth_hal {

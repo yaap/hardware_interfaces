@@ -18,20 +18,14 @@
 
 #include "bluetooth_hal/hci_router_interface.h"
 
-#include <cstdint>
 #include <functional>
-#include <future>
 #include <memory>
-#include <mutex>
-#include <ostream>
-#include <string>
 #include <utility>
 
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/transport_instance.h"
 
 namespace bluetooth_hal::hci {
 
