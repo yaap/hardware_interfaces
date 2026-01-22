@@ -26,6 +26,7 @@
 #include <aidl/android/media/audio/common/AudioChannelLayout.h>
 #include <aidl/android/media/audio/common/AudioDeviceType.h>
 #include <aidl/android/media/audio/common/AudioFormatDescription.h>
+#include <aidl/android/media/audio/common/AudioGainMode.h>
 #include <aidl/android/media/audio/common/AudioInputFlags.h>
 #include <aidl/android/media/audio/common/AudioIoFlags.h>
 #include <aidl/android/media/audio/common/AudioMode.h>
@@ -191,7 +192,8 @@ static inline bool isVendorExtension(const std::string& s) {
 template <typename E>
 using is_bit_position_enum = std::integral_constant<
         bool, std::is_same_v<E, ::aidl::android::media::audio::common::AudioInputFlags> ||
-                      std::is_same_v<E, ::aidl::android::media::audio::common::AudioOutputFlags>>;
+                      std::is_same_v<E, ::aidl::android::media::audio::common::AudioOutputFlags> ||
+                      std::is_same_v<E, ::aidl::android::media::audio::common::AudioGainMode>>;
 
 template <typename E, typename U = std::underlying_type_t<E>,
           typename = std::enable_if_t<is_bit_position_enum<E>::value>>
