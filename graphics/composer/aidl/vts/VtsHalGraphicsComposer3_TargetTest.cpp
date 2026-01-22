@@ -1247,6 +1247,11 @@ TEST_P(GraphicsComposerAidlTest, GetDataspaceSaturationMatrix_BadParameter) {
  * Test that no two display configs are exactly the same.
  */
 TEST_P(GraphicsComposerAidlTest, GetDisplayConfigNoRepetitions) {
+    if (getInterfaceVersion() >= 3) {
+        GTEST_SKIP() << "SurfaceFlinger never uses getDisplayConfigs on HAL versions < 3";
+        return;
+    }
+
     for (const auto& display : mDisplays) {
         const auto& [status, configs] = mComposerClient->getDisplayConfigs(display.getDisplayId());
         for (std::vector<int>::size_type i = 0; i < configs.size(); i++) {
