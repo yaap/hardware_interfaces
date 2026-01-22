@@ -18,6 +18,7 @@
 
 #include "bluetooth_hal/chip/chip_provisioner.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstring>
 #include <fstream>
@@ -118,7 +119,8 @@ bool ChipProvisioner::DownloadFirmware() {
                << static_cast<int>(state_);
   } else {
     LOG(ERROR) << __func__ << ": Firmware download stopped. Final state: "
-               << static_cast<int>(state_);
+               << static_cast<int>(state_)
+               << ", Stop requested: " << stop_requested_.load();
     return false;
   }
 
