@@ -5466,7 +5466,6 @@ TEST_P(AudioStreamOut, PlaybackRate) {
 }
 
 TEST_P(AudioStreamOut, SelectPresentation) {
-    static const auto kStatuses = {EX_ILLEGAL_ARGUMENT, EX_UNSUPPORTED_OPERATION};
     const auto offloadMixPorts =
             moduleConfig->getOffloadMixPorts(true /*connectedOnly*/, false /*singlePort*/);
     if (offloadMixPorts.empty()) {
@@ -5479,9 +5478,18 @@ TEST_P(AudioStreamOut, SelectPresentation) {
         ASSERT_TRUE(portConfig.has_value()) << "No profiles specified for output mix port";
         WithStream<IStreamOut> stream(portConfig.value());
         ASSERT_NO_FATAL_FAILURE(stream.SetUp(module.get(), kDefaultLargeBufferSizeFrames));
-        ndk::ScopedAStatus status;
-        EXPECT_STATUS(kStatuses, status = stream.get()->selectPresentation(0, 0));
-        if (status.getExceptionCode() != EX_UNSUPPORTED_OPERATION) atLeastOneSupports = true;
+        ndk::ScopedAStatus status = stream.get()->selectPresentation(0, 0);
+        if (status.getExceptionCode() == EX_UNSUPPORTED_OPERATION) continue;
+        atLeastOneSupports = true;
+        if (status.getExceptionCode() == EX_ILLEGAL_ARGUMENT) continue;
+        // Negative presentation IDs are not allowed, but '-1' is OK, so use '-2'.
+        ASSERT_STATUS(EX_ILLEGAL_ARGUMENT, stream.get()->selectPresentation(-2, 0));
+        // Program ID can not exceed unsigned 16-bit value range.
+        ASSERT_STATUS(EX_ILLEGAL_ARGUMENT,
+                      stream.get()->selectPresentation(
+                              0, static_cast<int32_t>(std::numeric_limits<uint16_t>::max()) + 1));
+        // Negative program IDs are not allowed, but '-1' is OK, so use '-2'.
+        ASSERT_STATUS(EX_ILLEGAL_ARGUMENT, stream.get()->selectPresentation(0, -2));
     }
     if (!atLeastOneSupports) {
         GTEST_SKIP() << "Presentation selection is not supported";
