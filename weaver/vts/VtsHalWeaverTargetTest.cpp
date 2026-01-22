@@ -497,10 +497,10 @@ TEST_P(WeaverTest, GetTimeout) {
     {
         int64_t timeout = -1;
         const auto ret = weaver_->getTimeout(slotId, &timeout);
-        if (ret.getExceptionCode() == EX_UNSUPPORTED_OPERATION) {
+        if (!ret.isOk()) {
+            ASSERT_EQ(ret.getExceptionCode(), EX_UNSUPPORTED_OPERATION);
             GTEST_SKIP() << "getTimeout() is unsupported";
         }
-        EXPECT_TRUE(ret.isOk());
         EXPECT_EQ(timeout, 0);
     }
 
