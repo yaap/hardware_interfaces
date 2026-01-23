@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 
 #include <memory>
 #include <vector>
@@ -25,7 +25,7 @@
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_subscriber.h"
 #include "bluetooth_hal/test/mock/mock_system_call_wrapper.h"
-#include "bluetooth_hal/transport/transport_factory.h"
+#include "bluetooth_hal/transport/transport_interface.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -47,11 +47,11 @@ using ::bluetooth_hal::util::MockSystemCallWrapper;
 
 namespace cfg_consts = ::bluetooth_hal::config::constants;
 
-TEST(TransportInterfaceTest, GetTransportTypeReturnDefaultType) {
+TEST(TransportFactoryTest, GetTransportTypeReturnDefaultType) {
   EXPECT_EQ(TransportFactory::GetTransportType(), TransportType::kUnknown);
 }
 
-TEST(TransportInterfaceTest, HalStateNotChangeAndNotNotifySubscriber) {
+TEST(TransportFactoryTest, HalStateNotChangeAndNotNotifySubscriber) {
   MockSubscriber subscriber;
   TransportFactory::Subscribe(subscriber);
 
@@ -59,7 +59,7 @@ TEST(TransportInterfaceTest, HalStateNotChangeAndNotNotifySubscriber) {
   TransportFactory::NotifyHalStateChange(HalState::kInit);
 }
 
-TEST(TransportInterfaceTest, HalStateChangeAndNotifySubscriber) {
+TEST(TransportFactoryTest, HalStateChangeAndNotifySubscriber) {
   MockSubscriber subscriber;
   TransportFactory::Subscribe(subscriber);
 
@@ -67,7 +67,7 @@ TEST(TransportInterfaceTest, HalStateChangeAndNotifySubscriber) {
   TransportFactory::NotifyHalStateChange(HalState::kRunning);
 }
 
-TEST(TransportInterfaceTest, UnsubscribeAndNoSubscriberToNotify) {
+TEST(TransportFactoryTest, UnsubscribeAndNoSubscriberToNotify) {
   MockSubscriber subscriber;
   TransportFactory::Subscribe(subscriber);
   TransportFactory::Unsubscribe(subscriber);
@@ -76,7 +76,7 @@ TEST(TransportInterfaceTest, UnsubscribeAndNoSubscriberToNotify) {
   TransportFactory::NotifyHalStateChange(HalState::kFirmwareReady);
 }
 
-TEST(TransportInterfaceTest, MultipleSubscribersReceiveNotification) {
+TEST(TransportFactoryTest, MultipleSubscribersReceiveNotification) {
   MockSubscriber subscriber1;
   MockSubscriber subscriber2;
   MockSubscriber subscriber3;
@@ -100,7 +100,7 @@ TEST(TransportInterfaceTest, MultipleSubscribersReceiveNotification) {
   TransportFactory::Unsubscribe(subscriber3);
 }
 
-TEST(TransportInterfaceTest, UnsubscribingOneOfMultipleStillNotifiesOthers) {
+TEST(TransportFactoryTest, UnsubscribingOneOfMultipleStillNotifiesOthers) {
   MockSubscriber subscriber1;
   MockSubscriber subscriber2;
   MockSubscriber subscriber3;
@@ -127,8 +127,7 @@ TEST(TransportInterfaceTest, UnsubscribingOneOfMultipleStillNotifiesOthers) {
   TransportFactory::Unsubscribe(subscriber3);
 }
 
-TEST(TransportInterfaceTest,
-     SubscribingSameSubscriberMultipleTimesNotifiesOnce) {
+TEST(TransportFactoryTest, SubscribingSameSubscriberMultipleTimesNotifiesOnce) {
   MockSubscriber subscriber;
 
   TransportFactory::Subscribe(subscriber);
