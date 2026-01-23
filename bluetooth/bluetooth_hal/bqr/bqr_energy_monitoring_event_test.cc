@@ -31,6 +31,7 @@ namespace {
 using ::bluetooth_hal::hci::HalPacket;
 
 HalPacket CreateEnergyMonitoringEvent() {
+  // clang-format off
   std::vector<uint8_t> data = {
       0x04,  // H4 Type: HCI Event
       0xff,  // Event Code: Vendor Specific Event (0xFF)
@@ -55,10 +56,12 @@ HalPacket CreateEnergyMonitoringEvent() {
       0x58, 0x02, 0x00, 0x00,  // LE Rx Total Time (600)
       0x06, 0x00, 0x00, 0x00,  // LE Rx State Enter Count (6)
   };
+  // clang-format on
   return HalPacket(data);
 }
 
 HalPacket CreateEnergyMonitoringEventV6() {
+  // clang-format off
   std::vector<uint8_t> data = {
       0x04,  // H4 Type: HCI Event
       0xff,  // Event Code: Vendor Specific Event (0xFF)
@@ -82,10 +85,12 @@ HalPacket CreateEnergyMonitoringEventV6() {
       0xD0, 0x07, 0x00, 0x00,  // TX xPA Active One Chain Time (2000)
       0xC8, 0x00, 0x00, 0x00,  // TX xPA Active Two Chain Time (200)
   };
+  // clang-format on
   return HalPacket(data);
 }
 
 HalPacket CreateEnergyMonitoringEventV7() {
+  // clang-format off
   std::vector<uint8_t> data = {
       0x04,  // H4 Type: HCI Event
       0xff,  // Event Code: Vendor Specific Event (0xFF)
@@ -111,6 +116,7 @@ HalPacket CreateEnergyMonitoringEventV7() {
       0x20, 0x03, 0x00,
       0x00,  // LE Scan RX Active Time (800)
   };
+  // clang-format on
   return HalPacket(data);
 }
 
@@ -119,11 +125,13 @@ HalPacket CreateIncorrectBqrHalPacket() {
 }
 
 HalPacket CreateShortBqrPacket() {
+  // clang-format off
   return HalPacket({
       0x04, 0xff, 0x03, 0x58,
       0x06,  // Report ID
       0x01,  // Payload (but packet is too short)
   });
+  // clang-format on
 }
 
 HalPacket CreateWrongReportIdPacket() {
