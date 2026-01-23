@@ -42,7 +42,7 @@
 #include "bluetooth_hal/hci_router_client_agent.h"
 #include "bluetooth_hal/hci_router_interface.h"
 #include "bluetooth_hal/transport/transport_factory.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
 #include "com_android_bluetooth_bluetooth_hal_flags.h"
@@ -58,7 +58,7 @@ using ::bluetooth_hal::debug::VndSnoopLogger;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::thread::ThreadHandler;
 using ::bluetooth_hal::transport::TransportFactory;
-using ::bluetooth_hal::transport::TransportInterfaceCallback;
+using ::bluetooth_hal::transport::TransportInstanceCallback;
 using ::bluetooth_hal::util::power::ScopedWakelock;
 using ::bluetooth_hal::util::power::Wakelock;
 using ::bluetooth_hal::util::power::WakeSource;
@@ -314,7 +314,7 @@ class TxHandler {
 };
 
 class HciRouterImpl : virtual public HciRouter,
-                      virtual public TransportInterfaceCallback {
+                      virtual public TransportInstanceCallback {
  public:
   HciRouterImpl();
   bool Initialize(const std::shared_ptr<HciRouterCallback>& callback) override;

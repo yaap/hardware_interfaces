@@ -25,7 +25,7 @@
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_subscriber.h"
 #include "bluetooth_hal/test/mock/mock_system_call_wrapper.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -144,18 +144,18 @@ TEST(TransportFactoryTest, SubscribingSameSubscriberMultipleTimesNotifiesOnce) {
   TransportFactory::Unsubscribe(subscriber);
 }
 
-class MockTransportInterfaceCallback : public TransportInterfaceCallback {
+class MockTransportInstanceCallback : public TransportInstanceCallback {
  public:
   MOCK_METHOD(void, OnTransportClosed, (), (override));
   MOCK_METHOD(void, OnTransportPacketReady, (const HalPacket&), (override));
 };
 
-class MockVendorTransport : public TransportInterface {
+class MockVendorTransport : public TransportInstance {
  public:
   explicit MockVendorTransport(TransportType type)
       : instance_type_(type), active_(false), initialized_(false) {}
 
-  bool Initialize(TransportInterfaceCallback* cb) override {
+  bool Initialize(TransportInstanceCallback* cb) override {
     callback_ = cb;
     initialized_ = MockedInitialize(cb);
     active_ = initialized_;
@@ -180,7 +180,7 @@ class MockVendorTransport : public TransportInterface {
     return instance_type_;
   }
 
-  MOCK_METHOD(bool, MockedInitialize, (TransportInterfaceCallback*));
+  MOCK_METHOD(bool, MockedInitialize, (TransportInstanceCallback*));
   MOCK_METHOD(void, MockedCleanup, ());
   MOCK_METHOD(bool, MockedIsTransportActive, (), (const));
   MOCK_METHOD(bool, MockedSend, (const ::bluetooth_hal::hci::HalPacket&));
@@ -189,7 +189,7 @@ class MockVendorTransport : public TransportInterface {
   TransportType instance_type_;
   bool active_;
   bool initialized_;
-  TransportInterfaceCallback* callback_ = nullptr;
+  TransportInstanceCallback* callback_ = nullptr;
 };
 
 class VendorTransportTest : public Test {
@@ -216,7 +216,7 @@ class VendorTransportTest : public Test {
 
   MockHalConfigLoader mock_hal_config_loader_;
   MockSystemCallWrapper mock_system_call_wrapper_;
-  MockTransportInterfaceCallback mock_callback_;
+  MockTransportInstanceCallback mock_callback_;
   std::string rfkill_folder_prefix_str_{cfg_consts::kRfkillFolderPrefix};
   std::string rfkill_type_bluetooth_str_{cfg_consts::kRfkillTypeBluetooth};
 };
@@ -338,7 +338,7 @@ TEST_F(VendorTransportTest, GetTransportSelectsHighestPriorityVendor) {
   EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
       .WillRepeatedly(ReturnRef(priorities));
 
-  TransportInterface& transport = TransportFactory::GetTransport();
+  TransportInstance& transport = TransportFactory::GetTransport();
   EXPECT_EQ(transport.GetInstanceTransportType(), kVendorType2);
   TransportFactory::GetTransport().Cleanup();
 }
@@ -532,11 +532,11 @@ TEST_F(VendorTransportTest, GetVendorTransportReturnSameInstance) {
   };
   EXPECT_TRUE(TransportFactory::RegisterVendorTransport(kVendorType1, factory));
 
-  TransportInterface* transport1 = &TransportFactory::GetTransport();
+  TransportInstance* transport1 = &TransportFactory::GetTransport();
   EXPECT_EQ(transport1->GetInstanceTransportType(), kVendorType1);
   EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType1);
 
-  TransportInterface* transport2 = &TransportFactory::GetTransport();
+  TransportInstance* transport2 = &TransportFactory::GetTransport();
   EXPECT_EQ(transport1, transport2);
   EXPECT_EQ(TransportFactory::GetTransportType(), kVendorType1);
 }

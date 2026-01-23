@@ -22,15 +22,15 @@
 namespace bluetooth_hal::transport {
 
 /**
- * @brief Interface for handling transport-related events.
+ * @brief Class for handling transport-related events.
  *
- * This interface defines callbacks for handling transport events such as
- * connection closure and packet readiness. Implementations of this interface
+ * This Class defines callbacks for handling transport events such as
+ * connection closure and packet readiness. Implementations of this class
  * should provide concrete behaviors for these events.
  */
-class TransportInterfaceCallback {
+class TransportInstanceCallback {
  public:
-  virtual ~TransportInterfaceCallback() = default;
+  virtual ~TransportInstanceCallback() = default;
 
   /**
    * @brief Called when the transport connection is closed.
@@ -59,25 +59,25 @@ class TransportInterfaceCallback {
  * @brief Abstracts the transport layer for devices, providing interfaces for
  * control and data management.
  */
-class TransportInterface {
+class TransportInstance {
  public:
-  virtual ~TransportInterface() = default;
+  virtual ~TransportInstance() = default;
 
   /**
-   * @brief Initializes the transport interface with a transport callback.
+   * @brief Initializes the transport instance with a transport callback.
    *
-   * @param transport_interface_callback A pointer to a
-   * `TransportInterfaceCallback` responsible for handling transport layer
+   * @param transport_instance_callback A pointer to a
+   * `TransportInstanceCallback` responsible for handling transport layer
    * events such as packet reception, connection closure, etc.
    *
    * @return True if initialization succeeds, false otherwise.
    *
    */
   virtual bool Initialize(
-      TransportInterfaceCallback* transport_interface_callback) = 0;
+      TransportInstanceCallback* transport_instance_callback) = 0;
 
   /**
-   * @brief Cleans up resources and disconnects the transport interface.
+   * @brief Cleans up resources and disconnects the transport instance.
    *
    */
   virtual void Cleanup() = 0;

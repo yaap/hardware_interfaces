@@ -18,15 +18,15 @@
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "gmock/gmock.h"
 
 namespace bluetooth_hal::transport {
 
-class MockTransportInterface : public TransportInterface {
+class MockTransportInstance : public TransportInstance {
  public:
   MOCK_METHOD(bool, Initialize,
-              (TransportInterfaceCallback * transport_interface_callback),
+              (TransportInstanceCallback * transport_instance_callback),
               (override));
   MOCK_METHOD(void, Cleanup, (), (override));
   MOCK_METHOD(bool, IsTransportActive, (), (const, override));
@@ -35,8 +35,8 @@ class MockTransportInterface : public TransportInterface {
   MOCK_METHOD(TransportType, GetInstanceTransportType, (), (const, override));
   MOCK_METHOD(void, SetHciRouterBusy, (bool is_busy), (override));
 
-  static void SetMockTransport(MockTransportInterface* transport);
-  static inline MockTransportInterface* mock_transport_interface_{nullptr};
+  static void SetMockTransport(MockTransportInstance* transport);
+  static inline MockTransportInstance* mock_transport_instance_{nullptr};
 };
 
 }  // namespace bluetooth_hal::transport

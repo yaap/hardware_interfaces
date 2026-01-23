@@ -25,13 +25,13 @@
 
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/subscriber.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/util/provider_factory.h"
 
 namespace bluetooth_hal::transport {
 
 /**
- * @brief Factory and manager for TransportInterface instances.
+ * @brief Factory and manager for TransportInstance instances.
  *
  * This class manages the singleton transport instance and handles
  * transport type switching, vendor transport registration, and
@@ -41,15 +41,15 @@ class TransportFactory {
  public:
   using VendorFactory =
       ::bluetooth_hal::util::MultiKeyProviderFactory<TransportType,
-                                                     TransportInterface>;
+                                                     TransportInstance>;
   using FactoryFn = VendorFactory::FactoryFn;
 
   /**
    * @brief Retrieves the current transport instance.
    *
-   * @return A reference to the active TransportInterface.
+   * @return A reference to the active TransportInstance.
    */
-  static TransportInterface& GetTransport();
+  static TransportInstance& GetTransport();
 
   /**
    * @brief Cleans up the current transport and releases resources.
@@ -114,12 +114,12 @@ class TransportFactory {
   static void Unsubscribe(Subscriber& subscriber);
 
  private:
-  static std::pair<std::unique_ptr<TransportInterface>, TransportType>
+  static std::pair<std::unique_ptr<TransportInstance>, TransportType>
   CreateOrAcquireTransport(TransportType requested_type);
 
   static inline TransportType current_transport_type_{TransportType::kUnknown};
   static inline std::recursive_mutex transport_mutex_;
-  static std::unique_ptr<TransportInterface> current_transport_;
+  static std::unique_ptr<TransportInstance> current_transport_;
   static inline std::atomic<::bluetooth_hal::HalState> hal_state_{
       ::bluetooth_hal::HalState::kInit};
   static inline std::vector<std::reference_wrapper<Subscriber>> subscribers_;

@@ -23,13 +23,13 @@
 #include "bluetooth_hal/hci_router.h"
 #include "bluetooth_hal/hci_router_async.h"
 #include "bluetooth_hal/hci_router_callback.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 
 namespace bluetooth_hal::hci {
 
 class HciRouterInterface
     : public HciRouter,
-      public ::bluetooth_hal::transport::TransportInterfaceCallback {
+      public ::bluetooth_hal::transport::TransportInstanceCallback {
  public:
   explicit HciRouterInterface();
 
@@ -45,7 +45,7 @@ class HciRouterInterface
   void UpdateHalState(::bluetooth_hal::HalState state) override;
   void SendPacketToStack(const HalPacket& packet) override;
 
-  // TransportInterfaceCallback overrides
+  // TransportInstanceCallback overrides
   void OnTransportClosed() override;
   void OnTransportPacketReady(
       const ::bluetooth_hal::hci::HalPacket& packet) override;

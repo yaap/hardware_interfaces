@@ -27,7 +27,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/transport/uart_h4/transport_uart_h4.h"
 
 namespace bluetooth_hal::transport {
@@ -35,10 +35,10 @@ namespace bluetooth_hal::transport {
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::HalConfigLoader;
 
-std::unique_ptr<TransportInterface> TransportFactory::current_transport_ =
+std::unique_ptr<TransportInstance> TransportFactory::current_transport_ =
     nullptr;
 
-TransportInterface& TransportFactory::GetTransport() {
+TransportInstance& TransportFactory::GetTransport() {
   std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
   if (current_transport_) {
@@ -64,9 +64,9 @@ TransportInterface& TransportFactory::GetTransport() {
   return *current_transport_;
 }
 
-std::pair<std::unique_ptr<TransportInterface>, TransportType>
+std::pair<std::unique_ptr<TransportInstance>, TransportType>
 TransportFactory::CreateOrAcquireTransport(TransportType requested_type) {
-  std::unique_ptr<TransportInterface> new_transport;
+  std::unique_ptr<TransportInstance> new_transport;
   TransportType new_transport_type = requested_type;
 
   switch (requested_type) {

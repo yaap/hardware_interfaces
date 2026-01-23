@@ -36,7 +36,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 #include "bluetooth_hal/transport/transport_factory.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/util/logging.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
@@ -50,7 +50,7 @@ using ::bluetooth_hal::debug::VndSnoopLogger;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::thread::ThreadHandler;
 using ::bluetooth_hal::transport::TransportFactory;
-using ::bluetooth_hal::transport::TransportInterfaceCallback;
+using ::bluetooth_hal::transport::TransportInstanceCallback;
 using ::bluetooth_hal::util::Worker;
 using ::bluetooth_hal::util::power::ScopedWakelock;
 using ::bluetooth_hal::util::power::Wakelock;
@@ -164,14 +164,14 @@ void HciRouterAsync::UnvoteRouterTaskWakelock() {
 
 bool HciRouterAsync::Initialize(
     const std::shared_ptr<HciRouterCallback>& callback,
-    TransportInterfaceCallback* transport_callback) {
+    TransportInstanceCallback* transport_callback) {
   HAL_LOG(INFO) << "Initializing Bluetooth HCI Router.";
   hci_callback_ = callback;
   return InitializeModules(transport_callback);
 }
 
 bool HciRouterAsync::InitializeModules(
-    TransportInterfaceCallback* transport_callback) {
+    TransportInstanceCallback* transport_callback) {
   transport_callback_ = transport_callback;
   switch (hal_state_) {
     case HalState::kRunning:

@@ -19,7 +19,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/subscriber.h"
 #include "bluetooth_hal/transport/transport_factory.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "gmock/gmock.h"
 
 namespace bluetooth_hal::transport {
@@ -29,7 +29,7 @@ namespace bluetooth_hal::transport {
  */
 class MockTransportFactory {
  public:
-  MOCK_METHOD(TransportInterface&, GetTransport, (), ());
+  MOCK_METHOD(TransportInstance&, GetTransport, (), ());
   MOCK_METHOD(bool, UpdateTransportType, (TransportType requested_type), ());
   MOCK_METHOD(TransportType, GetTransportType, (), ());
   MOCK_METHOD(void, CleanupTransport, (), ());

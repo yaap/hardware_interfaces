@@ -19,7 +19,7 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/transport_factory.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 
 namespace bluetooth_hal::transport {
 
@@ -34,7 +34,7 @@ void CheckMockFactoryOrFatal() {
 }
 }  // namespace
 
-TransportInterface& TransportFactory::GetTransport() {
+TransportInstance& TransportFactory::GetTransport() {
   CheckMockFactoryOrFatal();
   return MockTransportFactory::GetFactory()->GetTransport();
 }

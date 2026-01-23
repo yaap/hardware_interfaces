@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include "bluetooth_hal/test/mock/mock_transport_interface.h"
+#include "bluetooth_hal/test/mock/mock_transport_instance.h"
 
 namespace bluetooth_hal::transport {
 
-void MockTransportInterface::SetMockTransport(
-    MockTransportInterface* transport) {
-  mock_transport_interface_ = transport;
+void MockTransportInstance::SetMockTransport(MockTransportInstance* transport) {
+  mock_transport_instance_ = transport;
 }
 
 }  // namespace bluetooth_hal::transport
