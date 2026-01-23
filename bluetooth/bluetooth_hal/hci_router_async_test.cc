@@ -102,12 +102,12 @@ class HciRouterAsyncTest : public Test {
   }
 
   void TearDown() override {
+    router_.reset();
     MockHciRouterClientAgent::SetMockAgent(nullptr);
     MockTransportInterface::SetMockTransport(nullptr);
     MockHalConfigLoader::SetMockLoader(nullptr);
     MockWakelock::SetMockWakelock(nullptr);
     MockVndSnoopLogger::SetMockVndSnoopLogger(nullptr);
-    router_.reset();
     mock_transport_interface_callback_.reset();
   }
 
