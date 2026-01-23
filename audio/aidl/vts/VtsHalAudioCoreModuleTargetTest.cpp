@@ -6877,6 +6877,10 @@ static const NamedCommandSequence kDrainPauseFlushOutAsyncSeq =
 // `currentState` -> (flushFromFrame)`currentState`
 std::shared_ptr<StateSequence> makeFlushFromFrameOutCommands(
         const StreamDescriptor::Command& flushFromFrameCommand) {
+    // The default burst behavior will write maximum data. FlushFromFrame is only available on
+    // PCM offload where the buffer size is big. In that case, only issue two burst request should
+    // be enough for testing.
+    static constexpr int kBurstCountForFlushFromFrame = 2;
     using State = StreamDescriptor::State;
     auto d = std::make_unique<StateDag>();
     StateDag::Node lastState = d->makeFinalNode(State::TRANSFERRING);
@@ -6890,15 +6894,16 @@ std::shared_ptr<StateSequence> makeFlushFromFrameOutCommands(
                           std::make_pair(State::TRANSFER_PAUSED, kStartCommand),
                           std::make_pair(State::TRANSFERRING, flushFromFrameCommand)},
                          lastState);
-    StateDag::Node activeAfterResume =
-            makeAsyncBurstCommands(d.get(), kDefaultBurstCount, flushFromFrameAfterResume);
+    StateDag::Node activeAfterResume = makeAsyncBurstCommands(d.get(), kBurstCountForFlushFromFrame,
+                                                              flushFromFrameAfterResume);
     StateDag::Node flushFromFrame =
             d->makeNodes({std::make_pair(State::ACTIVE, flushFromFrameCommand),
                           std::make_pair(State::ACTIVE, kPauseCommand),
                           std::make_pair(State::PAUSED, flushFromFrameCommand),
                           std::make_pair(State::PAUSED, kStartCommand)},
                          activeAfterResume);
-    StateDag::Node active = makeAsyncBurstCommands(d.get(), kDefaultBurstCount, flushFromFrame);
+    StateDag::Node active =
+            makeAsyncBurstCommands(d.get(), kBurstCountForFlushFromFrame, flushFromFrame);
     StateDag::Node idle = d->makeNode(State::IDLE, kBurstCommand, active);
     idle.children().push_back(d->makeNode(State::TRANSFERRING, kTransferReadyEvent, active));
     d->makeNode(State::STANDBY, kStartCommand, idle);
