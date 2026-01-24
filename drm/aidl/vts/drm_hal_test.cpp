@@ -394,6 +394,13 @@ TEST_P(DrmHalTest, EncryptedAesCtrSegmentTestNoKeys) {
  * A get key handle should fail if no keyId is provided
  */
 TEST_P(DrmHalTest, GetKeyHandleNoKeyId) {
+    int32_t version = 0;
+    auto status = cryptoPlugin->getInterfaceVersion(&version);
+    ASSERT_TRUE(status.isOk());
+    if (version < 2) {
+        GTEST_SKIP() << "getKeyHandle is not supported in version " << version;
+    }
+
     KeyHandleResult result;
     vector<uint8_t> emptyKeyId = {};
     auto ret = cryptoPlugin->getKeyHandle(emptyKeyId, Mode::UNENCRYPTED, &result);
