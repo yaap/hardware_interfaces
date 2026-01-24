@@ -264,7 +264,7 @@ std::unique_ptr<Configuration> getPrimaryConfiguration() {
         c.ports.push_back(primaryInMix);
 
         AudioPort telephonyTxOutMix =
-                createPort(c.nextPortId++, "telephony_tx", 0, false, createPortMixExt(1, 1));
+                createPort(c.nextPortId++, kPortNameTelephonyTx, 0, false, createPortMixExt(1, 1));
         telephonyTxOutMix.profiles.insert(telephonyTxOutMix.profiles.begin(),
                                           standardPcmAudioProfiles.begin(),
                                           standardPcmAudioProfiles.end());
