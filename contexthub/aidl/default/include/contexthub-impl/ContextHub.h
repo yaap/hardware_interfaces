@@ -180,7 +180,8 @@ class ContextHub : public BnContextHub {
         void createEchoDataFlow(const DataFlowSinkContext& in_context, int64_t sinkMetadataOffset,
                                 const EndpointId& in_sinkId, const EndpointId& hostSourceId,
                                 const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
-                                const std::optional<SharedDataRegion>& metadataRegion);
+                                const std::optional<SharedDataRegion>& metadataRegion,
+                                const std::optional<Message>& in_msg, int32_t in_sessionId);
     };
 
     static constexpr uint32_t kMockHubId = 0;
