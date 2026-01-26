@@ -27,19 +27,19 @@
 namespace aidl::android::hardware::bluetooth::audio {
 
 class A2dpOffloadCodecFactory {
-  std::vector<std::shared_ptr<const A2dpOffloadCodec>> ranked_codecs_;
+    std::vector<std::shared_ptr<const A2dpOffloadCodec>> ranked_codecs_;
 
- public:
-  const std::string name;
-  const std::vector<std::shared_ptr<const A2dpOffloadCodec>>& codecs;
+  public:
+    const std::string name;
+    const std::vector<std::shared_ptr<const A2dpOffloadCodec>>& codecs;
 
-  A2dpOffloadCodecFactory();
+    A2dpOffloadCodecFactory();
 
-  std::shared_ptr<const A2dpOffloadCodec> GetCodec(CodecId id) const;
+    std::shared_ptr<const A2dpOffloadCodec> GetCodec(CodecId id) const;
 
-  bool GetConfiguration(const std::vector<A2dpRemoteCapabilities>&,
-                        const A2dpConfigurationHint& hint,
-                        A2dpConfiguration* configuration) const;
+    bool GetConfiguration(const std::vector<A2dpRemoteCapabilities>&,
+                          const A2dpConfigurationHint& hint,
+                          A2dpConfiguration* configuration) const;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::audio

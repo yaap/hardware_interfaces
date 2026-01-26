@@ -46,61 +46,54 @@ static constexpr uint32_t kDataMqSize = kBufferSize * kBufferCount;
 
 A2dpSoftwareAudioProvider::A2dpSoftwareAudioProvider()
     : BluetoothAudioProvider(), mDataMQ(nullptr) {
-  LOG(INFO) << __func__ << " - size of audio buffer " << kDataMqSize
-            << " byte(s)";
-  std::unique_ptr<DataMQ> tempDataMQ(
-      new DataMQ(kDataMqSize, /* EventFlag */ true));
-  if (tempDataMQ && tempDataMQ->isValid()) {
-    mDataMQ = std::move(tempDataMQ);
-    session_type_ = SessionType::A2DP_SOFTWARE_ENCODING_DATAPATH;
-  } else {
-    ALOGE_IF(!tempDataMQ, "failed to allocate data MQ");
-    ALOGE_IF(tempDataMQ && !tempDataMQ->isValid(), "data MQ is invalid");
-  }
+    LOG(INFO) << __func__ << " - size of audio buffer " << kDataMqSize << " byte(s)";
+    std::unique_ptr<DataMQ> tempDataMQ(new DataMQ(kDataMqSize, /* EventFlag */ true));
+    if (tempDataMQ && tempDataMQ->isValid()) {
+        mDataMQ = std::move(tempDataMQ);
+        session_type_ = SessionType::A2DP_SOFTWARE_ENCODING_DATAPATH;
+    } else {
+        ALOGE_IF(!tempDataMQ, "failed to allocate data MQ");
+        ALOGE_IF(tempDataMQ && !tempDataMQ->isValid(), "data MQ is invalid");
+    }
 }
 
 bool A2dpSoftwareAudioProvider::isValid(const SessionType& sessionType) {
-  return (sessionType == session_type_ && mDataMQ && mDataMQ->isValid());
+    return (sessionType == session_type_ && mDataMQ && mDataMQ->isValid());
 }
 
-Return<void> A2dpSoftwareAudioProvider::startSession(
-    const sp<IBluetoothAudioPort>& hostIf,
-    const AudioConfiguration& audioConfig, startSession_cb _hidl_cb) {
-  /**
-   * Initialize the audio platform if audioConfiguration is supported.
-   * Save the the IBluetoothAudioPort interface, so that it can be used
-   * later to send stream control commands to the HAL client, based on
-   * interaction with Audio framework.
-   */
-  if (audioConfig.getDiscriminator() !=
-      AudioConfiguration::hidl_discriminator::pcmConfig) {
-    LOG(WARNING) << __func__
-                 << " - Invalid Audio Configuration=" << toString(audioConfig);
-    _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION,
-             DataMQ::Descriptor());
-    return Void();
-  } else if (!android::bluetooth::audio::IsSoftwarePcmConfigurationValid(
-                 audioConfig.pcmConfig())) {
-    LOG(WARNING) << __func__ << " - Unsupported PCM Configuration="
-                 << toString(audioConfig.pcmConfig());
-    _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION,
-             DataMQ::Descriptor());
-    return Void();
-  }
+Return<void> A2dpSoftwareAudioProvider::startSession(const sp<IBluetoothAudioPort>& hostIf,
+                                                     const AudioConfiguration& audioConfig,
+                                                     startSession_cb _hidl_cb) {
+    /**
+     * Initialize the audio platform if audioConfiguration is supported.
+     * Save the IBluetoothAudioPort interface, so that it can be used
+     * later to send stream control commands to the HAL client, based on
+     * interaction with Audio framework.
+     */
+    if (audioConfig.getDiscriminator() != AudioConfiguration::hidl_discriminator::pcmConfig) {
+        LOG(WARNING) << __func__ << " - Invalid Audio Configuration=" << toString(audioConfig);
+        _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION, DataMQ::Descriptor());
+        return Void();
+    } else if (!android::bluetooth::audio::IsSoftwarePcmConfigurationValid(
+                       audioConfig.pcmConfig())) {
+        LOG(WARNING) << __func__
+                     << " - Unsupported PCM Configuration=" << toString(audioConfig.pcmConfig());
+        _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION, DataMQ::Descriptor());
+        return Void();
+    }
 
-  return BluetoothAudioProvider::startSession(hostIf, audioConfig, _hidl_cb);
+    return BluetoothAudioProvider::startSession(hostIf, audioConfig, _hidl_cb);
 }
 
-Return<void> A2dpSoftwareAudioProvider::onSessionReady(
-    startSession_cb _hidl_cb) {
-  if (mDataMQ && mDataMQ->isValid()) {
-    BluetoothAudioSessionReport::OnSessionStarted(
-        session_type_, stack_iface_, mDataMQ->getDesc(), audio_config_);
-    _hidl_cb(BluetoothAudioStatus::SUCCESS, *mDataMQ->getDesc());
-  } else {
-    _hidl_cb(BluetoothAudioStatus::FAILURE, DataMQ::Descriptor());
-  }
-  return Void();
+Return<void> A2dpSoftwareAudioProvider::onSessionReady(startSession_cb _hidl_cb) {
+    if (mDataMQ && mDataMQ->isValid()) {
+        BluetoothAudioSessionReport::OnSessionStarted(session_type_, stack_iface_,
+                                                      mDataMQ->getDesc(), audio_config_);
+        _hidl_cb(BluetoothAudioStatus::SUCCESS, *mDataMQ->getDesc());
+    } else {
+        _hidl_cb(BluetoothAudioStatus::FAILURE, DataMQ::Descriptor());
+    }
+    return Void();
 }
 
 }  // namespace implementation

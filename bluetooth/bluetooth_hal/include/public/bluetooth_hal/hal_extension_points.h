@@ -45,12 +45,11 @@ void BluetoothHalRegisterExtension(BluetoothHalExtensionInitializer init_func);
  */
 template <typename T>
 void RegisterHalService(const std::shared_ptr<T>& service) {
-  std::string instance = std::string() + T::descriptor + "/default";
-  int status =
-      AServiceManager_addService(service->asBinder().get(), instance.c_str());
-  if (status != STATUS_OK) {
-    LOG(ERROR) << "Could not register " << T::descriptor << " as a service!";
-  }
+    std::string instance = std::string() + T::descriptor + "/default";
+    int status = AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (status != STATUS_OK) {
+        LOG(ERROR) << "Could not register " << T::descriptor << " as a service!";
+    }
 }
 
 }  // namespace bluetooth_hal::extensions

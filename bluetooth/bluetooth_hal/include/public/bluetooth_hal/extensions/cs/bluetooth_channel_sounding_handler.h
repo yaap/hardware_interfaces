@@ -36,84 +36,74 @@
 
 namespace bluetooth_hal::extensions::cs {
 
-class BluetoothChannelSoundingHandler
-    : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  struct SessionTracker {
-    ::aidl::android::hardware::bluetooth::ranging::
-        BluetoothChannelSoundingParameters parameters;
-    uint16_t cur_procedure_counter{0xffff};
-    bool is_fake_notification_enabled{false};
-  };
+class BluetoothChannelSoundingHandler : public ::bluetooth_hal::hci::HciRouterClient {
+  public:
+    struct SessionTracker {
+        ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters
+                parameters;
+        uint16_t cur_procedure_counter{0xffff};
+        bool is_fake_notification_enabled{false};
+    };
 
-  BluetoothChannelSoundingHandler();
-  ~BluetoothChannelSoundingHandler();
+    BluetoothChannelSoundingHandler();
+    ~BluetoothChannelSoundingHandler();
 
-  bool GetVendorSpecificData(
-      std::optional<std::vector<std::optional<
-          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
-          return_value);
-  bool GetSupportedSessionTypes(
-      std::optional<std::vector<
-          ::aidl::android::hardware::bluetooth::ranging::SessionType>>*
-          return_value);
-  bool GetMaxSupportedCsSecurityLevel(
-      ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel*
-          return_value);
-  bool GetSupportedCsSecurityLevels(
-      std::vector<
-          ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel>*
-          return_value);
-  bool OpenSession(
-      const ::aidl::android::hardware::bluetooth::ranging::
-          BluetoothChannelSoundingParameters& in_params,
-      const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                                IBluetoothChannelSoundingSessionCallback>&
-          in_callback,
-      std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                          IBluetoothChannelSoundingSession>* return_value);
+    bool GetVendorSpecificData(
+            std::optional<std::vector<std::optional<
+                    ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
+                    return_value);
+    bool GetSupportedSessionTypes(
+            std::optional<std::vector<::aidl::android::hardware::bluetooth::ranging::SessionType>>*
+                    return_value);
+    bool GetMaxSupportedCsSecurityLevel(
+            ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel* return_value);
+    bool GetSupportedCsSecurityLevels(
+            std::vector<::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel>*
+                    return_value);
+    bool OpenSession(
+            const ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters&
+                    in_params,
+            const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                          IBluetoothChannelSoundingSessionCallback>& in_callback,
+            std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                    IBluetoothChannelSoundingSession>* return_value);
 
-  static void SetCsVendorSpecificDataMask(uint32_t mask);
+    static void SetCsVendorSpecificDataMask(uint32_t mask);
 
- protected:
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override;
-  void OnBluetoothDisabled() override;
-  void OnCommandCallback(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
+  protected:
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override;
+    void OnBluetoothDisabled() override;
+    void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
 
-  std::optional<std::reference_wrapper<SessionTracker>> GetTracker(
-      uint16_t connection_handle);
+    std::optional<std::reference_wrapper<SessionTracker>> GetTracker(uint16_t connection_handle);
 
- private:
-  void HandleVendorSpecificReply(
-      uint32_t connection_handle,
-      const std::optional<std::vector<std::optional<
-          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
-          vendor_specific_data,
-      const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                                IBluetoothChannelSoundingSessionCallback>
-          callback);
+  private:
+    void HandleVendorSpecificReply(
+            uint32_t connection_handle,
+            const std::optional<std::vector<std::optional<
+                    ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+                    vendor_specific_data,
+            const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                          IBluetoothChannelSoundingSessionCallback>
+                    callback);
 
-  void HandleCsSubevent(const ::bluetooth_hal::hci::HalPacket& packet);
-  void HandleCsProcedureEnableCompleteEvent(
-      const ::bluetooth_hal::hci::HalPacket& packet);
+    void HandleCsSubevent(const ::bluetooth_hal::hci::HalPacket& packet);
+    void HandleCsProcedureEnableCompleteEvent(const ::bluetooth_hal::hci::HalPacket& packet);
 
-  ::bluetooth_hal::hci::HciBleMetaEventMonitor cs_data_subevent_monitor_;
-  ::bluetooth_hal::hci::HciBleMetaEventMonitor
-      cs_procedure_enable_subevent_monitor_;
+    ::bluetooth_hal::hci::HciBleMetaEventMonitor cs_data_subevent_monitor_;
+    ::bluetooth_hal::hci::HciBleMetaEventMonitor cs_procedure_enable_subevent_monitor_;
 
-  std::vector<uint8_t> local_capabilities_;
+    std::vector<uint8_t> local_capabilities_;
 
-  inline static uint32_t cs_vendor_specific_data_mask_{0xFFFFFFFF};
+    inline static uint32_t cs_vendor_specific_data_mask_{0xFFFFFFFF};
 
-  std::unordered_map<uint16_t, SessionTracker> session_trackers_;
+    std::unordered_map<uint16_t, SessionTracker> session_trackers_;
 
-  std::mutex local_cap_mtx_;
+    std::mutex local_cap_mtx_;
 };
 
 }  // namespace bluetooth_hal::extensions::cs

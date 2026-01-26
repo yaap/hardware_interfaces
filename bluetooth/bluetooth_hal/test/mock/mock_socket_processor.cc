@@ -27,34 +27,32 @@ namespace bluetooth_hal::thread {
 
 using ::bluetooth_hal::hci::HalPacketCallback;
 
-void SocketProcessor::Initialize(
-    const std::string& socket_path,
-    std::optional<HalPacketCallback> hal_packet_cb) {
-  if (MockSocketProcessor::mock_socket_processor_) {
-    MockSocketProcessor::mock_socket_processor_->Initialize(socket_path,
-                                                            hal_packet_cb);
-  } else {
-    LOG(ERROR) << __func__ << ": mock_socket_processor_ is nullptr.";
-  }
+void SocketProcessor::Initialize(const std::string& socket_path,
+                                 std::optional<HalPacketCallback> hal_packet_cb) {
+    if (MockSocketProcessor::mock_socket_processor_) {
+        MockSocketProcessor::mock_socket_processor_->Initialize(socket_path, hal_packet_cb);
+    } else {
+        LOG(ERROR) << __func__ << ": mock_socket_processor_ is nullptr.";
+    }
 }
 
 void SocketProcessor::Cleanup() {
-  if (MockSocketProcessor::mock_socket_processor_) {
-    MockSocketProcessor::mock_socket_processor_->Cleanup();
-  } else {
-    LOG(ERROR) << __func__ << ": mock_socket_processor_ is nullptr.";
-  }
+    if (MockSocketProcessor::mock_socket_processor_) {
+        MockSocketProcessor::mock_socket_processor_->Cleanup();
+    } else {
+        LOG(ERROR) << __func__ << ": mock_socket_processor_ is nullptr.";
+    }
 }
 
 SocketProcessor* SocketProcessor::GetProcessor() {
-  if (!MockSocketProcessor::mock_socket_processor_) {
-    LOG(FATAL) << __func__ << ": mock_socket_processor_ is nullptr.";
-  }
-  return MockSocketProcessor::mock_socket_processor_;
+    if (!MockSocketProcessor::mock_socket_processor_) {
+        LOG(FATAL) << __func__ << ": mock_socket_processor_ is nullptr.";
+    }
+    return MockSocketProcessor::mock_socket_processor_;
 }
 
 void MockSocketProcessor::SetMockProcessor(MockSocketProcessor* processor) {
-  mock_socket_processor_ = processor;
+    mock_socket_processor_ = processor;
 }
 
 }  // namespace bluetooth_hal::thread

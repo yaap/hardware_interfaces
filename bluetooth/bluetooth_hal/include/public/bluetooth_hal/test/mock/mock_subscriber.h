@@ -23,9 +23,8 @@
 namespace bluetooth_hal::transport {
 
 class MockSubscriber : public Subscriber {
- public:
-  MOCK_METHOD(void, NotifyHalStateChange, (::bluetooth_hal::HalState haL_state),
-              (override));
+  public:
+    MOCK_METHOD(void, NotifyHalStateChange, (::bluetooth_hal::HalState haL_state), (override));
 };
 
 }  // namespace bluetooth_hal::transport

@@ -27,33 +27,33 @@
 namespace bluetooth_hal {
 
 class BluetoothHci {
- public:
-  static BluetoothHci& GetHci();
-  static void StartHci() { GetHci(); }
+  public:
+    static BluetoothHci& GetHci();
+    static void StartHci() { GetHci(); }
 
-  BluetoothHci();
-  bool Initialize(const std::shared_ptr<BluetoothHciCallback>& cb);
+    BluetoothHci();
+    bool Initialize(const std::shared_ptr<BluetoothHciCallback>& cb);
 
-  bool SendHciCommand(const ::bluetooth_hal::hci::HalPacket& packet);
-  bool SendAclData(const ::bluetooth_hal::hci::HalPacket& packet);
-  bool SendScoData(const ::bluetooth_hal::hci::HalPacket& packet);
-  bool SendIsoData(const ::bluetooth_hal::hci::HalPacket& packet);
-  bool Close();
-  bool Dump(int fd);
-  void HandleSignal(int signum);
-  void HandleServiceDied();
+    bool SendHciCommand(const ::bluetooth_hal::hci::HalPacket& packet);
+    bool SendAclData(const ::bluetooth_hal::hci::HalPacket& packet);
+    bool SendScoData(const ::bluetooth_hal::hci::HalPacket& packet);
+    bool SendIsoData(const ::bluetooth_hal::hci::HalPacket& packet);
+    bool Close();
+    bool Dump(int fd);
+    void HandleSignal(int signum);
+    void HandleServiceDied();
 
- private:
-  void DispatchPacketToStack(const ::bluetooth_hal::hci::HalPacket& packet);
-  void HandleHalStateChanged(::bluetooth_hal::HalState new_state,
-                             ::bluetooth_hal::HalState old_state);
-  void SendDataToController(const ::bluetooth_hal::hci::HalPacket& packet);
+  private:
+    void DispatchPacketToStack(const ::bluetooth_hal::hci::HalPacket& packet);
+    void HandleHalStateChanged(::bluetooth_hal::HalState new_state,
+                               ::bluetooth_hal::HalState old_state);
+    void SendDataToController(const ::bluetooth_hal::hci::HalPacket& packet);
 
-  std::shared_ptr<BluetoothHciCallback> bluetooth_hci_callback_;
-  bool is_initializing_;
-  std::mutex callback_mutex_;
+    std::shared_ptr<BluetoothHciCallback> bluetooth_hci_callback_;
+    bool is_initializing_;
+    std::mutex callback_mutex_;
 
-  static inline std::atomic<bool> is_sigterm_handled_{false};
+    static inline std::atomic<bool> is_sigterm_handled_{false};
 };
 
 }  // namespace bluetooth_hal

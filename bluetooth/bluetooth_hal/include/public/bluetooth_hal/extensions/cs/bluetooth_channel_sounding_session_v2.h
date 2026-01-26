@@ -36,63 +36,59 @@ namespace bluetooth_hal::extensions::cs {
 
 class BluetoothChannelSoundingSessionV2
     : public BluetoothChannelSoundingSessionInterface,
-      public ::aidl::android::hardware::bluetooth::ranging::
-          BnBluetoothChannelSoundingSession {
- public:
-  explicit BluetoothChannelSoundingSessionV2(
-      std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                          IBluetoothChannelSoundingSessionCallback>
-          callback,
-      ::aidl::android::hardware::bluetooth::ranging::Reason reason);
+      public ::aidl::android::hardware::bluetooth::ranging::BnBluetoothChannelSoundingSession {
+  public:
+    explicit BluetoothChannelSoundingSessionV2(
+            std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                    IBluetoothChannelSoundingSessionCallback>
+                    callback,
+            ::aidl::android::hardware::bluetooth::ranging::Reason reason);
 
-  ::ndk::ScopedAStatus getVendorSpecificReplies(
-      std::optional<std::vector<std::optional<
-          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
-          _aidl_return);
+    ::ndk::ScopedAStatus getVendorSpecificReplies(
+            std::optional<std::vector<std::optional<
+                    ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
+                    _aidl_return);
 
-  ::ndk::ScopedAStatus getSupportedResultTypes(
-      std::vector<::aidl::android::hardware::bluetooth::ranging::ResultType>*
-          _aidl_return);
+    ::ndk::ScopedAStatus getSupportedResultTypes(
+            std::vector<::aidl::android::hardware::bluetooth::ranging::ResultType>* _aidl_return);
 
-  ::ndk::ScopedAStatus isAbortedProcedureRequired(bool* _aidl_return) override;
+    ::ndk::ScopedAStatus isAbortedProcedureRequired(bool* _aidl_return) override;
 
-  ::ndk::ScopedAStatus writeProcedureData(
-      const ::aidl::android::hardware::bluetooth::ranging::
-          ChannelSoundingProcedureData& in_procedureData);
+    ::ndk::ScopedAStatus writeProcedureData(
+            const ::aidl::android::hardware::bluetooth::ranging::ChannelSoundingProcedureData&
+                    in_procedureData);
 
-  ::ndk::ScopedAStatus writeRawData(
-      const ::aidl::android::hardware::bluetooth::ranging::
-          ChannelSoudingRawData& in_rawData) override;
+    ::ndk::ScopedAStatus writeRawData(
+            const ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData& in_rawData)
+            override;
 
-  ::ndk::ScopedAStatus close(
-      ::aidl::android::hardware::bluetooth::ranging::Reason in_reason);
+    ::ndk::ScopedAStatus close(::aidl::android::hardware::bluetooth::ranging::Reason in_reason);
 
-  ::ndk::ScopedAStatus updateChannelSoundingConfig(
-      const ::aidl::android::hardware::bluetooth::ranging::Config& in_config);
+    ::ndk::ScopedAStatus updateChannelSoundingConfig(
+            const ::aidl::android::hardware::bluetooth::ranging::Config& in_config);
 
-  ::ndk::ScopedAStatus updateProcedureEnableConfig(
-      const ::aidl::android::hardware::bluetooth::ranging::
-          ProcedureEnableConfig& in_procedureEnableConfig);
+    ::ndk::ScopedAStatus updateProcedureEnableConfig(
+            const ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig&
+                    in_procedureEnableConfig);
 
-  ::ndk::ScopedAStatus updateBleConnInterval(int in_bleConnInterval);
+    ::ndk::ScopedAStatus updateBleConnInterval(int in_bleConnInterval);
 
-  void HandleVendorSpecificData(
-      const std::optional<std::vector<std::optional<
-          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
-          vendor_specific_data) override;
-  bool ShouldEnableFakeNotification() override;
-  bool ShouldEnableMode0ChannelMap() override;
+    void HandleVendorSpecificData(
+            const std::optional<std::vector<std::optional<
+                    ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+                    vendor_specific_data) override;
+    bool ShouldEnableFakeNotification() override;
+    bool ShouldEnableMode0ChannelMap() override;
 
- private:
-  std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                      IBluetoothChannelSoundingSessionCallback>
-      callback_;
-  bool uuid_matched_ = false;
-  bool enable_fake_notification_ = false;
-  bool enable_mode_0_channel_map_ = false;
+  private:
+    std::shared_ptr<
+            ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSessionCallback>
+            callback_;
+    bool uuid_matched_ = false;
+    bool enable_fake_notification_ = false;
+    bool enable_mode_0_channel_map_ = false;
 
-  std::unique_ptr<ChannelSoundingDistanceEstimatorInterface>
-      distance_estimator_;
+    std::unique_ptr<ChannelSoundingDistanceEstimatorInterface> distance_estimator_;
 };
 
 }  // namespace bluetooth_hal::extensions::cs

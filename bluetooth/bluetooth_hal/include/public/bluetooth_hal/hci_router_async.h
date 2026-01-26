@@ -31,69 +31,68 @@
 namespace bluetooth_hal::hci {
 
 class RouterTask {
- public:
-  RouterTask(std::function<void()> task) : task_(task) {};
-  void Run() { task_(); }
+  public:
+    RouterTask(std::function<void()> task) : task_(task) {};
+    void Run() { task_(); }
 
- private:
-  std::function<void()> task_;
+  private:
+    std::function<void()> task_;
 };
 
 class HciRouterAsync : public ::bluetooth_hal::util::Worker<RouterTask> {
- public:
-  HciRouterAsync();
-  virtual ~HciRouterAsync() = default;
+  public:
+    HciRouterAsync();
+    virtual ~HciRouterAsync() = default;
 
-  virtual bool DoInRouterThread(std::function<void()> task);
-  virtual bool SynchronousDoInRouterThread(std::function<void()> task);
-  virtual ::bluetooth_hal::HalState GetHalState();
+    virtual bool DoInRouterThread(std::function<void()> task);
+    virtual bool SynchronousDoInRouterThread(std::function<void()> task);
+    virtual ::bluetooth_hal::HalState GetHalState();
 
-  // Internal handlers meant to be called by the router thread
-  virtual bool InitializeModules(
-      ::bluetooth_hal::transport::TransportInstanceCallback*
-          transport_callback);
-  virtual bool Initialize(const std::shared_ptr<HciRouterCallback>& callback,
-                          ::bluetooth_hal::transport::TransportInstanceCallback*
-                              transport_callback);
-  virtual void Close();
-  virtual void Cleanup();
-  virtual bool Send(const HalPacket& packet);
-  virtual bool SendCommand(const HalPacket& packet,
-                           const std::shared_ptr<HalPacketCallback>& callback);
-  virtual bool SendCommandNoAck(const HalPacket& packet);
-  virtual void UpdateHalState(::bluetooth_hal::HalState state);
-  virtual void SendPacketToStack(const HalPacket& packet);
-  virtual void OnTransportPacketReady(const HalPacket& packet);
+    // Internal handlers meant to be called by the router thread
+    virtual bool InitializeModules(
+            ::bluetooth_hal::transport::TransportInstanceCallback* transport_callback);
+    virtual bool Initialize(
+            const std::shared_ptr<HciRouterCallback>& callback,
+            ::bluetooth_hal::transport::TransportInstanceCallback* transport_callback);
+    virtual void Close();
+    virtual void Cleanup();
+    virtual bool Send(const HalPacket& packet);
+    virtual bool SendCommand(const HalPacket& packet,
+                             const std::shared_ptr<HalPacketCallback>& callback);
+    virtual bool SendCommandNoAck(const HalPacket& packet);
+    virtual void UpdateHalState(::bluetooth_hal::HalState state);
+    virtual void SendPacketToStack(const HalPacket& packet);
+    virtual void OnTransportPacketReady(const HalPacket& packet);
 
- private:
-  struct QueuedHciCommand {
-    HalPacket command;
-    std::shared_ptr<HalPacketCallback> callback;
-  };
+  private:
+    struct QueuedHciCommand {
+        HalPacket command;
+        std::shared_ptr<HalPacketCallback> callback;
+    };
 
-  void TaskHandler(RouterTask task);
-  void VoteRouterTaskWakelock();
-  void UnvoteRouterTaskWakelock();
+    void TaskHandler(RouterTask task);
+    void VoteRouterTaskWakelock();
+    void UnvoteRouterTaskWakelock();
 
-  bool SendToTransport(const HalPacket& packet);
-  void HandleCommandCompleteOrCommandStatusEvent(const HalPacket& event);
-  bool InitializeTransport();
-  bool IsHalStateValid(::bluetooth_hal::HalState new_state);
-  void HandleReceivedPacket(const HalPacket& packet);
-  bool SendOrQueueCommand(const HalPacket& packet,
-                          const std::shared_ptr<HalPacketCallback> callback);
-  void OnCommandCallbackCompleted();
-  void SetBusy(bool busy);
+    bool SendToTransport(const HalPacket& packet);
+    void HandleCommandCompleteOrCommandStatusEvent(const HalPacket& event);
+    bool InitializeTransport();
+    bool IsHalStateValid(::bluetooth_hal::HalState new_state);
+    void HandleReceivedPacket(const HalPacket& packet);
+    bool SendOrQueueCommand(const HalPacket& packet,
+                            const std::shared_ptr<HalPacketCallback> callback);
+    void OnCommandCallbackCompleted();
+    void SetBusy(bool busy);
 
-  std::shared_ptr<HciRouterCallback> hci_callback_;
-  ::bluetooth_hal::transport::TransportInstanceCallback* transport_callback_;
-  ::bluetooth_hal::HalState hal_state_{::bluetooth_hal::HalState::kShutdown};
-  std::atomic<bool> is_cleaning_up_{false};
-  std::queue<QueuedHciCommand> hci_cmd_queue_;
-  std::atomic<bool> is_busy_{false};
+    std::shared_ptr<HciRouterCallback> hci_callback_;
+    ::bluetooth_hal::transport::TransportInstanceCallback* transport_callback_;
+    ::bluetooth_hal::HalState hal_state_{::bluetooth_hal::HalState::kShutdown};
+    std::atomic<bool> is_cleaning_up_{false};
+    std::queue<QueuedHciCommand> hci_cmd_queue_;
+    std::atomic<bool> is_busy_{false};
 
-  std::mutex task_wakelock_mutex_;
-  int wake_lock_votes_{0};
+    std::mutex task_wakelock_mutex_;
+    int wake_lock_votes_{0};
 };
 
 }  // namespace bluetooth_hal::hci

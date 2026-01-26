@@ -23,30 +23,27 @@
 #include "BluetoothChannelSounding.h"
 #include "BluetoothChannelSoundingSession.h"
 
-using ::aidl::android::hardware::bluetooth::ranging::impl::
-    BluetoothChannelSounding;
+using ::aidl::android::hardware::bluetooth::ranging::impl::BluetoothChannelSounding;
 
 int main(int /* argc */, char** /* argv */) {
-  ALOGI("Bluetooth Ranging HAL registering");
-  if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
-    ALOGE("Failed to set thread pool max thread count");
-    return 1;
-  }
-
-  std::shared_ptr<BluetoothChannelSounding> service =
-      ndk::SharedRefBase::make<BluetoothChannelSounding>();
-  std::string instance =
-      std::string() + BluetoothChannelSounding::descriptor + "/default";
-  if (AServiceManager_isDeclared(instance.c_str())) {
-    auto result =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (result != STATUS_OK) {
-      ALOGE("Could not register as a service!");
+    ALOGI("Bluetooth Ranging HAL registering");
+    if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
+        ALOGE("Failed to set thread pool max thread count");
+        return 1;
     }
-  } else {
-    ALOGE("Could not register as a service because it's not declared.");
-  }
-  // Keep running
-  ABinderProcess_joinThreadPool();
-  return 0;
+
+    std::shared_ptr<BluetoothChannelSounding> service =
+            ndk::SharedRefBase::make<BluetoothChannelSounding>();
+    std::string instance = std::string() + BluetoothChannelSounding::descriptor + "/default";
+    if (AServiceManager_isDeclared(instance.c_str())) {
+        auto result = AServiceManager_addService(service->asBinder().get(), instance.c_str());
+        if (result != STATUS_OK) {
+            ALOGE("Could not register as a service!");
+        }
+    } else {
+        ALOGE("Could not register as a service because it's not declared.");
+    }
+    // Keep running
+    ABinderProcess_joinThreadPool();
+    return 0;
 }

@@ -25,23 +25,19 @@
 namespace bluetooth_hal::util {
 
 class MockAndroidBaseWrapper : public AndroidBaseWrapper {
- public:
-  MOCK_METHOD(std::string, GetProperty,
-              (const std::string& key, const std::string& default_value),
-              (override));
+  public:
+    MOCK_METHOD(std::string, GetProperty,
+                (const std::string& key, const std::string& default_value), (override));
 
-  MOCK_METHOD(bool, GetBoolProperty,
-              (const std::string& key, bool default_value), (override));
+    MOCK_METHOD(bool, GetBoolProperty, (const std::string& key, bool default_value), (override));
 
-  MOCK_METHOD(bool, SetProperty,
-              (const std::string& key, const std::string& value), (override));
+    MOCK_METHOD(bool, SetProperty, (const std::string& key, const std::string& value), (override));
 
-  MOCK_METHOD(bool, ParseUint,
-              (const std::string& s, uint8_t* out, uint8_t max), (override));
+    MOCK_METHOD(bool, ParseUint, (const std::string& s, uint8_t* out, uint8_t max), (override));
 
-  static void SetMockWrapper(MockAndroidBaseWrapper* wrapper);
+    static void SetMockWrapper(MockAndroidBaseWrapper* wrapper);
 
-  static inline MockAndroidBaseWrapper* mock_android_base_wrapper_{nullptr};
+    static inline MockAndroidBaseWrapper* mock_android_base_wrapper_{nullptr};
 };
 
 }  // namespace bluetooth_hal::util

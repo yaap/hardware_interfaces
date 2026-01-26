@@ -36,29 +36,26 @@ class BluetoothHalDeathRecipient;
  * This class implmenets the methods in BnBluetoothHci. All binder clients
  * directly use the APIs in IBluetoothHci.aidl is dispatched to here.
  */
-class HciProxyAidl
-    : public ::aidl::android::hardware::bluetooth::BnBluetoothHci {
- public:
-  HciProxyAidl();
-  ::ndk::ScopedAStatus initialize(
-      const std::shared_ptr<
-          ::aidl::android::hardware::bluetooth::IBluetoothHciCallbacks>& cb)
-      override;
-  ::ndk::ScopedAStatus sendHciCommand(
-      const std::vector<uint8_t>& packet) override;
-  ::ndk::ScopedAStatus sendAclData(const std::vector<uint8_t>& data) override;
-  ::ndk::ScopedAStatus sendScoData(const std::vector<uint8_t>& data) override;
-  ::ndk::ScopedAStatus sendIsoData(const std::vector<uint8_t>& data) override;
-  ::ndk::ScopedAStatus close() override;
-  binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
+class HciProxyAidl : public ::aidl::android::hardware::bluetooth::BnBluetoothHci {
+  public:
+    HciProxyAidl();
+    ::ndk::ScopedAStatus initialize(
+            const std::shared_ptr<::aidl::android::hardware::bluetooth::IBluetoothHciCallbacks>& cb)
+            override;
+    ::ndk::ScopedAStatus sendHciCommand(const std::vector<uint8_t>& packet) override;
+    ::ndk::ScopedAStatus sendAclData(const std::vector<uint8_t>& data) override;
+    ::ndk::ScopedAStatus sendScoData(const std::vector<uint8_t>& data) override;
+    ::ndk::ScopedAStatus sendIsoData(const std::vector<uint8_t>& data) override;
+    ::ndk::ScopedAStatus close() override;
+    binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
 
- private:
-  static void SigtermHandler(int signum);
+  private:
+    static void SigtermHandler(int signum);
 
-  std::shared_ptr<::aidl::android::hardware::bluetooth::IBluetoothHciCallbacks>
-      bluetooth_hci_callback_;
-  std::shared_ptr<BluetoothHalDeathRecipient> death_recipient_;
-  std::function<void(std::shared_ptr<BluetoothHalDeathRecipient>&)> unlink_cb_;
+    std::shared_ptr<::aidl::android::hardware::bluetooth::IBluetoothHciCallbacks>
+            bluetooth_hci_callback_;
+    std::shared_ptr<BluetoothHalDeathRecipient> death_recipient_;
+    std::function<void(std::shared_ptr<BluetoothHalDeathRecipient>&)> unlink_cb_;
 };
 
 }  // namespace bluetooth_hal

@@ -24,114 +24,115 @@
 #include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
 
 enum AlgoType : int {
-  kZpIfft = 0,
+    kZpIfft = 0,
 };
 
 class ChannelSoundingAlgorithm {
- public:
-  class DataCleaning {
-   public:
-    DataCleaning();
+  public:
+    class DataCleaning {
+      public:
+        DataCleaning();
 
-    void Run(ChannelSoundingAlgorithm& cs_algo);
+        void Run(ChannelSoundingAlgorithm& cs_algo);
 
-   private:
-    void MultiplyPCT(ChannelSoundingAlgorithm& cs_algo);
+      private:
+        void MultiplyPCT(ChannelSoundingAlgorithm& cs_algo);
 
-    void SortPCT(ChannelSoundingAlgorithm& cs_algo);
+        void SortPCT(ChannelSoundingAlgorithm& cs_algo);
 
-    void FixDoppler(ChannelSoundingAlgorithm& cs_algo);
+        void FixDoppler(ChannelSoundingAlgorithm& cs_algo);
 
-    void UpdateDeltaF(ChannelSoundingAlgorithm& cs_algo);
+        void UpdateDeltaF(ChannelSoundingAlgorithm& cs_algo);
 
-    void CalculateAutocorr(ChannelSoundingAlgorithm& cs_algo);
+        void CalculateAutocorr(ChannelSoundingAlgorithm& cs_algo);
 
-    void CalculateCovarianceMatrix(ChannelSoundingAlgorithm& cs_algo);
+        void CalculateCovarianceMatrix(ChannelSoundingAlgorithm& cs_algo);
 
-    void AddPctToBuffer(ChannelSoundingAlgorithm& cs_algo);
+        void AddPctToBuffer(ChannelSoundingAlgorithm& cs_algo);
 
-    void AddAutocorrToBuffer(ChannelSoundingAlgorithm& cs_algo);
+        void AddAutocorrToBuffer(ChannelSoundingAlgorithm& cs_algo);
 
-    std::vector<uint8_t> SortPermutation(const std::vector<uint8_t>& vec);
-  };
-
-  class RangingAlgorithm {
-   public:
-    class Fft {
-     public:
-      bool Init(const size_t);
-
-      void ComputeComplexIfft(const std::vector<std::complex<double>>& input,
-                              std::vector<std::complex<double>>& output);
-
-     private:
-      int size_;
-      int log2_size_;
+        std::vector<uint8_t> SortPermutation(const std::vector<uint8_t>& vec);
     };
 
-    RangingAlgorithm();
+    class RangingAlgorithm {
+      public:
+        class Fft {
+          public:
+            bool Init(const size_t);
 
-    void Run(ChannelSoundingAlgorithm& cs_algo);
+            void ComputeComplexIfft(const std::vector<std::complex<double>>& input,
+                                    std::vector<std::complex<double>>& output);
 
-    size_t fft_size_ = 4096;
-    Fft fft_;
-    double noise_est_interval_ = 20;  // in meters
-    double threshold_zp_ifft_ = 20;   // in dB
-    double shift_distance_ = 1.0;     // in meters
+          private:
+            int size_;
+            int log2_size_;
+        };
 
-   private:
-    void PreCombiningAddAutocorr(ChannelSoundingAlgorithm& cs_algo);
+        RangingAlgorithm();
 
-    double EstimateDistanceZpIfft(ChannelSoundingAlgorithm& cs_algo);
+        void Run(ChannelSoundingAlgorithm& cs_algo);
 
-    double PostCombiningChooseMin(ChannelSoundingAlgorithm& cs_algo);
+        size_t fft_size_ = 4096;
+        Fft fft_;
+        double noise_est_interval_ = 20;  // in meters
+        double threshold_zp_ifft_ = 20;   // in dB
+        double shift_distance_ = 1.0;     // in meters
 
-    std::vector<std::pair<int, double>> FindPeaksInDb(
-        std::vector<double> input, bool& valid,
-        const double threshold_dB = -100, size_t cir_shift_size = 0);
-  };
+      private:
+        void PreCombiningAddAutocorr(ChannelSoundingAlgorithm& cs_algo);
 
-  ChannelSoundingAlgorithm();
+        double EstimateDistanceZpIfft(ChannelSoundingAlgorithm& cs_algo);
 
-  void ResetVariables();
-  double EstimateDistance(const ::aidl::android::hardware::bluetooth::ranging::
-                              ChannelSoudingRawData& channel_souding_raw_data);
-  double GetConfidenceLevel();
+        double PostCombiningChooseMin(ChannelSoundingAlgorithm& cs_algo);
 
-  void ParseRawData(const ::aidl::android::hardware::bluetooth::ranging::
-                        ChannelSoudingRawData& channel_souding_raw_data);
+        std::vector<std::pair<int, double>> FindPeaksInDb(std::vector<double> input, bool& valid,
+                                                          const double threshold_dB = -100,
+                                                          size_t cir_shift_size = 0);
+    };
 
-  // Objects.
-  DataCleaning dataCleaning;
-  RangingAlgorithm rangingAlgorithm;
+    ChannelSoundingAlgorithm();
 
-  // Variables.
-  std::vector<uint8_t> step_channel_;
-  std::vector<uint8_t> step_channel_cleaned_;
-  int reference_power_level_initiator_ = 0;  // dBm
-  int reference_power_level_reflector_ = 0;  // dBm
-  size_t n_ap_ = 1;
-  std::vector<std::vector<std::complex<double>>> pct_initiator_;
-  std::vector<std::vector<std::complex<double>>> pct_reflector_;
-  std::vector<std::vector<std::complex<double>>> pct_cleaned_;
-  std::vector<std::complex<double>> pct_cleaned_combined_;
-  std::vector<std::vector<std::complex<double>>> pct_autocorr_;
-  std::vector<std::complex<double>> pct_autocorr_combined_;
-  std::vector<Eigen::MatrixXcd> pct_covmat_;
-  uint8_t delta_f_ = 1;  // minimum channel space (MHz)
-  std::vector<double> raw_distance_collection_;
-  std::vector<double> confidence_level_collection_;
+    void ResetVariables();
+    double EstimateDistance(
+            const ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData&
+                    channel_souding_raw_data);
+    double GetConfidenceLevel();
 
-  // Output.
-  double raw_distance_ = 0.0;
-  double delay_spread_ = 0.0;
-  double confidence_level_ = 0.0;
-  std::vector<std::pair<double, std::complex<double>>>
-      channel_impulse_response_;  // (distance (m), coeff (complex))
+    void ParseRawData(const ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData&
+                              channel_souding_raw_data);
 
-  AlgoType algo_type_ = AlgoType::kZpIfft;
-  bool use_pre_combining_ = false;
-  bool use_post_combining_ = true;
-  uint8_t selected_ap_ = 0;
-  uint8_t autocorr_K_ = 48;
+    // Objects.
+    DataCleaning dataCleaning;
+    RangingAlgorithm rangingAlgorithm;
+
+    // Variables.
+    std::vector<uint8_t> step_channel_;
+    std::vector<uint8_t> step_channel_cleaned_;
+    int reference_power_level_initiator_ = 0;  // dBm
+    int reference_power_level_reflector_ = 0;  // dBm
+    size_t n_ap_ = 1;
+    std::vector<std::vector<std::complex<double>>> pct_initiator_;
+    std::vector<std::vector<std::complex<double>>> pct_reflector_;
+    std::vector<std::vector<std::complex<double>>> pct_cleaned_;
+    std::vector<std::complex<double>> pct_cleaned_combined_;
+    std::vector<std::vector<std::complex<double>>> pct_autocorr_;
+    std::vector<std::complex<double>> pct_autocorr_combined_;
+    std::vector<Eigen::MatrixXcd> pct_covmat_;
+    uint8_t delta_f_ = 1;  // minimum channel space (MHz)
+    std::vector<double> raw_distance_collection_;
+    std::vector<double> confidence_level_collection_;
+
+    // Output.
+    double raw_distance_ = 0.0;
+    double delay_spread_ = 0.0;
+    double confidence_level_ = 0.0;
+    std::vector<std::pair<double, std::complex<double>>>
+            channel_impulse_response_;  // (distance (m), coeff (complex))
+
+    AlgoType algo_type_ = AlgoType::kZpIfft;
+    bool use_pre_combining_ = false;
+    bool use_post_combining_ = true;
+    uint8_t selected_ap_ = 0;
+    uint8_t autocorr_K_ = 48;
 };

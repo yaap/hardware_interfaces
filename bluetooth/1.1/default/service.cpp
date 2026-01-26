@@ -29,15 +29,15 @@ using android::sp;
 using android::status_t;
 
 int main() {
-  ::android::hardware::configureRpcThreadpool(1 /*threads*/, true /*willJoin*/);
+    ::android::hardware::configureRpcThreadpool(1 /*threads*/, true /*willJoin*/);
 
-  sp bluetoothHci = new BluetoothHci();
-  const status_t status = bluetoothHci->registerAsService();
-  if (status != ::android::OK) {
-    ALOGE("Cannot register Bluetooth HAL service");
-    return 1;  // or handle error
-  }
+    sp bluetoothHci = new BluetoothHci();
+    const status_t status = bluetoothHci->registerAsService();
+    if (status != ::android::OK) {
+        ALOGE("Cannot register Bluetooth HAL service");
+        return 1;  // or handle error
+    }
 
-  ::android::hardware::joinRpcThreadpool();
-  return 1;  // joinRpcThreadpool should never return
+    ::android::hardware::joinRpcThreadpool();
+    return 1;  // joinRpcThreadpool should never return
 }

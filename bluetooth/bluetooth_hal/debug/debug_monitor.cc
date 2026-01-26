@@ -53,79 +53,75 @@ constexpr uint8_t kLoopbackModeByteEnabled = 0x01;
 }  // namespace
 
 DebugMonitor::DebugMonitor()
-    : debug_info_command_monitor_(HciCommandMonitor(
-          static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo))),
-      debug_info_event_monitor_(HciEventMonitor(
-          static_cast<uint8_t>(EventCode::kVendorSpecific),
-          static_cast<uint8_t>(GoogleEventSubCode::kControllerDebugInfo),
-          kGoogleSubEventOffset)),
-      loopback_command_monitor_(HciCommandMonitor(
-          static_cast<uint16_t>(CommandOpCode::kLoopbackMode))) {
-  RegisterMonitor(debug_info_command_monitor_, MonitorMode::kMonitor);
-  RegisterMonitor(debug_info_event_monitor_, MonitorMode::kIntercept);
-  RegisterMonitor(loopback_command_monitor_, MonitorMode::kMonitor);
+    : debug_info_command_monitor_(
+              HciCommandMonitor(static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo))),
+      debug_info_event_monitor_(
+              HciEventMonitor(static_cast<uint8_t>(EventCode::kVendorSpecific),
+                              static_cast<uint8_t>(GoogleEventSubCode::kControllerDebugInfo),
+                              kGoogleSubEventOffset)),
+      loopback_command_monitor_(
+              HciCommandMonitor(static_cast<uint16_t>(CommandOpCode::kLoopbackMode))) {
+    RegisterMonitor(debug_info_command_monitor_, MonitorMode::kMonitor);
+    RegisterMonitor(debug_info_event_monitor_, MonitorMode::kIntercept);
+    RegisterMonitor(loopback_command_monitor_, MonitorMode::kMonitor);
 }
 
 MonitorMode DebugMonitor::OnPacketCallback(const HalPacket& packet) {
-  auto monitor_mode = HciRouterClient::OnPacketCallback(packet);
+    auto monitor_mode = HciRouterClient::OnPacketCallback(packet);
 
-  if (hal_flags::handle_recursive_packets_from_router_clients() &&
-      monitor_mode == MonitorMode::kNone && loopback_mode_enabled_ &&
-      packet.GetType() == HciPacketType::kCommand &&
-      packet.GetSource() == PacketSource::kStack) {
-    // When loopback mode is enabled, intercept command packets from the stack
-    // and send them to the controller as non-ack commands.
-    SendCommandNoAck(packet);
-    return MonitorMode::kIntercept;
-  }
-  return monitor_mode;
+    if (hal_flags::handle_recursive_packets_from_router_clients() &&
+        monitor_mode == MonitorMode::kNone && loopback_mode_enabled_ &&
+        packet.GetType() == HciPacketType::kCommand && packet.GetSource() == PacketSource::kStack) {
+        // When loopback mode is enabled, intercept command packets from the stack
+        // and send them to the controller as non-ack commands.
+        SendCommandNoAck(packet);
+        return MonitorMode::kIntercept;
+    }
+    return monitor_mode;
 }
 
 void DebugMonitor::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
                                            const HalPacket& packet) {
-  if (packet.GetCommandOpcode() ==
-      static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo)) {
-    LOG(ERROR) << "Debug Info command detected!";
-    DebugCentral::Get().HandleDebugInfoCommand();
-    return;
-  }
-  if (hal_flags::handle_recursive_packets_from_router_clients() &&
-      packet.GetCommandOpcode() ==
-          static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
-    if (packet.At(kLoopbackModeEnabledOffset) == kLoopbackModeByteEnabled) {
-      LOG(WARNING)
-          << "Loopback mode is enabled, disabling HCI flow control in the HAL.";
-      loopback_mode_enabled_ = true;
-      WakelockWatchdog::GetWatchdog().Pause();
-    } else {
-      LOG(INFO) << "Loopback mode disabled by command.";
-      loopback_mode_enabled_ = false;
-      WakelockWatchdog::GetWatchdog().Resume();
+    if (packet.GetCommandOpcode() == static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo)) {
+        LOG(ERROR) << "Debug Info command detected!";
+        DebugCentral::Get().HandleDebugInfoCommand();
+        return;
     }
-    return;
-  }
-  if (packet.IsVendorEvent() && packet.size() > kGoogleSubEventOffset &&
-      packet.At(kGoogleSubEventOffset) ==
-          static_cast<uint8_t>(GoogleEventSubCode::kControllerDebugInfo)) {
-    DebugCentral::Get().HandleDebugInfoEvent(packet);
-  }
+    if (hal_flags::handle_recursive_packets_from_router_clients() &&
+        packet.GetCommandOpcode() == static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
+        if (packet.At(kLoopbackModeEnabledOffset) == kLoopbackModeByteEnabled) {
+            LOG(WARNING) << "Loopback mode is enabled, disabling HCI flow control in the HAL.";
+            loopback_mode_enabled_ = true;
+            WakelockWatchdog::GetWatchdog().Pause();
+        } else {
+            LOG(INFO) << "Loopback mode disabled by command.";
+            loopback_mode_enabled_ = false;
+            WakelockWatchdog::GetWatchdog().Resume();
+        }
+        return;
+    }
+    if (packet.IsVendorEvent() && packet.size() > kGoogleSubEventOffset &&
+        packet.At(kGoogleSubEventOffset) ==
+                static_cast<uint8_t>(GoogleEventSubCode::kControllerDebugInfo)) {
+        DebugCentral::Get().HandleDebugInfoEvent(packet);
+    }
 }
 
 bool DebugMonitor::IsBluetoothEnabled() {
-  return HciRouterClient::IsBluetoothEnabled();
+    return HciRouterClient::IsBluetoothEnabled();
 }
 
 void DebugMonitor::OnBluetoothEnabled() {
-  DebugCentral::Get().ResetCoredumpGenerator();
+    DebugCentral::Get().ResetCoredumpGenerator();
 }
 
 void DebugMonitor::OnBluetoothDisabled() {
-  DebugCentral::Get().ResetCoredumpGenerator();
+    DebugCentral::Get().ResetCoredumpGenerator();
 
-  if (loopback_mode_enabled_) {
-    loopback_mode_enabled_ = false;
-    WakelockWatchdog::GetWatchdog().Resume();
-  }
+    if (loopback_mode_enabled_) {
+        loopback_mode_enabled_ = false;
+        WakelockWatchdog::GetWatchdog().Resume();
+    }
 }
 
 }  // namespace bluetooth_hal::debug

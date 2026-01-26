@@ -24,19 +24,17 @@
 namespace bluetooth_hal::transport {
 
 class MockTransportInstance : public TransportInstance {
- public:
-  MOCK_METHOD(bool, Initialize,
-              (TransportInstanceCallback * transport_instance_callback),
-              (override));
-  MOCK_METHOD(void, Cleanup, (), (override));
-  MOCK_METHOD(bool, IsTransportActive, (), (const, override));
-  MOCK_METHOD(bool, Send, (const ::bluetooth_hal::hci::HalPacket& packet),
-              (override));
-  MOCK_METHOD(TransportType, GetInstanceTransportType, (), (const, override));
-  MOCK_METHOD(void, SetHciRouterBusy, (bool is_busy), (override));
+  public:
+    MOCK_METHOD(bool, Initialize, (TransportInstanceCallback * transport_instance_callback),
+                (override));
+    MOCK_METHOD(void, Cleanup, (), (override));
+    MOCK_METHOD(bool, IsTransportActive, (), (const, override));
+    MOCK_METHOD(bool, Send, (const ::bluetooth_hal::hci::HalPacket& packet), (override));
+    MOCK_METHOD(TransportType, GetInstanceTransportType, (), (const, override));
+    MOCK_METHOD(void, SetHciRouterBusy, (bool is_busy), (override));
 
-  static void SetMockTransport(MockTransportInstance* transport);
-  static inline MockTransportInstance* mock_transport_instance_{nullptr};
+    static void SetMockTransport(MockTransportInstance* transport);
+    static inline MockTransportInstance* mock_transport_instance_{nullptr};
 };
 
 }  // namespace bluetooth_hal::transport

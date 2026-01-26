@@ -23,29 +23,27 @@
 namespace bluetooth_hal::debug {
 
 class DebugMonitor : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  DebugMonitor();
-  bool IsBluetoothEnabled();
+  public:
+    DebugMonitor();
+    bool IsBluetoothEnabled();
 
- protected:
-  ::bluetooth_hal::hci::MonitorMode OnPacketCallback(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnCommandCallback(
-      [[maybe_unused]] const ::bluetooth_hal::hci::HalPacket& packet) override {
-  };
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override;
-  void OnBluetoothDisabled() override;
+  protected:
+    ::bluetooth_hal::hci::MonitorMode OnPacketCallback(
+            const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnCommandCallback(
+            [[maybe_unused]] const ::bluetooth_hal::hci::HalPacket& packet) override {};
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override;
+    void OnBluetoothDisabled() override;
 
- private:
-  ::bluetooth_hal::hci::HciCommandMonitor debug_info_command_monitor_;
-  ::bluetooth_hal::hci::HciEventMonitor debug_info_event_monitor_;
-  ::bluetooth_hal::hci::HciCommandMonitor loopback_command_monitor_;
-  bool loopback_mode_enabled_{false};
+  private:
+    ::bluetooth_hal::hci::HciCommandMonitor debug_info_command_monitor_;
+    ::bluetooth_hal::hci::HciEventMonitor debug_info_event_monitor_;
+    ::bluetooth_hal::hci::HciCommandMonitor loopback_command_monitor_;
+    bool loopback_mode_enabled_{false};
 };
 
 }  // namespace bluetooth_hal::debug

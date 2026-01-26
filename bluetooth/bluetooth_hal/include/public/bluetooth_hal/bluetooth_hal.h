@@ -25,23 +25,22 @@
 namespace bluetooth_hal {
 
 class BluetoothHal {
- public:
-  static BluetoothHal& GetHal();
-  bool RegisterVendorTransport(
-      ::bluetooth_hal::transport::TransportType type,
-      ::bluetooth_hal::transport::TransportFactory::FactoryFn factory);
-  void RegisterVendorChipProvisioner(
-      ::bluetooth_hal::chip::ChipProvisionerInterface::FactoryFn factory);
-  void RegisterVendorChannelSoundingDistanceEstimator(
-      ::bluetooth_hal::extensions::cs::
-          ChannelSoundingDistanceEstimatorInterface::FactoryFn factory);
-  void SetCsVendorSpecificDataMask(uint32_t mask);
-  void Start();
-  void StartOffloadHal();
+  public:
+    static BluetoothHal& GetHal();
+    bool RegisterVendorTransport(::bluetooth_hal::transport::TransportType type,
+                                 ::bluetooth_hal::transport::TransportFactory::FactoryFn factory);
+    void RegisterVendorChipProvisioner(
+            ::bluetooth_hal::chip::ChipProvisionerInterface::FactoryFn factory);
+    void RegisterVendorChannelSoundingDistanceEstimator(
+            ::bluetooth_hal::extensions::cs::ChannelSoundingDistanceEstimatorInterface::FactoryFn
+                    factory);
+    void SetCsVendorSpecificDataMask(uint32_t mask);
+    void Start();
+    void StartOffloadHal();
 
- private:
-  void StartHalClients();
-  void StartExtensions();
+  private:
+    void StartHalClients();
+    void StartExtensions();
 };
 
 }  // namespace bluetooth_hal

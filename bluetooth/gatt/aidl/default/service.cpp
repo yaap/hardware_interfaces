@@ -25,21 +25,19 @@
 using ::aidl::android::hardware::bluetooth::gatt::impl::BluetoothGatt;
 
 int main(int /* argc */, char** /* argv */) {
-  ALOGI("Starting IBluetoothGatt service");
-  if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
-    ALOGE("Failed to set thread pool max thread count");
-    return EXIT_FAILURE;
-  }
+    ALOGI("Starting IBluetoothGatt service");
+    if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
+        ALOGE("Failed to set thread pool max thread count");
+        return EXIT_FAILURE;
+    }
 
-  std::shared_ptr<BluetoothGatt> service =
-      ndk::SharedRefBase::make<BluetoothGatt>();
-  std::string instance = std::string() + BluetoothGatt::descriptor + "/default";
-  auto result =
-      AServiceManager_addService(service->asBinder().get(), instance.c_str());
-  if (result != STATUS_OK) {
-    ALOGE("Could not register as a service!");
-    return EXIT_FAILURE;
-  }
-  ABinderProcess_joinThreadPool();
-  return EXIT_SUCCESS;
+    std::shared_ptr<BluetoothGatt> service = ndk::SharedRefBase::make<BluetoothGatt>();
+    std::string instance = std::string() + BluetoothGatt::descriptor + "/default";
+    auto result = AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (result != STATUS_OK) {
+        ALOGE("Could not register as a service!");
+        return EXIT_FAILURE;
+    }
+    ABinderProcess_joinThreadPool();
+    return EXIT_SUCCESS;
 }

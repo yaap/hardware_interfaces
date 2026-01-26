@@ -22,20 +22,17 @@
 
 namespace bluetooth_hal::transport {
 
-VendorPacketValidatorInterface::FactoryFn
-    VendorPacketValidatorInterface::vendor_factory_ = nullptr;
+VendorPacketValidatorInterface::FactoryFn VendorPacketValidatorInterface::vendor_factory_ = nullptr;
 
-std::unique_ptr<VendorPacketValidatorInterface>
-VendorPacketValidatorInterface::Create() {
-  if (vendor_factory_) {
-    return vendor_factory_();
-  }
-  return std::make_unique<VendorPacketValidator>();
+std::unique_ptr<VendorPacketValidatorInterface> VendorPacketValidatorInterface::Create() {
+    if (vendor_factory_) {
+        return vendor_factory_();
+    }
+    return std::make_unique<VendorPacketValidator>();
 }
 
-void VendorPacketValidatorInterface::RegisterVendorPacketValidator(
-    FactoryFn factory) {
-  vendor_factory_ = std::move(factory);
+void VendorPacketValidatorInterface::RegisterVendorPacketValidator(FactoryFn factory) {
+    vendor_factory_ = std::move(factory);
 }
 
 }  // namespace bluetooth_hal::transport

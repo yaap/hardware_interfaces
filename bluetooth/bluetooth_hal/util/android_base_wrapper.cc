@@ -24,28 +24,27 @@
 namespace bluetooth_hal::util {
 
 class AndroidBaseWrapperImpl : public AndroidBaseWrapper {
- public:
-  std::string GetProperty(const std::string& key,
-                          const std::string& default_value) override {
-    return ::android::base::GetProperty(key, default_value);
-  }
+  public:
+    std::string GetProperty(const std::string& key, const std::string& default_value) override {
+        return ::android::base::GetProperty(key, default_value);
+    }
 
-  bool GetBoolProperty(const std::string& key, bool default_value) override {
-    return ::android::base::GetBoolProperty(key, default_value);
-  }
+    bool GetBoolProperty(const std::string& key, bool default_value) override {
+        return ::android::base::GetBoolProperty(key, default_value);
+    }
 
-  bool SetProperty(const std::string& key, const std::string& value) override {
-    return ::android::base::SetProperty(key, value);
-  }
+    bool SetProperty(const std::string& key, const std::string& value) override {
+        return ::android::base::SetProperty(key, value);
+    }
 
-  bool ParseUint(const std::string& s, uint8_t* out, uint8_t max) override {
-    return ::android::base::ParseUint<uint8_t>(s, out, max);
-  }
+    bool ParseUint(const std::string& s, uint8_t* out, uint8_t max) override {
+        return ::android::base::ParseUint<uint8_t>(s, out, max);
+    }
 };
 
 AndroidBaseWrapper& AndroidBaseWrapper::GetWrapper() {
-  static AndroidBaseWrapperImpl wrapper;
-  return wrapper;
+    static AndroidBaseWrapperImpl wrapper;
+    return wrapper;
 }
 
 }  // namespace bluetooth_hal::util

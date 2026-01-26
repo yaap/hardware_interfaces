@@ -21,32 +21,31 @@
 namespace bluetooth_hal::util::power {
 
 class PowerInterface {
- public:
-  using VendorFactory =
-      ::bluetooth_hal::util::ProviderFactory<PowerInterface, PowerInterface>;
-  using FactoryFn = VendorFactory::FactoryFn;
+  public:
+    using VendorFactory = ::bluetooth_hal::util::ProviderFactory<PowerInterface, PowerInterface>;
+    using FactoryFn = VendorFactory::FactoryFn;
 
-  static bool RegisterPowerInterface(FactoryFn factory);
+    static bool RegisterPowerInterface(FactoryFn factory);
 
-  virtual ~PowerInterface() = default;
+    virtual ~PowerInterface() = default;
 
-  /**
-   * @brief Acquire a partial system wakelock from hardware_legacy.
-   *
-   * @return true if the wakelock is acquired, otherwise false.
-   *
-   */
-  virtual bool AcquireWakelock();
+    /**
+     * @brief Acquire a partial system wakelock from hardware_legacy.
+     *
+     * @return true if the wakelock is acquired, otherwise false.
+     *
+     */
+    virtual bool AcquireWakelock();
 
-  /**
-   * @brief Release the system wakelock acquired from hardware_legacy.
-   *
-   * @return true if the wakelock is acquired, otherwise false.
-   *
-   */
-  virtual bool ReleaseWakelock();
+    /**
+     * @brief Release the system wakelock acquired from hardware_legacy.
+     *
+     * @return true if the wakelock is acquired, otherwise false.
+     *
+     */
+    virtual bool ReleaseWakelock();
 
-  static PowerInterface& GetInterface();
+    static PowerInterface& GetInterface();
 };
 
 }  // namespace bluetooth_hal::util::power

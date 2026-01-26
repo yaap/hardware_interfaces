@@ -21,27 +21,27 @@
 namespace aidl::android::hardware::bluetooth::impl {
 
 class NetBluetoothMgmt {
- public:
-  NetBluetoothMgmt() {}
-  ~NetBluetoothMgmt() {
-    ::close(rfkill_fd_);
-    ::close(bt_fd_);
-  }
+  public:
+    NetBluetoothMgmt() {}
+    ~NetBluetoothMgmt() {
+        ::close(rfkill_fd_);
+        ::close(bt_fd_);
+    }
 
-  int openHci(int hci_interface = 0);
-  void closeHci();
+    int openHci(int hci_interface = 0);
+    void closeHci();
 
- private:
-  int waitHciDev(int hci_interface);
-  int openRfkill();
-  int rfkill(int block);
+  private:
+    int waitHciDev(int hci_interface);
+    int openRfkill();
+    int rfkill(int block);
 
-  // Index of the first rfkill device of type bluetooth.
-  int rfkill_bt_index_{-1};
-  // File descriptor opened to /dev/rfkill.
-  int rfkill_fd_{-1};
-  // File descriptor opened to the bluetooth user channel.
-  int bt_fd_{-1};
+    // Index of the first rfkill device of type bluetooth.
+    int rfkill_bt_index_{-1};
+    // File descriptor opened to /dev/rfkill.
+    int rfkill_fd_{-1};
+    // File descriptor opened to the bluetooth user channel.
+    int bt_fd_{-1};
 };
 
 }  // namespace aidl::android::hardware::bluetooth::impl

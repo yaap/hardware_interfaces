@@ -26,41 +26,41 @@ namespace bluetooth {
 namespace audio {
 
 class A2dpOffloadAudioProvider : public BluetoothAudioProvider {
- public:
-  bool isValid(const SessionType& session_type) override;
+  public:
+    bool isValid(const SessionType& session_type) override;
 
-  ndk::ScopedAStatus startSession(
-      const std::shared_ptr<IBluetoothAudioPort>& host_if,
-      const AudioConfiguration& audio_config,
-      const std::vector<LatencyMode>& latency_modes,
-      DataMQDesc* _aidl_return) override;
+    ndk::ScopedAStatus startSession(const std::shared_ptr<IBluetoothAudioPort>& host_if,
+                                    const AudioConfiguration& audio_config,
+                                    const std::vector<LatencyMode>& latency_modes,
+                                    DataMQDesc* _aidl_return) override;
 
-  ndk::ScopedAStatus parseA2dpConfiguration(
-      const CodecId& codec_id, const std::vector<uint8_t>& configuration,
-      CodecParameters* codec_parameters, A2dpStatus* _aidl_return) override;
+    ndk::ScopedAStatus parseA2dpConfiguration(const CodecId& codec_id,
+                                              const std::vector<uint8_t>& configuration,
+                                              CodecParameters* codec_parameters,
+                                              A2dpStatus* _aidl_return) override;
 
-  ndk::ScopedAStatus getA2dpConfiguration(
-      const std::vector<A2dpRemoteCapabilities>& remote_a2dp_capabilities,
-      const A2dpConfigurationHint& hint,
-      std::optional<audio::A2dpConfiguration>* _aidl_return) override;
+    ndk::ScopedAStatus getA2dpConfiguration(
+            const std::vector<A2dpRemoteCapabilities>& remote_a2dp_capabilities,
+            const A2dpConfigurationHint& hint,
+            std::optional<audio::A2dpConfiguration>* _aidl_return) override;
 
- protected:
-  A2dpOffloadAudioProvider(const A2dpOffloadCodecFactory&);
+  protected:
+    A2dpOffloadAudioProvider(const A2dpOffloadCodecFactory&);
 
- private:
-  const A2dpOffloadCodecFactory& codec_factory_;
+  private:
+    const A2dpOffloadCodecFactory& codec_factory_;
 
-  ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
+    ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
 };
 
 class A2dpOffloadEncodingAudioProvider : public A2dpOffloadAudioProvider {
- public:
-  A2dpOffloadEncodingAudioProvider(const A2dpOffloadCodecFactory&);
+  public:
+    A2dpOffloadEncodingAudioProvider(const A2dpOffloadCodecFactory&);
 };
 
 class A2dpOffloadDecodingAudioProvider : public A2dpOffloadAudioProvider {
- public:
-  A2dpOffloadDecodingAudioProvider(const A2dpOffloadCodecFactory&);
+  public:
+    A2dpOffloadDecodingAudioProvider(const A2dpOffloadCodecFactory&);
 };
 
 }  // namespace audio

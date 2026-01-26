@@ -26,17 +26,17 @@ namespace V2_0 {
 namespace implementation {
 
 class A2dpOffloadAudioProvider : public BluetoothAudioProvider {
- public:
-  A2dpOffloadAudioProvider();
+  public:
+    A2dpOffloadAudioProvider();
 
-  bool isValid(const SessionType& sessionType) override;
+    bool isValid(const SessionType& sessionType) override;
 
-  Return<void> startSession(const sp<IBluetoothAudioPort>& hostIf,
-                            const AudioConfiguration& audioConfig,
-                            startSession_cb _hidl_cb) override;
+    Return<void> startSession(const sp<IBluetoothAudioPort>& hostIf,
+                              const AudioConfiguration& audioConfig,
+                              startSession_cb _hidl_cb) override;
 
- private:
-  Return<void> onSessionReady(startSession_cb _hidl_cb) override;
+  private:
+    Return<void> onSessionReady(startSession_cb _hidl_cb) override;
 };
 
 }  // namespace implementation

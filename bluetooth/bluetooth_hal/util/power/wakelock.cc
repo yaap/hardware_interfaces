@@ -35,124 +35,121 @@
 namespace bluetooth_hal::util::power {
 
 class WakelockImpl : public Wakelock {
- public:
-  WakelockImpl() : wakelock_timeout_(kWakelockTimeMilliseconds) {};
-  void Acquire(WakeSource source) override;
-  void Release(WakeSource source) override;
-  bool IsAcquired() override;
-  bool IsWakeSourceAcquired(WakeSource source) override;
-  void SetWakelockTimeout(const int timeout) override;
+  public:
+    WakelockImpl() : wakelock_timeout_(kWakelockTimeMilliseconds) {};
+    void Acquire(WakeSource source) override;
+    void Release(WakeSource source) override;
+    bool IsAcquired() override;
+    bool IsWakeSourceAcquired(WakeSource source) override;
+    void SetWakelockTimeout(const int timeout) override;
 
- private:
-  void ReleaseWakelock();
-  void AcquireWakelock();
-  std::string ToString();
+  private:
+    void ReleaseWakelock();
+    void AcquireWakelock();
+    std::string ToString();
 
-  bool wakelock_acquired_;
-  std::recursive_mutex mutex_;
-  std::unordered_set<WakeSource> acquired_sources_;
-  Timer release_wakelock_timer_;
+    bool wakelock_acquired_;
+    std::recursive_mutex mutex_;
+    std::unordered_set<WakeSource> acquired_sources_;
+    Timer release_wakelock_timer_;
 
-  // TODO: b/382605673 - Read it from the config manager.
-  static constexpr int kWakelockTimeMilliseconds = 100;
-  int wakelock_timeout_;
+    // TODO: b/382605673 - Read it from the config manager.
+    static constexpr int kWakelockTimeMilliseconds = 100;
+    int wakelock_timeout_;
 };
 
 void WakelockImpl::Acquire(WakeSource source) {
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-  if (acquired_sources_.count(source) > 0) {
-    return;
-  }
-  WakelockWatchdog::GetWatchdog().Start(source);
-
-  if (acquired_sources_.empty()) {
-    if (release_wakelock_timer_.IsScheduled()) {
-      // Stop the timer of releasing wakelock.
-      release_wakelock_timer_.Cancel();
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    if (acquired_sources_.count(source) > 0) {
+        return;
     }
-    AcquireWakelock();
-  }
-  acquired_sources_.emplace(source);
+    WakelockWatchdog::GetWatchdog().Start(source);
 
-  HAL_LOG(VERBOSE) << "Wakelock VOTE for: "
-                   << WakelockUtil::WakeSourceToString(source)
-                   << ", current wakelocks: " << ToString();
+    if (acquired_sources_.empty()) {
+        if (release_wakelock_timer_.IsScheduled()) {
+            // Stop the timer of releasing wakelock.
+            release_wakelock_timer_.Cancel();
+        }
+        AcquireWakelock();
+    }
+    acquired_sources_.emplace(source);
+
+    HAL_LOG(VERBOSE) << "Wakelock VOTE for: " << WakelockUtil::WakeSourceToString(source)
+                     << ", current wakelocks: " << ToString();
 }
 
 void WakelockImpl::Release(WakeSource source) {
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-  if (acquired_sources_.erase(source) == 0) {
-    return;
-  }
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    if (acquired_sources_.erase(source) == 0) {
+        return;
+    }
 
-  HAL_LOG(VERBOSE) << "Wakelock UNVOTE for: "
-                   << WakelockUtil::WakeSourceToString(source)
-                   << ", current wakelocks: " << ToString();
+    HAL_LOG(VERBOSE) << "Wakelock UNVOTE for: " << WakelockUtil::WakeSourceToString(source)
+                     << ", current wakelocks: " << ToString();
 
-  if (acquired_sources_.empty()) {
-    // The wakelock list is empty, schedule a timer to release the wakelock.
-    release_wakelock_timer_.Schedule(
-        std::bind_front(&WakelockImpl::ReleaseWakelock, this),
-        std::chrono::milliseconds{wakelock_timeout_});
-  }
-  WakelockWatchdog::GetWatchdog().Stop(source);
+    if (acquired_sources_.empty()) {
+        // The wakelock list is empty, schedule a timer to release the wakelock.
+        release_wakelock_timer_.Schedule(std::bind_front(&WakelockImpl::ReleaseWakelock, this),
+                                         std::chrono::milliseconds{wakelock_timeout_});
+    }
+    WakelockWatchdog::GetWatchdog().Stop(source);
 }
 
 bool WakelockImpl::IsAcquired() {
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-  return !acquired_sources_.empty();
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    return !acquired_sources_.empty();
 }
 
 bool WakelockImpl::IsWakeSourceAcquired(WakeSource source) {
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-  return (acquired_sources_.count(source) > 0);
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    return (acquired_sources_.count(source) > 0);
 }
 
 void WakelockImpl::AcquireWakelock() {
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-  if (!wakelock_acquired_) {
-    HAL_LOG(DEBUG) << "Acuqire system wakelock";
-    PowerInterface::GetInterface().AcquireWakelock();
-    wakelock_acquired_ = true;
-  }
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    if (!wakelock_acquired_) {
+        HAL_LOG(DEBUG) << "Acuqire system wakelock";
+        PowerInterface::GetInterface().AcquireWakelock();
+        wakelock_acquired_ = true;
+    }
 }
 
 void WakelockImpl::ReleaseWakelock() {
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-  if (wakelock_acquired_) {
-    HAL_LOG(DEBUG) << "Release system wakelock";
-    PowerInterface::GetInterface().ReleaseWakelock();
-    wakelock_acquired_ = false;
-  }
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    if (wakelock_acquired_) {
+        HAL_LOG(DEBUG) << "Release system wakelock";
+        PowerInterface::GetInterface().ReleaseWakelock();
+        wakelock_acquired_ = false;
+    }
 }
 
 void WakelockImpl::SetWakelockTimeout(const int timeout) {
-  if (timeout == wakelock_timeout_) {
-    return;
-  }
+    if (timeout == wakelock_timeout_) {
+        return;
+    }
 
-  HAL_LOG(DEBUG) << "Wakelock timeout set to " << timeout;
-  wakelock_timeout_ = timeout;
+    HAL_LOG(DEBUG) << "Wakelock timeout set to " << timeout;
+    wakelock_timeout_ = timeout;
 }
 
 std::string WakelockImpl::ToString() {
-  std::stringstream ss;
-  ss << "[";
-  bool first = true;
-  for (auto source : acquired_sources_) {
-    if (!first) {
-      ss << ", ";
+    std::stringstream ss;
+    ss << "[";
+    bool first = true;
+    for (auto source : acquired_sources_) {
+        if (!first) {
+            ss << ", ";
+        }
+        ss << WakelockUtil::WakeSourceToString(source);
+        first = false;
     }
-    ss << WakelockUtil::WakeSourceToString(source);
-    first = false;
-  }
-  ss << "]";
-  return ss.str();
+    ss << "]";
+    return ss.str();
 }
 
 Wakelock& Wakelock::GetWakelock() {
-  static WakelockImpl wakelock;
-  return wakelock;
+    static WakelockImpl wakelock;
+    return wakelock;
 }
 
 }  // namespace bluetooth_hal::util::power

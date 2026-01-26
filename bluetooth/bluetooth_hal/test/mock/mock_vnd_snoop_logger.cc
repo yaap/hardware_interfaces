@@ -22,16 +22,16 @@
 namespace bluetooth_hal::debug {
 
 VndSnoopLogger& VndSnoopLogger::GetLogger() {
-  if (!MockVndSnoopLogger::mock_vnd_snoop_logger_) {
-    LOG(FATAL) << __func__
-               << ": mock_vnd_snoop_logger_ is nullptr. Did you forget to call "
-                  "SetMockVndSnoopLogger in your test SetUp?";
-  }
-  return *MockVndSnoopLogger::mock_vnd_snoop_logger_;
+    if (!MockVndSnoopLogger::mock_vnd_snoop_logger_) {
+        LOG(FATAL) << __func__
+                   << ": mock_vnd_snoop_logger_ is nullptr. Did you forget to call "
+                      "SetMockVndSnoopLogger in your test SetUp?";
+    }
+    return *MockVndSnoopLogger::mock_vnd_snoop_logger_;
 }
 
 void MockVndSnoopLogger::SetMockVndSnoopLogger(MockVndSnoopLogger* logger) {
-  mock_vnd_snoop_logger_ = logger;
+    mock_vnd_snoop_logger_ = logger;
 }
 
 }  // namespace bluetooth_hal::debug

@@ -29,41 +29,41 @@ using PacketReadCallback = std::function<void(const std::vector<uint8_t>&)>;
 using DisconnectCallback = std::function<void(void)>;
 
 class H4Protocol {
- public:
-  H4Protocol(int fd, PacketReadCallback cmd_cb, PacketReadCallback acl_cb,
-             PacketReadCallback sco_cb, PacketReadCallback event_cb,
-             PacketReadCallback iso_cb, DisconnectCallback disconnect_cb);
+  public:
+    H4Protocol(int fd, PacketReadCallback cmd_cb, PacketReadCallback acl_cb,
+               PacketReadCallback sco_cb, PacketReadCallback event_cb, PacketReadCallback iso_cb,
+               DisconnectCallback disconnect_cb);
 
-  size_t Send(PacketType type, const uint8_t* data, size_t length);
-  size_t Send(PacketType type, const std::vector<uint8_t>& data);
+    size_t Send(PacketType type, const uint8_t* data, size_t length);
+    size_t Send(PacketType type, const std::vector<uint8_t>& data);
 
-  void OnDataReady();
+    void OnDataReady();
 
- protected:
-  size_t OnPacketReady(const std::vector<uint8_t>& packet);
-  void SendDataToPacketizer(uint8_t* buffer, size_t length);
+  protected:
+    size_t OnPacketReady(const std::vector<uint8_t>& packet);
+    void SendDataToPacketizer(uint8_t* buffer, size_t length);
 
- private:
-  int uart_fd_;
-  bool disconnected_{false};
+  private:
+    int uart_fd_;
+    bool disconnected_{false};
 
-  PacketReadCallback cmd_cb_;
-  PacketReadCallback acl_cb_;
-  PacketReadCallback sco_cb_;
-  PacketReadCallback event_cb_;
-  PacketReadCallback iso_cb_;
-  DisconnectCallback disconnect_cb_;
+    PacketReadCallback cmd_cb_;
+    PacketReadCallback acl_cb_;
+    PacketReadCallback sco_cb_;
+    PacketReadCallback event_cb_;
+    PacketReadCallback iso_cb_;
+    DisconnectCallback disconnect_cb_;
 
-  PacketType hci_packet_type_{PacketType::UNKNOWN};
-  HciPacketizer hci_packetizer_;
+    PacketType hci_packet_type_{PacketType::UNKNOWN};
+    HciPacketizer hci_packetizer_;
 
-  /**
-   * Question : Why read in single chunk rather than multiple reads?
-   * Answer: Using multiple reads does not work with some BT USB dongles.
-   * Reading in single shot gives expected response.
-   * ACL max length is 2 bytes, so using 64K as the buffer length.
-   */
-  static constexpr size_t kMaxPacketLength = 64 * 1024;
+    /**
+     * Question : Why read in single chunk rather than multiple reads?
+     * Answer: Using multiple reads does not work with some BT USB dongles.
+     * Reading in single shot gives expected response.
+     * ACL max length is 2 bytes, so using 64K as the buffer length.
+     */
+    static constexpr size_t kMaxPacketLength = 64 * 1024;
 };
 
 }  // namespace android::hardware::bluetooth::hci

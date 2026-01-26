@@ -30,13 +30,13 @@
 
 namespace bluetooth_hal::extensions::cs {
 
-inline constexpr std::array<uint8_t, 16> kUuidSpecialRangingSettingCapability =
-    {0x00, 0x00, 0x8f, 0x01, 0x00, 0x00, 0x10, 0x00,
-     0x80, 0x00, 0x00, 0x80, 0x5f, 0x9c, 0x35, 0xf1};
+inline constexpr std::array<uint8_t, 16> kUuidSpecialRangingSettingCapability = {
+        0x00, 0x00, 0x8f, 0x01, 0x00, 0x00, 0x10, 0x00,
+        0x80, 0x00, 0x00, 0x80, 0x5f, 0x9c, 0x35, 0xf1};
 
 inline constexpr std::array<uint8_t, 16> kUuidSpecialRangingSettingCommand = {
-    0x00, 0x00, 0x8f, 0x02, 0x00, 0x00, 0x10, 0x00,
-    0x80, 0x00, 0x00, 0x80, 0x5f, 0x9c, 0x35, 0xf1};
+        0x00, 0x00, 0x8f, 0x02, 0x00, 0x00, 0x10, 0x00,
+        0x80, 0x00, 0x00, 0x80, 0x5f, 0x9c, 0x35, 0xf1};
 
 inline constexpr uint8_t kMinNumUuid = 0x02;
 inline constexpr uint8_t kDataTypeData = 0x00;
@@ -46,14 +46,14 @@ inline constexpr uint8_t kCommandValueEnable = 0x01;
 inline constexpr uint8_t kCommandValueIgnore = 0x02;
 
 inline constexpr uint8_t kCommandCompleteSubOpcodeOffset =
-    ::bluetooth_hal::hci::HciConstants::kHciCommandCompleteResultOffset + 1;
+        ::bluetooth_hal::hci::HciConstants::kHciCommandCompleteResultOffset + 1;
 
 inline constexpr uint16_t kHciVscSpecialRangingSettingOpcode = 0xff0b;
 
 inline constexpr uint8_t kHciVscReadLocalCapabilityParamLength = 0x01;
 inline constexpr uint8_t kHciVscReadLocalCapabilitySubOpCode = 0x01;
 inline constexpr uint8_t kCommandCompleteReadLocalCapabilityOffset =
-    kCommandCompleteSubOpcodeOffset + 1;
+        kCommandCompleteSubOpcodeOffset + 1;
 inline constexpr uint8_t kCommandCompleteReadLocalCapabilityValueLength = 4;
 
 inline constexpr uint8_t kHciVscEnableInlinePctParamLength = 0x02;
@@ -105,32 +105,32 @@ inline constexpr uint8_t kLenRangingSettingCommandEventMask = 4;
 inline constexpr uint8_t kLenRangingSettingCommandMode0ChannelMap = 1;
 
 enum class CsFeature : uint8_t {
-  kInlinePct = 0x01,
-  kMode0ChannelMap = 0x02,
-  kPreferredConnectionInterval = 0x04,
-  kPreferredSniffInterval = 0x08,
+    kInlinePct = 0x01,
+    kMode0ChannelMap = 0x02,
+    kPreferredConnectionInterval = 0x04,
+    kPreferredSniffInterval = 0x08,
 };
 
 std::string ToHex(const std::span<const uint8_t> data);
 
 bool IsUuidMatched(
-    const std::optional<std::vector<std::optional<
-        ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
-        vendor_specific_data);
+        const std::optional<std::vector<
+                std::optional<::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+                vendor_specific_data);
 
 ::bluetooth_hal::hci::HalPacket BuildReadLocalCapabilityCommand();
 
 ::bluetooth_hal::hci::HalPacket BuildEnableInlinePctCommand(uint8_t enable);
 
-::bluetooth_hal::hci::HalPacket BuildSetEventMaskForConnectionCommand(
-    uint16_t connection_handle, uint32_t event_mask);
+::bluetooth_hal::hci::HalPacket BuildSetEventMaskForConnectionCommand(uint16_t connection_handle,
+                                                                      uint32_t event_mask);
 
-::bluetooth_hal::hci::HalPacket BuildEnableMode0ChannelMapCommand(
-    uint16_t connection_handle, uint8_t enable);
+::bluetooth_hal::hci::HalPacket BuildEnableMode0ChannelMapCommand(uint16_t connection_handle,
+                                                                  uint8_t enable);
 
 ::bluetooth_hal::hci::HalPacket BuildRasNotification(
-    const ::aidl::android::hardware::bluetooth::ranging::
-        BluetoothChannelSoundingParameters& parameters,
-    int procedure_counter);
+        const ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters&
+                parameters,
+        int procedure_counter);
 
 }  // namespace bluetooth_hal::extensions::cs

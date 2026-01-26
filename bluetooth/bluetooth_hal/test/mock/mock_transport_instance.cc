@@ -19,7 +19,7 @@
 namespace bluetooth_hal::transport {
 
 void MockTransportInstance::SetMockTransport(MockTransportInstance* transport) {
-  mock_transport_instance_ = transport;
+    mock_transport_instance_ = transport;
 }
 
 }  // namespace bluetooth_hal::transport

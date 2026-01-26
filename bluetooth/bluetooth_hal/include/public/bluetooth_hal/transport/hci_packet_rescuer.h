@@ -27,32 +27,31 @@
 namespace bluetooth_hal::transport {
 
 class HciPacketRescuer {
- public:
-  HciPacketRescuer();
-  ~HciPacketRescuer() = default;
+  public:
+    HciPacketRescuer();
+    ~HciPacketRescuer() = default;
 
-  /**
-   * @brief Scans a byte stream to find the offset of the first valid HCI
-   * packet.
-   *
-   * Iterates through the data from the beginning, using `IsValidHciPacket` to
-   * check each potential starting byte.
-   *
-   * @param data A span representing the raw byte stream to be scanned.
-   * @return The byte offset of the first valid packet start. Returns the size
-   * of the input `data` span if no valid packet start is found.
-   */
-  size_t FindValidPacketOffset(std::span<const uint8_t> data);
+    /**
+     * @brief Scans a byte stream to find the offset of the first valid HCI
+     * packet.
+     *
+     * Iterates through the data from the beginning, using `IsValidHciPacket` to
+     * check each potential starting byte.
+     *
+     * @param data A span representing the raw byte stream to be scanned.
+     * @return The byte offset of the first valid packet start. Returns the size
+     * of the input `data` span if no valid packet start is found.
+     */
+    size_t FindValidPacketOffset(std::span<const uint8_t> data);
 
- private:
-  bool VerifyEventCodeAndItsParamLength(
-      std::span<const uint8_t> data,
-      ::bluetooth_hal::hci::EventCode event_code);
-  bool IsProbablyValidAclPacket(std::span<const uint8_t> data);
-  bool IsProbablyValidThreadPacket(std::span<const uint8_t> data);
-  bool IsValidHciPacket(std::span<const uint8_t> data);
+  private:
+    bool VerifyEventCodeAndItsParamLength(std::span<const uint8_t> data,
+                                          ::bluetooth_hal::hci::EventCode event_code);
+    bool IsProbablyValidAclPacket(std::span<const uint8_t> data);
+    bool IsProbablyValidThreadPacket(std::span<const uint8_t> data);
+    bool IsValidHciPacket(std::span<const uint8_t> data);
 
-  std::unique_ptr<VendorPacketValidatorInterface> vendor_packet_validator_;
+    std::unique_ptr<VendorPacketValidatorInterface> vendor_packet_validator_;
 };
 
 }  // namespace bluetooth_hal::transport

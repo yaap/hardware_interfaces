@@ -20,35 +20,29 @@
 
 namespace aidl::android::hardware::bluetooth::ranging::impl {
 
-using ::aidl::android::hardware::bluetooth::ranging::
-    BluetoothChannelSoundingParameters;
+using ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters;
 using ::aidl::android::hardware::bluetooth::ranging::BnBluetoothChannelSounding;
 using ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel;
-using ::aidl::android::hardware::bluetooth::ranging::
-    IBluetoothChannelSoundingSession;
-using ::aidl::android::hardware::bluetooth::ranging::
-    IBluetoothChannelSoundingSessionCallback;
+using ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSession;
+using ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSessionCallback;
 using ::aidl::android::hardware::bluetooth::ranging::SessionType;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 
 class BluetoothChannelSounding : public BnBluetoothChannelSounding {
- public:
-  BluetoothChannelSounding();
-  ~BluetoothChannelSounding();  // Add the destructor declaration
-  ndk::ScopedAStatus getVendorSpecificData(
-      std::optional<std::vector<std::optional<VendorSpecificData>>>*
-          _aidl_return) override;
-  ndk::ScopedAStatus getSupportedSessionTypes(
-      std::optional<std::vector<SessionType>>* _aidl_return) override;
-  ndk::ScopedAStatus getMaxSupportedCsSecurityLevel(
-      CsSecurityLevel* _aidl_return) override;
-  ndk::ScopedAStatus openSession(
-      const BluetoothChannelSoundingParameters& in_params,
-      const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&
-          in_callback,
-      std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) override;
-  ndk::ScopedAStatus getSupportedCsSecurityLevels(
-      std::vector<CsSecurityLevel>* _aidl_return) override;
+  public:
+    BluetoothChannelSounding();
+    ~BluetoothChannelSounding();  // Add the destructor declaration
+    ndk::ScopedAStatus getVendorSpecificData(
+            std::optional<std::vector<std::optional<VendorSpecificData>>>* _aidl_return) override;
+    ndk::ScopedAStatus getSupportedSessionTypes(
+            std::optional<std::vector<SessionType>>* _aidl_return) override;
+    ndk::ScopedAStatus getMaxSupportedCsSecurityLevel(CsSecurityLevel* _aidl_return) override;
+    ndk::ScopedAStatus openSession(
+            const BluetoothChannelSoundingParameters& in_params,
+            const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>& in_callback,
+            std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) override;
+    ndk::ScopedAStatus getSupportedCsSecurityLevels(
+            std::vector<CsSecurityLevel>* _aidl_return) override;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::ranging::impl

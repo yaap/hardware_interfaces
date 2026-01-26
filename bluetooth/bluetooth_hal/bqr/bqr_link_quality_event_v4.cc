@@ -30,8 +30,7 @@ namespace {
 
 using ::bluetooth_hal::hci::HalPacket;
 
-constexpr size_t kLinkQualityEventV4MinSize =
-    static_cast<size_t>(LinkQualityOffsetV4::kEnd);
+constexpr size_t kLinkQualityEventV4MinSize = static_cast<size_t>(LinkQualityOffsetV4::kEnd);
 
 }  // namespace
 
@@ -43,71 +42,66 @@ BqrLinkQualityEventV4::BqrLinkQualityEventV4(const HalPacket& packet)
       tx_last_subevent_packets_(0),
       crc_error_packets_(0),
       rx_duplicate_packets_(0) {
-  is_valid_ = BqrLinkQualityEventV1ToV3::IsValid() &&
-              size() >= kLinkQualityEventV4MinSize;
-  ParseData();
+    is_valid_ = BqrLinkQualityEventV1ToV3::IsValid() && size() >= kLinkQualityEventV4MinSize;
+    ParseData();
 }
 
 void BqrLinkQualityEventV4::ParseData() {
-  if (is_valid_) {
-    version_ = BqrVersion::kV4;
-    tx_total_packets_ =
-        AtUint32LittleEndian(LinkQualityOffsetV4::kTxTotalPackets);
-    tx_unacked_packets_ =
-        AtUint32LittleEndian(LinkQualityOffsetV4::kTxUnackedPackets);
-    tx_flushed_packets_ =
-        AtUint32LittleEndian(LinkQualityOffsetV4::kTxFlushedPackets);
-    tx_last_subevent_packets_ =
-        AtUint32LittleEndian(LinkQualityOffsetV4::kTxLastSubeventPackets);
-    crc_error_packets_ =
-        AtUint32LittleEndian(LinkQualityOffsetV4::kCrcErrorPackets);
-    rx_duplicate_packets_ =
-        AtUint32LittleEndian(LinkQualityOffsetV4::kRxDuplicatePackets);
-  }
+    if (is_valid_) {
+        version_ = BqrVersion::kV4;
+        tx_total_packets_ = AtUint32LittleEndian(LinkQualityOffsetV4::kTxTotalPackets);
+        tx_unacked_packets_ = AtUint32LittleEndian(LinkQualityOffsetV4::kTxUnackedPackets);
+        tx_flushed_packets_ = AtUint32LittleEndian(LinkQualityOffsetV4::kTxFlushedPackets);
+        tx_last_subevent_packets_ =
+                AtUint32LittleEndian(LinkQualityOffsetV4::kTxLastSubeventPackets);
+        crc_error_packets_ = AtUint32LittleEndian(LinkQualityOffsetV4::kCrcErrorPackets);
+        rx_duplicate_packets_ = AtUint32LittleEndian(LinkQualityOffsetV4::kRxDuplicatePackets);
+    }
 }
 
-bool BqrLinkQualityEventV4::IsValid() const { return is_valid_; }
+bool BqrLinkQualityEventV4::IsValid() const {
+    return is_valid_;
+}
 
 uint32_t BqrLinkQualityEventV4::GetTxTotalPackets() const {
-  return tx_total_packets_;
+    return tx_total_packets_;
 }
 
 uint32_t BqrLinkQualityEventV4::GetTxUnackedPackets() const {
-  return tx_unacked_packets_;
+    return tx_unacked_packets_;
 }
 
 uint32_t BqrLinkQualityEventV4::GetTxFlushedPackets() const {
-  return tx_flushed_packets_;
+    return tx_flushed_packets_;
 }
 
 uint32_t BqrLinkQualityEventV4::GetTxLastSubeventPackets() const {
-  return tx_last_subevent_packets_;
+    return tx_last_subevent_packets_;
 }
 
 uint32_t BqrLinkQualityEventV4::GetCrcErrorPackets() const {
-  return crc_error_packets_;
+    return crc_error_packets_;
 }
 
 uint32_t BqrLinkQualityEventV4::GetRxDuplicatePackets() const {
-  return rx_duplicate_packets_;
+    return rx_duplicate_packets_;
 }
 
 std::string BqrLinkQualityEventV4::ToString() const {
-  if (!is_valid_) {
-    return "BqrLinkQualityEventV4(Invalid)";
-  }
-  return "BqrLinkQualityEventV4: " + ToBqrString();
+    if (!is_valid_) {
+        return "BqrLinkQualityEventV4(Invalid)";
+    }
+    return "BqrLinkQualityEventV4: " + ToBqrString();
 }
 
 std::string BqrLinkQualityEventV4::ToBqrString() const {
-  std::stringstream ss;
-  ss << BqrLinkQualityEventV1ToV3::ToBqrString() << ", TxTotal: " << std::dec
-     << tx_total_packets_ << ", TxUnAcked: " << std::dec << tx_unacked_packets_
-     << ", TxFlushed: " << std::dec << tx_flushed_packets_
-     << ", TxLastSubEvent: " << std::dec << tx_last_subevent_packets_
-     << ", CRCError: " << std::dec << crc_error_packets_
-     << ", RxDuplicate: " << std::dec << rx_duplicate_packets_;
-  return ss.str();
+    std::stringstream ss;
+    ss << BqrLinkQualityEventV1ToV3::ToBqrString() << ", TxTotal: " << std::dec << tx_total_packets_
+       << ", TxUnAcked: " << std::dec << tx_unacked_packets_ << ", TxFlushed: " << std::dec
+       << tx_flushed_packets_ << ", TxLastSubEvent: " << std::dec << tx_last_subevent_packets_
+       << ", CRCError: " << std::dec << crc_error_packets_ << ", RxDuplicate: " << std::dec
+       << rx_duplicate_packets_;
+    return ss.str();
 }
 
 }  // namespace bluetooth_hal::bqr

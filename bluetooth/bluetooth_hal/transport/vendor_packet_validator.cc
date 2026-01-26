@@ -22,8 +22,8 @@
 namespace bluetooth_hal::transport {
 
 bool VendorPacketValidator::IsValidVendorSpecificEvent(
-    [[maybe_unused]] std::span<const uint8_t> data) const {
-  return false;
+        [[maybe_unused]] std::span<const uint8_t> data) const {
+    return false;
 };
 
 }  // namespace bluetooth_hal::transport

@@ -25,15 +25,13 @@
 
 namespace bluetooth_hal::extensions::ext {
 
-struct BluetoothExt
-    : public ::aidl::hardware::google::bluetooth::ext::BnBluetoothExt {
- public:
-  ::ndk::ScopedAStatus setBluetoothCmdPacket(char16_t opcode,
-                                             const std::vector<uint8_t>& params,
-                                             bool* ret) override;
+struct BluetoothExt : public ::aidl::hardware::google::bluetooth::ext::BnBluetoothExt {
+  public:
+    ::ndk::ScopedAStatus setBluetoothCmdPacket(char16_t opcode, const std::vector<uint8_t>& params,
+                                               bool* ret) override;
 
- private:
-  BluetoothExtHandler handler_;
+  private:
+    BluetoothExtHandler handler_;
 };
 
 }  // namespace bluetooth_hal::extensions::ext

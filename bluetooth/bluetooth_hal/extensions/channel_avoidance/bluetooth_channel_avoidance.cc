@@ -42,24 +42,21 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void ChannelAvoidanceInitializer() {
-  RegisterHalService(SharedRefBase::make<BluetoothChannelAvoidance>());
+    RegisterHalService(SharedRefBase::make<BluetoothChannelAvoidance>());
 }
 
 }  // namespace
 
 struct ChannelAvoidanceRegistrar {
-  ChannelAvoidanceRegistrar() {
-    BluetoothHalRegisterExtension(ChannelAvoidanceInitializer);
-  }
+    ChannelAvoidanceRegistrar() { BluetoothHalRegisterExtension(ChannelAvoidanceInitializer); }
 };
 
 ChannelAvoidanceRegistrar g_channel_avoidance_registrar;
 
 ScopedAStatus BluetoothChannelAvoidance::setBluetoothChannelStatus(
-    const std::array<uint8_t, 10>& channel_map) {
-  bool status = handler_.SetBluetoothChannelStatus(channel_map);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+        const std::array<uint8_t, 10>& channel_map) {
+    bool status = handler_.SetBluetoothChannelStatus(channel_map);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 }  // namespace bluetooth_hal::extensions::channel_avoidance

@@ -38,47 +38,41 @@ using ::android::hardware::Void;
 
 using DataMQ = MessageQueue<uint8_t, kSynchronizedReadWrite>;
 
-A2dpOffloadAudioProvider::A2dpOffloadAudioProvider()
-    : BluetoothAudioProvider() {
-  session_type_ = SessionType::A2DP_HARDWARE_OFFLOAD_DATAPATH;
+A2dpOffloadAudioProvider::A2dpOffloadAudioProvider() : BluetoothAudioProvider() {
+    session_type_ = SessionType::A2DP_HARDWARE_OFFLOAD_DATAPATH;
 }
 
 bool A2dpOffloadAudioProvider::isValid(const SessionType& sessionType) {
-  return (sessionType == session_type_);
+    return (sessionType == session_type_);
 }
 
-Return<void> A2dpOffloadAudioProvider::startSession(
-    const sp<IBluetoothAudioPort>& hostIf,
-    const AudioConfiguration& audioConfig, startSession_cb _hidl_cb) {
-  /**
-   * Initialize the audio platform if audioConfiguration is supported.
-   * Save the the IBluetoothAudioPort interface, so that it can be used
-   * later to send stream control commands to the HAL client, based on
-   * interaction with Audio framework.
-   */
-  if (audioConfig.getDiscriminator() !=
-      AudioConfiguration::hidl_discriminator::codecConfig) {
-    LOG(WARNING) << __func__
-                 << " - Invalid Audio Configuration=" << toString(audioConfig);
-    _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION,
-             DataMQ::Descriptor());
-    return Void();
-  } else if (!android::bluetooth::audio::IsOffloadCodecConfigurationValid(
-                 session_type_, audioConfig.codecConfig())) {
-    _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION,
-             DataMQ::Descriptor());
-    return Void();
-  }
+Return<void> A2dpOffloadAudioProvider::startSession(const sp<IBluetoothAudioPort>& hostIf,
+                                                    const AudioConfiguration& audioConfig,
+                                                    startSession_cb _hidl_cb) {
+    /**
+     * Initialize the audio platform if audioConfiguration is supported.
+     * Save the IBluetoothAudioPort interface, so that it can be used
+     * later to send stream control commands to the HAL client, based on
+     * interaction with Audio framework.
+     */
+    if (audioConfig.getDiscriminator() != AudioConfiguration::hidl_discriminator::codecConfig) {
+        LOG(WARNING) << __func__ << " - Invalid Audio Configuration=" << toString(audioConfig);
+        _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION, DataMQ::Descriptor());
+        return Void();
+    } else if (!android::bluetooth::audio::IsOffloadCodecConfigurationValid(
+                       session_type_, audioConfig.codecConfig())) {
+        _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION, DataMQ::Descriptor());
+        return Void();
+    }
 
-  return BluetoothAudioProvider::startSession(hostIf, audioConfig, _hidl_cb);
+    return BluetoothAudioProvider::startSession(hostIf, audioConfig, _hidl_cb);
 }
 
-Return<void> A2dpOffloadAudioProvider::onSessionReady(
-    startSession_cb _hidl_cb) {
-  BluetoothAudioSessionReport::OnSessionStarted(session_type_, stack_iface_,
-                                                nullptr, audio_config_);
-  _hidl_cb(BluetoothAudioStatus::SUCCESS, DataMQ::Descriptor());
-  return Void();
+Return<void> A2dpOffloadAudioProvider::onSessionReady(startSession_cb _hidl_cb) {
+    BluetoothAudioSessionReport::OnSessionStarted(session_type_, stack_iface_, nullptr,
+                                                  audio_config_);
+    _hidl_cb(BluetoothAudioStatus::SUCCESS, DataMQ::Descriptor());
+    return Void();
 }
 
 }  // namespace implementation

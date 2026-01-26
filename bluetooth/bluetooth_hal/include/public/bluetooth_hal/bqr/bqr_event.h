@@ -24,22 +24,22 @@
 namespace bluetooth_hal::bqr {
 
 class BqrEvent : public ::bluetooth_hal::hci::HalPacket {
- public:
-  explicit BqrEvent(const ::bluetooth_hal::hci::HalPacket& packet);
-  virtual ~BqrEvent() = default;
+  public:
+    explicit BqrEvent(const ::bluetooth_hal::hci::HalPacket& packet);
+    virtual ~BqrEvent() = default;
 
-  virtual bool IsValid() const;
-  BqrReportId GetBqrReportId() const;
-  BqrEventType GetBqrEventType() const;
-  std::string ToString() const;
+    virtual bool IsValid() const;
+    BqrReportId GetBqrReportId() const;
+    BqrEventType GetBqrEventType() const;
+    std::string ToString() const;
 
- protected:
-  void ParseData();
-  std::string ToBqrString() const;
+  protected:
+    void ParseData();
+    std::string ToBqrString() const;
 
-  bool is_valid_;
-  BqrReportId report_id_;
-  BqrEventType bqr_event_type_;
+    bool is_valid_;
+    BqrReportId report_id_;
+    BqrEventType bqr_event_type_;
 };
 
 }  // namespace bluetooth_hal::bqr

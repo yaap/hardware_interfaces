@@ -25,50 +25,48 @@
 namespace bluetooth_hal::bqr {
 
 enum class EnergyMonitoringOffsetV6 : uint8_t {
-  kReportTimeDuration =
-      static_cast<uint8_t>(EnergyMonitoringOffset::kEnd),   // 4 bytes
-  kRxActiveOneChainTime = kReportTimeDuration + 4,          // 4 bytes
-  kRxActiveTwoChainTime = kRxActiveOneChainTime + 4,        // 4 bytes
-  kTxIpaActiveOneChainTime = kRxActiveTwoChainTime + 4,     // 4 bytes
-  kTxIpaActiveTwoChainTime = kTxIpaActiveOneChainTime + 4,  // 4 bytes
-  kTxXpaActiveOneChainTime = kTxIpaActiveTwoChainTime + 4,  // 4 bytes
-  kTxXpaActiveTwoChainTime = kTxXpaActiveOneChainTime + 4,  // 4 bytes
-  kEnd = kTxXpaActiveTwoChainTime + 4,
+    kReportTimeDuration = static_cast<uint8_t>(EnergyMonitoringOffset::kEnd),  // 4 bytes
+    kRxActiveOneChainTime = kReportTimeDuration + 4,                           // 4 bytes
+    kRxActiveTwoChainTime = kRxActiveOneChainTime + 4,                         // 4 bytes
+    kTxIpaActiveOneChainTime = kRxActiveTwoChainTime + 4,                      // 4 bytes
+    kTxIpaActiveTwoChainTime = kTxIpaActiveOneChainTime + 4,                   // 4 bytes
+    kTxXpaActiveOneChainTime = kTxIpaActiveTwoChainTime + 4,                   // 4 bytes
+    kTxXpaActiveTwoChainTime = kTxXpaActiveOneChainTime + 4,                   // 4 bytes
+    kEnd = kTxXpaActiveTwoChainTime + 4,
 };
 
 // BQR Energy Monitoring event V6.
 class BqrEnergyMonitoringEventV6 : public BqrEnergyMonitoringEvent {
- public:
-  explicit BqrEnergyMonitoringEventV6(
-      const ::bluetooth_hal::hci::HalPacket& packet);
-  virtual ~BqrEnergyMonitoringEventV6() = default;
+  public:
+    explicit BqrEnergyMonitoringEventV6(const ::bluetooth_hal::hci::HalPacket& packet);
+    virtual ~BqrEnergyMonitoringEventV6() = default;
 
-  bool IsValid() const override;
+    bool IsValid() const override;
 
-  uint32_t GetReportTimeDuration() const;
-  uint32_t GetRxActiveOneChainTime() const;
-  uint32_t GetRxActiveTwoChainTime() const;
-  uint32_t GetTxIpaActiveOneChainTime() const;
-  uint32_t GetTxIpaActiveTwoChainTime() const;
-  uint32_t GetTxXpaActiveOneChainTime() const;
-  uint32_t GetTxXpaActiveTwoChainTime() const;
+    uint32_t GetReportTimeDuration() const;
+    uint32_t GetRxActiveOneChainTime() const;
+    uint32_t GetRxActiveTwoChainTime() const;
+    uint32_t GetTxIpaActiveOneChainTime() const;
+    uint32_t GetTxIpaActiveTwoChainTime() const;
+    uint32_t GetTxXpaActiveOneChainTime() const;
+    uint32_t GetTxXpaActiveTwoChainTime() const;
 
-  // Returns a string representation of the event.
-  std::string ToString() const;
+    // Returns a string representation of the event.
+    std::string ToString() const;
 
- protected:
-  void ParseData();
-  std::string ToBqrString() const;
+  protected:
+    void ParseData();
+    std::string ToBqrString() const;
 
- private:
-  bool is_valid_;
-  uint32_t report_time_duration_ = 0;
-  uint32_t rx_active_one_chain_time_ = 0;
-  uint32_t rx_active_two_chain_time_ = 0;
-  uint32_t tx_ipa_active_one_chain_time_ = 0;
-  uint32_t tx_ipa_active_two_chain_time_ = 0;
-  uint32_t tx_xpa_active_one_chain_time_ = 0;
-  uint32_t tx_xpa_active_two_chain_time_ = 0;
+  private:
+    bool is_valid_;
+    uint32_t report_time_duration_ = 0;
+    uint32_t rx_active_one_chain_time_ = 0;
+    uint32_t rx_active_two_chain_time_ = 0;
+    uint32_t tx_ipa_active_one_chain_time_ = 0;
+    uint32_t tx_ipa_active_two_chain_time_ = 0;
+    uint32_t tx_xpa_active_one_chain_time_ = 0;
+    uint32_t tx_xpa_active_two_chain_time_ = 0;
 };
 
 }  // namespace bluetooth_hal::bqr

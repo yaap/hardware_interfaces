@@ -51,13 +51,10 @@ using ::testing::Test;
 using ::testing::Values;
 using ::testing::WithParamInterface;
 
-using ::aidl::android::hardware::bluetooth::ranging::
-    BluetoothChannelSoundingParameters;
-using ::aidl::android::hardware::bluetooth::ranging::
-    BnBluetoothChannelSoundingSessionCallback;
+using ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters;
+using ::aidl::android::hardware::bluetooth::ranging::BnBluetoothChannelSoundingSessionCallback;
 using ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel;
-using ::aidl::android::hardware::bluetooth::ranging::
-    IBluetoothChannelSoundingSession;
+using ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSession;
 using ::aidl::android::hardware::bluetooth::ranging::RangingResult;
 using ::aidl::android::hardware::bluetooth::ranging::Reason;
 using ::aidl::android::hardware::bluetooth::ranging::ResultType;
@@ -79,596 +76,529 @@ constexpr uint16_t kDefaultAclHandle = 0x1234;
 
 class MockBluetoothChannelSoundingSessionCallback
     : public BnBluetoothChannelSoundingSessionCallback {
- public:
-  MOCK_METHOD(ScopedAStatus, onOpened, (Reason reason), (override));
-  MOCK_METHOD(ScopedAStatus, onOpenFailed, (Reason reason), (override));
-  MOCK_METHOD(ScopedAStatus, onResult, (const RangingResult& in_result),
-              (override));
-  MOCK_METHOD(ScopedAStatus, onClose, (Reason reason), (override));
-  MOCK_METHOD(ScopedAStatus, onCloseFailed, (Reason reason), (override));
+  public:
+    MOCK_METHOD(ScopedAStatus, onOpened, (Reason reason), (override));
+    MOCK_METHOD(ScopedAStatus, onOpenFailed, (Reason reason), (override));
+    MOCK_METHOD(ScopedAStatus, onResult, (const RangingResult& in_result), (override));
+    MOCK_METHOD(ScopedAStatus, onClose, (Reason reason), (override));
+    MOCK_METHOD(ScopedAStatus, onCloseFailed, (Reason reason), (override));
 };
 
-class TestBluetoothChannelSoundingHandler
-    : public BluetoothChannelSoundingHandler {
- public:
-  std::optional<std::reference_wrapper<SessionTracker>> GetTrackerWrapper(
-      uint16_t connection_handle) {
-    return GetTracker(connection_handle);
-  }
-  void TestOnBluetoothEnabled() { OnBluetoothEnabled(); }
-  void TestOnCommandCallback(const HalPacket& packet) {
-    OnCommandCallback(packet);
-  }
+class TestBluetoothChannelSoundingHandler : public BluetoothChannelSoundingHandler {
+  public:
+    std::optional<std::reference_wrapper<SessionTracker>> GetTrackerWrapper(
+            uint16_t connection_handle) {
+        return GetTracker(connection_handle);
+    }
+    void TestOnBluetoothEnabled() { OnBluetoothEnabled(); }
+    void TestOnCommandCallback(const HalPacket& packet) { OnCommandCallback(packet); }
 };
 
 class BluetoothChannelSoundingHandlerTest : public Test {
- protected:
-  void SetUp() override {
-    MockHciRouter::SetMockRouter(&mock_hci_router_);
-    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
-    MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
-    MockCsConfigLoader::SetMockLoader(&mock_cs_config_loader_);
+  protected:
+    void SetUp() override {
+        MockHciRouter::SetMockRouter(&mock_hci_router_);
+        MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+        MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
+        MockCsConfigLoader::SetMockLoader(&mock_cs_config_loader_);
 
-    bluetooth_channel_sounding_handler_ =
-        std::make_unique<TestBluetoothChannelSoundingHandler>();
-    mock_session_callback_ =
-        SharedRefBase::make<MockBluetoothChannelSoundingSessionCallback>();
-  }
+        bluetooth_channel_sounding_handler_ =
+                std::make_unique<TestBluetoothChannelSoundingHandler>();
+        mock_session_callback_ = SharedRefBase::make<MockBluetoothChannelSoundingSessionCallback>();
+    }
 
-  static BluetoothChannelSoundingParameters BuildParam(
-      bool is_fake_notification_enabled, bool is_mode_0_channel_map_enabled) {
-    BluetoothChannelSoundingParameters param;
-    // Default acl handle.
-    param.aclHandle = kDefaultAclHandle;
-    param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
-    param.vendorSpecificData->resize(2);
-    param.vendorSpecificData->at(0) = VendorSpecificData{
-        .characteristicUuid = kUuidSpecialRangingSettingCapability,
-        .opaqueValue = std::vector<uint8_t>{
-            0,
-            static_cast<uint8_t>(is_fake_notification_enabled |
-                                 (is_mode_0_channel_map_enabled) << 1),
-            0, 0, 0}};
-    param.vendorSpecificData->at(1) = VendorSpecificData{
-        .characteristicUuid = kUuidSpecialRangingSettingCommand};
+    static BluetoothChannelSoundingParameters BuildParam(bool is_fake_notification_enabled,
+                                                         bool is_mode_0_channel_map_enabled) {
+        BluetoothChannelSoundingParameters param;
+        // Default acl handle.
+        param.aclHandle = kDefaultAclHandle;
+        param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
+        param.vendorSpecificData->resize(2);
+        param.vendorSpecificData->at(0) = VendorSpecificData{
+                .characteristicUuid = kUuidSpecialRangingSettingCapability,
+                .opaqueValue = std::vector<uint8_t>{
+                        0,
+                        static_cast<uint8_t>(is_fake_notification_enabled |
+                                             (is_mode_0_channel_map_enabled) << 1),
+                        0, 0, 0}};
+        param.vendorSpecificData->at(1) =
+                VendorSpecificData{.characteristicUuid = kUuidSpecialRangingSettingCommand};
 
-    return param;
-  }
+        return param;
+    }
 
-  static HalPacket BuildCsSubevent(uint16_t acl_handle,
-                                   uint16_t procedure_counter) {
-    return HalPacket({0x04, 0x3e, 0x09, kLeCsSubEventResultCode,
-                      static_cast<uint8_t>(acl_handle & 0xff),
-                      static_cast<uint8_t>((acl_handle >> 8) & 0xff), 0, 0, 0,
-                      static_cast<uint8_t>(procedure_counter & 0xff), 0, 0});
-  }
+    static HalPacket BuildCsSubevent(uint16_t acl_handle, uint16_t procedure_counter) {
+        return HalPacket({0x04, 0x3e, 0x09, kLeCsSubEventResultCode,
+                          static_cast<uint8_t>(acl_handle & 0xff),
+                          static_cast<uint8_t>((acl_handle >> 8) & 0xff), 0, 0, 0,
+                          static_cast<uint8_t>(procedure_counter & 0xff), 0, 0});
+    }
 
-  static HalPacket BuildCsProcedureEnableCompleteEvent(uint16_t acl_handle) {
-    return HalPacket({0x04, 0x3e, 0x09, kLeCsProcedureEnableCompleteCode, 0x00,
-                      static_cast<uint8_t>(acl_handle & 0xff),
-                      static_cast<uint8_t>((acl_handle >> 8) & 0xff), 0, 0});
-  }
+    static HalPacket BuildCsProcedureEnableCompleteEvent(uint16_t acl_handle) {
+        return HalPacket({0x04, 0x3e, 0x09, kLeCsProcedureEnableCompleteCode, 0x00,
+                          static_cast<uint8_t>(acl_handle & 0xff),
+                          static_cast<uint8_t>((acl_handle >> 8) & 0xff), 0, 0});
+    }
 
-  std::shared_ptr<IBluetoothChannelSoundingSession> TestAndGetSession(
-      const BluetoothChannelSoundingParameters& param,
-      bool is_mode_0_channel_map_enabled, bool is_session_valid = true) {
-    std::shared_ptr<IBluetoothChannelSoundingSession> session;
+    std::shared_ptr<IBluetoothChannelSoundingSession> TestAndGetSession(
+            const BluetoothChannelSoundingParameters& param, bool is_mode_0_channel_map_enabled,
+            bool is_session_valid = true) {
+        std::shared_ptr<IBluetoothChannelSoundingSession> session;
 
-    HalPacket packet =
-        BuildEnableMode0ChannelMapCommand(param.aclHandle, kCommandValueEnable);
-    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _))
-        .Times(is_mode_0_channel_map_enabled);
-    EXPECT_CALL(*mock_session_callback_, onOpened(Reason::LOCAL_STACK_REQUEST))
-        .Times(1);
-    EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
-        param, mock_session_callback_, &session));
-    EXPECT_EQ(session != nullptr, is_session_valid);
+        HalPacket packet = BuildEnableMode0ChannelMapCommand(param.aclHandle, kCommandValueEnable);
+        EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(is_mode_0_channel_map_enabled);
+        EXPECT_CALL(*mock_session_callback_, onOpened(Reason::LOCAL_STACK_REQUEST)).Times(1);
+        EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(param, mock_session_callback_,
+                                                                     &session));
+        EXPECT_EQ(session != nullptr, is_session_valid);
 
-    return session;
-  }
+        return session;
+    }
 
-  std::optional<
-      std::reference_wrapper<BluetoothChannelSoundingHandler::SessionTracker>>
-  TestAndGetSessionTracker(uint16_t acl_handlle, uint16_t procedure_counter,
-                           bool is_fake_notification_enabled) {
-    auto session_tracker =
-        bluetooth_channel_sounding_handler_->GetTrackerWrapper(acl_handlle);
-    EXPECT_TRUE(session_tracker.has_value());
-    EXPECT_EQ(session_tracker->get().cur_procedure_counter, procedure_counter);
-    EXPECT_EQ(session_tracker->get().is_fake_notification_enabled,
-              is_fake_notification_enabled);
+    std::optional<std::reference_wrapper<BluetoothChannelSoundingHandler::SessionTracker>>
+    TestAndGetSessionTracker(uint16_t acl_handlle, uint16_t procedure_counter,
+                             bool is_fake_notification_enabled) {
+        auto session_tracker = bluetooth_channel_sounding_handler_->GetTrackerWrapper(acl_handlle);
+        EXPECT_TRUE(session_tracker.has_value());
+        EXPECT_EQ(session_tracker->get().cur_procedure_counter, procedure_counter);
+        EXPECT_EQ(session_tracker->get().is_fake_notification_enabled,
+                  is_fake_notification_enabled);
 
-    return session_tracker;
-  }
+        return session_tracker;
+    }
 
-  void TestHandleCsSubeventAndFakeNotification(
-      uint16_t acl_handle, uint16_t cur_procedure_counter,
-      uint16_t updated_procedure_counter, bool is_fake_notification_enabled,
-      int expected_times) {
-    auto session_tracker = TestAndGetSessionTracker(
-        acl_handle, cur_procedure_counter, is_fake_notification_enabled);
+    void TestHandleCsSubeventAndFakeNotification(uint16_t acl_handle,
+                                                 uint16_t cur_procedure_counter,
+                                                 uint16_t updated_procedure_counter,
+                                                 bool is_fake_notification_enabled,
+                                                 int expected_times) {
+        auto session_tracker = TestAndGetSessionTracker(acl_handle, cur_procedure_counter,
+                                                        is_fake_notification_enabled);
 
-    HalPacket cs_subevent =
-        BuildCsSubevent(acl_handle, updated_procedure_counter);
-    HalPacket ras_notification = BuildRasNotification(
-        session_tracker->get().parameters, updated_procedure_counter);
+        HalPacket cs_subevent = BuildCsSubevent(acl_handle, updated_procedure_counter);
+        HalPacket ras_notification =
+                BuildRasNotification(session_tracker->get().parameters, updated_procedure_counter);
 
-    EXPECT_CALL(mock_hci_router_, SendPacketToStack(ras_notification))
-        .Times(expected_times);
-    bluetooth_channel_sounding_handler_->OnPacketCallback(cs_subevent);
+        EXPECT_CALL(mock_hci_router_, SendPacketToStack(ras_notification)).Times(expected_times);
+        bluetooth_channel_sounding_handler_->OnPacketCallback(cs_subevent);
 
-    EXPECT_EQ(session_tracker->get().cur_procedure_counter,
-              updated_procedure_counter);
-    EXPECT_EQ(session_tracker->get().is_fake_notification_enabled,
-              is_fake_notification_enabled);
-  }
+        EXPECT_EQ(session_tracker->get().cur_procedure_counter, updated_procedure_counter);
+        EXPECT_EQ(session_tracker->get().is_fake_notification_enabled,
+                  is_fake_notification_enabled);
+    }
 
-  std::unique_ptr<TestBluetoothChannelSoundingHandler>
-      bluetooth_channel_sounding_handler_;
-  MockHciRouter mock_hci_router_;
-  MockHciRouterClientAgent mock_hci_router_client_agent_;
-  MockAndroidBaseWrapper mock_android_base_wrapper_;
-  MockCsConfigLoader mock_cs_config_loader_;
-  std::shared_ptr<MockBluetoothChannelSoundingSessionCallback>
-      mock_session_callback_;
+    std::unique_ptr<TestBluetoothChannelSoundingHandler> bluetooth_channel_sounding_handler_;
+    MockHciRouter mock_hci_router_;
+    MockHciRouterClientAgent mock_hci_router_client_agent_;
+    MockAndroidBaseWrapper mock_android_base_wrapper_;
+    MockCsConfigLoader mock_cs_config_loader_;
+    std::shared_ptr<MockBluetoothChannelSoundingSessionCallback> mock_session_callback_;
 };
 
 TEST_F(BluetoothChannelSoundingHandlerTest, HandleCalibrationCommands) {
-  MockAndroidBaseWrapper mock_android_base_wrapper;
-  MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
+    MockAndroidBaseWrapper mock_android_base_wrapper;
+    MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
 
-  EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _))
-      .Times(1)
-      .WillOnce(Return(true));
+    EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _)).Times(1).WillOnce(Return(true));
 
-  const auto calibration_commands = std::vector<HalPacket>{
-      HalPacket({0x01, 0x02, 0x03, 0x04}), HalPacket({0x01, 0x05, 0x06, 0x07})};
-  EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
-      .Times(1)
-      .WillOnce(ReturnRef(calibration_commands));
-  EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(2);
+    const auto calibration_commands = std::vector<HalPacket>{HalPacket({0x01, 0x02, 0x03, 0x04}),
+                                                             HalPacket({0x01, 0x05, 0x06, 0x07})};
+    EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
+            .Times(1)
+            .WillOnce(ReturnRef(calibration_commands));
+    EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(2);
 
-  std::optional<std::vector<std::optional<VendorSpecificData>>> data;
-  EXPECT_TRUE(
-      bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
+    std::optional<std::vector<std::optional<VendorSpecificData>>> data;
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
 }
 
 TEST_F(BluetoothChannelSoundingHandlerTest, HandleEmptyCalibrationCommands) {
-  std::vector<HalPacket> empty_calibration_commands;
-  EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
-      .Times(1)
-      .WillOnce(ReturnRef(empty_calibration_commands));
-  EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
+    std::vector<HalPacket> empty_calibration_commands;
+    EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
+            .Times(1)
+            .WillOnce(ReturnRef(empty_calibration_commands));
+    EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
 
-  std::optional<std::vector<std::optional<VendorSpecificData>>> data;
-  EXPECT_TRUE(
-      bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
+    std::optional<std::vector<std::optional<VendorSpecificData>>> data;
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
 }
 
 TEST_F(BluetoothChannelSoundingHandlerTest, GetVendorSpecificDataReturnEmpty) {
-  std::optional<std::vector<std::optional<VendorSpecificData>>> data;
+    std::optional<std::vector<std::optional<VendorSpecificData>>> data;
 
-  ON_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
-      .WillByDefault([]() -> const std::vector<HalPacket>& {
-        static const std::vector<HalPacket> kEmpty;
-        return kEmpty;
-      });
+    ON_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
+            .WillByDefault([]() -> const std::vector<HalPacket>& {
+                static const std::vector<HalPacket> kEmpty;
+                return kEmpty;
+            });
 
-  EXPECT_TRUE(
-      bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
-  EXPECT_TRUE(data.has_value());
-  EXPECT_TRUE(data.value().empty());
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
+    EXPECT_TRUE(data.has_value());
+    EXPECT_TRUE(data.value().empty());
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       GetSupportedSessionTypesReturnDefaultValue) {
-  std::optional<std::vector<SessionType>> session_types;
+TEST_F(BluetoothChannelSoundingHandlerTest, GetSupportedSessionTypesReturnDefaultValue) {
+    std::optional<std::vector<SessionType>> session_types;
 
-  EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetSupportedSessionTypes(
-      &session_types));
-  EXPECT_TRUE(session_types.has_value());
-  EXPECT_EQ(*session_types,
-            std::vector<SessionType>{SessionType::SOFTWARE_STACK_DATA_PARSING});
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetSupportedSessionTypes(&session_types));
+    EXPECT_TRUE(session_types.has_value());
+    EXPECT_EQ(*session_types, std::vector<SessionType>{SessionType::SOFTWARE_STACK_DATA_PARSING});
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       GetMaxSupportedCsSecurityLevelReturnDefaultValue) {
-  CsSecurityLevel level;
+TEST_F(BluetoothChannelSoundingHandlerTest, GetMaxSupportedCsSecurityLevelReturnDefaultValue) {
+    CsSecurityLevel level;
 
-  EXPECT_TRUE(
-      bluetooth_channel_sounding_handler_->GetMaxSupportedCsSecurityLevel(
-          &level));
-  EXPECT_EQ(level, CsSecurityLevel::ONE);
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetMaxSupportedCsSecurityLevel(&level));
+    EXPECT_EQ(level, CsSecurityLevel::ONE);
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       NotOpenSessionWithParamTypeVendorSpecificReply) {
-  BluetoothChannelSoundingParameters param;
+TEST_F(BluetoothChannelSoundingHandlerTest, NotOpenSessionWithParamTypeVendorSpecificReply) {
+    BluetoothChannelSoundingParameters param;
 
-  // Build parameter for data reply type.
-  param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
-  param.vendorSpecificData->resize(2);
-  param.vendorSpecificData->at(0) = VendorSpecificData{
-      .characteristicUuid = kUuidSpecialRangingSettingCapability,
-      .opaqueValue = {kDataTypeReply, 0, 0, 0, 0}};
-  param.vendorSpecificData->at(1) = VendorSpecificData{
-      .characteristicUuid = kUuidSpecialRangingSettingCommand};
+    // Build parameter for data reply type.
+    param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
+    param.vendorSpecificData->resize(2);
+    param.vendorSpecificData->at(0) =
+            VendorSpecificData{.characteristicUuid = kUuidSpecialRangingSettingCapability,
+                               .opaqueValue = {kDataTypeReply, 0, 0, 0, 0}};
+    param.vendorSpecificData->at(1) =
+            VendorSpecificData{.characteristicUuid = kUuidSpecialRangingSettingCommand};
 
-  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+    std::shared_ptr<IBluetoothChannelSoundingSession> session;
 
-  EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
-  EXPECT_CALL(*mock_session_callback_, onOpenFailed(_)).Times(1);
-  EXPECT_CALL(*mock_session_callback_, onOpened(_)).Times(0);
-  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
-      param, mock_session_callback_, &session));
-  EXPECT_EQ(session, nullptr);
+    EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
+    EXPECT_CALL(*mock_session_callback_, onOpenFailed(_)).Times(1);
+    EXPECT_CALL(*mock_session_callback_, onOpened(_)).Times(0);
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(param, mock_session_callback_,
+                                                                 &session));
+    EXPECT_EQ(session, nullptr);
 }
 
 // Parameterized test for fake notification and mode 0 channel map enablement.
 struct OpenSessionTestParameters {
-  bool is_fake_notification_enabled;
-  bool is_mode_0_channel_map_enabled;
-  bool expected_fake_notification_value;
+    bool is_fake_notification_enabled;
+    bool is_mode_0_channel_map_enabled;
+    bool expected_fake_notification_value;
 };
 
-class OpenSessionParameterizedTest
-    : public BluetoothChannelSoundingHandlerTest,
-      public WithParamInterface<OpenSessionTestParameters> {};
+class OpenSessionParameterizedTest : public BluetoothChannelSoundingHandlerTest,
+                                     public WithParamInterface<OpenSessionTestParameters> {};
 
 TEST_P(OpenSessionParameterizedTest, HandleNotificationAndMode0ChannelMap) {
-  const auto& [is_fake_notification_enabled, is_mode_0_channel_map_enabled,
-               expected_fake_notification_value] = GetParam();
+    const auto& [is_fake_notification_enabled, is_mode_0_channel_map_enabled,
+                 expected_fake_notification_value] = GetParam();
 
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  TestAndGetSessionTracker(kDefaultAclHandle, kInitialProcedureCounter,
-                           expected_fake_notification_value);
+    TestAndGetSessionTracker(kDefaultAclHandle, kInitialProcedureCounter,
+                             expected_fake_notification_value);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    CsSession, OpenSessionParameterizedTest,
-    ::testing::Values(OpenSessionTestParameters{true, false, true},
-                      OpenSessionTestParameters{false, false, false},
-                      OpenSessionTestParameters{false, true, false},
-                      OpenSessionTestParameters{true, true, true}));
+INSTANTIATE_TEST_SUITE_P(CsSession, OpenSessionParameterizedTest,
+                         ::testing::Values(OpenSessionTestParameters{true, false, true},
+                                           OpenSessionTestParameters{false, false, false},
+                                           OpenSessionTestParameters{false, true, false},
+                                           OpenSessionTestParameters{true, true, true}));
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       HandleCsSubEventButAclHandleNotMatched) {
-  // CS subevent with acl handle kDefaultAclHandle and procedure counter
-  // 0xffff.
-  HalPacket cs_subevent =
-      BuildCsSubevent(kDefaultAclHandle, kInitialProcedureCounter);
+TEST_F(BluetoothChannelSoundingHandlerTest, HandleCsSubEventButAclHandleNotMatched) {
+    // CS subevent with acl handle kDefaultAclHandle and procedure counter
+    // 0xffff.
+    HalPacket cs_subevent = BuildCsSubevent(kDefaultAclHandle, kInitialProcedureCounter);
 
-  bluetooth_channel_sounding_handler_->OnPacketCallback(cs_subevent);
-  auto session_tracker =
-      bluetooth_channel_sounding_handler_->GetTrackerWrapper(kDefaultAclHandle);
-  EXPECT_FALSE(session_tracker.has_value());
+    bluetooth_channel_sounding_handler_->OnPacketCallback(cs_subevent);
+    auto session_tracker =
+            bluetooth_channel_sounding_handler_->GetTrackerWrapper(kDefaultAclHandle);
+    EXPECT_FALSE(session_tracker.has_value());
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       HandleCsSubEventAndSendFakeNotification) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = false;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+TEST_F(BluetoothChannelSoundingHandlerTest, HandleCsSubEventAndSendFakeNotification) {
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = false;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  uint16_t cur_procedure_counter = kInitialProcedureCounter;
-  uint16_t updated_procedure_counter = 0x01;
-  int expected_times = 1;
-  TestHandleCsSubeventAndFakeNotification(
-      kDefaultAclHandle, cur_procedure_counter, updated_procedure_counter,
-      is_fake_notification_enabled, expected_times);
+    uint16_t cur_procedure_counter = kInitialProcedureCounter;
+    uint16_t updated_procedure_counter = 0x01;
+    int expected_times = 1;
+    TestHandleCsSubeventAndFakeNotification(kDefaultAclHandle, cur_procedure_counter,
+                                            updated_procedure_counter, is_fake_notification_enabled,
+                                            expected_times);
 }
 
 TEST_F(BluetoothChannelSoundingHandlerTest,
        HandleDuplicateCsSubEventAndNotSendSecondFakeNotification) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = false;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = false;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  uint16_t cur_procedure_counter = kInitialProcedureCounter;
-  uint16_t updated_procedure_counter = 0x01;
-  int expected_times = 1;
-  TestHandleCsSubeventAndFakeNotification(
-      kDefaultAclHandle, cur_procedure_counter, updated_procedure_counter,
-      is_fake_notification_enabled, expected_times);
+    uint16_t cur_procedure_counter = kInitialProcedureCounter;
+    uint16_t updated_procedure_counter = 0x01;
+    int expected_times = 1;
+    TestHandleCsSubeventAndFakeNotification(kDefaultAclHandle, cur_procedure_counter,
+                                            updated_procedure_counter, is_fake_notification_enabled,
+                                            expected_times);
 
-  // Proceed the second same cs subevent and skip sending notification.
-  cur_procedure_counter = 0x01;
-  expected_times = 0;
-  TestHandleCsSubeventAndFakeNotification(
-      kDefaultAclHandle, cur_procedure_counter, updated_procedure_counter,
-      is_fake_notification_enabled, expected_times);
+    // Proceed the second same cs subevent and skip sending notification.
+    cur_procedure_counter = 0x01;
+    expected_times = 0;
+    TestHandleCsSubeventAndFakeNotification(kDefaultAclHandle, cur_procedure_counter,
+                                            updated_procedure_counter, is_fake_notification_enabled,
+                                            expected_times);
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       HandleCsSubEventButFakeNotificationNotEnabled) {
-  bool is_fake_notification_enabled = false;
-  bool is_mode_0_channel_map_enabled = false;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+TEST_F(BluetoothChannelSoundingHandlerTest, HandleCsSubEventButFakeNotificationNotEnabled) {
+    bool is_fake_notification_enabled = false;
+    bool is_mode_0_channel_map_enabled = false;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  uint16_t cur_procedure_counter = kInitialProcedureCounter;
-  uint16_t updated_procedure_counter = kInitialProcedureCounter;
-  int expected_times = 0;
-  TestHandleCsSubeventAndFakeNotification(
-      kDefaultAclHandle, cur_procedure_counter, updated_procedure_counter,
-      is_fake_notification_enabled, expected_times);
+    uint16_t cur_procedure_counter = kInitialProcedureCounter;
+    uint16_t updated_procedure_counter = kInitialProcedureCounter;
+    int expected_times = 0;
+    TestHandleCsSubeventAndFakeNotification(kDefaultAclHandle, cur_procedure_counter,
+                                            updated_procedure_counter, is_fake_notification_enabled,
+                                            expected_times);
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       HandleCsProcedureEnableCompleteAndResetCounter) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = true;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+TEST_F(BluetoothChannelSoundingHandlerTest, HandleCsProcedureEnableCompleteAndResetCounter) {
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = true;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  uint16_t cur_procedure_counter = kInitialProcedureCounter;
-  uint16_t updated_procedure_counter = 0x01;
-  int expected_times = 1;
-  TestHandleCsSubeventAndFakeNotification(
-      kDefaultAclHandle, cur_procedure_counter, updated_procedure_counter,
-      is_fake_notification_enabled, expected_times);
+    uint16_t cur_procedure_counter = kInitialProcedureCounter;
+    uint16_t updated_procedure_counter = 0x01;
+    int expected_times = 1;
+    TestHandleCsSubeventAndFakeNotification(kDefaultAclHandle, cur_procedure_counter,
+                                            updated_procedure_counter, is_fake_notification_enabled,
+                                            expected_times);
 
-  // Subevent for cs procedure enable complete and reset counter from 0x01 to
-  // 0xffff.
-  HalPacket cs_procedure_complete_event =
-      BuildCsProcedureEnableCompleteEvent(kDefaultAclHandle);
+    // Subevent for cs procedure enable complete and reset counter from 0x01 to
+    // 0xffff.
+    HalPacket cs_procedure_complete_event = BuildCsProcedureEnableCompleteEvent(kDefaultAclHandle);
 
-  bluetooth_channel_sounding_handler_->OnPacketCallback(
-      cs_procedure_complete_event);
-  // Counter is reset to 0xffff.
-  auto session_tracker =
-      bluetooth_channel_sounding_handler_->GetTrackerWrapper(kDefaultAclHandle);
-  EXPECT_EQ(session_tracker->get().cur_procedure_counter,
-            kInitialProcedureCounter);
+    bluetooth_channel_sounding_handler_->OnPacketCallback(cs_procedure_complete_event);
+    // Counter is reset to 0xffff.
+    auto session_tracker =
+            bluetooth_channel_sounding_handler_->GetTrackerWrapper(kDefaultAclHandle);
+    EXPECT_EQ(session_tracker->get().cur_procedure_counter, kInitialProcedureCounter);
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       HandleCsProcedureEnableCompleteButNotResetCounter) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = true;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+TEST_F(BluetoothChannelSoundingHandlerTest, HandleCsProcedureEnableCompleteButNotResetCounter) {
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = true;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  uint16_t cur_procedure_counter = kInitialProcedureCounter;
-  uint16_t updated_procedure_counter = 0x01;
-  int expected_times = 1;
-  TestHandleCsSubeventAndFakeNotification(
-      kDefaultAclHandle, cur_procedure_counter, updated_procedure_counter,
-      is_fake_notification_enabled, expected_times);
+    uint16_t cur_procedure_counter = kInitialProcedureCounter;
+    uint16_t updated_procedure_counter = 0x01;
+    int expected_times = 1;
+    TestHandleCsSubeventAndFakeNotification(kDefaultAclHandle, cur_procedure_counter,
+                                            updated_procedure_counter, is_fake_notification_enabled,
+                                            expected_times);
 
-  // Subevent for cs procedure enable complete for connection handle 0x1245.
-  HalPacket cs_procedure_complete_event =
-      BuildCsProcedureEnableCompleteEvent(0x1245);
+    // Subevent for cs procedure enable complete for connection handle 0x1245.
+    HalPacket cs_procedure_complete_event = BuildCsProcedureEnableCompleteEvent(0x1245);
 
-  bluetooth_channel_sounding_handler_->OnPacketCallback(
-      cs_procedure_complete_event);
-  // Counter is not changed.
-  auto session_tracker =
-      bluetooth_channel_sounding_handler_->GetTrackerWrapper(kDefaultAclHandle);
-  EXPECT_EQ(session_tracker->get().cur_procedure_counter,
-            updated_procedure_counter);
+    bluetooth_channel_sounding_handler_->OnPacketCallback(cs_procedure_complete_event);
+    // Counter is not changed.
+    auto session_tracker =
+            bluetooth_channel_sounding_handler_->GetTrackerWrapper(kDefaultAclHandle);
+    EXPECT_EQ(session_tracker->get().cur_procedure_counter, updated_procedure_counter);
 }
 
-class BluetoothChannelSoundingSessionTest
-    : public BluetoothChannelSoundingHandlerTest {};
+class BluetoothChannelSoundingSessionTest : public BluetoothChannelSoundingHandlerTest {};
 
-TEST_F(BluetoothChannelSoundingSessionTest,
-       GetVendorSpecificRepliesWithUuidNotMatchedReturnEmpty) {
-  BluetoothChannelSoundingParameters param;
-  // Build parameter to not match with certain uuid.
-  param.aclHandle = kDefaultAclHandle;
+TEST_F(BluetoothChannelSoundingSessionTest, GetVendorSpecificRepliesWithUuidNotMatchedReturnEmpty) {
+    BluetoothChannelSoundingParameters param;
+    // Build parameter to not match with certain uuid.
+    param.aclHandle = kDefaultAclHandle;
 
-  bool is_mode_0_channel_map_enabled = false;
-  std::shared_ptr<IBluetoothChannelSoundingSession> session =
-      TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    bool is_mode_0_channel_map_enabled = false;
+    std::shared_ptr<IBluetoothChannelSoundingSession> session =
+            TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  std::optional<std::vector<std::optional<VendorSpecificData>>>
-      vendor_specific_data;
-  ScopedAStatus status =
-      session->getVendorSpecificReplies(&vendor_specific_data);
-  EXPECT_TRUE(status.isOk());
-  EXPECT_FALSE(vendor_specific_data.has_value());
+    std::optional<std::vector<std::optional<VendorSpecificData>>> vendor_specific_data;
+    ScopedAStatus status = session->getVendorSpecificReplies(&vendor_specific_data);
+    EXPECT_TRUE(status.isOk());
+    EXPECT_FALSE(vendor_specific_data.has_value());
 }
 
 struct VendorSpecificTestParams {
-  bool is_fake_notification_enabled;
-  bool is_mode_0_channel_map_enabled;
-  std::vector<std::optional<VendorSpecificData>> vendor_specific_data;
+    bool is_fake_notification_enabled;
+    bool is_mode_0_channel_map_enabled;
+    std::vector<std::optional<VendorSpecificData>> vendor_specific_data;
 };
 
-class VendorSpecificRepliesTest
-    : public BluetoothChannelSoundingSessionTest,
-      public WithParamInterface<VendorSpecificTestParams> {
- public:
-  static std::vector<std::optional<VendorSpecificData>> BuildData(
-      bool is_fake_notification_enabled, bool is_mode_0_channel_map_enabled) {
-    uint8_t enable_inline_pct = is_fake_notification_enabled
-                                    ? kCommandValueEnable
-                                    : kCommandValueIgnore;
-    uint8_t enable_mode_0_channel_map = is_mode_0_channel_map_enabled
-                                            ? kCommandValueEnable
-                                            : kCommandValueIgnore;
+class VendorSpecificRepliesTest : public BluetoothChannelSoundingSessionTest,
+                                  public WithParamInterface<VendorSpecificTestParams> {
+  public:
+    static std::vector<std::optional<VendorSpecificData>> BuildData(
+            bool is_fake_notification_enabled, bool is_mode_0_channel_map_enabled) {
+        uint8_t enable_inline_pct =
+                is_fake_notification_enabled ? kCommandValueEnable : kCommandValueIgnore;
+        uint8_t enable_mode_0_channel_map =
+                is_mode_0_channel_map_enabled ? kCommandValueEnable : kCommandValueIgnore;
 
-    VendorSpecificData capability;
-    capability.characteristicUuid = kUuidSpecialRangingSettingCapability;
-    capability.opaqueValue = {kDataTypeReply, 0x00, 0x00, 0x00, 0x00};
+        VendorSpecificData capability;
+        capability.characteristicUuid = kUuidSpecialRangingSettingCapability;
+        capability.opaqueValue = {kDataTypeReply, 0x00, 0x00, 0x00, 0x00};
 
-    VendorSpecificData command;
-    command.characteristicUuid = kUuidSpecialRangingSettingCommand;
-    command.opaqueValue = {
-        kDataTypeReply,           enable_inline_pct, 0, 0, 0, 0,
-        enable_mode_0_channel_map};
+        VendorSpecificData command;
+        command.characteristicUuid = kUuidSpecialRangingSettingCommand;
+        command.opaqueValue = {kDataTypeReply,           enable_inline_pct, 0, 0, 0, 0,
+                               enable_mode_0_channel_map};
 
-    return {capability, command};
-  }
+        return {capability, command};
+    }
 };
 
 TEST_P(VendorSpecificRepliesTest, HandleDifferentVendorSpecificReplies) {
-  const auto& [is_fake_notification_enabled, is_mode_0_channel_map_enabled,
-               expected_vendor_specific_data] = GetParam();
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+    const auto& [is_fake_notification_enabled, is_mode_0_channel_map_enabled,
+                 expected_vendor_specific_data] = GetParam();
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  std::shared_ptr<IBluetoothChannelSoundingSession> session =
-      TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session =
+            TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  std::optional<std::vector<std::optional<VendorSpecificData>>>
-      vendor_specific_data;
-  ScopedAStatus status =
-      session->getVendorSpecificReplies(&vendor_specific_data);
-  EXPECT_TRUE(status.isOk());
-  EXPECT_TRUE(vendor_specific_data.has_value());
-  EXPECT_EQ(*vendor_specific_data, expected_vendor_specific_data);
+    std::optional<std::vector<std::optional<VendorSpecificData>>> vendor_specific_data;
+    ScopedAStatus status = session->getVendorSpecificReplies(&vendor_specific_data);
+    EXPECT_TRUE(status.isOk());
+    EXPECT_TRUE(vendor_specific_data.has_value());
+    EXPECT_EQ(*vendor_specific_data, expected_vendor_specific_data);
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    CsSession, VendorSpecificRepliesTest,
-    Values(
-        VendorSpecificTestParams{
-            .is_fake_notification_enabled = false,
-            .is_mode_0_channel_map_enabled = false,
-            .vendor_specific_data =
-                VendorSpecificRepliesTest::BuildData(false, false)},
-        VendorSpecificTestParams{
-            .is_fake_notification_enabled = false,
-            .is_mode_0_channel_map_enabled = true,
-            .vendor_specific_data = VendorSpecificRepliesTest::BuildData(false,
-                                                                         true)},
-        VendorSpecificTestParams{
-            .is_fake_notification_enabled = true,
-            .is_mode_0_channel_map_enabled = false,
-            .vendor_specific_data =
-                VendorSpecificRepliesTest::BuildData(true, false)},
-        VendorSpecificTestParams{
-            .is_fake_notification_enabled = true,
-            .is_mode_0_channel_map_enabled = true,
-            .vendor_specific_data =
-                VendorSpecificRepliesTest::BuildData(true, true)}));
+        CsSession, VendorSpecificRepliesTest,
+        Values(VendorSpecificTestParams{.is_fake_notification_enabled = false,
+                                        .is_mode_0_channel_map_enabled = false,
+                                        .vendor_specific_data =
+                                                VendorSpecificRepliesTest::BuildData(false, false)},
+               VendorSpecificTestParams{
+                       .is_fake_notification_enabled = false,
+                       .is_mode_0_channel_map_enabled = true,
+                       .vendor_specific_data = VendorSpecificRepliesTest::BuildData(false, true)},
+               VendorSpecificTestParams{
+                       .is_fake_notification_enabled = true,
+                       .is_mode_0_channel_map_enabled = false,
+                       .vendor_specific_data = VendorSpecificRepliesTest::BuildData(true, false)},
+               VendorSpecificTestParams{
+                       .is_fake_notification_enabled = true,
+                       .is_mode_0_channel_map_enabled = true,
+                       .vendor_specific_data = VendorSpecificRepliesTest::BuildData(true, true)}));
 
-TEST_F(BluetoothChannelSoundingSessionTest,
-       GetSupportedResultTypesReturnDefaultTypes) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = false;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+TEST_F(BluetoothChannelSoundingSessionTest, GetSupportedResultTypesReturnDefaultTypes) {
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = false;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  std::shared_ptr<IBluetoothChannelSoundingSession> session =
-      TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session =
+            TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  std::vector<ResultType> result_types;
-  ScopedAStatus status = session->getSupportedResultTypes(&result_types);
-  EXPECT_TRUE(status.isOk());
-  EXPECT_EQ(result_types, std::vector<ResultType>{ResultType::RESULT_METERS});
+    std::vector<ResultType> result_types;
+    ScopedAStatus status = session->getSupportedResultTypes(&result_types);
+    EXPECT_TRUE(status.isOk());
+    EXPECT_EQ(result_types, std::vector<ResultType>{ResultType::RESULT_METERS});
 }
 
 TEST_F(BluetoothChannelSoundingSessionTest, HandleIsAbortedProcedureRequired) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = false;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = false;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  std::shared_ptr<IBluetoothChannelSoundingSession> session =
-      TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session =
+            TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  bool is_aborted_procedure_required = true;
-  ScopedAStatus status =
-      session->isAbortedProcedureRequired(&is_aborted_procedure_required);
-  EXPECT_TRUE(status.isOk());
-  EXPECT_FALSE(is_aborted_procedure_required);
+    bool is_aborted_procedure_required = true;
+    ScopedAStatus status = session->isAbortedProcedureRequired(&is_aborted_procedure_required);
+    EXPECT_TRUE(status.isOk());
+    EXPECT_FALSE(is_aborted_procedure_required);
 }
 
-TEST_F(BluetoothChannelSoundingHandlerTest,
-       OnBluetoothEnabledSendReadLocalCapabilityCommand) {
-  HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
-  EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _))
-      .Times(1);
-  bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
+TEST_F(BluetoothChannelSoundingHandlerTest, OnBluetoothEnabledSendReadLocalCapabilityCommand) {
+    HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
+    EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _)).Times(1);
+    bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
 }
 
 TEST_F(BluetoothChannelSoundingSessionTest, CloseSession) {
-  bool is_fake_notification_enabled = true;
-  bool is_mode_0_channel_map_enabled = false;
-  BluetoothChannelSoundingParameters param =
-      BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
+    bool is_fake_notification_enabled = true;
+    bool is_mode_0_channel_map_enabled = false;
+    BluetoothChannelSoundingParameters param =
+            BuildParam(is_fake_notification_enabled, is_mode_0_channel_map_enabled);
 
-  std::shared_ptr<IBluetoothChannelSoundingSession> session =
-      TestAndGetSession(param, is_mode_0_channel_map_enabled);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session =
+            TestAndGetSession(param, is_mode_0_channel_map_enabled);
 
-  EXPECT_CALL(*mock_session_callback_, onClose(Reason::LOCAL_STACK_REQUEST))
-      .Times(1);
-  ScopedAStatus status = session->close(Reason::LOCAL_STACK_REQUEST);
-  EXPECT_TRUE(status.isOk());
+    EXPECT_CALL(*mock_session_callback_, onClose(Reason::LOCAL_STACK_REQUEST)).Times(1);
+    ScopedAStatus status = session->close(Reason::LOCAL_STACK_REQUEST);
+    EXPECT_TRUE(status.isOk());
 }
 
-class BluetoothChannelSoundingHandlerVendorReplyTest
-    : public BluetoothChannelSoundingHandlerTest {
- protected:
-  void SetUp() override { BluetoothChannelSoundingHandlerTest::SetUp(); }
+class BluetoothChannelSoundingHandlerVendorReplyTest : public BluetoothChannelSoundingHandlerTest {
+  protected:
+    void SetUp() override { BluetoothChannelSoundingHandlerTest::SetUp(); }
 
-  BluetoothChannelSoundingParameters BuildReplyParam(
-      const std::vector<uint8_t>& command_value) {
-    BluetoothChannelSoundingParameters param;
-    param.aclHandle = kDefaultAclHandle;
-    param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
-    param.vendorSpecificData->resize(2);
-    param.vendorSpecificData->at(0) = VendorSpecificData{
-        .characteristicUuid = kUuidSpecialRangingSettingCapability,
-        .opaqueValue = {kDataTypeReply, 0, 0, 0, 0}};
-    param.vendorSpecificData->at(1) = VendorSpecificData{
-        .characteristicUuid = kUuidSpecialRangingSettingCommand,
-        .opaqueValue = command_value};
-    return param;
-  }
+    BluetoothChannelSoundingParameters BuildReplyParam(const std::vector<uint8_t>& command_value) {
+        BluetoothChannelSoundingParameters param;
+        param.aclHandle = kDefaultAclHandle;
+        param.vendorSpecificData = std::vector<std::optional<VendorSpecificData>>();
+        param.vendorSpecificData->resize(2);
+        param.vendorSpecificData->at(0) =
+                VendorSpecificData{.characteristicUuid = kUuidSpecialRangingSettingCapability,
+                                   .opaqueValue = {kDataTypeReply, 0, 0, 0, 0}};
+        param.vendorSpecificData->at(1) =
+                VendorSpecificData{.characteristicUuid = kUuidSpecialRangingSettingCommand,
+                                   .opaqueValue = command_value};
+        return param;
+    }
 };
 
 TEST_F(BluetoothChannelSoundingHandlerVendorReplyTest, WrongDataFormatLength) {
-  std::vector<uint8_t> wrong_length_data = {0x01, 0x02, 0x03};
-  auto param = BuildReplyParam(wrong_length_data);
-  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+    std::vector<uint8_t> wrong_length_data = {0x01, 0x02, 0x03};
+    auto param = BuildReplyParam(wrong_length_data);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session;
 
-  EXPECT_CALL(*mock_session_callback_,
-              onOpenFailed(Reason::LOCAL_STACK_REQUEST))
-      .Times(1);
-  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
-      param, mock_session_callback_, &session));
+    EXPECT_CALL(*mock_session_callback_, onOpenFailed(Reason::LOCAL_STACK_REQUEST)).Times(1);
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(param, mock_session_callback_,
+                                                                 &session));
 }
 
 TEST_F(BluetoothChannelSoundingHandlerVendorReplyTest, InvalidDataType) {
-  // Use kDataTypeData instead of kDataTypeReply
-  std::vector<uint8_t> invalid_type_data = {kDataTypeData, 0, 0, 0};
-  auto param = BuildReplyParam(invalid_type_data);
-  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+    // Use kDataTypeData instead of kDataTypeReply
+    std::vector<uint8_t> invalid_type_data = {kDataTypeData, 0, 0, 0};
+    auto param = BuildReplyParam(invalid_type_data);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session;
 
-  EXPECT_CALL(*mock_session_callback_,
-              onOpenFailed(Reason::LOCAL_STACK_REQUEST))
-      .Times(1);
-  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
-      param, mock_session_callback_, &session));
+    EXPECT_CALL(*mock_session_callback_, onOpenFailed(Reason::LOCAL_STACK_REQUEST)).Times(1);
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(param, mock_session_callback_,
+                                                                 &session));
 }
 
 struct HandleVendorSpecificReplyTestParams {
-  std::string test_name;
-  std::vector<uint8_t> command_value;
-  bool expect_open_failed = false;
-  std::optional<uint8_t> inline_pct_cmd;
-  std::optional<uint32_t> event_mask_cmd;
-  std::optional<uint8_t> mode_0_map_cmd;
+    std::string test_name;
+    std::vector<uint8_t> command_value;
+    bool expect_open_failed = false;
+    std::optional<uint8_t> inline_pct_cmd;
+    std::optional<uint32_t> event_mask_cmd;
+    std::optional<uint8_t> mode_0_map_cmd;
 };
 
 class HandleVendorSpecificReplyParameterizedTest
@@ -676,185 +606,169 @@ class HandleVendorSpecificReplyParameterizedTest
       public WithParamInterface<HandleVendorSpecificReplyTestParams> {};
 
 TEST_P(HandleVendorSpecificReplyParameterizedTest, VariousReplies) {
-  const auto& params = GetParam();
-  auto param = BuildReplyParam(params.command_value);
-  std::shared_ptr<IBluetoothChannelSoundingSession> session;
+    const auto& params = GetParam();
+    auto param = BuildReplyParam(params.command_value);
+    std::shared_ptr<IBluetoothChannelSoundingSession> session;
 
-  if (params.expect_open_failed) {
-    EXPECT_CALL(*mock_session_callback_,
-                onOpenFailed(Reason::LOCAL_STACK_REQUEST))
-        .Times(1);
-    EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
-  } else {
-    EXPECT_CALL(*mock_session_callback_, onOpened(Reason::LOCAL_STACK_REQUEST))
-        .Times(1);
-  }
+    if (params.expect_open_failed) {
+        EXPECT_CALL(*mock_session_callback_, onOpenFailed(Reason::LOCAL_STACK_REQUEST)).Times(1);
+        EXPECT_CALL(mock_hci_router_, SendCommand(_, _)).Times(0);
+    } else {
+        EXPECT_CALL(*mock_session_callback_, onOpened(Reason::LOCAL_STACK_REQUEST)).Times(1);
+    }
 
-  if (params.inline_pct_cmd.has_value()) {
-    HalPacket packet =
-        BuildEnableInlinePctCommand(params.inline_pct_cmd.value());
-    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
-  }
+    if (params.inline_pct_cmd.has_value()) {
+        HalPacket packet = BuildEnableInlinePctCommand(params.inline_pct_cmd.value());
+        EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+    }
 
-  if (params.event_mask_cmd.has_value() && params.inline_pct_cmd.has_value() &&
-      params.inline_pct_cmd.value() == kCommandValueEnable) {
-    HalPacket packet = BuildSetEventMaskForConnectionCommand(
-        kDefaultAclHandle, params.event_mask_cmd.value());
-    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
-  }
+    if (params.event_mask_cmd.has_value() && params.inline_pct_cmd.has_value() &&
+        params.inline_pct_cmd.value() == kCommandValueEnable) {
+        HalPacket packet = BuildSetEventMaskForConnectionCommand(kDefaultAclHandle,
+                                                                 params.event_mask_cmd.value());
+        EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+    }
 
-  if (params.mode_0_map_cmd.has_value()) {
-    HalPacket packet = BuildEnableMode0ChannelMapCommand(
-        kDefaultAclHandle, params.mode_0_map_cmd.value());
-    EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
-  }
+    if (params.mode_0_map_cmd.has_value()) {
+        HalPacket packet =
+                BuildEnableMode0ChannelMapCommand(kDefaultAclHandle, params.mode_0_map_cmd.value());
+        EXPECT_CALL(mock_hci_router_, SendCommand(packet, _)).Times(1);
+    }
 
-  EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(
-      param, mock_session_callback_, &session));
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->OpenSession(param, mock_session_callback_,
+                                                                 &session));
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    VendorReplyTests, HandleVendorSpecificReplyParameterizedTest,
-    Values(
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "EnableAll_NewFormat",
-            .command_value = {kDataTypeReply, kCommandValueEnable, 0, 0, 0,
-                              0b111, kCommandValueEnable},
-            .inline_pct_cmd = kCommandValueEnable,
-            .event_mask_cmd = 0b111,
-            .mode_0_map_cmd = kCommandValueEnable},
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "DisableAll_NewFormat",
-            .command_value = {kDataTypeReply, kCommandValueDisable, 0, 0, 0, 0,
-                              kCommandValueDisable},
-            .inline_pct_cmd = kCommandValueDisable,
-            .event_mask_cmd = 0,
-            .mode_0_map_cmd = kCommandValueDisable},
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "IgnoreAll_NewFormat",
-            .command_value = {kDataTypeReply, kCommandValueIgnore, 0, 0, 0, 0,
-                              kCommandValueIgnore},
-        },
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "EnableAll_OldFormat",
-            .command_value = {kDataTypeReply, kCommandValueEnable,
-                              kCommandValueEnable, kCommandValueEnable},
-            .inline_pct_cmd = kCommandValueEnable,
-            .event_mask_cmd = 0b111,
-            .mode_0_map_cmd = kCommandValueEnable},
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "DisableAll_OldFormat",
-            .command_value = {kDataTypeReply, kCommandValueDisable,
-                              kCommandValueDisable, kCommandValueDisable},
-            .inline_pct_cmd = kCommandValueDisable,
-            .event_mask_cmd = 0,
-            .mode_0_map_cmd = kCommandValueDisable},
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "EventMaskIgnoredWhenPctDisabled",
-            .command_value = {kDataTypeReply, kCommandValueDisable, 0, 0, 0,
-                              0b111, kCommandValueIgnore},
-            .inline_pct_cmd = kCommandValueDisable,
-            // event_mask_cmd is not set, so SendCommand is not expected
-        },
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "InvalidPctValue",
-            .command_value = {kDataTypeReply, 0x03, 0, 0, 0, 0, 0},
-            .expect_open_failed = true},
-        HandleVendorSpecificReplyTestParams{
-            .test_name = "InvalidMode0MapValue",
-            .command_value = {kDataTypeReply, 0x02, 0, 0, 0, 0x02, 0x03},
-            .expect_open_failed = true}),
-    [](const auto& info) { return info.param.test_name; });
+        VendorReplyTests, HandleVendorSpecificReplyParameterizedTest,
+        Values(HandleVendorSpecificReplyTestParams{.test_name = "EnableAll_NewFormat",
+                                                   .command_value = {kDataTypeReply,
+                                                                     kCommandValueEnable, 0, 0, 0,
+                                                                     0b111, kCommandValueEnable},
+                                                   .inline_pct_cmd = kCommandValueEnable,
+                                                   .event_mask_cmd = 0b111,
+                                                   .mode_0_map_cmd = kCommandValueEnable},
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "DisableAll_NewFormat",
+                       .command_value = {kDataTypeReply, kCommandValueDisable, 0, 0, 0, 0,
+                                         kCommandValueDisable},
+                       .inline_pct_cmd = kCommandValueDisable,
+                       .event_mask_cmd = 0,
+                       .mode_0_map_cmd = kCommandValueDisable},
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "IgnoreAll_NewFormat",
+                       .command_value = {kDataTypeReply, kCommandValueIgnore, 0, 0, 0, 0,
+                                         kCommandValueIgnore},
+               },
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "EnableAll_OldFormat",
+                       .command_value = {kDataTypeReply, kCommandValueEnable, kCommandValueEnable,
+                                         kCommandValueEnable},
+                       .inline_pct_cmd = kCommandValueEnable,
+                       .event_mask_cmd = 0b111,
+                       .mode_0_map_cmd = kCommandValueEnable},
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "DisableAll_OldFormat",
+                       .command_value = {kDataTypeReply, kCommandValueDisable, kCommandValueDisable,
+                                         kCommandValueDisable},
+                       .inline_pct_cmd = kCommandValueDisable,
+                       .event_mask_cmd = 0,
+                       .mode_0_map_cmd = kCommandValueDisable},
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "EventMaskIgnoredWhenPctDisabled",
+                       .command_value = {kDataTypeReply, kCommandValueDisable, 0, 0, 0, 0b111,
+                                         kCommandValueIgnore},
+                       .inline_pct_cmd = kCommandValueDisable,
+                       // event_mask_cmd is not set, so SendCommand is not expected
+               },
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "InvalidPctValue",
+                       .command_value = {kDataTypeReply, 0x03, 0, 0, 0, 0, 0},
+                       .expect_open_failed = true},
+               HandleVendorSpecificReplyTestParams{
+                       .test_name = "InvalidMode0MapValue",
+                       .command_value = {kDataTypeReply, 0x02, 0, 0, 0, 0x02, 0x03},
+                       .expect_open_failed = true}),
+        [](const auto& info) { return info.param.test_name; });
 
 struct VendorSpecificDataMaskTestParams {
-  std::string test_name;
-  std::optional<uint32_t> set_mask;
-  uint32_t expected_effective_mask;
+    std::string test_name;
+    std::optional<uint32_t> set_mask;
+    uint32_t expected_effective_mask;
 };
 
 class HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest
     : public BluetoothChannelSoundingHandlerTest,
       public WithParamInterface<VendorSpecificDataMaskTestParams> {
-  void SetUp() override {
-    BluetoothChannelSoundingHandlerTest::SetUp();
-    // Reset to the default mask.
-    BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(0xFFFFFFFF);
-  }
+    void SetUp() override {
+        BluetoothChannelSoundingHandlerTest::SetUp();
+        // Reset to the default mask.
+        BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(0xFFFFFFFF);
+    }
 };
 
-TEST_P(HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
-       VerifyMaskApplication) {
-  const auto& params = GetParam();
+TEST_P(HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest, VerifyMaskApplication) {
+    const auto& params = GetParam();
 
-  MockAndroidBaseWrapper mock_android_base_wrapper;
-  MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
+    MockAndroidBaseWrapper mock_android_base_wrapper;
+    MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
 
-  EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _))
-      .Times(1)
-      .WillOnce(Return(false));
+    EXPECT_CALL(mock_android_base_wrapper, GetBoolProperty(_, _)).Times(1).WillOnce(Return(false));
 
-  const auto calibration_commands = std::vector<HalPacket>{
-      HalPacket({0x01, 0x02, 0x03, 0x04}), HalPacket({0x01, 0x05, 0x06, 0x07})};
-  EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
-      .Times(1)
-      .WillOnce(ReturnRef(calibration_commands));
+    const auto calibration_commands = std::vector<HalPacket>{HalPacket({0x01, 0x02, 0x03, 0x04}),
+                                                             HalPacket({0x01, 0x05, 0x06, 0x07})};
+    EXPECT_CALL(mock_cs_config_loader_, GetCsCalibrationCommands)
+            .Times(1)
+            .WillOnce(ReturnRef(calibration_commands));
 
-  // Set local capability.
-  HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
-  EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _))
-      .Times(1);
-  bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
+    // Set local capability.
+    HalPacket read_local_cap_command = BuildReadLocalCapabilityCommand();
+    EXPECT_CALL(mock_hci_router_, SendCommand(read_local_cap_command, _)).Times(1);
+    bluetooth_channel_sounding_handler_->TestOnBluetoothEnabled();
 
-  // Create a command complete event with capabilities.
-  auto event = HalPacket(
-      {static_cast<uint8_t>(HciPacketType::kEvent),
-       static_cast<uint8_t>(EventCode::kCommandComplete),
-       0x09,        // Parameter Total Length.
-       0x01,        // Num Allowed Command Packets.
-       0x0B, 0xFF,  // OpCode (0xFF0B - kHciVscSpecialRangingSettingOpcode).
-       0x00,        // Status (Success).
-       0x01,        // Sub-opcode (kHciVscReadLocalCapabilitySubOpCode).
-       // Capabilities (4 bytes).
-       0xFF, 0xFF, 0xFF, 0xFF});
-  bluetooth_channel_sounding_handler_->TestOnCommandCallback(event);
+    // Create a command complete event with capabilities.
+    auto event = HalPacket({static_cast<uint8_t>(HciPacketType::kEvent),
+                            static_cast<uint8_t>(EventCode::kCommandComplete),
+                            0x09,        // Parameter Total Length.
+                            0x01,        // Num Allowed Command Packets.
+                            0x0B, 0xFF,  // OpCode (0xFF0B - kHciVscSpecialRangingSettingOpcode).
+                            0x00,        // Status (Success).
+                            0x01,        // Sub-opcode (kHciVscReadLocalCapabilitySubOpCode).
+                            // Capabilities (4 bytes).
+                            0xFF, 0xFF, 0xFF, 0xFF});
+    bluetooth_channel_sounding_handler_->TestOnCommandCallback(event);
 
-  if (params.set_mask.has_value()) {
-    BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(
-        params.set_mask.value());
-  }
+    if (params.set_mask.has_value()) {
+        BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(params.set_mask.value());
+    }
 
-  std::optional<std::vector<std::optional<VendorSpecificData>>> data;
-  EXPECT_TRUE(
-      bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
+    std::optional<std::vector<std::optional<VendorSpecificData>>> data;
+    EXPECT_TRUE(bluetooth_channel_sounding_handler_->GetVendorSpecificData(&data));
 
-  EXPECT_TRUE(data.has_value());
-  EXPECT_GE(data->size(), 1);
-  const auto& capability = (*data)[0];
-  EXPECT_TRUE(capability.has_value());
-  // opaqueValue[0] is kDataTypeData (0x01).
-  // opaqueValue[1..] are capabilities.
-  for (size_t i = 1; i < capability->opaqueValue.size(); ++i) {
-    uint8_t mask_byte =
-        (params.expected_effective_mask >> ((i - 1) * 8)) & 0xFF;
-    EXPECT_EQ(capability->opaqueValue[i], 0xFF & mask_byte);
-  }
+    EXPECT_TRUE(data.has_value());
+    EXPECT_GE(data->size(), 1);
+    const auto& capability = (*data)[0];
+    EXPECT_TRUE(capability.has_value());
+    // opaqueValue[0] is kDataTypeData (0x01).
+    // opaqueValue[1..] are capabilities.
+    for (size_t i = 1; i < capability->opaqueValue.size(); ++i) {
+        uint8_t mask_byte = (params.expected_effective_mask >> ((i - 1) * 8)) & 0xFF;
+        EXPECT_EQ(capability->opaqueValue[i], 0xFF & mask_byte);
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    VendorSpecificDataMaskTests,
-    HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
-    Values(
-        VendorSpecificDataMaskTestParams{.test_name = "Mask0xF0F0F0F0",
-                                         .set_mask = 0xF0F0F0F0,
-                                         .expected_effective_mask = 0xF0F0F0F0},
-        VendorSpecificDataMaskTestParams{.test_name = "Mask0x00000000",
-                                         .set_mask = 0x00000000,
-                                         .expected_effective_mask = 0x00000000},
-        VendorSpecificDataMaskTestParams{
-            .test_name = "MaskNotSet",
-            .set_mask = std::nullopt,
-            .expected_effective_mask = 0xFFFFFFFF}),
-    [](const auto& info) { return info.param.test_name; });
+        VendorSpecificDataMaskTests, HandleSetEventMaskWithGetVendorSpecificDataParameterizedTest,
+        Values(VendorSpecificDataMaskTestParams{.test_name = "Mask0xF0F0F0F0",
+                                                .set_mask = 0xF0F0F0F0,
+                                                .expected_effective_mask = 0xF0F0F0F0},
+               VendorSpecificDataMaskTestParams{.test_name = "Mask0x00000000",
+                                                .set_mask = 0x00000000,
+                                                .expected_effective_mask = 0x00000000},
+               VendorSpecificDataMaskTestParams{.test_name = "MaskNotSet",
+                                                .set_mask = std::nullopt,
+                                                .expected_effective_mask = 0xFFFFFFFF}),
+        [](const auto& info) { return info.param.test_name; });
 
 }  // namespace
 }  // namespace bluetooth_hal::extensions::cs

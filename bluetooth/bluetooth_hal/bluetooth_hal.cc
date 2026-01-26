@@ -54,16 +54,15 @@ using ::bluetooth_hal::extensions::BluetoothHalExtensionInitializer;
 using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingHandler;
 #endif
 
-using ::bluetooth_hal::extensions::cs::
-    ChannelSoundingDistanceEstimatorInterface;
+using ::bluetooth_hal::extensions::cs::ChannelSoundingDistanceEstimatorInterface;
 
 using ::bluetooth_hal::transport::TransportFactory;
 using ::bluetooth_hal::transport::TransportType;
 using ::ndk::SharedRefBase;
 
 std::vector<BluetoothHalExtensionInitializer>& GetExtensionInitializers() {
-  static std::vector<BluetoothHalExtensionInitializer> initializers;
-  return initializers;
+    static std::vector<BluetoothHalExtensionInitializer> initializers;
+    return initializers;
 }
 
 }  // namespace
@@ -71,71 +70,69 @@ std::vector<BluetoothHalExtensionInitializer>& GetExtensionInitializers() {
 namespace extensions {
 
 void BluetoothHalRegisterExtension(BluetoothHalExtensionInitializer init_func) {
-  GetExtensionInitializers().push_back(std::move(init_func));
+    GetExtensionInitializers().push_back(std::move(init_func));
 }
 
 }  // namespace extensions
 
 BluetoothHal& BluetoothHal::GetHal() {
-  static BluetoothHal hal;
-  return hal;
+    static BluetoothHal hal;
+    return hal;
 }
 
-bool BluetoothHal::RegisterVendorTransport(
-    TransportType type, TransportFactory::FactoryFn factory) {
-  return TransportFactory::RegisterVendorTransport(type, std::move(factory));
+bool BluetoothHal::RegisterVendorTransport(TransportType type,
+                                           TransportFactory::FactoryFn factory) {
+    return TransportFactory::RegisterVendorTransport(type, std::move(factory));
 }
 
-void BluetoothHal::RegisterVendorChipProvisioner(
-    ChipProvisionerInterface::FactoryFn factory) {
-  ChipProvisionerInterface::RegisterVendorChipProvisioner(std::move(factory));
+void BluetoothHal::RegisterVendorChipProvisioner(ChipProvisionerInterface::FactoryFn factory) {
+    ChipProvisionerInterface::RegisterVendorChipProvisioner(std::move(factory));
 }
 
 void BluetoothHal::RegisterVendorChannelSoundingDistanceEstimator(
-    ChannelSoundingDistanceEstimatorInterface::FactoryFn factory) {
-  ChannelSoundingDistanceEstimatorInterface::
-      RegisterVendorChannelSoundingDistanceEstimator(std::move(factory));
+        ChannelSoundingDistanceEstimatorInterface::FactoryFn factory) {
+    ChannelSoundingDistanceEstimatorInterface::RegisterVendorChannelSoundingDistanceEstimator(
+            std::move(factory));
 }
 
 void BluetoothHal::SetCsVendorSpecificDataMask([[maybe_unused]] uint32_t mask) {
 #if defined(USE_RANGING_V1) || defined(USE_RANGING_V2)
-  BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(mask);
+    BluetoothChannelSoundingHandler::SetCsVendorSpecificDataMask(mask);
 #else
-  LOG(INFO) << __func__ << ": No ranging service is registered!";
+    LOG(INFO) << __func__ << ": No ranging service is registered!";
 #endif
 }
 
 void BluetoothHal::Start() {
-  StartHalClients();
+    StartHalClients();
 
-  std::string instance = std::string() + HciProxyAidl::descriptor + "/default";
-  std::shared_ptr<HciProxyAidl> hci_proxy = SharedRefBase::make<HciProxyAidl>();
-  int status =
-      AServiceManager_addService(hci_proxy->asBinder().get(), instance.c_str());
-  if (status == STATUS_OK) {
-    ABinderProcess_joinThreadPool();
-  } else {
-    LOG(ERROR) << __func__ << ": Could not register as a service!";
-  }
+    std::string instance = std::string() + HciProxyAidl::descriptor + "/default";
+    std::shared_ptr<HciProxyAidl> hci_proxy = SharedRefBase::make<HciProxyAidl>();
+    int status = AServiceManager_addService(hci_proxy->asBinder().get(), instance.c_str());
+    if (status == STATUS_OK) {
+        ABinderProcess_joinThreadPool();
+    } else {
+        LOG(ERROR) << __func__ << ": Could not register as a service!";
+    }
 }
 
 void BluetoothHal::StartOffloadHal() {
-  StartHalClients();
+    StartHalClients();
 
-  static HciProxyFfi ffi;
-  IBluetoothHci_addService(&ffi);
-  ABinderProcess_joinThreadPool();
+    static HciProxyFfi ffi;
+    IBluetoothHci_addService(&ffi);
+    ABinderProcess_joinThreadPool();
 }
 
 void BluetoothHal::StartHalClients() {
-  StartExtensions();
-  BqrHandler::Start();
+    StartExtensions();
+    BqrHandler::Start();
 }
 
 void BluetoothHal::StartExtensions() {
-  for (const auto& initializer : GetExtensionInitializers()) {
-    initializer();
-  }
+    for (const auto& initializer : GetExtensionInitializers()) {
+        initializer();
+    }
 }
 
 }  // namespace bluetooth_hal

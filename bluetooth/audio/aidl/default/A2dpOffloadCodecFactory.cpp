@@ -29,70 +29,63 @@ namespace aidl::android::hardware::bluetooth::audio {
  */
 
 enum : bool {
-  kEnableAac = true,
-  kEnableSbc = true,
+    kEnableAac = true,
+    kEnableSbc = true,
 };
 
 /**
  * Class implementation
  */
 
-A2dpOffloadCodecFactory::A2dpOffloadCodecFactory()
-    : name("Offload"), codecs(ranked_codecs_) {
-  ranked_codecs_.reserve(kEnableAac + kEnableSbc);
+A2dpOffloadCodecFactory::A2dpOffloadCodecFactory() : name("Offload"), codecs(ranked_codecs_) {
+    ranked_codecs_.reserve(kEnableAac + kEnableSbc);
 
-  if (kEnableAac)
-    ranked_codecs_.push_back(std::make_shared<A2dpOffloadCodecAac>());
-  if (kEnableSbc)
-    ranked_codecs_.push_back(std::make_shared<A2dpOffloadCodecSbc>());
+    if (kEnableAac) ranked_codecs_.push_back(std::make_shared<A2dpOffloadCodecAac>());
+    if (kEnableSbc) ranked_codecs_.push_back(std::make_shared<A2dpOffloadCodecSbc>());
 }
 
-std::shared_ptr<const A2dpOffloadCodec> A2dpOffloadCodecFactory::GetCodec(
-    CodecId id) const {
-  auto codec = std::find_if(begin(ranked_codecs_), end(ranked_codecs_),
-                            [&](auto c) { return id == c->info.id; });
+std::shared_ptr<const A2dpOffloadCodec> A2dpOffloadCodecFactory::GetCodec(CodecId id) const {
+    auto codec = std::find_if(begin(ranked_codecs_), end(ranked_codecs_),
+                              [&](auto c) { return id == c->info.id; });
 
-  return codec != end(ranked_codecs_) ? *codec : nullptr;
+    return codec != end(ranked_codecs_) ? *codec : nullptr;
 }
 
 bool A2dpOffloadCodecFactory::GetConfiguration(
-    const std::vector<A2dpRemoteCapabilities>& remote_capabilities,
-    const A2dpConfigurationHint& hint, A2dpConfiguration* configuration) const {
-  decltype(ranked_codecs_) codecs;
+        const std::vector<A2dpRemoteCapabilities>& remote_capabilities,
+        const A2dpConfigurationHint& hint, A2dpConfiguration* configuration) const {
+    decltype(ranked_codecs_) codecs;
 
-  codecs.reserve(ranked_codecs_.size());
+    codecs.reserve(ranked_codecs_.size());
 
-  auto hinted_codec =
-      std::find_if(begin(ranked_codecs_), end(ranked_codecs_),
-                   [&](auto c) { return hint.codecId == c->info.id; });
+    auto hinted_codec = std::find_if(begin(ranked_codecs_), end(ranked_codecs_),
+                                     [&](auto c) { return hint.codecId == c->info.id; });
 
-  if (hinted_codec != end(ranked_codecs_)) codecs.push_back(*hinted_codec);
+    if (hinted_codec != end(ranked_codecs_)) codecs.push_back(*hinted_codec);
 
-  std::copy_if(begin(ranked_codecs_), end(ranked_codecs_),
-               std::back_inserter(codecs),
-               [&](auto c) { return c != *hinted_codec; });
+    std::copy_if(begin(ranked_codecs_), end(ranked_codecs_), std::back_inserter(codecs),
+                 [&](auto c) { return c != *hinted_codec; });
 
-  for (auto codec : codecs) {
-    auto rc =
-        std::find_if(begin(remote_capabilities), end(remote_capabilities),
-                     [&](auto& rc__) { return codec->info.id == rc__.id; });
+    for (auto codec : codecs) {
+        auto rc = std::find_if(begin(remote_capabilities), end(remote_capabilities),
+                               [&](auto& rc__) { return codec->info.id == rc__.id; });
 
-    if ((rc == end(remote_capabilities)) ||
-        !codec->BuildConfiguration(rc->capabilities, hint.codecParameters,
-                                   &configuration->configuration))
-      continue;
+        if ((rc == end(remote_capabilities)) ||
+            !codec->BuildConfiguration(rc->capabilities, hint.codecParameters,
+                                       &configuration->configuration))
+            continue;
 
-    configuration->id = codec->info.id;
-    A2dpStatus status = codec->ParseConfiguration(configuration->configuration,
-                                                  &configuration->parameters);
-    assert(status == A2dpStatus::OK);
+        configuration->id = codec->info.id;
+        A2dpStatus status =
+                codec->ParseConfiguration(configuration->configuration, &configuration->parameters);
+        assert(status == A2dpStatus::OK);
 
-    configuration->remoteSeid = rc->seid;
+        configuration->remoteSeid = rc->seid;
 
-    return true;
-  }
+        return true;
+    }
 
-  return false;
+    return false;
 }
 
 }  // namespace aidl::android::hardware::bluetooth::audio

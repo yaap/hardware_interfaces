@@ -35,222 +35,208 @@ namespace bluetooth_hal::transport {
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::HalConfigLoader;
 
-std::unique_ptr<TransportInstance> TransportFactory::current_transport_ =
-    nullptr;
+std::unique_ptr<TransportInstance> TransportFactory::current_transport_ = nullptr;
 
 TransportInstance& TransportFactory::GetTransport() {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
-  if (current_transport_) {
-    return *current_transport_;
-  }
-
-  // TODO: b/442448282 - It is not safe to do auto initialize here, need to
-  // separate the logic from GetTransport().
-  const std::vector<TransportType>& current_transport_type_priorities =
-      HalConfigLoader::GetLoader().GetTransportTypePriority();
-
-  for (auto type : current_transport_type_priorities) {
-    if (UpdateTransportType(type)) {
-      return *current_transport_;
+    if (current_transport_) {
+        return *current_transport_;
     }
-  }
 
-  LOG(WARNING) << __func__
-               << ": No transport from priority list initialized. Falling back "
-                  "to UartH4.";
-  UpdateTransportType(TransportType::kUartH4);
+    // TODO: b/442448282 - It is not safe to do auto initialize here, need to
+    // separate the logic from GetTransport().
+    const std::vector<TransportType>& current_transport_type_priorities =
+            HalConfigLoader::GetLoader().GetTransportTypePriority();
 
-  return *current_transport_;
+    for (auto type : current_transport_type_priorities) {
+        if (UpdateTransportType(type)) {
+            return *current_transport_;
+        }
+    }
+
+    LOG(WARNING) << __func__
+                 << ": No transport from priority list initialized. Falling back "
+                    "to UartH4.";
+    UpdateTransportType(TransportType::kUartH4);
+
+    return *current_transport_;
 }
 
 std::pair<std::unique_ptr<TransportInstance>, TransportType>
 TransportFactory::CreateOrAcquireTransport(TransportType requested_type) {
-  std::unique_ptr<TransportInstance> new_transport;
-  TransportType new_transport_type = requested_type;
+    std::unique_ptr<TransportInstance> new_transport;
+    TransportType new_transport_type = requested_type;
 
-  switch (requested_type) {
-    case TransportType::kVendorStart... TransportType::kVendorEnd: {
-      new_transport = VendorFactory::Create(requested_type);
-      if (!new_transport) {
-        LOG(ERROR) << __func__ << ": Vendor factory for type "
-                   << static_cast<int>(requested_type)
-                   << " not found or returned null.";
-        return {nullptr, requested_type};
-      }
-      if (new_transport->GetInstanceTransportType() != requested_type) {
-        LOG(ERROR) << __func__ << ": Vendor factory for type "
-                   << static_cast<int>(requested_type)
-                   << " returned mismatched transport type: "
-                   << static_cast<int>(
-                          new_transport->GetInstanceTransportType());
-        return {nullptr, requested_type};
-      }
-      break;
+    switch (requested_type) {
+        case TransportType::kVendorStart... TransportType::kVendorEnd: {
+            new_transport = VendorFactory::Create(requested_type);
+            if (!new_transport) {
+                LOG(ERROR) << __func__ << ": Vendor factory for type "
+                           << static_cast<int>(requested_type) << " not found or returned null.";
+                return {nullptr, requested_type};
+            }
+            if (new_transport->GetInstanceTransportType() != requested_type) {
+                LOG(ERROR) << __func__ << ": Vendor factory for type "
+                           << static_cast<int>(requested_type)
+                           << " returned mismatched transport type: "
+                           << static_cast<int>(new_transport->GetInstanceTransportType());
+                return {nullptr, requested_type};
+            }
+            break;
+        }
+        case TransportType::kUartH4: {
+            new_transport = std::make_unique<TransportUartH4>();
+            break;
+        }
+        case TransportType::kUnknown:
+        default:
+            LOG(WARNING) << __func__ << ": Requested unhandled or kUnknown type: "
+                         << static_cast<int>(requested_type) << ".  Defaulting to kUartH4.";
+            new_transport_type = TransportType::kUartH4;
+            new_transport = std::make_unique<TransportUartH4>();
+            break;
     }
-    case TransportType::kUartH4: {
-      new_transport = std::make_unique<TransportUartH4>();
-      break;
-    }
-    case TransportType::kUnknown:
-    default:
-      LOG(WARNING) << __func__ << ": Requested unhandled or kUnknown type: "
-                   << static_cast<int>(requested_type)
-                   << ".  Defaulting to kUartH4.";
-      new_transport_type = TransportType::kUartH4;
-      new_transport = std::make_unique<TransportUartH4>();
-      break;
-  }
 
-  return {std::move(new_transport), new_transport_type};
+    return {std::move(new_transport), new_transport_type};
 }
 
 bool TransportFactory::UpdateTransportType(TransportType requested_type) {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
-  if (current_transport_type_ == requested_type && current_transport_) {
-    return true;
-  }
+    if (current_transport_type_ == requested_type && current_transport_) {
+        return true;
+    }
 
-  auto [new_transport, new_transport_type] =
-      CreateOrAcquireTransport(requested_type);
+    auto [new_transport, new_transport_type] = CreateOrAcquireTransport(requested_type);
 
-  // If the new transport instance could not be created or acquired.
-  if (!new_transport) {
-    LOG(ERROR) << __func__
-               << ": Failed to create or acquire new transport for type: "
-               << static_cast<int>(requested_type);
-    return false;
-  }
+    // If the new transport instance could not be created or acquired.
+    if (!new_transport) {
+        LOG(ERROR) << __func__ << ": Failed to create or acquire new transport for type: "
+                   << static_cast<int>(requested_type);
+        return false;
+    }
 
-  // New transport is ready. Now, cleanup and replace the old one.
-  if (current_transport_) {
-    CleanupTransport();
-  }
+    // New transport is ready. Now, cleanup and replace the old one.
+    if (current_transport_) {
+        CleanupTransport();
+    }
 
-  // Activate the new transport.
-  current_transport_ = std::move(new_transport);
-  current_transport_type_ = new_transport_type;
+    // Activate the new transport.
+    current_transport_ = std::move(new_transport);
+    current_transport_type_ = new_transport_type;
 
-  if (current_transport_) {
-    LOG(INFO) << __func__
-              << ": Successfully initialized transport for priority type: "
-              << static_cast<int>(current_transport_type_);
-  }
+    if (current_transport_) {
+        LOG(INFO) << __func__ << ": Successfully initialized transport for priority type: "
+                  << static_cast<int>(current_transport_type_);
+    }
 
-  return current_transport_ != nullptr;
+    return current_transport_ != nullptr;
 }
 
 void TransportFactory::CleanupTransport() {
-  if (current_transport_) {
-    current_transport_->Cleanup();
-    current_transport_.reset();
-    current_transport_type_ = TransportType::kUnknown;
-  }
+    if (current_transport_) {
+        current_transport_->Cleanup();
+        current_transport_.reset();
+        current_transport_type_ = TransportType::kUnknown;
+    }
 }
 
-bool TransportFactory::RegisterVendorTransport(TransportType type,
-                                               FactoryFn factory) {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+bool TransportFactory::RegisterVendorTransport(TransportType type, FactoryFn factory) {
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
-  if (!factory) {
-    LOG(ERROR) << __func__ << ": Cannot register null factory.";
-    return false;
-  }
+    if (!factory) {
+        LOG(ERROR) << __func__ << ": Cannot register null factory.";
+        return false;
+    }
 
-  if (current_transport_ && current_transport_type_ == type) {
-    LOG(WARNING) << __func__ << ": Current vendor transport is active for type "
-                 << static_cast<int>(type) << ", close it first.";
-    return false;
-  }
+    if (current_transport_ && current_transport_type_ == type) {
+        LOG(WARNING) << __func__ << ": Current vendor transport is active for type "
+                     << static_cast<int>(type) << ", close it first.";
+        return false;
+    }
 
-  if (type < TransportType::kVendorStart || type > TransportType::kVendorEnd) {
-    LOG(ERROR) << __func__
-               << ": Invalid vendor transport type: " << static_cast<int>(type);
-    return false;
-  }
+    if (type < TransportType::kVendorStart || type > TransportType::kVendorEnd) {
+        LOG(ERROR) << __func__ << ": Invalid vendor transport type: " << static_cast<int>(type);
+        return false;
+    }
 
-  if (VendorFactory::IsRegistered(type)) {
-    LOG(WARNING) << __func__
-                 << ": Vendor transport factory already registered for type: "
-                 << static_cast<int>(type) << ". Overwriting.";
-  }
-  VendorFactory::RegisterProviderFactory(type, std::move(factory));
+    if (VendorFactory::IsRegistered(type)) {
+        LOG(WARNING) << __func__ << ": Vendor transport factory already registered for type: "
+                     << static_cast<int>(type) << ". Overwriting.";
+    }
+    VendorFactory::RegisterProviderFactory(type, std::move(factory));
 
-  return true;
+    return true;
 }
 
 bool TransportFactory::UnregisterVendorTransport(TransportType type) {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
 
-  if (type < TransportType::kVendorStart || type > TransportType::kVendorEnd) {
-    LOG(ERROR) << __func__
-               << ": Invalid transport type for unregistration (not a vendor "
-                  "type): "
-               << static_cast<int>(type);
-    return false;
-  }
+    if (type < TransportType::kVendorStart || type > TransportType::kVendorEnd) {
+        LOG(ERROR) << __func__
+                   << ": Invalid transport type for unregistration (not a vendor "
+                      "type): "
+                   << static_cast<int>(type);
+        return false;
+    }
 
-  if (current_transport_ && current_transport_type_ == type) {
-    LOG(WARNING) << __func__ << ": Cannot unregister currently active "
-                 << "vendor transport type: " << static_cast<int>(type);
-    return false;
-  }
+    if (current_transport_ && current_transport_type_ == type) {
+        LOG(WARNING) << __func__ << ": Cannot unregister currently active "
+                     << "vendor transport type: " << static_cast<int>(type);
+        return false;
+    }
 
-  if (!VendorFactory::IsRegistered(type)) {
-    LOG(WARNING) << __func__
-                 << ": Vendor transport factory not found for type: "
-                 << static_cast<int>(type);
-    return false;
-  }
+    if (!VendorFactory::IsRegistered(type)) {
+        LOG(WARNING) << __func__
+                     << ": Vendor transport factory not found for type: " << static_cast<int>(type);
+        return false;
+    }
 
-  VendorFactory::UnregisterProviderFactory(type);
-  LOG(INFO) << __func__
-            << ": Successfully unregistered vendor transport factory for type: "
-            << static_cast<int>(type);
-  return true;
+    VendorFactory::UnregisterProviderFactory(type);
+    LOG(INFO) << __func__ << ": Successfully unregistered vendor transport factory for type: "
+              << static_cast<int>(type);
+    return true;
 }
 
 TransportType TransportFactory::GetTransportType() {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
-  return current_transport_type_;
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    return current_transport_type_;
 }
 
 void TransportFactory::NotifyHalStateChange(HalState hal_state) {
-  if (hal_state_ == hal_state) {
-    return;
-  }
+    if (hal_state_ == hal_state) {
+        return;
+    }
 
-  hal_state_ = hal_state;
+    hal_state_ = hal_state;
 
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
-  for (const std::reference_wrapper<Subscriber>& subscriber : subscribers_) {
-    subscriber.get().NotifyHalStateChange(hal_state);
-  }
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    for (const std::reference_wrapper<Subscriber>& subscriber : subscribers_) {
+        subscriber.get().NotifyHalStateChange(hal_state);
+    }
 }
 
 void TransportFactory::Subscribe(Subscriber& subscriber) {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
-  const auto it = std::find_if(
-      subscribers_.begin(), subscribers_.end(),
-      [&](const std::reference_wrapper<Subscriber>& member_wrapper) {
-        return subscriber == member_wrapper.get();
-      });
-  if (it == subscribers_.end()) {
-    subscribers_.push_back(std::ref(subscriber));
-  }
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    const auto it = std::find_if(subscribers_.begin(), subscribers_.end(),
+                                 [&](const std::reference_wrapper<Subscriber>& member_wrapper) {
+                                     return subscriber == member_wrapper.get();
+                                 });
+    if (it == subscribers_.end()) {
+        subscribers_.push_back(std::ref(subscriber));
+    }
 }
 
 void TransportFactory::Unsubscribe(Subscriber& subscriber) {
-  std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
-  const auto it = std::find_if(
-      subscribers_.begin(), subscribers_.end(),
-      [&](const std::reference_wrapper<Subscriber>& member_wrapper) {
-        return subscriber == member_wrapper.get();
-      });
-  if (it != subscribers_.end()) {
-    subscribers_.erase(it);
-  }
+    std::lock_guard<std::recursive_mutex> lock(transport_mutex_);
+    const auto it = std::find_if(subscribers_.begin(), subscribers_.end(),
+                                 [&](const std::reference_wrapper<Subscriber>& member_wrapper) {
+                                     return subscriber == member_wrapper.get();
+                                 });
+    if (it != subscribers_.end()) {
+        subscribers_.erase(it);
+    }
 }
 
 }  // namespace bluetooth_hal::transport

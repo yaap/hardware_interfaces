@@ -26,79 +26,72 @@ namespace {
 using ::bluetooth_hal::hci::HalPacket;
 
 class TestBqrEvent : public BqrEvent {
- public:
-  TestBqrEvent(const HalPacket& packet) : BqrEvent(packet) {}
+  public:
+    TestBqrEvent(const HalPacket& packet) : BqrEvent(packet) {}
 
-  bool IsValid() const override { return BqrEvent::IsValid(); }
+    bool IsValid() const override { return BqrEvent::IsValid(); }
 };
 
 HalPacket CreateBqrHalPacket() {
-  return HalPacket({0x04, 0xFF, 0x05,
-                    // BQR event code
-                    0x58,
-                    // MonitorMode
-                    0x01,
-                    // Random payload
-                    0x02, 0x03, 0x04});
+    return HalPacket({0x04, 0xFF, 0x05,
+                      // BQR event code
+                      0x58,
+                      // MonitorMode
+                      0x01,
+                      // Random payload
+                      0x02, 0x03, 0x04});
 }
 
 HalPacket CreateIncorrectBqrHalPacket() {
-  return HalPacket({0x01, 0x02, 0x03, 0x04, 0x05});
+    return HalPacket({0x01, 0x02, 0x03, 0x04, 0x05});
 }
 
 HalPacket empty_packet_;
 
 TEST(BqrEventTest, ValidPacketParsing) {
-  auto packet = TestBqrEvent(CreateBqrHalPacket());
-  ASSERT_TRUE(packet.IsValid());
-  ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kMonitorMode);
-  ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kLinkQuality);
+    auto packet = TestBqrEvent(CreateBqrHalPacket());
+    ASSERT_TRUE(packet.IsValid());
+    ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kMonitorMode);
+    ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kLinkQuality);
 }
 
 TEST(BqrEventTest, InvalidPacketParsing) {
-  auto packet = TestBqrEvent(CreateIncorrectBqrHalPacket());
-  ASSERT_FALSE(packet.IsValid());
-  ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kNone);
-  ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kNone);
+    auto packet = TestBqrEvent(CreateIncorrectBqrHalPacket());
+    ASSERT_FALSE(packet.IsValid());
+    ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kNone);
+    ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kNone);
 }
 
 TEST(BqrEventTest, EmptyPacketParsing) {
-  TestBqrEvent packet(empty_packet_);
-  ASSERT_FALSE(packet.IsValid());
-  ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kNone);
-  ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kNone);
+    TestBqrEvent packet(empty_packet_);
+    ASSERT_FALSE(packet.IsValid());
+    ASSERT_EQ(packet.GetBqrReportId(), BqrReportId::kNone);
+    ASSERT_EQ(packet.GetBqrEventType(), BqrEventType::kNone);
 }
 
 TEST(BqrEventTest, HandleGetBqrEventTypeFromReportId) {
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kNone),
-            BqrEventType::kNone);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kMonitorMode),
-            BqrEventType::kLinkQuality);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kApproachLsto),
-            BqrEventType::kLinkQuality);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kA2dpAudioChoppy),
-            BqrEventType::kLinkQuality);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kScoVoiceChoppy),
-            BqrEventType::kLinkQuality);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kLeAudioChoppy),
-            BqrEventType::kLinkQuality);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kConnectFail),
-            BqrEventType::kLinkQuality);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kRootInflammation),
-            BqrEventType::kRootInflammation);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kEnergyMonitoring),
-            BqrEventType::kEnergyMonitoring);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kAdvanceRfStats),
-            BqrEventType::kAdvancedRfStat);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kAdvanceRfStatsPeriodic),
-            BqrEventType::kAdvancedRfStat);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kControllerHealthMonitor),
-            BqrEventType::kControllerHealthMonitor);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(
-                BqrReportId::kControllerHealthMonitorPeriodic),
-            BqrEventType::kControllerHealthMonitor);
-  ASSERT_EQ(GetBqrEventTypeFromReportId(static_cast<BqrReportId>(0xFF)),
-            BqrEventType::kNone);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kNone), BqrEventType::kNone);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kMonitorMode), BqrEventType::kLinkQuality);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kApproachLsto), BqrEventType::kLinkQuality);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kA2dpAudioChoppy),
+              BqrEventType::kLinkQuality);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kScoVoiceChoppy),
+              BqrEventType::kLinkQuality);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kLeAudioChoppy), BqrEventType::kLinkQuality);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kConnectFail), BqrEventType::kLinkQuality);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kRootInflammation),
+              BqrEventType::kRootInflammation);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kEnergyMonitoring),
+              BqrEventType::kEnergyMonitoring);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kAdvanceRfStats),
+              BqrEventType::kAdvancedRfStat);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kAdvanceRfStatsPeriodic),
+              BqrEventType::kAdvancedRfStat);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kControllerHealthMonitor),
+              BqrEventType::kControllerHealthMonitor);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(BqrReportId::kControllerHealthMonitorPeriodic),
+              BqrEventType::kControllerHealthMonitor);
+    ASSERT_EQ(GetBqrEventTypeFromReportId(static_cast<BqrReportId>(0xFF)), BqrEventType::kNone);
 }
 
 }  // namespace

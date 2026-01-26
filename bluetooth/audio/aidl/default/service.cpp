@@ -22,17 +22,16 @@
 
 #include "BluetoothAudioProviderFactory.h"
 
-using ::aidl::android::hardware::bluetooth::audio::
-    BluetoothAudioProviderFactory;
+using ::aidl::android::hardware::bluetooth::audio::BluetoothAudioProviderFactory;
 
 extern "C" __attribute__((visibility("default"))) binder_status_t
 createIBluetoothAudioProviderFactory() {
-  auto factory = ::ndk::SharedRefBase::make<BluetoothAudioProviderFactory>();
-  const std::string instance_name =
-      std::string() + BluetoothAudioProviderFactory::descriptor + "/default";
-  binder_status_t aidl_status = AServiceManager_addService(
-      factory->asBinder().get(), instance_name.c_str());
-  ALOGW_IF(aidl_status != STATUS_OK, "Could not register %s, status=%d",
-           instance_name.c_str(), aidl_status);
-  return aidl_status;
+    auto factory = ::ndk::SharedRefBase::make<BluetoothAudioProviderFactory>();
+    const std::string instance_name =
+            std::string() + BluetoothAudioProviderFactory::descriptor + "/default";
+    binder_status_t aidl_status =
+            AServiceManager_addService(factory->asBinder().get(), instance_name.c_str());
+    ALOGW_IF(aidl_status != STATUS_OK, "Could not register %s, status=%d", instance_name.c_str(),
+             aidl_status);
+    return aidl_status;
 }

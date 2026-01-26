@@ -21,19 +21,19 @@
 namespace aidl::android::hardware::bluetooth::audio {
 
 class LeAudioSwOffloadCallbacks : public swoff::LeAudioCallbacks {
- public:
-  LeAudioSwOffloadCallbacks();
-  void start() override;
-  void stop() override;
+  public:
+    LeAudioSwOffloadCallbacks();
+    void start() override;
+    void stop() override;
 };
 
 class LeAudioSwOffloadInstance {
- public:
-  static std::shared_ptr<LeAudioSwOffloadCallbacks> sw_offload_cbacks_;
-  static std::shared_ptr<swoff::LeAudioStream> sw_offload_streams_;
-  static std::atomic<bool> is_using_swoffload_;
-  static std::atomic<bool> is_swoff_stream_running_;
-  static void releaseSwOffload();
+  public:
+    static std::shared_ptr<LeAudioSwOffloadCallbacks> sw_offload_cbacks_;
+    static std::shared_ptr<swoff::LeAudioStream> sw_offload_streams_;
+    static std::atomic<bool> is_using_swoffload_;
+    static std::atomic<bool> is_swoff_stream_running_;
+    static void releaseSwOffload();
 };
 
 }  // namespace aidl::android::hardware::bluetooth::audio

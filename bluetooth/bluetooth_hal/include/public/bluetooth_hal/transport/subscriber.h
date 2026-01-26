@@ -21,21 +21,21 @@
 namespace bluetooth_hal::transport {
 
 class Subscriber {
- public:
-  virtual ~Subscriber() = default;
+  public:
+    virtual ~Subscriber() = default;
 
-  bool operator==(const Subscriber& other) const { return this == &other; }
+    bool operator==(const Subscriber& other) const { return this == &other; }
 
-  /**
-   * @brief Notifies the subscriber about a change in the HAL state.
-   *
-   * This function provides a mechanism for the subscriber to receive
-   * notifications about changes in the Bluetooth HAL state.
-   *
-   * @param hal_state The new state of the Bluetooth HAL.
-   *
-   */
-  virtual void NotifyHalStateChange(::bluetooth_hal::HalState hal_state) = 0;
+    /**
+     * @brief Notifies the subscriber about a change in the HAL state.
+     *
+     * This function provides a mechanism for the subscriber to receive
+     * notifications about changes in the Bluetooth HAL state.
+     *
+     * @param hal_state The new state of the Bluetooth HAL.
+     *
+     */
+    virtual void NotifyHalStateChange(::bluetooth_hal::HalState hal_state) = 0;
 };
 
 }  // namespace bluetooth_hal::transport

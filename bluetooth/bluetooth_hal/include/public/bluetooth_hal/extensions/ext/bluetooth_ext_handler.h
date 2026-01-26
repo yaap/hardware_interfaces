@@ -28,28 +28,26 @@
 namespace bluetooth_hal::extensions::ext {
 
 class BluetoothExtHandler : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  BluetoothExtHandler() = default;
-  ~BluetoothExtHandler() override = default;
+  public:
+    BluetoothExtHandler() = default;
+    ~BluetoothExtHandler() override = default;
 
-  bool SetBluetoothCmdPacket(char16_t opcode,
-                             const std::vector<uint8_t>& params, bool* ret);
+    bool SetBluetoothCmdPacket(char16_t opcode, const std::vector<uint8_t>& params, bool* ret);
 
- protected:
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override {};
-  void OnBluetoothDisabled() override {};
-  void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& event) override;
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode /*mode*/,
-      const ::bluetooth_hal::hci::HalPacket& /*packet*/) override {};
+  protected:
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override {};
+    void OnBluetoothDisabled() override {};
+    void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& event) override;
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode /*mode*/,
+                                 const ::bluetooth_hal::hci::HalPacket& /*packet*/) override {};
 
-  std::mutex cmd_mutex_;
+    std::mutex cmd_mutex_;
 
-  // For synchronizing command sending.
-  std::promise<void> command_promise_;
-  std::atomic<bool> command_success_{false};
+    // For synchronizing command sending.
+    std::promise<void> command_promise_;
+    std::atomic<bool> command_success_{false};
 };
 
 }  // namespace bluetooth_hal::extensions::ext

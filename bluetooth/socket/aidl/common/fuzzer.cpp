@@ -23,10 +23,9 @@ using ::android::fuzzService;
 using ::ndk::SharedRefBase;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  auto bluetoothSocketAidl = SharedRefBase::make<BluetoothSocket>();
+    auto bluetoothSocketAidl = SharedRefBase::make<BluetoothSocket>();
 
-  fuzzService(bluetoothSocketAidl->asBinder().get(),
-              FuzzedDataProvider(data, size));
+    fuzzService(bluetoothSocketAidl->asBinder().get(), FuzzedDataProvider(data, size));
 
-  return 0;
+    return 0;
 }

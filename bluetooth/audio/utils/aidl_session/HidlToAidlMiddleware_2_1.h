@@ -24,15 +24,12 @@ namespace hardware {
 namespace bluetooth {
 namespace audio {
 
-using SessionType_2_1 =
-    ::android::hardware::bluetooth::audio::V2_1::SessionType;
-using AudioConfig_2_1 =
-    ::android::hardware::bluetooth::audio::V2_1::AudioConfiguration;
+using SessionType_2_1 = ::android::hardware::bluetooth::audio::V2_1::SessionType;
+using AudioConfig_2_1 = ::android::hardware::bluetooth::audio::V2_1::AudioConfiguration;
 
 class HidlToAidlMiddleware_2_1 {
- public:
-  static const AudioConfig_2_1 GetAudioConfig(
-      const SessionType_2_1& session_type);
+  public:
+    static const AudioConfig_2_1 GetAudioConfig(const SessionType_2_1& session_type);
 };
 
 }  // namespace audio

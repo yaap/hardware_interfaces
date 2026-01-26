@@ -27,59 +27,56 @@ namespace {
 using ::bluetooth_hal::HalState;
 
 void CheckMockFactoryOrFatal() {
-  if (!MockTransportFactory::GetFactory()) {
-    LOG(FATAL) << "MockTransportFactory instance is nullptr. Did you forget to "
-                  "call SetMockFactory in your test SetUp?";
-  }
+    if (!MockTransportFactory::GetFactory()) {
+        LOG(FATAL) << "MockTransportFactory instance is nullptr. Did you forget to "
+                      "call SetMockFactory in your test SetUp?";
+    }
 }
 }  // namespace
 
 TransportInstance& TransportFactory::GetTransport() {
-  CheckMockFactoryOrFatal();
-  return MockTransportFactory::GetFactory()->GetTransport();
+    CheckMockFactoryOrFatal();
+    return MockTransportFactory::GetFactory()->GetTransport();
 }
 
 bool TransportFactory::UpdateTransportType(TransportType requested_type) {
-  CheckMockFactoryOrFatal();
-  return MockTransportFactory::GetFactory()->UpdateTransportType(
-      requested_type);
+    CheckMockFactoryOrFatal();
+    return MockTransportFactory::GetFactory()->UpdateTransportType(requested_type);
 }
 
 TransportType TransportFactory::GetTransportType() {
-  CheckMockFactoryOrFatal();
-  return MockTransportFactory::GetFactory()->GetTransportType();
+    CheckMockFactoryOrFatal();
+    return MockTransportFactory::GetFactory()->GetTransportType();
 }
 
 void TransportFactory::CleanupTransport() {
-  CheckMockFactoryOrFatal();
-  MockTransportFactory::GetFactory()->CleanupTransport();
+    CheckMockFactoryOrFatal();
+    MockTransportFactory::GetFactory()->CleanupTransport();
 }
 
-bool TransportFactory::RegisterVendorTransport(TransportType type,
-                                               FactoryFn factory) {
-  CheckMockFactoryOrFatal();
-  return MockTransportFactory::GetFactory()->RegisterVendorTransport(
-      type, std::move(factory));
+bool TransportFactory::RegisterVendorTransport(TransportType type, FactoryFn factory) {
+    CheckMockFactoryOrFatal();
+    return MockTransportFactory::GetFactory()->RegisterVendorTransport(type, std::move(factory));
 }
 
 bool TransportFactory::UnregisterVendorTransport(TransportType type) {
-  CheckMockFactoryOrFatal();
-  return MockTransportFactory::GetFactory()->UnregisterVendorTransport(type);
+    CheckMockFactoryOrFatal();
+    return MockTransportFactory::GetFactory()->UnregisterVendorTransport(type);
 }
 
 void TransportFactory::NotifyHalStateChange(HalState hal_state) {
-  CheckMockFactoryOrFatal();
-  MockTransportFactory::GetFactory()->NotifyHalStateChange(hal_state);
+    CheckMockFactoryOrFatal();
+    MockTransportFactory::GetFactory()->NotifyHalStateChange(hal_state);
 }
 
 void TransportFactory::Subscribe(Subscriber& subscriber) {
-  CheckMockFactoryOrFatal();
-  MockTransportFactory::GetFactory()->Subscribe(subscriber);
+    CheckMockFactoryOrFatal();
+    MockTransportFactory::GetFactory()->Subscribe(subscriber);
 }
 
 void TransportFactory::Unsubscribe(Subscriber& subscriber) {
-  CheckMockFactoryOrFatal();
-  MockTransportFactory::GetFactory()->Unsubscribe(subscriber);
+    CheckMockFactoryOrFatal();
+    MockTransportFactory::GetFactory()->Unsubscribe(subscriber);
 }
 
 }  // namespace bluetooth_hal::transport

@@ -22,16 +22,16 @@
 namespace bluetooth_hal::util::power {
 
 Wakelock& Wakelock::GetWakelock() {
-  if (!MockWakelock::mock_wakelock_) {
-    LOG(FATAL) << __func__
-               << ": mock_wakelock_ is nullptr. Did you forget to call "
-                  "SetMockWakelock in your test SetUp?";
-  }
-  return *MockWakelock::mock_wakelock_;
+    if (!MockWakelock::mock_wakelock_) {
+        LOG(FATAL) << __func__
+                   << ": mock_wakelock_ is nullptr. Did you forget to call "
+                      "SetMockWakelock in your test SetUp?";
+    }
+    return *MockWakelock::mock_wakelock_;
 }
 
 void MockWakelock::SetMockWakelock(MockWakelock* wakelock) {
-  mock_wakelock_ = wakelock;
+    mock_wakelock_ = wakelock;
 }
 
 }  // namespace bluetooth_hal::util::power

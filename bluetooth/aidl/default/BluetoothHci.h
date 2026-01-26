@@ -29,54 +29,53 @@ namespace aidl::android::hardware::bluetooth::impl {
 
 // This Bluetooth HAL implementation connects with a serial port at dev_path_.
 class BluetoothHci : public hal::IBluetoothHci {
- public:
-  BluetoothHci(const std::string& dev_path = "/dev/hvc5");
+  public:
+    BluetoothHci(const std::string& dev_path = "/dev/hvc5");
 
-  void initialize(
-      const std::shared_ptr<hal::IBluetoothHciCallbacks>& cb) override;
+    void initialize(const std::shared_ptr<hal::IBluetoothHciCallbacks>& cb) override;
 
-  void sendHciCommand(const std::vector<uint8_t>& packet) override;
+    void sendHciCommand(const std::vector<uint8_t>& packet) override;
 
-  void sendAclData(const std::vector<uint8_t>& packet) override;
+    void sendAclData(const std::vector<uint8_t>& packet) override;
 
-  void sendScoData(const std::vector<uint8_t>& packet) override;
+    void sendScoData(const std::vector<uint8_t>& packet) override;
 
-  void sendIsoData(const std::vector<uint8_t>& packet) override;
+    void sendIsoData(const std::vector<uint8_t>& packet) override;
 
-  void close() override;
+    void close() override;
 
-  void clientDied() override;
+    void clientDied() override;
 
-  static void OnPacketReady();
+    static void OnPacketReady();
 
-  static BluetoothHci* get();
+    static BluetoothHci* get();
 
- private:
-  int mFd{-1};
-  std::shared_ptr<hal::IBluetoothHciCallbacks> mCb = nullptr;
+  private:
+    int mFd{-1};
+    std::shared_ptr<hal::IBluetoothHciCallbacks> mCb = nullptr;
 
-  std::shared_ptr<::android::hardware::bluetooth::hci::H4Protocol> mH4;
+    std::shared_ptr<::android::hardware::bluetooth::hci::H4Protocol> mH4;
 
-  std::string mDevPath;
+    std::string mDevPath;
 
-  ::android::hardware::bluetooth::async::AsyncFdWatcher mFdWatcher;
+    ::android::hardware::bluetooth::async::AsyncFdWatcher mFdWatcher;
 
-  int getFdFromDevPath();
-  void send(::android::hardware::bluetooth::hci::PacketType type,
-            const std::vector<uint8_t>& packet);
-  std::unique_ptr<NetBluetoothMgmt> management_{};
+    int getFdFromDevPath();
+    void send(::android::hardware::bluetooth::hci::PacketType type,
+              const std::vector<uint8_t>& packet);
+    std::unique_ptr<NetBluetoothMgmt> management_{};
 
-  // Send a reset command and discard all packets until a reset is received.
-  void reset();
+    // Send a reset command and discard all packets until a reset is received.
+    void reset();
 
-  // Don't close twice or open before close is complete
-  std::mutex mStateMutex;
-  enum class HalState {
-    READY,
-    INITIALIZING,
-    ONE_CLIENT,
-    CLOSING,
-  } mState{HalState::READY};
+    // Don't close twice or open before close is complete
+    std::mutex mStateMutex;
+    enum class HalState {
+        READY,
+        INITIALIZING,
+        ONE_CLIENT,
+        CLOSING,
+    } mState{HalState::READY};
 };
 
 }  // namespace aidl::android::hardware::bluetooth::impl
