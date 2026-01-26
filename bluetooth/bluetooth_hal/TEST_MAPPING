@@ -52,7 +52,7 @@
       "name": "bluetooth_hal_hci_packet_rescuer_test"
     },
     {
-      "name": "bluetooth_hal_transport_interface_test"
+      "name": "bluetooth_hal_transport_factory_test"
     },
     {
       "name": "bluetooth_hal_transport_uart_h4_test"

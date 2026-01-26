@@ -35,7 +35,8 @@
 #include "bluetooth_hal/extensions/thread/thread_handler.h"
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/util/logging.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
@@ -48,8 +49,8 @@ using ::bluetooth_hal::config::HalConfigLoader;
 using ::bluetooth_hal::debug::VndSnoopLogger;
 using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::thread::ThreadHandler;
-using ::bluetooth_hal::transport::TransportInterface;
-using ::bluetooth_hal::transport::TransportInterfaceCallback;
+using ::bluetooth_hal::transport::TransportFactory;
+using ::bluetooth_hal::transport::TransportInstanceCallback;
 using ::bluetooth_hal::util::Worker;
 using ::bluetooth_hal::util::power::ScopedWakelock;
 using ::bluetooth_hal::util::power::Wakelock;
@@ -163,14 +164,14 @@ void HciRouterAsync::UnvoteRouterTaskWakelock() {
 
 bool HciRouterAsync::Initialize(
     const std::shared_ptr<HciRouterCallback>& callback,
-    TransportInterfaceCallback* transport_callback) {
+    TransportInstanceCallback* transport_callback) {
   HAL_LOG(INFO) << "Initializing Bluetooth HCI Router.";
   hci_callback_ = callback;
   return InitializeModules(transport_callback);
 }
 
 bool HciRouterAsync::InitializeModules(
-    TransportInterfaceCallback* transport_callback) {
+    TransportInstanceCallback* transport_callback) {
   transport_callback_ = transport_callback;
   switch (hal_state_) {
     case HalState::kRunning:
@@ -234,7 +235,7 @@ void HciRouterAsync::Cleanup() {
     ThreadHandler::Cleanup();
   }
 
-  TransportInterface::CleanupTransport();
+  TransportFactory::CleanupTransport();
 
   HciRouterAsync::UpdateHalState(HalState::kShutdown);
   hci_callback_ = nullptr;
@@ -350,7 +351,7 @@ void HciRouterAsync::UpdateHalState(HalState state) {
     hci_callback_->OnHalStateChanged(state, old_state);
   }
   HciRouterClientAgent::GetAgent().NotifyHalStateChange(state, old_state);
-  TransportInterface::NotifyHalStateChange(state);
+  TransportFactory::NotifyHalStateChange(state);
 }
 
 void HciRouterAsync::SendPacketToStack(const HalPacket& packet) {
@@ -394,14 +395,14 @@ bool HciRouterAsync::SendOrQueueCommand(
 bool HciRouterAsync::SendToTransport(const HalPacket& packet) {
   ScopedWakelock wakelock(WakeSource::kTx);
   HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
-  if (!TransportInterface::GetTransport().IsTransportActive()) {
+  if (!TransportFactory::GetTransport().IsTransportActive()) {
     HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
     return false;
   }
   VndSnoopLogger::GetLogger().Capture(packet,
                                       VndSnoopLogger::Direction::kOutgoing);
 
-  return TransportInterface::GetTransport().Send(packet);
+  return TransportFactory::GetTransport().Send(packet);
 }
 
 void HciRouterAsync::HandleReceivedPacket(const HalPacket& packet) {
@@ -480,7 +481,7 @@ bool HciRouterAsync::InitializeTransport() {
     HAL_LOG(ERROR) << "Bluetooth transport is null!";
     return false;
   }
-  return TransportInterface::GetTransport().Initialize(transport_callback_);
+  return TransportFactory::GetTransport().Initialize(transport_callback_);
 }
 
 bool HciRouterAsync::IsHalStateValid(HalState new_state) {
@@ -495,7 +496,7 @@ void HciRouterAsync::SetBusy(bool busy) {
   }
 
   is_busy_ = busy;
-  TransportInterface::GetTransport().SetHciRouterBusy(busy);
+  TransportFactory::GetTransport().SetHciRouterBusy(busy);
 }
 
 }  // namespace bluetooth_hal::hci

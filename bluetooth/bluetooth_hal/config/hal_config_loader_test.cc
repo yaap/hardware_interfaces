@@ -25,8 +25,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/test/mock/mock_android_base_wrapper.h"
-#include "bluetooth_hal/test/mock/mock_transport_interface.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/test/mock/mock_transport_instance.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -45,8 +44,7 @@ using ::testing::WithParamInterface;
 
 using ::bluetooth_hal::Property;
 using ::bluetooth_hal::hci::HalPacket;
-using ::bluetooth_hal::transport::MockTransportInterface;
-using ::bluetooth_hal::transport::TransportInterface;
+using ::bluetooth_hal::transport::MockTransportInstance;
 using ::bluetooth_hal::transport::TransportType;
 using ::bluetooth_hal::uart::BaudRate;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;
@@ -106,7 +104,7 @@ class ConfigLoaderTestBase : public Test {
  protected:
   void SetUp() override {
     MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
-    MockTransportInterface::SetMockTransport(&mock_transport_interface_);
+    MockTransportInstance::SetMockTransport(&mock_transport_instance_);
 
     HalConfigLoader::ResetLoader();
   }
@@ -119,7 +117,7 @@ class ConfigLoaderTestBase : public Test {
   }
 
   MockAndroidBaseWrapper mock_android_base_wrapper_;
-  MockTransportInterface mock_transport_interface_;
+  MockTransportInstance mock_transport_instance_;
 };
 
 TEST_F(ConfigLoaderTestBase, IsFastDownloadEnabledOnInit) {

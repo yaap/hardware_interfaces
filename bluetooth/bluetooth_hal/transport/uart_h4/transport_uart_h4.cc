@@ -28,7 +28,8 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/device_control/power_manager.h"
 #include "bluetooth_hal/transport/device_control/uart_manager.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/transport/uart_h4/data_processor.h"
 #include "bluetooth_hal/transport/vendor_packet_validator_interface.h"
 #include "bluetooth_hal/util/android_base_wrapper.h"
@@ -50,8 +51,8 @@ using ::bluetooth_hal::util::power::Wakelock;
 using ::bluetooth_hal::util::power::WakeSource;
 
 TransportUartH4::~TransportUartH4() {
-  if (transport_interface_callback_) {
-    transport_interface_callback_->OnTransportClosed();
+  if (transport_instance_callback_) {
+    transport_instance_callback_->OnTransportClosed();
   }
 }
 
@@ -60,11 +61,11 @@ TransportType TransportUartH4::GetInstanceTransportType() const {
 }
 
 bool TransportUartH4::Initialize(
-    TransportInterfaceCallback* transport_interface_callback) {
+    TransportInstanceCallback* transport_instance_callback) {
   LOG(INFO) << __func__ << ": Initializing UART H4 transport.";
-  TransportInterface::Subscribe(*this);
+  TransportFactory::Subscribe(*this);
 
-  transport_interface_callback_ = transport_interface_callback;
+  transport_instance_callback_ = transport_instance_callback;
 
   // Power on the underlying device.
   PowerManager::PowerControl(false);
@@ -100,7 +101,7 @@ bool TransportUartH4::Initialize(
         LOG(VERBOSE)
             << __func__
             << ": Packet ready from data processor, notifying callback.";
-        transport_interface_callback_->OnTransportPacketReady(packet);
+        transport_instance_callback_->OnTransportPacketReady(packet);
       });
   data_processor_->StartProcessing();
 
@@ -111,13 +112,13 @@ bool TransportUartH4::Initialize(
 
 void TransportUartH4::Cleanup() {
   LOG(INFO) << __func__ << ": Cleaning up UART H4 transport.";
-  TransportInterface::Unsubscribe(*this);
+  TransportFactory::Unsubscribe(*this);
   data_processor_.reset();
   TerminateDataPath();
   TeardownLowPowerMode();
   PowerManager::PowerControl(false);
-  if (transport_interface_callback_) {
-    transport_interface_callback_->OnTransportClosed();
+  if (transport_instance_callback_) {
+    transport_instance_callback_->OnTransportClosed();
   }
 }
 

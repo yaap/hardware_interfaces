@@ -23,10 +23,11 @@
 #include "bluetooth_hal/hci_router_callback.h"
 #include "bluetooth_hal/test/mock/mock_hal_config_loader.h"
 #include "bluetooth_hal/test/mock/mock_hci_router_client_agent.h"
-#include "bluetooth_hal/test/mock/mock_transport_interface.h"
+#include "bluetooth_hal/test/mock/mock_transport_factory.h"
+#include "bluetooth_hal/test/mock/mock_transport_instance.h"
 #include "bluetooth_hal/test/mock/mock_vnd_snoop_logger.h"
 #include "bluetooth_hal/test/mock/mock_wakelock.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -36,8 +37,9 @@ namespace {
 using ::bluetooth_hal::HalState;
 using ::bluetooth_hal::config::MockHalConfigLoader;
 using ::bluetooth_hal::debug::MockVndSnoopLogger;
-using ::bluetooth_hal::transport::MockTransportInterface;
-using ::bluetooth_hal::transport::TransportInterfaceCallback;
+using ::bluetooth_hal::transport::MockTransportFactory;
+using ::bluetooth_hal::transport::MockTransportInstance;
+using ::bluetooth_hal::transport::TransportInstanceCallback;
 using ::bluetooth_hal::util::power::MockWakelock;
 using ::testing::_;
 using ::testing::An;
@@ -45,6 +47,7 @@ using ::testing::DoAll;
 using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::Return;
+using ::testing::ReturnRef;
 using ::testing::SaveArg;
 using ::testing::Test;
 
@@ -57,7 +60,7 @@ class MockHciRouterCallback : public HciRouterCallback {
               (const HalState new_state, const HalState old_state), (override));
 };
 
-class MockTransportInterfaceCallback : public TransportInterfaceCallback {
+class MockTransportInstanceCallback : public TransportInstanceCallback {
  public:
   MOCK_METHOD(void, OnTransportPacketReady, (const HalPacket& packet),
               (override));
@@ -68,24 +71,32 @@ class HciRouterAsyncTest : public Test {
  protected:
   void SetUp() override {
     mock_hci_router_callback_ = std::make_shared<MockHciRouterCallback>();
-    mock_transport_interface_callback_ =
-        std::make_shared<MockTransportInterfaceCallback>();
+    mock_transport_instance_callback_ =
+        std::make_shared<MockTransportInstanceCallback>();
 
     MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
-    MockTransportInterface::SetMockTransport(&mock_transport_interface_);
+    MockTransportInstance::SetMockTransport(&mock_transport_instance_);
+    MockTransportFactory::SetMockFactory(&mock_transport_factory_);
     MockHalConfigLoader::SetMockLoader(&mock_hal_config_loader_);
     MockWakelock::SetMockWakelock(&mock_wakelock_);
     MockVndSnoopLogger::SetMockVndSnoopLogger(&mock_vnd_snoop_logger_);
 
+    ON_CALL(mock_transport_factory_, GetTransport())
+        .WillByDefault(ReturnRef(mock_transport_instance_));
+    ON_CALL(mock_transport_factory_, CleanupTransport())
+        .WillByDefault(
+            Invoke([&mock_transport_instance = mock_transport_instance_]() {
+              mock_transport_instance.Cleanup();
+            }));
+
     router_ = std::make_shared<HciRouterAsync>();
 
-    ON_CALL(mock_transport_interface_, IsTransportActive())
+    ON_CALL(mock_transport_instance_, IsTransportActive())
         .WillByDefault(Return(true));
-    ON_CALL(mock_transport_interface_, Initialize(_))
+    ON_CALL(mock_transport_instance_, Initialize(_))
         .WillByDefault(Invoke(
-            [this](TransportInterfaceCallback* transport_interface_callback) {
-              this->transport_interface_callback_ =
-                  transport_interface_callback;
+            [this](TransportInstanceCallback* transport_instance_callback) {
+              this->transport_instance_callback_ = transport_instance_callback;
               return true;
             }));
     ON_CALL(mock_hal_config_loader_, IsAcceleratedBtOnSupported())
@@ -96,31 +107,33 @@ class HciRouterAsyncTest : public Test {
         }));
 
     // Initialize the router
-    EXPECT_CALL(mock_transport_interface_, Initialize(_)).Times(1);
+    EXPECT_CALL(mock_transport_instance_, Initialize(_)).Times(1);
     router_->Initialize(mock_hci_router_callback_,
-                        mock_transport_interface_callback_.get());
+                        mock_transport_instance_callback_.get());
   }
 
   void TearDown() override {
     router_.reset();
     MockHciRouterClientAgent::SetMockAgent(nullptr);
-    MockTransportInterface::SetMockTransport(nullptr);
+    MockTransportInstance::SetMockTransport(nullptr);
+    MockTransportFactory::SetMockFactory(nullptr);
     MockHalConfigLoader::SetMockLoader(nullptr);
     MockWakelock::SetMockWakelock(nullptr);
     MockVndSnoopLogger::SetMockVndSnoopLogger(nullptr);
-    mock_transport_interface_callback_.reset();
+    mock_transport_instance_callback_.reset();
   }
 
   std::shared_ptr<HciRouterAsync> router_;
   std::shared_ptr<MockHciRouterCallback> mock_hci_router_callback_;
-  std::shared_ptr<MockTransportInterfaceCallback>
-      mock_transport_interface_callback_;
+  std::shared_ptr<MockTransportInstanceCallback>
+      mock_transport_instance_callback_;
   MockHciRouterClientAgent mock_hci_router_client_agent_;
-  MockTransportInterface mock_transport_interface_;
+  MockTransportInstance mock_transport_instance_;
+  MockTransportFactory mock_transport_factory_;
   MockHalConfigLoader mock_hal_config_loader_;
   MockWakelock mock_wakelock_;
   MockVndSnoopLogger mock_vnd_snoop_logger_;
-  TransportInterfaceCallback* transport_interface_callback_;
+  TransportInstanceCallback* transport_instance_callback_;
 };
 
 TEST_F(HciRouterAsyncTest, DoInRouterThread) {
@@ -156,7 +169,7 @@ TEST_F(HciRouterAsyncTest, SynchronousDoInRouterThreadFromRouterThread) {
 TEST_F(HciRouterAsyncTest, SendAclData) {
   HalPacket acl_data({0x01, 0x02, 0x03});
   acl_data.SetSource(PacketSource::kStack);
-  EXPECT_CALL(mock_transport_interface_, Send(acl_data)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(acl_data)).Times(1);
   EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(acl_data))
       .WillOnce(Invoke([&](const HalPacket& captured_packet) {
         EXPECT_EQ(captured_packet.GetDestination(),
@@ -171,7 +184,7 @@ TEST_F(HciRouterAsyncTest, SendAclData) {
 TEST_F(HciRouterAsyncTest, SendHciCommand) {
   HalPacket cmd({0x01, 0x03, 0x0c, 0x00});
   cmd.SetSource(PacketSource::kStack);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd)).Times(1);
   EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(cmd))
       .WillOnce(Invoke([&](const HalPacket& captured_packet) {
         EXPECT_EQ(captured_packet.GetDestination(),
@@ -204,9 +217,8 @@ TEST_F(HciRouterAsyncTest, SendHciCommandTwiceWithoutEvent) {
                   PacketDestination::kController);
         return MonitorMode::kNone;
       }));
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(0);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(0);
 
   router_->Send(cmd_reset);
   router_->Send(cmd_set_host_le_support);
@@ -219,9 +231,8 @@ TEST_F(HciRouterAsyncTest, SendHciCommandTwiceWithEvent) {
   HalPacket cmd_set_host_le_support({0x01, 0x6d, 0x0c, 0x02, 0x01, 0x00});
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
 
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(evt_reset)).Times(1);
   EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(cmd_reset))
       .WillOnce(Invoke([&](const HalPacket& captured_packet) {
@@ -258,9 +269,8 @@ TEST_F(HciRouterAsyncTest, SendHciCommandTwiceWithLateEvent) {
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
   HalPacket evt_set_host_le_support({0x04, 0x0e, 0x04, 0x01, 0x6d, 0x0c, 0x00});
 
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(_)).Times(2);
 
   // Send the first command.
@@ -278,9 +288,8 @@ TEST_F(HciRouterAsyncTest, SendCommandTwiceWithoutEvent) {
   cmd_reset.SetSource(PacketSource::kStack);
   HalPacket cmd_set_host_le_support({0x01, 0x6d, 0x0c, 0x02, 0x01, 0x00});
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(0);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(0);
 
   router_->SendCommand(
       cmd_reset, std::make_shared<HalPacketCallback>([](const HalPacket&) {}));
@@ -296,9 +305,8 @@ TEST_F(HciRouterAsyncTest, SendCommandTwiceWithEvent) {
   HalPacket cmd_set_host_le_support({0x01, 0x6d, 0x0c, 0x02, 0x01, 0x00});
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
 
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(_)).Times(0);
 
   HalPacket event;
@@ -325,9 +333,8 @@ TEST_F(HciRouterAsyncTest, SendCommandTwiceWithLateEvent) {
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
   HalPacket evt_set_host_le_support({0x04, 0x0e, 0x04, 0x01, 0x6d, 0x0c, 0x00});
 
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(_)).Times(0);
 
   HalPacket event;
@@ -357,9 +364,8 @@ TEST_F(HciRouterAsyncTest, SendHciCommandInCallback) {
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
   HalPacket evt_set_host_le_support({0x04, 0x0e, 0x04, 0x01, 0x6d, 0x0c, 0x00});
 
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(_)).Times(0);
 
   HalPacket event;
@@ -394,11 +400,10 @@ TEST_F(HciRouterAsyncTest, SendHciCommandInCallbackAfterAnotherSendCommand) {
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
   HalPacket evt_set_host_le_support({0x04, 0x0e, 0x04, 0x01, 0x6d, 0x0c, 0x00});
 
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_min_enc_key_size))
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_min_enc_key_size))
       .Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(_)).Times(0);
 
   HalPacket event;
@@ -434,8 +439,8 @@ TEST_F(HciRouterAsyncTest, SendDebugInfoCommandAfterSendCommand) {
   cmd_debug_info.SetSource(PacketSource::kStack);
 
   // Expect both cmd_reset and cmd_debug_info are sent to the transport layer.
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_debug_info)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_debug_info)).Times(1);
 
   router_->SendCommand(
       cmd_reset, std::make_shared<HalPacketCallback>([](const HalPacket&) {}));
@@ -450,9 +455,8 @@ TEST_F(HciRouterAsyncTest, SendCommandNoAck) {
   cmd_set_host_le_support.SetSource(PacketSource::kStack);
 
   // Check if the received event is dispatched to client agent and transport.
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_reset)).Times(1);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_set_host_le_support))
-      .Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_reset)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_set_host_le_support)).Times(1);
   EXPECT_CALL(mock_hci_router_client_agent_, DispatchPacketToClients(cmd_reset))
       .WillOnce(Invoke([&](const HalPacket& captured_packet) {
         EXPECT_EQ(captured_packet.GetDestination(),
@@ -566,7 +570,7 @@ TEST_F(HciRouterAsyncTest, UpdateHalState) {
       mock_hci_router_client_agent_,
       NotifyHalStateChange(HalState::kPreFirmwareDownload, HalState::kInit))
       .Times(1);
-  EXPECT_CALL(mock_transport_interface_,
+  EXPECT_CALL(mock_transport_factory_,
               NotifyHalStateChange(HalState::kPreFirmwareDownload))
       .Times(1);
 
@@ -607,8 +611,8 @@ TEST_F(HciRouterAsyncTest, ReplaceHciCommandByClient) {
   HalPacket cmd_before_intercept({0x01, 0x03, 0x0c, 0x00});
   HalPacket cmd_after_intercept({0x01, 0x03, 0x0c, 0x01, 0x00});
   cmd_before_intercept.SetSource(PacketSource::kStack);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_before_intercept)).Times(0);
-  EXPECT_CALL(mock_transport_interface_, Send(cmd_after_intercept)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_before_intercept)).Times(0);
+  EXPECT_CALL(mock_transport_instance_, Send(cmd_after_intercept)).Times(1);
 
   EXPECT_CALL(mock_hci_router_client_agent_,
               DispatchPacketToClients(cmd_before_intercept))
@@ -637,8 +641,8 @@ TEST_F(HciRouterAsyncTest, ComplexInterceptScenarioA) {
   HalPacket event_A({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00});
   HalPacket event_B({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x01});
 
-  EXPECT_CALL(mock_transport_interface_, Send(command_A)).Times(0);
-  EXPECT_CALL(mock_transport_interface_, Send(command_B)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(command_A)).Times(0);
+  EXPECT_CALL(mock_transport_instance_, Send(command_B)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(event_A)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(event_B)).Times(0);
 
@@ -673,8 +677,8 @@ TEST_F(HciRouterAsyncTest, ComplexInterceptScenarioB) {
   HalPacket event_A({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00});
   HalPacket event_B({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x01});
 
-  EXPECT_CALL(mock_transport_interface_, Send(command_A)).Times(0);
-  EXPECT_CALL(mock_transport_interface_, Send(command_B)).Times(1);
+  EXPECT_CALL(mock_transport_instance_, Send(command_A)).Times(0);
+  EXPECT_CALL(mock_transport_instance_, Send(command_B)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(event_A)).Times(1);
   EXPECT_CALL(*mock_hci_router_callback_, OnPacketCallback(event_B)).Times(0);
 
