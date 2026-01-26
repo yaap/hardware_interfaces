@@ -8277,7 +8277,8 @@ TEST_P(KeyDeletionTest, DeleteKeyInUse) {
                     result == ErrorCode::INVALID_OPERATION_HANDLE ||
                     result == ErrorCode::INVALID_OPERATION ||
                     result == ErrorCode::INVALID_ARGUMENT ||
-                    result == ErrorCode::OPERATION_CANCELLED);
+                    result == ErrorCode::OPERATION_CANCELLED)
+                << "failed with " << result;
         key_blob_ = AidlBuf();
     }
 }
