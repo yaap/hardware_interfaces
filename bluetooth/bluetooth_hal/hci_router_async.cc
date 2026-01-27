@@ -243,6 +243,10 @@ void HciRouterAsync::Cleanup() {
 }
 
 bool HciRouterAsync::Send(const HalPacket& packet) {
+  if (hal_state_ == HalState::kShutdown) {
+    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+    return false;
+  }
   packet.SetDestination(PacketDestination::kController);
 
   if (packet.GetType() == HciPacketType::kCommand) {
@@ -263,6 +267,10 @@ bool HciRouterAsync::Send(const HalPacket& packet) {
 bool HciRouterAsync::SendCommand(
     const HalPacket& packet,
     const std::shared_ptr<HalPacketCallback>& callback) {
+  if (hal_state_ == HalState::kShutdown) {
+    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+    return false;
+  }
   packet.SetDestination(PacketDestination::kController);
 
   if (packet.GetCommandOpcode() ==
@@ -280,6 +288,10 @@ bool HciRouterAsync::SendCommand(
 }
 
 bool HciRouterAsync::SendCommandNoAck(const HalPacket& packet) {
+  if (hal_state_ == HalState::kShutdown) {
+    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+    return false;
+  }
   packet.SetDestination(PacketDestination::kController);
   if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
       MonitorMode::kIntercept) {
