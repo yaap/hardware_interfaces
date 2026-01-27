@@ -23,7 +23,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_router_async.h"
 #include "bluetooth_hal/hci_router_callback.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -31,7 +31,7 @@ namespace bluetooth_hal::hci {
 namespace {
 
 using ::bluetooth_hal::HalState;
-using ::bluetooth_hal::transport::TransportInterfaceCallback;
+using ::bluetooth_hal::transport::TransportInstanceCallback;
 using ::testing::_;
 using ::testing::An;
 using ::testing::DoAll;
@@ -59,10 +59,10 @@ class MockHciRouterAsync : public HciRouterAsync {
   MOCK_METHOD(void, Cleanup, (), (override));
   MOCK_METHOD(bool, Initialize,
               (const std::shared_ptr<HciRouterCallback>& callback,
-               TransportInterfaceCallback* transport_callback),
+               TransportInstanceCallback* transport_callback),
               (override));
   MOCK_METHOD(bool, InitializeModules,
-              (TransportInterfaceCallback * transport_callback), (override));
+              (TransportInstanceCallback * transport_callback), (override));
   MOCK_METHOD(bool, Send, (const HalPacket& packet), (override));
   MOCK_METHOD(bool, SendCommand,
               (const HalPacket& packet,

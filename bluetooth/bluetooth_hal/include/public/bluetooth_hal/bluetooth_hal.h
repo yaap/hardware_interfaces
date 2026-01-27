@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <cstdint>
 #include <memory>
 
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 
 namespace bluetooth_hal {
 
@@ -28,7 +30,7 @@ class BluetoothHal {
   static BluetoothHal& GetHal();
   bool RegisterVendorTransport(
       ::bluetooth_hal::transport::TransportType type,
-      ::bluetooth_hal::transport::TransportInterface::FactoryFn factory);
+      ::bluetooth_hal::transport::TransportFactory::FactoryFn factory);
   void RegisterVendorChipProvisioner(
       ::bluetooth_hal::chip::ChipProvisionerInterface::FactoryFn factory);
   void RegisterVendorChannelSoundingDistanceEstimator(

@@ -211,7 +211,7 @@ filegroup {
     srcs: [
         "transport/device_control/uart_manager.cc",
         "transport/device_control/power_manager.cc",
-        "transport/transport_interface.cc",
+        "transport/transport_factory.cc",
         "transport/vendor_packet_validator.cc",
         "transport/vendor_packet_validator_interface.cc",
         "transport/hci_packet_rescuer.cc",
@@ -695,13 +695,13 @@ cc_test {
 }
 
 cc_test {
-    name: "bluetooth_hal_transport_interface_test",
+    name: "bluetooth_hal_transport_factory_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
         "transport/device_control/uart_manager.cc",
         "transport/device_control/power_manager.cc",
-        "transport/transport_interface.cc",
-        "transport/transport_interface_test.cc",
+        "transport/transport_factory.cc",
+        "transport/transport_factory_test.cc",
         "transport/vendor_packet_validator.cc",
         "transport/vendor_packet_validator_interface.cc",
         "transport/hci_packet_rescuer.cc",
@@ -732,7 +732,7 @@ cc_test {
         "config/hal_config_loader.cc",
         "transport/device_control/uart_manager.cc",
         "transport/device_control/power_manager.cc",
-        "transport/transport_interface.cc",
+        "transport/transport_factory.cc",
         "transport/vendor_packet_validator.cc",
         "transport/vendor_packet_validator_interface.cc",
         "transport/hci_packet_rescuer.cc",

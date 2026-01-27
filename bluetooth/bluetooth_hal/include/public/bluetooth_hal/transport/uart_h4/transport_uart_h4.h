@@ -24,13 +24,14 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/device_control/power_manager.h"
 #include "bluetooth_hal/transport/device_control/uart_manager.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/subscriber.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/transport/uart_h4/data_processor.h"
 #include "bluetooth_hal/util/timer_manager.h"
 
 namespace bluetooth_hal::transport {
 
-class TransportUartH4 : virtual public TransportInterface,
+class TransportUartH4 : virtual public TransportInstance,
                         virtual public PowerManager,
                         virtual public UartManager,
                         virtual public Subscriber {
@@ -48,23 +49,23 @@ class TransportUartH4 : virtual public TransportInterface,
   TransportType GetInstanceTransportType() const override;
 
   /**
-   * @brief Initializes the transport interface with a transport callback.
+   * @brief Initializes the transport instance with a transport callback.
    *
-   * Sets up the transport interface including initialization of the
+   * Sets up the transport instance including initialization of the
    * underlying device for operation.
    *
-   * @param transport_interface_callback A pointer to a
-   * `TransportInterfaceCallback` responsible for handling transport layer
+   * @param transport_instance_callback A pointer to a
+   * `TransportInstanceCallback` responsible for handling transport layer
    * events such as packet reception, connection closure, etc.
    *
    * @return True if initialization succeeds, false otherwise.
    *
    */
   bool Initialize(
-      TransportInterfaceCallback* transport_interface_callback) override;
+      TransportInstanceCallback* transport_instance_callback) override;
 
   /**
-   * @brief Cleans up resources and disconnects the transport interface.
+   * @brief Cleans up resources and disconnects the transport instance.
    *
    * Ensures that all allocated resources including the underlying device
    * are released and any active connections are safely terminated.
@@ -163,7 +164,7 @@ class TransportUartH4 : virtual public TransportInterface,
   void EnableTransportWakelock(bool enable);
   bool IsTransportWakelockEnabled();
 
-  TransportInterfaceCallback* transport_interface_callback_;
+  TransportInstanceCallback* transport_instance_callback_;
 
  private:
   bool InitializeDataPath();

@@ -31,7 +31,7 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 
 namespace bluetooth_hal::hci {
 

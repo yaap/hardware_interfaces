@@ -35,7 +35,7 @@
 #include "bluetooth_hal/hal_extension_points.h"
 #include "bluetooth_hal/hci_proxy_aidl.h"
 #include "bluetooth_hal/hci_proxy_ffi.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_factory.h"
 
 #if defined(USE_RANGING_V1) || defined(USE_RANGING_V2)
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_handler.h"
@@ -57,7 +57,7 @@ using ::bluetooth_hal::extensions::cs::BluetoothChannelSoundingHandler;
 using ::bluetooth_hal::extensions::cs::
     ChannelSoundingDistanceEstimatorInterface;
 
-using ::bluetooth_hal::transport::TransportInterface;
+using ::bluetooth_hal::transport::TransportFactory;
 using ::bluetooth_hal::transport::TransportType;
 using ::ndk::SharedRefBase;
 
@@ -82,8 +82,8 @@ BluetoothHal& BluetoothHal::GetHal() {
 }
 
 bool BluetoothHal::RegisterVendorTransport(
-    TransportType type, TransportInterface::FactoryFn factory) {
-  return TransportInterface::RegisterVendorTransport(type, std::move(factory));
+    TransportType type, TransportFactory::FactoryFn factory) {
+  return TransportFactory::RegisterVendorTransport(type, std::move(factory));
 }
 
 void BluetoothHal::RegisterVendorChipProvisioner(

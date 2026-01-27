@@ -26,7 +26,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_callback.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/transport/transport_instance.h"
 #include "bluetooth_hal/util/worker.h"
 
 namespace bluetooth_hal::hci {
@@ -51,12 +51,11 @@ class HciRouterAsync : public ::bluetooth_hal::util::Worker<RouterTask> {
 
   // Internal handlers meant to be called by the router thread
   virtual bool InitializeModules(
-      ::bluetooth_hal::transport::TransportInterfaceCallback*
+      ::bluetooth_hal::transport::TransportInstanceCallback*
           transport_callback);
-  virtual bool Initialize(
-      const std::shared_ptr<HciRouterCallback>& callback,
-      ::bluetooth_hal::transport::TransportInterfaceCallback*
-          transport_callback);
+  virtual bool Initialize(const std::shared_ptr<HciRouterCallback>& callback,
+                          ::bluetooth_hal::transport::TransportInstanceCallback*
+                              transport_callback);
   virtual void Close();
   virtual void Cleanup();
   virtual bool Send(const HalPacket& packet);
@@ -88,7 +87,7 @@ class HciRouterAsync : public ::bluetooth_hal::util::Worker<RouterTask> {
   void SetBusy(bool busy);
 
   std::shared_ptr<HciRouterCallback> hci_callback_;
-  ::bluetooth_hal::transport::TransportInterfaceCallback* transport_callback_;
+  ::bluetooth_hal::transport::TransportInstanceCallback* transport_callback_;
   ::bluetooth_hal::HalState hal_state_{::bluetooth_hal::HalState::kShutdown};
   std::atomic<bool> is_cleaning_up_{false};
   std::queue<QueuedHciCommand> hci_cmd_queue_;
