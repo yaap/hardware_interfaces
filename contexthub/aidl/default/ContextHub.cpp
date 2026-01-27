@@ -724,7 +724,6 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadSink(
         if (outputFd < 0) {
             ALOGE("Echo: ashmem failed");
             return ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
-            ;
         }
 
         int32_t outputSharedRegionId = mNextRegionId++;  // Allocate a new region ID
@@ -741,7 +740,8 @@ ScopedAStatus ContextHub::HubInterface::registerDataFlowOffloadSink(
         }
 
         createEchoDataFlow(in_params.context, sinkMetadataOffset, in_params.sinkId, hostSourceId,
-                           regionIt->second, flowIt->second, metadataRegion);
+                           regionIt->second, flowIt->second, metadataRegion, in_params.msg,
+                           in_params.sessionId);
     }
 
     return ScopedAStatus::ok();
@@ -827,7 +827,9 @@ void ContextHub::HubInterface::createEchoDataFlow(
         const DataFlowSinkContext& in_context, int64_t sinkMetadataOffset,
         const EndpointId& in_sinkId, const EndpointId& hostSourceId,
         const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
-        const std::optional<SharedDataRegion>& metadataRegion) {
+        const std::optional<SharedDataRegion>& metadataRegion,
+        const std::optional<Message>& in_msg = std::nullopt,
+        int32_t in_sessionId = IEndpointCommunication::SESSION_ID_INVALID) {
     // ========================================================================
     // Setup notification manager
     // ========================================================================
@@ -890,6 +892,12 @@ void ContextHub::HubInterface::createEchoDataFlow(
     }
     std::optional<Consumer<uint8_t>> consumerOpt;
     consumerOpt.emplace(std::move(consumerRes.value()));
+
+    // Send the message to the endpoint (do nothing) and send the message delivery status back to
+    // the host endpoint.
+    if (in_msg.has_value()) {
+        sendMessageToEndpoint(in_sessionId, in_msg.value());
+    }
 
     // ========================================================================
     // Setup producer (HAL -> Host)
@@ -1005,7 +1013,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
     // opposite direction.
     params.sinkId = hostSourceId;
     params.sourceId = in_sinkId;
-    params.sessionId = IEndpointCommunication::SESSION_ID_INVALID;
+    params.msg = in_msg;
+    params.sessionId = in_sessionId;
 
     // Callback to send the consumer DataFlowConsumerHandle back to the host.
     if (mEndpointCallback != nullptr) {
