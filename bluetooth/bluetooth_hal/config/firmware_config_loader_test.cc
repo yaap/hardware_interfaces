@@ -1327,6 +1327,107 @@ TEST_F(FirmwareAccumulatedFixedSizeTest, ExceedsInternalBuffer) {
       FirmwareConfigLoader::GetLoader().GetNextFirmwareData().has_value());
 }
 
+class FirmwareAccumulatedCustomBufferSizeTest
+    : public FirmwareConfigLoaderTestBase {
+ protected:
+  void SetUp() override {
+    FirmwareConfigLoaderTestBase::SetUp();
+    std::vector<TransportType> priority_list = {TransportType::kUartH4};
+    EXPECT_CALL(mock_hal_config_loader_, GetTransportTypePriority())
+        .WillRepeatedly(ReturnRef(priority_list));
+    EXPECT_TRUE(FirmwareConfigLoader::GetLoader().LoadConfigFromString(
+        kConfigAccumulatedCustomBufferSize));
+  }
+
+  static constexpr uint16_t kVscOpcodeStart = 0xFC00;
+  static constexpr uint8_t kDefaultPayloadLen = 250;
+  static constexpr uint8_t kHciHeaderSize = 3;
+  static constexpr uint8_t kTestFillByte = 0xAA;
+  static constexpr uint8_t kLaunchRamVscPayloadLen = 10;
+  static constexpr size_t kExpectedPayloadSize1 = 1016;
+  static constexpr size_t kExpectedPayloadSize2 = 1016;
+  static constexpr size_t kExpectedPayloadSize3 = 254;
+  static constexpr size_t kExpectedPayloadSize4 = 14;
+
+  static constexpr std::string_view kConfigAccumulatedCustomBufferSize = R"({
+    "firmware_configs": [
+      {
+        "transport_type": 1,
+        "firmware_folder_name": "/test/fw/",
+        "firmware_file_name": "test_fw_accum_custom.bin",
+        "firmware_data_loading_type": "ACCUMULATED_BUFFER",
+        "accumulated_buffer_max_size": 1024
+      }
+    ]
+  })";
+};
+
+TEST_F(FirmwareAccumulatedCustomBufferSizeTest,
+       RespectsCustomBufferSizeWithMultipleCycles) {
+  EXPECT_CALL(mock_system_call_wrapper_,
+              Open(MatcherFactory::CreateStringMatcher(
+                       "/test/fw/test_fw_accum_custom.bin"),
+                   _))
+      .WillOnce(Return(kFile1Fd));
+  ASSERT_TRUE(
+      FirmwareConfigLoader::GetLoader().ResetFirmwareDataLoadingState());
+
+  auto mock_read_cmd = [&](uint16_t opcode, uint8_t len) {
+    uint8_t op_low = opcode & 0xFF;
+    uint8_t op_high = (opcode >> 8) & 0xFF;
+    EXPECT_CALL(mock_system_call_wrapper_, Read(kFile1Fd, _, kHciHeaderSize))
+        .WillOnce(DoAll(Invoke([=](int, void* buf, size_t) {
+                          uint8_t header[] = {op_low, op_high, len};
+                          memcpy(buf, header, kHciHeaderSize);
+                        }),
+                        Return(kHciHeaderSize)));
+    EXPECT_CALL(mock_system_call_wrapper_,
+                Read(kFile1Fd, _, static_cast<size_t>(len)))
+        .WillOnce(DoAll(Invoke([=](int, void* buf, size_t) {
+                          memset(buf, kTestFillByte, len);
+                        }),
+                        Return(len)));
+  };
+
+  {
+    InSequence s;
+    // Four commands of 254 bytes each can fit in one accumulated buffer
+    // The fifth shall be stored for next iteration
+    for (int i = 0; i < 5; ++i) {
+      mock_read_cmd(kVscOpcodeStart + i, kDefaultPayloadLen);
+    }
+
+    for (int i = 5; i < 9; ++i) {
+      mock_read_cmd(kVscOpcodeStart + i, kDefaultPayloadLen);
+    }
+
+    // Launch RAM command
+    mock_read_cmd(cfg_consts::kDefaultHciVscLaunchRamOpcode,
+                  kLaunchRamVscPayloadLen);
+    EXPECT_CALL(mock_system_call_wrapper_, Close(kFile1Fd)).Times(1);
+  }
+
+  auto data_packet1 = FirmwareConfigLoader::GetLoader().GetNextFirmwareData();
+  ASSERT_TRUE(data_packet1.has_value());
+  EXPECT_EQ(data_packet1->GetDataType(), DataType::kDataFragment);
+  EXPECT_EQ(data_packet1->GetPayload().size(), kExpectedPayloadSize1);
+
+  auto data_packet2 = FirmwareConfigLoader::GetLoader().GetNextFirmwareData();
+  ASSERT_TRUE(data_packet2.has_value());
+  EXPECT_EQ(data_packet2->GetDataType(), DataType::kDataFragment);
+  EXPECT_EQ(data_packet2->GetPayload().size(), kExpectedPayloadSize2);
+
+  auto data_packet3 = FirmwareConfigLoader::GetLoader().GetNextFirmwareData();
+  ASSERT_TRUE(data_packet3.has_value());
+  EXPECT_EQ(data_packet3->GetDataType(), DataType::kDataFragment);
+  EXPECT_EQ(data_packet3->GetPayload().size(), kExpectedPayloadSize3);
+
+  auto data_packet4 = FirmwareConfigLoader::GetLoader().GetNextFirmwareData();
+  ASSERT_TRUE(data_packet4.has_value());
+  EXPECT_EQ(data_packet4->GetDataType(), DataType::kDataEnd);
+  EXPECT_EQ(data_packet4->GetPayload().size(), kExpectedPayloadSize4);
+}
+
 class FirmwareDataCommandBasedCustomOpcodeTest
     : public FirmwareConfigLoaderTestBase {
  protected:

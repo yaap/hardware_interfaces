@@ -50,5 +50,6 @@ inline constexpr int kDefaultLaunchRamDelayMs = 250;
 
 inline constexpr uint16_t kDefaultHciVscLaunchRamOpcode = 0xfc4e;
 inline constexpr size_t kDefaultFixedChunkSize = 200;
+inline constexpr size_t kDefaultAccumulatedBufferMaxSize = 32 * 1024;
 
 }  // namespace bluetooth_hal::config::constants
