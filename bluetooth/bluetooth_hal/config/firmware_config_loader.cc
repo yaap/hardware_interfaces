@@ -134,6 +134,8 @@ class FirmwareConfigLoaderImpl : public FirmwareConfigLoader {
   DataReadingMethod data_reading_method_{DataReadingMethod::kCommandBased};
   uint16_t launch_ram_opcode_{cfg_consts::kDefaultHciVscLaunchRamOpcode};
   size_t fixed_chunk_size_{cfg_consts::kDefaultFixedChunkSize};
+  size_t accumulated_buffer_max_size_{
+      cfg_consts::kDefaultAccumulatedBufferMaxSize};
 };
 
 bool FirmwareConfigLoaderImpl::ResetFirmwareDataLoadingState() {
@@ -291,6 +293,8 @@ std::string FirmwareConfigLoaderImpl::DumpConfigToString() const {
     ss << "    Data Loading Type: "
        << FirmwareDataLoadingType_Name(config.firmware_data_loading_type())
        << "\n";
+    ss << "    Accumulated Buffer Max Size: "
+       << config.accumulated_buffer_max_size() << " bytes\n";
     switch (config.data_reading_method_case()) {
       case FirmwareConfigForTransport::kCommandBasedReading:
         ss << "    Data Reading Method: COMMAND_BASED\n";
@@ -422,6 +426,11 @@ bool FirmwareConfigLoaderImpl::SelectFirmwareConfiguration(
   if (active_config_->get().has_setup_commands()) {
     LoadSetupCommandsFromConfig(active_config_->get(), active_setup_commands_);
   }
+
+  accumulated_buffer_max_size_ =
+      config.has_accumulated_buffer_max_size()
+          ? config.accumulated_buffer_max_size()
+          : cfg_consts::kDefaultAccumulatedBufferMaxSize;
 
   // Configure data reading method.
   switch (config.data_reading_method_case()) {
@@ -610,8 +619,7 @@ FirmwareConfigLoaderImpl::GetNextFirmwareDataByPacket() {
 std::optional<DataPacket>
 FirmwareConfigLoaderImpl::GetNextFirmwareDataByAccumulation() {
   std::vector<uint8_t> accumulated_buffer;
-  constexpr int kBufferSize = 32 * 1024;
-  accumulated_buffer.reserve(kBufferSize);
+  accumulated_buffer.reserve(accumulated_buffer_max_size_);
 
   if (previous_packet_.has_value()) {
     if (previous_packet_->GetDataType() == DataType::kDataEnd) {
@@ -626,7 +634,7 @@ FirmwareConfigLoaderImpl::GetNextFirmwareDataByAccumulation() {
     previous_packet_.reset();
   }
 
-  while (accumulated_buffer.size() <= kBufferSize) {
+  while (accumulated_buffer.size() <= accumulated_buffer_max_size_) {
     std::optional<DataPacket> next_packet = GetNextSinglePacket();
 
     if (!next_packet.has_value()) {
@@ -636,7 +644,7 @@ FirmwareConfigLoaderImpl::GetNextFirmwareDataByAccumulation() {
     if ((next_packet->GetDataType() == DataType::kDataEnd &&
          !accumulated_buffer.empty()) ||
         (accumulated_buffer.size() + next_packet->GetPayload().size() >
-         kBufferSize)) {
+         accumulated_buffer_max_size_)) {
       previous_packet_ = std::move(next_packet);
       break;
     }
