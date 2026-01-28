@@ -2216,6 +2216,14 @@ TEST_P(AudioCoreModule, CheckMixPorts) {
                     << "Primary mix port " << port.id << " can not have maxOpenStreamCount "
                     << mixPort.maxOpenStreamCount;
         }
+        if (aidlVersion >= kAidlVersion4) {
+            std::set<AudioFormatDescription> formats;
+            for (const auto& profile : port.profiles) {
+                EXPECT_TRUE(formats.insert(profile.format).second /*inserted*/)
+                        << "Mix port " << port.id << " has duplicate profiles for format "
+                        << profile.format.toString();
+            }
+        }
     }
 }
 
