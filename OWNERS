@@ -1,5 +1,5 @@
 per-file *.hal,*.aidl,OWNERS = set noparent
-per-file *.hal,*.aidl,OWNERS = devinmoore@google.com,elsk@google.com,malchev@google.com,smoreland@google.com
+per-file *.hal,*.aidl,OWNERS = devinmoore@google.com,elsk@google.com,smoreland@google.com
 
 # Android Native API Council
 devinmoore@google.com
@@ -7,4 +7,3 @@ elsk@google.com
 smoreland@google.com
 
 maco@google.com #{LAST_RESORT_SUGGESTION}
-malchev@google.com #{LAST_RESORT_SUGGESTION}
