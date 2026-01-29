@@ -554,12 +554,7 @@ TEST_P(KeyBlobUpgradeTest, UseKeyBlobsBeforeOrAfter) {
             } else if (name.find("mldsa-key") != std::string::npos) {
                 builder.Digest(Digest::NONE);
                 string signature = SignMessage(keyblob, message, builder);
-
-                X509_Ptr x509_cert(parse_cert_blob(cert));
-                ASSERT_NE(x509_cert.get(), nullptr);
-                SubjectPublicKeyInfo info;
-                extract_spki(x509_cert.get(), &info);
-                LocalVerifyMlDsaRaw(message, signature, MlDsaVariant::ML_DSA_65, info.pubkey);
+                LocalVerifyMessage(cert, message, signature, builder);
             } else if (name.find("x25519-key") != std::string::npos) {
                 // Generate EC key on same curve locally (with access to private key material).
                 uint8_t localPrivKeyData[32];
