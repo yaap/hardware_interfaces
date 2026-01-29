@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "bluetooth_hal/bqr/bqr_link_quality_event.h"
-
 #include <cstdint>
 #include <vector>
 

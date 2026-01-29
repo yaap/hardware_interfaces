@@ -20,11 +20,8 @@
 #include <memory>
 #include <vector>
 
-#include "android-base/macros.h"
 #include "bluetooth_hal/bqr/bqr_event.h"
-#include "bluetooth_hal/bqr/bqr_root_inflammation_event.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
-#include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_router_client_callback.h"
 #include "bluetooth_hal/test/mock/mock_debug_central.h"

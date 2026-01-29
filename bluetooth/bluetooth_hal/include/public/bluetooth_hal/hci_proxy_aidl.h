@@ -25,8 +25,6 @@
 #include "aidl/android/hardware/bluetooth/IBluetoothHciCallbacks.h"
 #include "android/binder_auto_utils.h"
 #include "android/binder_status.h"
-#include "bluetooth_hal/hal_packet.h"
-#include "bluetooth_hal/hal_types.h"
 
 namespace bluetooth_hal {
 

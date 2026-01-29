@@ -16,7 +16,6 @@
 
 #include "bluetooth_hal/hci_router_interface.h"
 
-#include <cstdint>
 #include <functional>
 #include <memory>
 

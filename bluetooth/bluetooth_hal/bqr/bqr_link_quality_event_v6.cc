@@ -22,7 +22,6 @@
 #include <sstream>
 #include <string>
 
-#include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/bqr/bqr_link_quality_event_v5.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
