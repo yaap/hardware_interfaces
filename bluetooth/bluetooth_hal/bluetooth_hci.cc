@@ -130,7 +130,7 @@ bool BluetoothHci::Initialize(const std::shared_ptr<BluetoothHciCallback>& cb) {
     if (bluetooth_hci_callback_ != nullptr) {
       HAL_LOG(ERROR) << "The HAL has already been initialized!";
       cb->InitializationComplete(BluetoothHciStatus::kAlreadyInitialized);
-      return false;
+      return true;
     }
 
     is_initializing_ = true;
