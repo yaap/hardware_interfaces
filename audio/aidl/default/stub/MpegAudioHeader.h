@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <ostream>
 
 namespace aidl::android::hardware::audio::core {
 
@@ -38,6 +39,14 @@ struct MpegFrame {
     size_t bytesPending = 0;
     int sampleRate = 0;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const MpegFrame& frame) {
+    os << "MpegFrame{len=" << frame.frameLengthBytes << ", size=" << frame.frameSize
+       << ", isID3v2=" << (frame.isID3v2 ? "true" : "false")
+       << ", isID3v1=" << (frame.isID3v1 ? "true" : "false") << ", pending=" << frame.bytesPending
+       << ", sampleRate=" << frame.sampleRate << "}";
+    return os;
+}
 
 std::optional<MpegFrame> findMpegFrame(const uint8_t** currBuff, const uint8_t* endBuff);
 
