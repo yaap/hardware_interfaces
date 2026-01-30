@@ -368,6 +368,7 @@ cc_test {
         "hci_router_client.cc",
         "bluetooth_address_test.cc",
         "util/worker_test.cc",
+        "util/time_queue_test.cc",
         ":test_mock_router_srcs",
     ],
     static_libs: [
