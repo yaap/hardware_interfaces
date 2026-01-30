@@ -203,6 +203,7 @@ filegroup {
         "util/power/wakelock.cc",
         "util/power/wakelock_watchdog.cc",
         "util/power/power_interface.cc",
+        "util/power/wakelock_logger.cc",
     ],
 }
 

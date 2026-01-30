@@ -357,7 +357,7 @@ void HciRouterAsync::SendPacketToStack(const HalPacket& packet) {
 }
 
 void HciRouterAsync::OnTransportPacketReady(const HalPacket& packet) {
-    ScopedWakelock wakelock(WakeSource::kRx);
+    ScopedWakelock wakelock(WakeSource::kRx, packet.GetType());
     packet.SetDestination(PacketDestination::kHost);
     packet.SetSource(PacketSource::kController);
 
@@ -387,7 +387,7 @@ bool HciRouterAsync::SendOrQueueCommand(const HalPacket& packet,
 }
 
 bool HciRouterAsync::SendToTransport(const HalPacket& packet) {
-    ScopedWakelock wakelock(WakeSource::kTx);
+    ScopedWakelock wakelock(WakeSource::kTx, packet.GetType());
     HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
     if (!TransportFactory::GetTransport().IsTransportActive()) {
         HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
