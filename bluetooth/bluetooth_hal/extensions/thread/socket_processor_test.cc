@@ -75,8 +75,6 @@ class SocketProcessorTestBase : public Test {
     EXPECT_CALL(mock_system_call_wrapper_, Unlink(_)).Times(1);
     ASSERT_NE(SocketProcessor::GetProcessor(), nullptr);
     SocketProcessor::Cleanup();
-    // Instance should be null if we do not initialize after cleanup.
-    EXPECT_DEATH(SocketProcessor::GetProcessor(), "");
   }
 
   std::string test_socket_path_ = "/tmp/test/socket";

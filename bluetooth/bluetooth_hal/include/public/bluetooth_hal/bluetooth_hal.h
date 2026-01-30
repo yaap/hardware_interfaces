@@ -17,7 +17,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"

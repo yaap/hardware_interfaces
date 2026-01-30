@@ -18,7 +18,6 @@
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
-#include "bluetooth_hal/hci_monitor.h"
 
 namespace bluetooth_hal::hci {
 

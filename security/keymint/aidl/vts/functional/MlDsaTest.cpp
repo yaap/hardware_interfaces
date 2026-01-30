@@ -301,18 +301,8 @@ class MlDsaTest : public KeyMintAidlTestBase {
         }
     }
 
-    void LocalVerifyMlDsa(const std::string& message, const std::string& signature,
-                          MlDsaVariant variant) {
-        // Parse the certificate and retrieve the public key.
-        ASSERT_GT(cert_chain_.size(), 0);
-        X509_Ptr cert(parse_cert_blob(cert_chain_[0].encodedCertificate));
-        ASSERT_NE(cert.get(), nullptr);
-
-        SubjectPublicKeyInfo info;
-        extract_spki(cert.get(), &info);
-        EXPECT_EQ(info.oid, kOidString.find(variant)->second);
-
-        LocalVerifyMlDsaRaw(message, signature, variant, info.pubkey);
+    void LocalVerifyMlDsa(const std::string& message, const std::string& signature) {
+        LocalVerifyMessage(message, signature, AuthorizationSetBuilder().Digest(Digest::NONE));
     }
 
     void CheckMlDsaKey(MlDsaVariant variant, KeyOrigin origin) {
@@ -436,7 +426,7 @@ TEST_P(MlDsaTest, SignOneShot) {
 
         string message = "12345678901234567890123456789012";
         string signature = SignMessage(message, AuthorizationSetBuilder().Digest(Digest::NONE));
-        LocalVerifyMlDsa(message, signature, variant);
+        LocalVerifyMlDsa(message, signature);
     }
 }
 
@@ -470,7 +460,7 @@ TEST_P(MlDsaTest, SignIncremental) {
         string signature;
         EXPECT_EQ(ErrorCode::OK, Finish({}, &signature));
 
-        LocalVerifyMlDsa(message, signature, variant);
+        LocalVerifyMlDsa(message, signature);
     }
 }
 

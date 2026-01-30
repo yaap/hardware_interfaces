@@ -269,8 +269,6 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
                             const string& signature, const AuthorizationSet& params);
     void LocalVerifyMessage(const string& message, const string& signature,
                             const AuthorizationSet& params);
-    void LocalVerifyMlDsaRaw(const std::string& message, const std::string& signature,
-                             MlDsaVariant variant, const vector<uint8_t>& pubkey);
 
     string LocalRsaEncryptMessage(const string& message, const AuthorizationSet& params);
     string EncryptMessage(const vector<uint8_t>& key_blob, const string& message,
@@ -488,18 +486,6 @@ string hex2str(string a);
 string bin2hex(const vector<uint8_t>& data);
 std::vector<uint8_t> random_vector(size_t len);
 
-// Information held in the SubjectPublicKeyInfo of a certificate.
-struct SubjectPublicKeyInfo {
-    bool is_mldsa() { return (oid == ML_DSA_65_OID || oid == ML_DSA_87_OID); }
-
-    // OBJECT IDENTIFIER as a dotted string.
-    string oid;
-    // Raw bytes of the public key.
-    vector<uint8_t> pubkey;
-    // Parameters are not included.
-};
-
-void extract_spki(X509* certificate, SubjectPublicKeyInfo* info, bool require_no_params = true);
 X509_Ptr parse_cert_blob(const vector<uint8_t>& blob);
 ASN1_OCTET_STRING* get_attestation_record(X509* certificate);
 vector<uint8_t> make_name_from_str(const string& name);

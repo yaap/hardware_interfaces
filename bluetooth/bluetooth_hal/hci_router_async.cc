@@ -24,8 +24,9 @@
 #include <memory>
 #include <ostream>
 #include <sstream>
-#include <string>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "bluetooth_hal/chip/async_chip_provisioner.h"
@@ -33,11 +34,9 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/debug/vnd_snoop_logger.h"
 #include "bluetooth_hal/extensions/thread/thread_handler.h"
-#include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 #include "bluetooth_hal/transport/transport_factory.h"
 #include "bluetooth_hal/transport/transport_instance.h"
-#include "bluetooth_hal/util/logging.h"
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "bluetooth_hal/util/worker.h"
 
@@ -243,6 +242,10 @@ void HciRouterAsync::Cleanup() {
 }
 
 bool HciRouterAsync::Send(const HalPacket& packet) {
+  if (hal_state_ == HalState::kShutdown) {
+    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+    return false;
+  }
   packet.SetDestination(PacketDestination::kController);
 
   if (packet.GetType() == HciPacketType::kCommand) {
@@ -263,6 +266,10 @@ bool HciRouterAsync::Send(const HalPacket& packet) {
 bool HciRouterAsync::SendCommand(
     const HalPacket& packet,
     const std::shared_ptr<HalPacketCallback>& callback) {
+  if (hal_state_ == HalState::kShutdown) {
+    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+    return false;
+  }
   packet.SetDestination(PacketDestination::kController);
 
   if (packet.GetCommandOpcode() ==
@@ -280,6 +287,10 @@ bool HciRouterAsync::SendCommand(
 }
 
 bool HciRouterAsync::SendCommandNoAck(const HalPacket& packet) {
+  if (hal_state_ == HalState::kShutdown) {
+    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+    return false;
+  }
   packet.SetDestination(PacketDestination::kController);
   if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
       MonitorMode::kIntercept) {

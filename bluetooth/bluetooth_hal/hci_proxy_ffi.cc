@@ -23,7 +23,6 @@
 #include <memory>
 #include <vector>
 
-#include "android-base/logging.h"
 #include "bluetooth_hal/bluetooth_hci.h"
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/hal_packet.h"

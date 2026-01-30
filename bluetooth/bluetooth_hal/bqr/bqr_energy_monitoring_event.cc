@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iomanip>
 #include <sstream>
 
 #include "bluetooth_hal/bqr/bqr_event.h"

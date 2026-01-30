@@ -18,24 +18,17 @@
 
 #include <cstdint>
 #include <cstring>
-#include <list>
-#include <map>
-#include <mutex>
 #include <sstream>
 #include <string>
-#include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/bqr/bqr_root_inflammation_event.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/debug/debug_client.h"
-#include "bluetooth_hal/debug/debug_monitor.h"
 #include "bluetooth_hal/debug/debug_types.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/util/logging.h"
-#include "bluetooth_hal/util/timer_manager.h"
 
 /*
  * SCOPED_ANCHOR is used to log the Enter and Exit of a HAL function and

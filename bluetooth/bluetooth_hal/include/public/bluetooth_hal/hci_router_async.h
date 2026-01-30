@@ -21,7 +21,6 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <string>
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"

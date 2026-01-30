@@ -30,6 +30,7 @@ namespace {
 using ::bluetooth_hal::hci::HalPacket;
 
 HalPacket CreateAdvanceRfStatsEvent() {
+  // clang-format off
   std::vector<uint8_t> data = {
       0x04,  // H4 Type: HCI Event
       0xff,  // Event Code: Vendor Specific Event (0xFF)
@@ -60,10 +61,12 @@ HalPacket CreateAdvanceRfStatsEvent() {
       0x2B, 0x00, 0x00, 0x00,  // rssi_delta_8_11
       0x2C, 0x00, 0x00, 0x00,  // rssi_delta_11_up
   };
+  // clang-format on
   return HalPacket(data);
 }
 
 HalPacket CreateAdvanceRfStatsEventV7() {
+  // clang-format off
   std::vector<uint8_t> data = {
       0x04,  // H4 Type: HCI Event
       0xff,  // Event Code: Vendor Specific Event (0xFF)
@@ -92,6 +95,7 @@ HalPacket CreateAdvanceRfStatsEventV7() {
       0x08,                    // ch_count_verybad
       0x37, 0x00, 0x00, 0x00,  // tx_buf_queue_count
   };
+  // clang-format on
   return HalPacket(data);
 }
 
@@ -100,11 +104,13 @@ HalPacket CreateIncorrectBqrHalPacket() {
 }
 
 HalPacket CreateShortBqrPacket() {
+  // clang-format off
   return HalPacket({
       0x04, 0xff, 0x03, 0x58,
       0x09,  // Report ID
       0x01,  // Payload (but packet is too short)
   });
+  // clang-format on
 }
 
 HalPacket CreateWrongReportIdPacket() {

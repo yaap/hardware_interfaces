@@ -497,6 +497,7 @@ void HciRouterImpl::Cleanup() {
   // Set HAL state back to the default state (kShutdown).
   UpdateHalState(HalState::kShutdown);
   hci_callback_ = nullptr;
+  tx_handler_.reset();
   is_cleaning_up_ = false;
 }
 
@@ -518,7 +519,9 @@ bool HciRouterImpl::Send(const HalPacket& packet) {
                    << packet.ToString();
     return true;
   }
-  tx_handler_->Post(TxTask::SendToTransport(packet));
+  if (tx_handler_) {
+    tx_handler_->Post(TxTask::SendToTransport(packet));
+  }
   return true;
 }
 
@@ -539,8 +542,10 @@ bool HciRouterImpl::SendCommand(const HalPacket& packet,
                    << packet.ToString();
     return true;
   }
-  tx_handler_->Post(TxTask::SendOrQueueCommand(
-      packet, std::make_shared<HalPacketCallback>(callback)));
+  if (tx_handler_) {
+    tx_handler_->Post(TxTask::SendOrQueueCommand(
+        packet, std::make_shared<HalPacketCallback>(callback)));
+  }
   return true;
 }
 
@@ -553,7 +558,9 @@ bool HciRouterImpl::SendCommandNoAck(const HalPacket& packet) {
                    << packet.ToString();
     return true;
   }
-  tx_handler_->Post(TxTask::SendToTransport(packet));
+  if (tx_handler_) {
+    tx_handler_->Post(TxTask::SendToTransport(packet));
+  }
   return true;
 }
 

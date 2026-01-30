@@ -2227,6 +2227,44 @@ TEST_P(AudioCoreModule, CheckMixPorts) {
     }
 }
 
+// Validate that in each mix port, all profiles that can be routed to the same
+// device use distinct flags (except for mix ports that do not have any flags).
+TEST_P(AudioCoreModule, CheckMixPortsFlags) {
+    if (aidlVersion < kAidlVersion4) {
+        GTEST_SKIP() << "Current HAL version less than " << kAidlVersion4 << ". Skipping the test ";
+    }
+    ASSERT_NO_FATAL_FAILURE(SetUpModuleConfig());
+    std::vector<AudioPort> ports;
+    ASSERT_IS_OK(module->getAudioPorts(&ports));
+    std::map<AudioIoFlags, std::set<int32_t>> flagsToDevices;
+    for (const auto& port : ports) {
+        if (port.ext.getTag() != AudioPortExt::Tag::mix) continue;
+        int32_t flagsValue = 0;
+        if (port.flags.getTag() == AudioIoFlags::Tag::input) {
+            flagsValue = port.flags.get<AudioIoFlags::Tag::input>();
+        } else if (port.flags.getTag() == AudioIoFlags::Tag::output) {
+            flagsValue = port.flags.get<AudioIoFlags::Tag::output>();
+        }
+        if (flagsValue == 0) continue;
+        auto routableDevices =
+                moduleConfig->getRoutableDevicePortsForMixPort(port, false /*connectedOnly*/);
+        std::set<int32_t> currentDeviceIds;
+        for (const auto& devicePort : routableDevices) {
+            currentDeviceIds.insert(devicePort.id);
+        }
+        auto& existingDevices = flagsToDevices[port.flags];
+        std::vector<int32_t> intersection;
+        std::set_intersection(currentDeviceIds.begin(), currentDeviceIds.end(),
+                              existingDevices.begin(), existingDevices.end(),
+                              std::back_inserter(intersection));
+        EXPECT_TRUE(intersection.empty())
+                << "Mix port " << port.id << " has flags " << port.flags.toString()
+                << " that duplicate flags of other mix ports which can be routed to device"
+                << " ports: " << ::android::internal::ToString(intersection);
+        existingDevices.insert(currentDeviceIds.begin(), currentDeviceIds.end());
+    }
+}
+
 TEST_P(AudioCoreModule, GetAudioPort) {
     std::set<int32_t> portIds;
     ASSERT_NO_FATAL_FAILURE(GetAllPortIds(&portIds));
