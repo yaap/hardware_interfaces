@@ -95,6 +95,12 @@ ndk::ScopedAStatus ModulePrimary::createOutputStream(
         // "Stub" is used because there is no actual decoder. The stream just
         // extracts the clip duration from the media file header and simulates
         // playback over time.
+        if (context.getSampleRate() <= 0) {
+            LOG(ERROR) << __func__
+                       << ": Invalid sample rate for offload stream: " << context.getSampleRate();
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+
         return createStreamInstance<StreamOutOffloadStub>(result, std::move(context),
                                                           sourceMetadata, offloadInfo);
     }
