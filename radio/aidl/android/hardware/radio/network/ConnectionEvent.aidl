@@ -55,10 +55,14 @@ enum ConnectionEvent {
     AS_SIGNALLING_LTE = 5,
     /**
      * For DRB signalling reporting as of radio HAL version 5.0 or newer
+     *
+     * In the case of RRC Reconfig, use the PDCP config's integrityProtection value for reporting.
+     * In the case of multiple DRBs, take the union of states to determine this value.
      */
     AS_SIGNALLING_LTE_DRB = 16,
     /**
-     * For non-DRB signalling reporting as of radio HAL version 5.0 or newer
+     * For non-DRB signalling reporting as of radio HAL version 5.0 or newer.
+     * Based on the RRC  Security Mode Command
      */
     AS_SIGNALLING_LTE_NON_DRB = 17,
 
@@ -81,10 +85,13 @@ enum ConnectionEvent {
     AS_SIGNALLING_5G = 11,
     /**
      * For DRB signalling reporting as of radio HAL version 5.0 or newer
+     * In the case of RRC Reconfig, use the PDCP config's integrityProtection value for reporting.
+     * In the case of multiple DRBs, take the union of states to determine this value.
      */
     AS_SIGNALLING_5G_DRB = 18,
     /**
      * For non-DRB signalling reporting as of radio HAL version 5.0 or newer
+     * Based on the RRC  Security Mode Command
      */
     AS_SIGNALLING_5G_NON_DRB = 19,
 
