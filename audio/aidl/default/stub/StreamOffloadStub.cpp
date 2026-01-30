@@ -350,7 +350,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
         }
 
         const MpegFrame& frame = frameOpt.value();
-        LOG(DEBUG) << __func__ << ": Found MPEG frame at offset " << frameBeginning - beginPtr;
+        LOG(DEBUG) << __func__ << ": Found at offset " << frameBeginning - beginPtr << " " << frame;
         if (frame.isID3v1) {
             mMpegFrameState.clipEnded = true;
         } else {
