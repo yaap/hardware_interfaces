@@ -21,3 +21,10 @@ flag {
     description: "Flag for iso parameter update"
     bug: "442860011"
 }
+
+flag {
+    name: "extend_thread_poll_time"
+    namespace: "bluetooth"
+    description: "Flag to extend the thread poll time for FMQ reading and writing"
+    bug: "374355215"
+}

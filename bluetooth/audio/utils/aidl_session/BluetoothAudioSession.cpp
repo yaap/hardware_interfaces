@@ -48,6 +48,8 @@ static constexpr int kFmqReceiveTimeoutMs =
     1000;                               // 1000 ms timeout for receiving
 static constexpr int kWritePollMs = 1;  // polled non-blocking interval
 static constexpr int kReadPollMs = 1;   // polled non-blocking interval
+static constexpr int kWritePollExtendedMs = 5;  // polled non-blocking interval
+static constexpr int kReadPollExtendedMs = 5;   // polled non-blocking interval
 
 constexpr char kPropertyLeaSwOffload[] =
     "persist.vendor.audio.leaudio_sw_offload";
@@ -688,6 +690,9 @@ size_t BluetoothAudioSession::OutWritePcmData(const void* buffer,
   } else {
     size_t total_written = 0;
     int timeout_ms = kFmqSendTimeoutMs;
+    int poll_ms = com::android::btaudio::hal::flags::extend_thread_poll_time()
+                      ? kWritePollExtendedMs
+                      : kWritePollMs;
     do {
       std::unique_lock<std::recursive_mutex> lock(mutex_);
       if (!IsSessionReadyInternal()) {
@@ -707,10 +712,10 @@ size_t BluetoothAudioSession::OutWritePcmData(const void* buffer,
           return total_written;
         }
         total_written += num_bytes_to_write;
-      } else if (timeout_ms >= kWritePollMs) {
+      } else if (timeout_ms >= poll_ms) {
         lock.unlock();
-        usleep(kWritePollMs * 1000);
-        timeout_ms -= kWritePollMs;
+        usleep(poll_ms * 1000);
+        timeout_ms -= poll_ms;
       } else {
         LOG(DEBUG) << "Data " << total_written << "/" << bytes << " overflow "
                    << (kFmqSendTimeoutMs - timeout_ms) << " ms";
@@ -727,6 +732,9 @@ size_t BluetoothAudioSession::InReadPcmData(void* buffer, size_t bytes) {
   }
   size_t total_read = 0;
   int timeout_ms = kFmqReceiveTimeoutMs;
+  int poll_ms = com::android::btaudio::hal::flags::extend_thread_poll_time()
+                    ? kReadPollExtendedMs
+                    : kReadPollMs;
   do {
     std::unique_lock<std::recursive_mutex> lock(mutex_);
     if (!IsSessionReadyInternal()) {
@@ -744,10 +752,10 @@ size_t BluetoothAudioSession::InReadPcmData(void* buffer, size_t bytes) {
         return total_read;
       }
       total_read += num_bytes_to_read;
-    } else if (timeout_ms >= kReadPollMs) {
+    } else if (timeout_ms >= poll_ms) {
       lock.unlock();
-      usleep(kReadPollMs * 1000);
-      timeout_ms -= kReadPollMs;
+      usleep(poll_ms * 1000);
+      timeout_ms -= poll_ms;
       continue;
     } else {
       LOG(DEBUG) << "Data " << total_read << "/" << bytes << " overflow "

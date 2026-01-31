@@ -61,6 +61,7 @@ constexpr uint64_t kOpHandleSentinel = 0xFFFFFFFFFFFFFFFF;
 const string FEATURE_KEYSTORE_APP_ATTEST_KEY = "android.hardware.keystore.app_attest_key";
 const string FEATURE_STRONGBOX_KEYSTORE = "android.hardware.strongbox_keystore";
 const string FEATURE_HARDWARE_KEYSTORE = "android.hardware.hardware_keystore";
+const string FEATURE_DEVICE_ID_ATTESTATION = "android.software.device_id_attestation";
 
 const string ML_DSA_65_OID = "2.16.840.1.101.3.4.3.18";
 const string ML_DSA_87_OID = "2.16.840.1.101.3.4.3.19";
