@@ -272,7 +272,9 @@ bool BluetoothChannelSoundingHandler::OpenSession(
 #ifdef USE_RANGING_V1
     *return_value = std::static_pointer_cast<BluetoothChannelSoundingSessionV1>(session);
 #elif USE_RANGING_V2
-    *return_value = std::static_pointer_cast<BluetoothChannelSoundingSessionV2>(session);
+    auto v2_session = std::static_pointer_cast<BluetoothChannelSoundingSessionV2>(session);
+    v2_session->CsCreateNewLog(in_params);
+    *return_value = v2_session;
 #endif
     in_callback->onOpened(Reason::LOCAL_STACK_REQUEST);
 

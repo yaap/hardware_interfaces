@@ -20,6 +20,7 @@
 #include <optional>
 #include <vector>
 
+#include "aidl/android/hardware/bluetooth/ranging/BluetoothChannelSoundingParameters.h"
 #include "aidl/android/hardware/bluetooth/ranging/BnBluetoothChannelSoundingSession.h"
 #include "aidl/android/hardware/bluetooth/ranging/ChannelSoundingProcedureData.h"
 #include "aidl/android/hardware/bluetooth/ranging/Config.h"
@@ -79,6 +80,9 @@ class BluetoothChannelSoundingSessionV2
                     vendor_specific_data) override;
     bool ShouldEnableFakeNotification() override;
     bool ShouldEnableMode0ChannelMap() override;
+    void CsCreateNewLog(
+            const ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters&
+                    in_params);
 
   private:
     std::shared_ptr<

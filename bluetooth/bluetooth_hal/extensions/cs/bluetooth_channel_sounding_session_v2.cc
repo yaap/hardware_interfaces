@@ -18,8 +18,13 @@
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_v2.h"
 
+#include <sys/stat.h>
+
+#include <chrono>
 #include <cstdint>
+#include <fstream>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -40,21 +45,387 @@
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_session_interface.h"
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_util.h"
 #include "bluetooth_hal/hal_types.h"
+#include "bluetooth_hal/util/android_base_wrapper.h"
 
 namespace bluetooth_hal::extensions::cs {
+namespace {
 
+using ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters;
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoundingProcedureData;
 using ::aidl::android::hardware::bluetooth::ranging::Config;
 using ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSessionCallback;
+using ::aidl::android::hardware::bluetooth::ranging::ModeData;
+using ::aidl::android::hardware::bluetooth::ranging::ModeOneData;
+using ::aidl::android::hardware::bluetooth::ranging::ModeThreeData;
+using ::aidl::android::hardware::bluetooth::ranging::ModeTwoData;
+using ::aidl::android::hardware::bluetooth::ranging::ModeType;
+using ::aidl::android::hardware::bluetooth::ranging::ModeZeroData;
+using ::aidl::android::hardware::bluetooth::ranging::PctIQSample;
 using ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig;
 using ::aidl::android::hardware::bluetooth::ranging::RangingResult;
 using ::aidl::android::hardware::bluetooth::ranging::Reason;
 using ::aidl::android::hardware::bluetooth::ranging::ResultType;
+using ::aidl::android::hardware::bluetooth::ranging::RttToaTodData;
+using ::aidl::android::hardware::bluetooth::ranging::StepData;
+using ::aidl::android::hardware::bluetooth::ranging::SubeventResultData;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 using ::android::base::GetUintProperty;
 using ::bluetooth_hal::Property;
+using ::bluetooth_hal::util::AndroidBaseWrapper;
 using ::ndk::ScopedAStatus;
+
+// Global state for logging
+std::string g_cs_log_filename;
+bool g_cs_log_first_entry = true;
+std::recursive_mutex g_cs_log_mutex;
+constexpr std::string_view kIsHalLogEnabled = "vendor.bluetooth.cs_hal_log_enabled";
+
+// Helper to get current timestamp string for the JSON entry
+std::string GetTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S") << "." << std::setfill('0')
+       << std::setw(3) << ms.count();
+    return ss.str();
+}
+
+// Helper to add indentation to a multiline string
+std::string PadString(const std::string& input, int spaces, bool indent_first_line = true) {
+    if (input.empty()) {
+        return input;
+    }
+
+    std::string padding(spaces, ' ');
+    // Only indent the first line if requested
+    std::string output = indent_first_line ? (padding + input) : input;
+
+    // Start searching for newlines.
+    // If first line was indented, skip the initial padding.
+    size_t pos = indent_first_line ? spaces : 0;
+
+    // Replace every newline with newline + padding
+    while ((pos = output.find('\n', pos)) != std::string::npos) {
+        if (pos + 1 >= output.length()) {
+            break;
+        }
+        output.insert(pos + 1, padding);
+        pos += (spaces + 1);
+    }
+    return output;
+}
+
+void CsWriteLog(const std::string& type, const std::string& content) {
+    std::lock_guard<std::recursive_mutex> lock(g_cs_log_mutex);
+
+    if (!AndroidBaseWrapper::GetWrapper().GetBoolProperty(kIsHalLogEnabled.data(), false)) {
+        return;
+    }
+
+    if (g_cs_log_filename.empty()) {
+        LOG(WARNING) << "CsWriteLog called without active log file.";
+        return;
+    }
+
+    std::fstream log_file(g_cs_log_filename, std::ios::in | std::ios::out | std::ios::ate);
+    if (!log_file.is_open()) {
+        LOG(ERROR) << "Failed to open CS log file for appending: " << g_cs_log_filename;
+        return;
+    }
+
+    // If not the first entry, overwrite the previous closing bracket ']' and add
+    // a comma
+    if (!g_cs_log_first_entry) {
+        // Check ensuring file is not empty not strictly necessary if logic flows
+        // correctly from CsCreateNewLog
+        log_file.seekp(-1, std::ios::end);
+        log_file << ",\n";
+    }
+    g_cs_log_first_entry = false;
+
+    // Indent the content by 4 spaces to align with the JSON object structure
+    std::string padded_content = PadString(content, 4, false);
+
+    log_file << "  {\n";
+    log_file << "    \"type\": \"" << type << "\",\n";
+    log_file << "    \"timestamp\": \"" << GetTimestamp() << "\",\n";
+    log_file << "    \"content\": " << padded_content << "\n";
+    log_file << "  }\n";
+    log_file << "]";  // Always append the closing bracket
+    log_file.close();
+}
+
+// --- JSON Serializers ---
+
+std::string ToJson(const Config& c) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"modeType\": " << (int)c.modeType << ",\n";
+    ss << "  \"subModeType\": \"" << toString(c.subModeType) << "\",\n";
+    ss << "  \"rttType\": \"" << toString(c.rttType) << "\",\n";
+    ss << "  \"channelMap\": \"0x" << ToHex(c.channelMap) << "\",\n";
+    ss << "  \"minMainModeSteps\": " << c.minMainModeSteps << ",\n";
+    ss << "  \"maxMainModeSteps\": " << c.maxMainModeSteps << ",\n";
+    ss << "  \"mainModeRepetition\": " << (int)c.mainModeRepetition << ",\n";
+    ss << "  \"mode0Steps\": " << (int)c.mode0Steps << ",\n";
+    ss << "  \"role\": \"" << toString(c.role) << "\",\n";
+    ss << "  \"csSyncPhyType\": \"" << toString(c.csSyncPhyType) << "\",\n";
+    ss << "  \"channelSelectionType\": \"" << toString(c.channelSelectionType) << "\",\n";
+    ss << "  \"ch3cShapeType\": \"" << toString(c.ch3cShapeType) << "\",\n";
+    ss << "  \"ch3cJump\": " << (int)c.ch3cJump << ",\n";
+    ss << "  \"channelMapRepetition\": " << c.channelMapRepetition << ",\n";
+    ss << "  \"tIp1TimeUs\": " << c.tIp1TimeUs << ",\n";
+    ss << "  \"tIp2TimeUs\": " << c.tIp2TimeUs << ",\n";
+    ss << "  \"tFcsTimeUs\": " << c.tFcsTimeUs << ",\n";
+    ss << "  \"tPmTimeUs\": " << (int)c.tPmTimeUs << ",\n";
+    ss << "  \"tSwTimeUsSupportedByLocal\": " << (int)c.tSwTimeUsSupportedByLocal << ",\n";
+    ss << "  \"tSwTimeUsSupportedByRemote\": " << (int)c.tSwTimeUsSupportedByRemote << ",\n";
+    ss << "  \"bleConnInterval\": " << c.bleConnInterval << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const ProcedureEnableConfig& p) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"toneAntennaConfigSelection\": " << (int)p.toneAntennaConfigSelection << ",\n";
+    ss << "  \"subeventLenUs\": " << p.subeventLenUs << ",\n";
+    ss << "  \"subeventsPerEvent\": " << (int)p.subeventsPerEvent << ",\n";
+    ss << "  \"subeventInterval\": " << p.subeventInterval << ",\n";
+    ss << "  \"eventInterval\": " << p.eventInterval << ",\n";
+    ss << "  \"procedureInterval\": " << p.procedureInterval << ",\n";
+    ss << "  \"procedureCount\": " << p.procedureCount << ",\n";
+    ss << "  \"maxProcedureLen\": " << p.maxProcedureLen << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const BluetoothChannelSoundingParameters& p) {
+    std::stringstream ss;
+    // Use PadString to nest the inner config object properly
+    std::string config_json = PadString(ToJson(p.config), 2, false);
+
+    ss << "{\n";
+    ss << "  \"sessionType\": \"" << toString(p.sessionType) << "\",\n";
+    ss << "  \"aclHandle\": " << p.aclHandle << ",\n";
+    ss << "  \"l2capCid\": " << p.l2capCid << ",\n";
+    ss << "  \"realTimeProcedureDataAttHandle\": " << p.realTimeProcedureDataAttHandle << ",\n";
+    ss << "  \"role\": \"" << toString(p.role) << "\",\n";
+    ss << "  \"localSupportsSoundingPhaseBasedRanging\": "
+       << (p.localSupportsSoundingPhaseBasedRanging ? "true" : "false") << ",\n";
+    ss << "  \"remoteSupportsSoundingPhaseBaseRanging\": "
+       << (p.remoteSupportsSoundingPhaseBaseRanging ? "true" : "false") << ",\n";
+    ss << "  \"config\": " << config_json << ",\n";
+    ss << "  \"locationType\": \"" << toString(p.locationType) << "\",\n";
+    ss << "  \"sightType\": \"" << toString(p.sightType) << "\"\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const PctIQSample& sample) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"iSample\": " << sample.iSample << ",\n";
+    ss << "  \"qSample\": " << sample.qSample << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const RttToaTodData& data) {
+    std::stringstream ss;
+    ss << "{\n";
+    auto tag = data.getTag();
+    if (tag == RttToaTodData::toaTodInitiator) {
+        ss << "  \"toaTodInitiator\": " << data.get<RttToaTodData::toaTodInitiator>() << "\n";
+    } else if (tag == RttToaTodData::todToaReflector) {
+        ss << "  \"todToaReflector\": " << data.get<RttToaTodData::todToaReflector>() << "\n";
+    } else {
+        ss << "  \"error\": \"unknown_tag\"\n";
+    }
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const ModeZeroData& data) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"packetQuality\": " << (int)data.packetQuality << ",\n";
+    ss << "  \"packetRssiDbm\": " << (int)data.packetRssiDbm << ",\n";
+    ss << "  \"packetAntenna\": " << (int)data.packetAntenna << ",\n";
+    ss << "  \"initiatorMeasuredFreqOffset\": " << data.initiatorMeasuredFreqOffset << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const ModeOneData& data) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"packetQuality\": " << (int)data.packetQuality << ",\n";
+    ss << "  \"packetNadm\": \"" << toString(data.packetNadm) << "\",\n";
+    ss << "  \"packetRssiDbm\": " << (int)data.packetRssiDbm << ",\n";
+    ss << "  \"packetAntenna\": " << (int)data.packetAntenna << ",\n";
+
+    ss << "  \"rttToaTodData\": " << PadString(ToJson(data.rttToaTodData), 2, false) << ",\n";
+
+    if (data.packetPct1.has_value()) {
+        ss << "  \"packetPct1\": " << PadString(ToJson(data.packetPct1.value()), 2, false) << ",\n";
+    } else {
+        ss << "  \"packetPct1\": null,\n";
+    }
+
+    if (data.packetPct2.has_value()) {
+        ss << "  \"packetPct2\": " << PadString(ToJson(data.packetPct2.value()), 2) << "\n";
+    } else {
+        ss << "  \"packetPct2\": null\n";
+    }
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const ModeTwoData& data) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"antennaPermutationIndex\": " << (int)data.antennaPermutationIndex << ",\n";
+
+    ss << "  \"tonePctIQSamples\": [\n";
+    for (size_t i = 0; i < data.tonePctIQSamples.size(); ++i) {
+        if (i > 0) ss << ",\n";
+        ss << PadString(ToJson(data.tonePctIQSamples[i]), 4);
+    }
+    ss << "\n  ],\n";
+
+    ss << "  \"toneQualityIndicators\": [";
+    for (size_t i = 0; i < data.toneQualityIndicators.size(); ++i) {
+        if (i > 0) ss << ", ";
+        ss << (int)data.toneQualityIndicators[i];
+    }
+    ss << "]\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const ModeThreeData& data) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"modeOneData\": " << PadString(ToJson(data.modeOneData), 2, false) << ",\n";
+    ss << "  \"modeTwoData\": " << PadString(ToJson(data.modeTwoData), 2, false) << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const StepData& s) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"stepChannel\": " << (int)s.stepChannel << ",\n";
+    ss << "  \"stepMode\": \"" << toString(s.stepMode) << "\",\n";
+
+    std::string modeDataJson = "{}";
+    // Switch on stepMode to decide which union member to access
+    switch (s.stepMode) {
+        case ModeType::ZERO:
+            modeDataJson = ToJson(s.stepModeData.get<ModeData::modeZeroData>());
+            break;
+        case ModeType::ONE:
+            modeDataJson = ToJson(s.stepModeData.get<ModeData::modeOneData>());
+            break;
+        case ModeType::TWO:
+            modeDataJson = ToJson(s.stepModeData.get<ModeData::modeTwoData>());
+            break;
+        case ModeType::THREE:
+            modeDataJson = ToJson(s.stepModeData.get<ModeData::modeThreeData>());
+            break;
+        default:
+            break;
+    }
+
+    ss << "  \"stepModeData\": " << PadString(modeDataJson, 2, false) << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const SubeventResultData& d) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"startAclConnEventCounter\": " << d.startAclConnEventCounter << ",\n";
+    ss << "  \"frequencyCompensation\": " << d.frequencyCompensation << ",\n";
+    ss << "  \"referencePowerLevelDbm\": " << (int)d.referencePowerLevelDbm << ",\n";
+    ss << "  \"numAntennaPaths\": " << (int)d.numAntennaPaths << ",\n";
+    ss << "  \"subeventAbortReason\": \"" << toString(d.subeventAbortReason) << "\",\n";
+    ss << "  \"timestampNanos\": " << d.timestampNanos << ",\n";
+
+    ss << "  \"stepData\": [\n";
+    for (size_t i = 0; i < d.stepData.size(); ++i) {
+        if (i > 0) ss << ",\n";
+        ss << PadString(ToJson(d.stepData[i]), 4);
+    }
+    ss << "\n  ]\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const ChannelSoundingProcedureData& d) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"procedureCounter\": " << d.procedureCounter << ",\n";
+    ss << "  \"procedureSequence\": " << d.procedureSequence << ",\n";
+    ss << "  \"initiatorSelectedTxPower\": " << (int)d.initiatorSelectedTxPower << ",\n";
+    ss << "  \"reflectorSelectedTxPower\": " << (int)d.reflectorSelectedTxPower << ",\n";
+
+    ss << "  \"initiatorSubeventResultData\": [\n";
+    for (size_t i = 0; i < d.initiatorSubeventResultData.size(); ++i) {
+        if (i > 0) ss << ",\n";
+        // Pad the inner object by 4 spaces (2 for array, 2 for object)
+        ss << PadString(ToJson(d.initiatorSubeventResultData[i]), 4);
+    }
+    ss << "\n  ],\n";
+
+    ss << "  \"initiatorProcedureAbortReason\": \"" << toString(d.initiatorProcedureAbortReason)
+       << "\",\n";
+
+    ss << "  \"reflectorSubeventResultData\": [\n";
+    for (size_t i = 0; i < d.reflectorSubeventResultData.size(); ++i) {
+        if (i > 0) ss << ",\n";
+        ss << PadString(ToJson(d.reflectorSubeventResultData[i]), 4);
+    }
+    ss << "\n  ],\n";
+
+    ss << "  \"reflectorProcedureAbortReason\": \"" << toString(d.reflectorProcedureAbortReason)
+       << "\"\n";
+    ss << "}";
+    return ss.str();
+}
+
+std::string ToJson(const RangingResult& r) {
+    std::stringstream ss;
+    ss << "{\n";
+    ss << "  \"resultMeters\": " << r.resultMeters << ",\n";
+    ss << "  \"errorMeters\": " << r.errorMeters << ",\n";
+    ss << "  \"azimuthDegrees\": " << r.azimuthDegrees << ",\n";
+    ss << "  \"errorAzimuthDegrees\": " << r.errorAzimuthDegrees << ",\n";
+    ss << "  \"altitudeDegrees\": " << r.altitudeDegrees << ",\n";
+    ss << "  \"errorAltitudeDegrees\": " << r.errorAltitudeDegrees << ",\n";
+    ss << "  \"delaySpreadMeters\": " << r.delaySpreadMeters << ",\n";
+    ss << "  \"confidenceLevel\": " << (int)r.confidenceLevel << ",\n";
+    ss << "  \"detectedAttackLevel\": \"" << toString(r.detectedAttackLevel) << "\",\n";
+    ss << "  \"velocityMetersPerSecond\": " << r.velocityMetersPerSecond << ",\n";
+
+    if (r.vendorSpecificCsRangingResultsData.has_value()) {
+        ss << "  \"vendorSpecificCsRangingResultsData\": \""
+           << ToHex(r.vendorSpecificCsRangingResultsData.value()) << "\",\n";
+    } else {
+        ss << "  \"vendorSpecificCsRangingResultsData\": null,\n";
+    }
+
+    ss << "  \"rangingResultStatus\": \"" << toString(r.rangingResultStatus) << "\",\n";
+    ss << "  \"timestampNanos\": " << r.timestampNanos << "\n";
+    ss << "}";
+    return ss.str();
+}
+
+}  // namespace
 
 BluetoothChannelSoundingSessionV2::BluetoothChannelSoundingSessionV2(
         std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback, Reason /* reason */)
@@ -123,6 +494,7 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::isAbortedProcedureRequired(bool
 
 ScopedAStatus BluetoothChannelSoundingSessionV2::writeProcedureData(
         const ChannelSoundingProcedureData& in_procedureData) {
+    CsWriteLog("ChannelSoundingProcedureData", ToJson(in_procedureData));
     RangingResult ranging_result;
     distance_estimator_->ResetVariables();
     ranging_result.resultMeters = distance_estimator_->EstimateDistance(in_procedureData);
@@ -133,6 +505,7 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::writeProcedureData(
                 in_procedureData.initiatorSubeventResultData[0].timestampNanos;
     }
     callback_->onResult(ranging_result);
+    CsWriteLog("RangingResult", ToJson(ranging_result));
     return ScopedAStatus::ok();
 };
 
@@ -158,12 +531,14 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::close(Reason in_reason) {
 };
 
 ScopedAStatus BluetoothChannelSoundingSessionV2::updateChannelSoundingConfig(
-        [[maybe_unused]] const Config& in_config) {
+        const Config& in_config) {
+    CsWriteLog("Config", ToJson(in_config));
     return ScopedAStatus::ok();
 };
 
 ScopedAStatus BluetoothChannelSoundingSessionV2::updateProcedureEnableConfig(
-        [[maybe_unused]] const ProcedureEnableConfig& in_procedureEnableConfig) {
+        const ProcedureEnableConfig& in_procedureEnableConfig) {
+    CsWriteLog("ProcedureEnableConfig", ToJson(in_procedureEnableConfig));
     return ScopedAStatus::ok();
 };
 
@@ -202,6 +577,37 @@ void BluetoothChannelSoundingSessionV2::HandleVendorSpecificData(
         enable_mode_0_channel_map_ = false;
     }
 };
+
+void BluetoothChannelSoundingSessionV2::CsCreateNewLog(
+        const BluetoothChannelSoundingParameters& in_params) {
+    std::lock_guard<std::recursive_mutex> lock(g_cs_log_mutex);
+    if (!AndroidBaseWrapper::GetWrapper().GetBoolProperty(kIsHalLogEnabled.data(), false)) {
+        LOG(INFO) << "HAL LOG not enabled";
+        return;
+    }
+
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y%m%d_%H%M%S");
+
+    g_cs_log_filename = "/data/vendor/bluetooth/cs_log_halv2_" + ss.str() + ".json";
+    g_cs_log_first_entry = true;
+
+    // Create file and write the start of the JSON array
+    std::ofstream log_file(g_cs_log_filename, std::ios::out | std::ios::trunc);
+    if (log_file.is_open()) {
+        log_file << "[\n";
+        log_file.close();
+        LOG(INFO) << "Created new CS log file: " << g_cs_log_filename;
+    } else {
+        LOG(ERROR) << "Failed to create CS log file: " << g_cs_log_filename;
+        // Reset filename so WriteLog doesn't try to write to nowhere
+        g_cs_log_filename.clear();
+    }
+
+    CsWriteLog("BluetoothChannelSoundingParameters", ToJson(in_params));
+}
 
 bool BluetoothChannelSoundingSessionV2::ShouldEnableFakeNotification() {
     return enable_fake_notification_;
