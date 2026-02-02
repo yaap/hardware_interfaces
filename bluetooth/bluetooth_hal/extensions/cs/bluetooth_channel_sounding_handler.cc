@@ -198,6 +198,7 @@ bool BluetoothChannelSoundingHandler::GetVendorSpecificData(
     for (int i = 0; i < kCommandCompleteReadLocalCapabilityValueLength; ++i) {
         uint8_t mask_byte = 0xFF;
         mask_byte = (mask >> (i * 8)) & 0xFF;
+        LOG(INFO) << __func__ << ": mask_byte " << i << " " << static_cast<uint16_t>(mask_byte);
         capability.opaqueValue.push_back(local_capabilities_[i] & mask_byte);
     }
     (*return_value)->push_back(capability);
