@@ -28,16 +28,19 @@
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/power/power_interface.h"
+#include "bluetooth_hal/util/power/wakelock_logger.h"
 #include "bluetooth_hal/util/power/wakelock_util.h"
 #include "bluetooth_hal/util/power/wakelock_watchdog.h"
 #include "bluetooth_hal/util/timer_manager.h"
 
 namespace bluetooth_hal::util::power {
 
+using ::bluetooth_hal::hci::HciPacketType;
+
 class WakelockImpl : public Wakelock {
   public:
     WakelockImpl() : wakelock_timeout_(kWakelockTimeMilliseconds) {};
-    void Acquire(WakeSource source) override;
+    void Acquire(WakeSource source, HciPacketType type = HciPacketType::kUnknown) override;
     void Release(WakeSource source) override;
     bool IsAcquired() override;
     bool IsWakeSourceAcquired(WakeSource source) override;
@@ -52,14 +55,16 @@ class WakelockImpl : public Wakelock {
     std::recursive_mutex mutex_;
     std::unordered_set<WakeSource> acquired_sources_;
     Timer release_wakelock_timer_;
+    WakelockLogger logger_;
 
     // TODO: b/382605673 - Read it from the config manager.
     static constexpr int kWakelockTimeMilliseconds = 100;
     int wakelock_timeout_;
 };
 
-void WakelockImpl::Acquire(WakeSource source) {
+void WakelockImpl::Acquire(WakeSource source, HciPacketType type) {
     std::unique_lock<std::recursive_mutex> lock(mutex_);
+    logger_.RecordActivity(source, type);
     if (acquired_sources_.count(source) > 0) {
         return;
     }
@@ -110,6 +115,7 @@ void WakelockImpl::AcquireWakelock() {
     if (!wakelock_acquired_) {
         HAL_LOG(DEBUG) << "Acuqire system wakelock";
         PowerInterface::GetInterface().AcquireWakelock();
+        logger_.StartSession();
         wakelock_acquired_ = true;
     }
 }
@@ -119,6 +125,7 @@ void WakelockImpl::ReleaseWakelock() {
     if (wakelock_acquired_) {
         HAL_LOG(DEBUG) << "Release system wakelock";
         PowerInterface::GetInterface().ReleaseWakelock();
+        logger_.EndSession();
         wakelock_acquired_ = false;
     }
 }

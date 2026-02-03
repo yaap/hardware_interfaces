@@ -26,9 +26,12 @@ class Wakelock {
      * @brief Vote for acquiring wakelock from the system.
      *
      * @param source The source of the requester.
+     * @param type The HCI packet type that triggers the wakelock.
      *
      */
-    virtual void Acquire(WakeSource source) = 0;
+    virtual void Acquire(WakeSource source,
+                         ::bluetooth_hal::hci::HciPacketType type =
+                                 ::bluetooth_hal::hci::HciPacketType::kUnknown) = 0;
 
     /**
      * @brief Un-vote for wakelock from the system.
@@ -76,8 +79,10 @@ class Wakelock {
 
 class ScopedWakelock {
   public:
-    ScopedWakelock(WakeSource source) : source_(source) {
-        Wakelock::GetWakelock().Acquire(source_);
+    ScopedWakelock(WakeSource source, ::bluetooth_hal::hci::HciPacketType type =
+                                              ::bluetooth_hal::hci::HciPacketType::kUnknown)
+        : source_(source) {
+        Wakelock::GetWakelock().Acquire(source_, type);
     }
 
     ~ScopedWakelock() { Wakelock::GetWakelock().Release(source_); }
