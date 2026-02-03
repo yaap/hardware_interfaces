@@ -24,31 +24,30 @@ BluetoothSocket::BluetoothSocket() {}
 BluetoothSocket::~BluetoothSocket() {}
 
 ::ndk::ScopedAStatus BluetoothSocket::registerCallback(
-    const std::shared_ptr<
-        ::aidl::android::hardware::bluetooth::socket::IBluetoothSocketCallback>&
-        in_callback) {
-  if (in_callback == nullptr) {
-    return ndk::ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
-  }
-  callback_ = in_callback;
-  return ::ndk::ScopedAStatus::ok();
+        const std::shared_ptr<
+                ::aidl::android::hardware::bluetooth::socket::IBluetoothSocketCallback>&
+                in_callback) {
+    if (in_callback == nullptr) {
+        return ndk::ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    }
+    callback_ = in_callback;
+    return ::ndk::ScopedAStatus::ok();
 }
 ::ndk::ScopedAStatus BluetoothSocket::getSocketCapabilities(
-    ::aidl::android::hardware::bluetooth::socket::SocketCapabilities*
-        _aidl_return) {
-  _aidl_return->leCocCapabilities.numberOfSupportedSockets = 0;
-  _aidl_return->leCocCapabilities.mtu = 0;
-  _aidl_return->rfcommCapabilities.numberOfSupportedSockets = 0;
-  _aidl_return->rfcommCapabilities.maxFrameSize = 0;
-  return ::ndk::ScopedAStatus::ok();
+        ::aidl::android::hardware::bluetooth::socket::SocketCapabilities* _aidl_return) {
+    _aidl_return->leCocCapabilities.numberOfSupportedSockets = 0;
+    _aidl_return->leCocCapabilities.mtu = 0;
+    _aidl_return->rfcommCapabilities.numberOfSupportedSockets = 0;
+    _aidl_return->rfcommCapabilities.maxFrameSize = 0;
+    return ::ndk::ScopedAStatus::ok();
 }
 ::ndk::ScopedAStatus BluetoothSocket::opened(
-    const ::aidl::android::hardware::bluetooth::socket::SocketContext&
-    /* in_context */) {
-  return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+        const ::aidl::android::hardware::bluetooth::socket::SocketContext&
+        /* in_context */) {
+    return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 ::ndk::ScopedAStatus BluetoothSocket::closed(int64_t /*in_socketId*/) {
-  return ::ndk::ScopedAStatus::ok();
+    return ::ndk::ScopedAStatus::ok();
 }
 
 }  // namespace aidl::android::hardware::bluetooth::socket::impl

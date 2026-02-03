@@ -41,65 +41,55 @@ constexpr uint8_t kHciVscSetPowerCapChain0PowerLimitSizePlusHR = 4;
 constexpr uint8_t kHciVscSetPowerCapChain1PowerLimitSizePlusHR = 4;
 constexpr uint8_t kHciVscSetPowerCapBeamformingPowerLimitSizePlusHR = 8;
 constexpr size_t kHciVscSetPowerCapCmdLength =
-    1 /* Packet type */ +
-    ::bluetooth_hal::hci::HciConstants::kHciCommandPreambleSize +
-    1 /* Sub Opcode size*/
-    + kHciVscSetPowerCapChain0PowerLimitSize +
-    kHciVscSetPowerCapChain1PowerLimitSize +
-    kHciVscSetPowerCapBeamformingPowerLimitSize;
+        1 /* Packet type */ + ::bluetooth_hal::hci::HciConstants::kHciCommandPreambleSize +
+        1 /* Sub Opcode size*/
+        + kHciVscSetPowerCapChain0PowerLimitSize + kHciVscSetPowerCapChain1PowerLimitSize +
+        kHciVscSetPowerCapBeamformingPowerLimitSize;
 constexpr size_t kHciVscSetPowerCapCmdLengthPlusHR =
-    1 /* Packet type */ +
-    ::bluetooth_hal::hci::HciConstants::kHciCommandPreambleSize +
-    1 /* Sub Opcode size*/ + 1 /* Command version size */
-    + kHciVscSetPowerCapChain0PowerLimitSizePlusHR +
-    kHciVscSetPowerCapChain1PowerLimitSizePlusHR +
-    kHciVscSetPowerCapBeamformingPowerLimitSizePlusHR;
+        1 /* Packet type */ + ::bluetooth_hal::hci::HciConstants::kHciCommandPreambleSize +
+        1 /* Sub Opcode size*/ + 1 /* Command version size */
+        + kHciVscSetPowerCapChain0PowerLimitSizePlusHR +
+        kHciVscSetPowerCapChain1PowerLimitSizePlusHR +
+        kHciVscSetPowerCapBeamformingPowerLimitSizePlusHR;
 constexpr uint8_t kHciVscPowerCapScale = 4;
 
 class BluetoothSarHandler : public ::bluetooth_hal::hci::HciRouterClient,
                             public ::bluetooth_hal::debug::DebugClient {
- public:
-  BluetoothSarHandler();
-  bool SetBluetoothTxPowerCap(int8_t cap);
-  bool SetBluetoothTechBasedTxPowerCap(int8_t br_cap, int8_t edr_cap,
-                                       int8_t ble_cap);
-  bool SetBluetoothModeBasedTxPowerCap(
-      const std::array<uint8_t, 3>& chain_0_cap,
-      const std::array<uint8_t, 3>& chain_1_cap,
-      const std::array<uint8_t, 6>& beamforming_cap);
-  bool SetBluetoothModeBasedTxPowerCapPlusHR(
-      const std::array<uint8_t, 4>& chain_0_cap,
-      const std::array<uint8_t, 4>& chain_1_cap,
-      const std::array<uint8_t, 8>& beamforming_cap);
-  bool SetBluetoothAreaCode(int32_t area_code);
+  public:
+    BluetoothSarHandler();
+    bool SetBluetoothTxPowerCap(int8_t cap);
+    bool SetBluetoothTechBasedTxPowerCap(int8_t br_cap, int8_t edr_cap, int8_t ble_cap);
+    bool SetBluetoothModeBasedTxPowerCap(const std::array<uint8_t, 3>& chain_0_cap,
+                                         const std::array<uint8_t, 3>& chain_1_cap,
+                                         const std::array<uint8_t, 6>& beamforming_cap);
+    bool SetBluetoothModeBasedTxPowerCapPlusHR(const std::array<uint8_t, 4>& chain_0_cap,
+                                               const std::array<uint8_t, 4>& chain_1_cap,
+                                               const std::array<uint8_t, 8>& beamforming_cap);
+    bool SetBluetoothAreaCode(int32_t area_code);
 
- protected:
-  ::bluetooth_hal::hci::HalPacket BuildCommandHRMode(
-      const std::array<uint8_t, 4>& chain_0_cap,
-      const std::array<uint8_t, 4>& chain_1_cap,
-      const std::array<uint8_t, 8>& beamforming_cap, bool high_resolution_cap,
-      bool is_ble_non_connection_enabled);
-  ::bluetooth_hal::hci::HalPacket BuildCommand(
-      const std::array<uint8_t, 3>& chain_0_cap,
-      const std::array<uint8_t, 3>& chain_1_cap,
-      const std::array<uint8_t, 6>& beamforming_cap, bool high_resolution_cap);
-  ::bluetooth_hal::hci::HalPacket BuildCommand(uint8_t br_cap, uint8_t edr_cap,
-                                               uint8_t ble_cap,
-                                               bool high_resolution_cap);
+  protected:
+    ::bluetooth_hal::hci::HalPacket BuildCommandHRMode(
+            const std::array<uint8_t, 4>& chain_0_cap, const std::array<uint8_t, 4>& chain_1_cap,
+            const std::array<uint8_t, 8>& beamforming_cap, bool high_resolution_cap,
+            bool is_ble_non_connection_enabled);
+    ::bluetooth_hal::hci::HalPacket BuildCommand(const std::array<uint8_t, 3>& chain_0_cap,
+                                                 const std::array<uint8_t, 3>& chain_1_cap,
+                                                 const std::array<uint8_t, 6>& beamforming_cap,
+                                                 bool high_resolution_cap);
+    ::bluetooth_hal::hci::HalPacket BuildCommand(uint8_t br_cap, uint8_t edr_cap, uint8_t ble_cap,
+                                                 bool high_resolution_cap);
 
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override;
-  void OnBluetoothDisabled() override;
-  void OnCommandCallback(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override;
+    void OnBluetoothDisabled() override;
+    void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
 
- private:
-  bool high_resolution_cap_ = false;
-  bool is_ble_non_connection_enabled_ = false;
+  private:
+    bool high_resolution_cap_ = false;
+    bool is_ble_non_connection_enabled_ = false;
 };
 
 }  // namespace bluetooth_hal::extensions::sar

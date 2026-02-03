@@ -29,46 +29,41 @@
 namespace bluetooth_hal::bqr {
 
 class BqrHandler : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  using VendorFactory =
-      ::bluetooth_hal::util::ProviderFactory<BqrHandler, BqrHandler>;
-  using FactoryFn = VendorFactory::FactoryFn;
+  public:
+    using VendorFactory = ::bluetooth_hal::util::ProviderFactory<BqrHandler, BqrHandler>;
+    using FactoryFn = VendorFactory::FactoryFn;
 
-  static bool RegisterBqrHandler(FactoryFn factory);
+    static bool RegisterBqrHandler(FactoryFn factory);
 
-  BqrHandler();
-  static void Start();
-  static void Stop();
+    BqrHandler();
+    static void Start();
+    static void Stop();
 
- protected:
-  void OnCommandCallback(
-      [[maybe_unused]] const ::bluetooth_hal::hci::HalPacket& packet) override {
-  };
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override;
-  void OnBluetoothDisabled() override;
+  protected:
+    void OnCommandCallback(
+            [[maybe_unused]] const ::bluetooth_hal::hci::HalPacket& packet) override {};
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override;
+    void OnBluetoothDisabled() override;
 
-  BqrVersion GetLocalSupportedBqrVersion();
+    BqrVersion GetLocalSupportedBqrVersion();
 
-  virtual void HandleVendorCapabilityEvent(
-      const ::bluetooth_hal::hci::HalPacket& packet);
-  virtual void HandleRootInflammationEvent(const BqrEvent& event);
-  virtual void HandleLinkQualityEvent(const BqrEvent& bqr_event);
-  virtual void HandleAdvancedRfStatEvent(const BqrEvent& bqr_event);
-  virtual void HandleEnergyMonitoringEvent(const BqrEvent& bqr_event);
-  virtual void HandleUnspecifiedVendorEvent(const BqrEvent& bqr_event);
+    virtual void HandleVendorCapabilityEvent(const ::bluetooth_hal::hci::HalPacket& packet);
+    virtual void HandleRootInflammationEvent(const BqrEvent& event);
+    virtual void HandleLinkQualityEvent(const BqrEvent& bqr_event);
+    virtual void HandleAdvancedRfStatEvent(const BqrEvent& bqr_event);
+    virtual void HandleEnergyMonitoringEvent(const BqrEvent& bqr_event);
+    virtual void HandleUnspecifiedVendorEvent(const BqrEvent& bqr_event);
 
-  BqrVersion local_supported_bqr_version_;
-  ::bluetooth_hal::hci::HciCommandCompleteEventMonitor
-      vendor_capability_monitor_;
-  ::bluetooth_hal::hci::HciBqrEventMonitor bqr_event_monitor_;
+    BqrVersion local_supported_bqr_version_;
+    ::bluetooth_hal::hci::HciCommandCompleteEventMonitor vendor_capability_monitor_;
+    ::bluetooth_hal::hci::HciBqrEventMonitor bqr_event_monitor_;
 
- private:
-  static std::unique_ptr<BqrHandler> handler_ptr_;
+  private:
+    static std::unique_ptr<BqrHandler> handler_ptr_;
 };
 
 }  // namespace bluetooth_hal::bqr

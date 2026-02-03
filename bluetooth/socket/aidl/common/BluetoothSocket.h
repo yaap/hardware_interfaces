@@ -19,24 +19,23 @@
 namespace aidl::android::hardware::bluetooth::socket::impl {
 
 class BluetoothSocket : public BnBluetoothSocket {
- public:
-  BluetoothSocket();
-  ~BluetoothSocket();
+  public:
+    BluetoothSocket();
+    ~BluetoothSocket();
 
-  ::ndk::ScopedAStatus registerCallback(
-      const std::shared_ptr<::aidl::android::hardware::bluetooth::socket::
-                                IBluetoothSocketCallback>& in_callback)
-      override;
-  ::ndk::ScopedAStatus getSocketCapabilities(
-      ::aidl::android::hardware::bluetooth::socket::SocketCapabilities*
-          _aidl_return) override;
-  ::ndk::ScopedAStatus opened(
-      const ::aidl::android::hardware::bluetooth::socket::SocketContext&
-          in_context) override;
-  ::ndk::ScopedAStatus closed(int64_t in_socketId) override;
+    ::ndk::ScopedAStatus registerCallback(
+            const std::shared_ptr<
+                    ::aidl::android::hardware::bluetooth::socket::IBluetoothSocketCallback>&
+                    in_callback) override;
+    ::ndk::ScopedAStatus getSocketCapabilities(
+            ::aidl::android::hardware::bluetooth::socket::SocketCapabilities* _aidl_return)
+            override;
+    ::ndk::ScopedAStatus opened(
+            const ::aidl::android::hardware::bluetooth::socket::SocketContext& in_context) override;
+    ::ndk::ScopedAStatus closed(int64_t in_socketId) override;
 
- private:
-  std::shared_ptr<IBluetoothSocketCallback> callback_;
+  private:
+    std::shared_ptr<IBluetoothSocketCallback> callback_;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::socket::impl

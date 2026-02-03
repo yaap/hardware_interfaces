@@ -25,28 +25,23 @@
 
 namespace bluetooth_hal::extensions::sar {
 
-class BluetoothSar
-    : public ::aidl::hardware::google::bluetooth::sar::BnBluetoothSar {
- public:
-  BluetoothSar() = default;
+class BluetoothSar : public ::aidl::hardware::google::bluetooth::sar::BnBluetoothSar {
+  public:
+    BluetoothSar() = default;
 
-  ::ndk::ScopedAStatus setBluetoothTxPowerCap(int8_t cap) override;
-  ::ndk::ScopedAStatus setBluetoothTechBasedTxPowerCap(int8_t br_cap,
-                                                       int8_t edr_cap,
-                                                       int8_t ble_cap) override;
-  ::ndk::ScopedAStatus setBluetoothModeBasedTxPowerCap(
-      const std::array<uint8_t, 3>& chain_0_cap,
-      const std::array<uint8_t, 3>& chain_1_cap,
-      const std::array<uint8_t, 6>& beamforming_cap) override;
-  ::ndk::ScopedAStatus setBluetoothModeBasedTxPowerCapPlusHR(
-      const std::array<uint8_t, 4>& chain_0_cap,
-      const std::array<uint8_t, 4>& chain_1_cap,
-      const std::array<uint8_t, 8>& beamforming_cap) override;
-  ::ndk::ScopedAStatus setBluetoothAreaCode(
-      const std::array<uint8_t, 3>& area_code) override;
+    ::ndk::ScopedAStatus setBluetoothTxPowerCap(int8_t cap) override;
+    ::ndk::ScopedAStatus setBluetoothTechBasedTxPowerCap(int8_t br_cap, int8_t edr_cap,
+                                                         int8_t ble_cap) override;
+    ::ndk::ScopedAStatus setBluetoothModeBasedTxPowerCap(
+            const std::array<uint8_t, 3>& chain_0_cap, const std::array<uint8_t, 3>& chain_1_cap,
+            const std::array<uint8_t, 6>& beamforming_cap) override;
+    ::ndk::ScopedAStatus setBluetoothModeBasedTxPowerCapPlusHR(
+            const std::array<uint8_t, 4>& chain_0_cap, const std::array<uint8_t, 4>& chain_1_cap,
+            const std::array<uint8_t, 8>& beamforming_cap) override;
+    ::ndk::ScopedAStatus setBluetoothAreaCode(const std::array<uint8_t, 3>& area_code) override;
 
- private:
-  ::bluetooth_hal::extensions::sar::BluetoothSarHandler bluetooth_sar_handler_;
+  private:
+    ::bluetooth_hal::extensions::sar::BluetoothSarHandler bluetooth_sar_handler_;
 };
 
 }  // namespace bluetooth_hal::extensions::sar

@@ -27,21 +27,18 @@
 
 namespace bluetooth_hal::extensions::ccc {
 
-class BluetoothCcc
-    : public ::aidl::hardware::google::bluetooth::ccc::BnBluetoothCcc {
- public:
-  BluetoothCcc() = default;
+class BluetoothCcc : public ::aidl::hardware::google::bluetooth::ccc::BnBluetoothCcc {
+  public:
+    BluetoothCcc() = default;
 
-  ::ndk::ScopedAStatus registerForLmpEvents(
-      const std::shared_ptr<
-          ::aidl::hardware::google::bluetooth::ccc::IBluetoothCccCallback>&
-          callback,
-      const std::array<uint8_t, 6>& address,
-      const std::vector<::aidl::hardware::google::bluetooth::ccc::LmpEventId>&
-          lmpEventIds) override;
+    ::ndk::ScopedAStatus registerForLmpEvents(
+            const std::shared_ptr<::aidl::hardware::google::bluetooth::ccc::IBluetoothCccCallback>&
+                    callback,
+            const std::array<uint8_t, 6>& address,
+            const std::vector<::aidl::hardware::google::bluetooth::ccc::LmpEventId>& lmpEventIds)
+            override;
 
-  ::ndk::ScopedAStatus unregisterLmpEvents(
-      const std::array<uint8_t, 6>& address) override;
+    ::ndk::ScopedAStatus unregisterLmpEvents(const std::array<uint8_t, 6>& address) override;
 };
 
 }  // namespace bluetooth_hal::extensions::ccc

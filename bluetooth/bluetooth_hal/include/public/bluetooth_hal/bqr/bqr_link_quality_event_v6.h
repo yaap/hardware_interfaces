@@ -25,35 +25,34 @@
 namespace bluetooth_hal::bqr {
 
 enum class LinkQualityOffsetV6 : uint8_t {
-  kRxUnreceivedPackets =
-      static_cast<uint8_t>(LinkQualityOffsetV5::kEnd),  // 4 bytes
-  kCoexInfoMask = 87,                                   // 2 bytes
-  kEnd = 89,
+    kRxUnreceivedPackets = static_cast<uint8_t>(LinkQualityOffsetV5::kEnd),  // 4 bytes
+    kCoexInfoMask = 87,                                                      // 2 bytes
+    kEnd = 89,
 };
 
 class BqrLinkQualityEventV6 : public BqrLinkQualityEventV5 {
- public:
-  explicit BqrLinkQualityEventV6(const ::bluetooth_hal::hci::HalPacket& packet);
-  ~BqrLinkQualityEventV6() = default;
+  public:
+    explicit BqrLinkQualityEventV6(const ::bluetooth_hal::hci::HalPacket& packet);
+    ~BqrLinkQualityEventV6() = default;
 
-  // Checks if the BQR Link Quality Event V6 is valid.
-  bool IsValid() const override;
+    // Checks if the BQR Link Quality Event V6 is valid.
+    bool IsValid() const override;
 
-  // Retrieves the number of unreceived packets, same as LE Read ISO Link
-  // Quality command.
-  uint32_t GetRxUnreceivedPackets() const;
-  // Retrieves the coex activities information mask.
-  uint16_t GetCoexInfoMask() const;
+    // Retrieves the number of unreceived packets, same as LE Read ISO Link
+    // Quality command.
+    uint32_t GetRxUnreceivedPackets() const;
+    // Retrieves the coex activities information mask.
+    uint16_t GetCoexInfoMask() const;
 
-  // Returns a string representation of the event.
-  std::string ToString() const;
+    // Returns a string representation of the event.
+    std::string ToString() const;
 
- protected:
-  void ParseData();
-  std::string ToBqrString() const;
+  protected:
+    void ParseData();
+    std::string ToBqrString() const;
 
-  uint32_t rx_unreceived_packets_;
-  uint16_t coex_info_mask_;
+    uint32_t rx_unreceived_packets_;
+    uint16_t coex_info_mask_;
 };
 
 }  // namespace bluetooth_hal::bqr

@@ -30,10 +30,9 @@ using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;
 
 TEST(TransportUartH4Test, GetTransportReturnSameInstance) {
-  MockAndroidBaseWrapper mock_android_base_wrapper;
-  MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
-  EXPECT_EQ(&TransportFactory::GetTransport(),
-            &TransportFactory::GetTransport());
+    MockAndroidBaseWrapper mock_android_base_wrapper;
+    MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper);
+    EXPECT_EQ(&TransportFactory::GetTransport(), &TransportFactory::GetTransport());
 }
 
 }  // namespace

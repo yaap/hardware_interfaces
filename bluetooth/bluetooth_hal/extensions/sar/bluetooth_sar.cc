@@ -42,54 +42,45 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void SarInitializer() {
-  RegisterHalService(SharedRefBase::make<BluetoothSar>());
+    RegisterHalService(SharedRefBase::make<BluetoothSar>());
 }
 
 }  // namespace
 
 struct SarRegistrar {
-  SarRegistrar() { BluetoothHalRegisterExtension(SarInitializer); }
+    SarRegistrar() { BluetoothHalRegisterExtension(SarInitializer); }
 };
 
 SarRegistrar g_sar_registrar;
 
 ScopedAStatus BluetoothSar::setBluetoothTxPowerCap(int8_t cap) {
-  bool status = bluetooth_sar_handler_.SetBluetoothTxPowerCap(cap);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    bool status = bluetooth_sar_handler_.SetBluetoothTxPowerCap(cap);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothSar::setBluetoothTechBasedTxPowerCap(int8_t br_cap,
-                                                            int8_t edr_cap,
+ScopedAStatus BluetoothSar::setBluetoothTechBasedTxPowerCap(int8_t br_cap, int8_t edr_cap,
                                                             int8_t ble_cap) {
-  bool status = bluetooth_sar_handler_.SetBluetoothTechBasedTxPowerCap(
-      br_cap, edr_cap, ble_cap);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    bool status = bluetooth_sar_handler_.SetBluetoothTechBasedTxPowerCap(br_cap, edr_cap, ble_cap);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothSar::setBluetoothModeBasedTxPowerCap(
-    const std::array<uint8_t, 3>& chain_0_cap,
-    const std::array<uint8_t, 3>& chain_1_cap,
-    const std::array<uint8_t, 6>& beamforming_cap) {
-  bool status = bluetooth_sar_handler_.SetBluetoothModeBasedTxPowerCap(
-      chain_0_cap, chain_1_cap, beamforming_cap);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+        const std::array<uint8_t, 3>& chain_0_cap, const std::array<uint8_t, 3>& chain_1_cap,
+        const std::array<uint8_t, 6>& beamforming_cap) {
+    bool status = bluetooth_sar_handler_.SetBluetoothModeBasedTxPowerCap(chain_0_cap, chain_1_cap,
+                                                                         beamforming_cap);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 ScopedAStatus BluetoothSar::setBluetoothModeBasedTxPowerCapPlusHR(
-    const std::array<uint8_t, 4>& chain_0_cap,
-    const std::array<uint8_t, 4>& chain_1_cap,
-    const std::array<uint8_t, 8>& beamforming_cap) {
-  bool status = bluetooth_sar_handler_.SetBluetoothModeBasedTxPowerCapPlusHR(
-      chain_0_cap, chain_1_cap, beamforming_cap);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+        const std::array<uint8_t, 4>& chain_0_cap, const std::array<uint8_t, 4>& chain_1_cap,
+        const std::array<uint8_t, 8>& beamforming_cap) {
+    bool status = bluetooth_sar_handler_.SetBluetoothModeBasedTxPowerCapPlusHR(
+            chain_0_cap, chain_1_cap, beamforming_cap);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
-ScopedAStatus BluetoothSar::setBluetoothAreaCode(
-    const std::array<uint8_t, 3>& /*area_code*/) {
-  return ScopedAStatus::ok();
+ScopedAStatus BluetoothSar::setBluetoothAreaCode(const std::array<uint8_t, 3>& /*area_code*/) {
+    return ScopedAStatus::ok();
 }
 
 }  // namespace bluetooth_hal::extensions::sar

@@ -22,17 +22,16 @@
 
 namespace bluetooth_hal::extensions::cs {
 
-class ChannelSoundingDistanceEstimator
-    : public ChannelSoundingDistanceEstimatorInterface {
- public:
-  void ResetVariables() override;
+class ChannelSoundingDistanceEstimator : public ChannelSoundingDistanceEstimatorInterface {
+  public:
+    void ResetVariables() override;
 
-  double GetConfidenceLevel() override;
+    double GetConfidenceLevel() override;
 
-  void SetInlinePCT(bool is_enabled) override;
+    void SetInlinePCT(bool is_enabled) override;
 
- protected:
-  double EstimateDistanceImpl(const std::any& data) override;
+  protected:
+    double EstimateDistanceImpl(const std::any& data) override;
 };
 
 }  // namespace bluetooth_hal::extensions::cs

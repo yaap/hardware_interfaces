@@ -29,25 +29,25 @@ namespace bluetooth {
 namespace hci {
 
 class MctProtocol : public HciProtocol {
- public:
-  MctProtocol(int* fds, PacketReadCallback event_cb, PacketReadCallback acl_cb);
+  public:
+    MctProtocol(int* fds, PacketReadCallback event_cb, PacketReadCallback acl_cb);
 
-  size_t Send(uint8_t type, const uint8_t* data, size_t length);
+    size_t Send(uint8_t type, const uint8_t* data, size_t length);
 
-  void OnEventPacketReady();
-  void OnAclDataPacketReady();
+    void OnEventPacketReady();
+    void OnAclDataPacketReady();
 
-  void OnEventDataReady(int fd);
-  void OnAclDataReady(int fd);
+    void OnEventDataReady(int fd);
+    void OnAclDataReady(int fd);
 
- private:
-  int uart_fds_[CH_MAX];
+  private:
+    int uart_fds_[CH_MAX];
 
-  PacketReadCallback event_cb_;
-  PacketReadCallback acl_cb_;
+    PacketReadCallback event_cb_;
+    PacketReadCallback acl_cb_;
 
-  hci::HciPacketizer event_packetizer_;
-  hci::HciPacketizer acl_packetizer_;
+    hci::HciPacketizer event_packetizer_;
+    hci::HciPacketizer acl_packetizer_;
 };
 
 }  // namespace hci

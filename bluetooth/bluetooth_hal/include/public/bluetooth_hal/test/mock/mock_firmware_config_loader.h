@@ -27,31 +27,31 @@
 namespace bluetooth_hal::config {
 
 class MockFirmwareConfigLoader : public FirmwareConfigLoader {
- public:
-  MOCK_METHOD(bool, LoadConfig, (), (override));
+  public:
+    MOCK_METHOD(bool, LoadConfig, (), (override));
 
-  MOCK_METHOD(bool, ResetFirmwareDataLoadingState, (), (override));
+    MOCK_METHOD(bool, ResetFirmwareDataLoadingState, (), (override));
 
-  MOCK_METHOD(std::optional<DataPacket>, GetNextFirmwareData, (), (override));
+    MOCK_METHOD(std::optional<DataPacket>, GetNextFirmwareData, (), (override));
 
-  MOCK_METHOD(std::optional<std::reference_wrapper<const SetupCommandPacket>>,
-              GetSetupCommandPacket, (SetupCommandType), (const, override));
+    MOCK_METHOD(std::optional<std::reference_wrapper<const SetupCommandPacket>>,
+                GetSetupCommandPacket, (SetupCommandType), (const, override));
 
-  MOCK_METHOD(int, GetLoadMiniDrvDelayMs, (), (const, override));
+    MOCK_METHOD(int, GetLoadMiniDrvDelayMs, (), (const, override));
 
-  MOCK_METHOD(int, GetLaunchRamDelayMs, (), (const, override));
+    MOCK_METHOD(int, GetLaunchRamDelayMs, (), (const, override));
 
-  MOCK_METHOD(size_t, GetFirmwareFileCount, (), (const, override));
+    MOCK_METHOD(size_t, GetFirmwareFileCount, (), (const, override));
 
-  MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
+    MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
 
-  static FirmwareConfigLoader& GetLoader();
+    static FirmwareConfigLoader& GetLoader();
 
-  static void ResetLoader();
+    static void ResetLoader();
 
-  static void SetMockLoader(MockFirmwareConfigLoader* loader);
+    static void SetMockLoader(MockFirmwareConfigLoader* loader);
 
-  static inline MockFirmwareConfigLoader* mock_firmware_config_loader_{nullptr};
+    static inline MockFirmwareConfigLoader* mock_firmware_config_loader_{nullptr};
 };
 
 }  // namespace bluetooth_hal::config

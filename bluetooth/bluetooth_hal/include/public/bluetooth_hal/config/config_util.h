@@ -24,11 +24,11 @@
 namespace bluetooth_hal::config {
 
 inline void EnableTransportFallback() {
-  // Disable Accelerate Bluetooth On to re-initialize the UART.
-  ::bluetooth_hal::util::AndroidBaseWrapper::GetWrapper().SetProperty(
-      ::bluetooth_hal::Property::kIsAcceleratedBtOnEnabled, "false");
-  ::bluetooth_hal::util::AndroidBaseWrapper::GetWrapper().SetProperty(
-      ::bluetooth_hal::Property::kTransportFallbackEnabled, "true");
+    // Disable Accelerate Bluetooth On to re-initialize the UART.
+    ::bluetooth_hal::util::AndroidBaseWrapper::GetWrapper().SetProperty(
+            ::bluetooth_hal::Property::kIsAcceleratedBtOnEnabled, "false");
+    ::bluetooth_hal::util::AndroidBaseWrapper::GetWrapper().SetProperty(
+            ::bluetooth_hal::Property::kTransportFallbackEnabled, "true");
 }
 
 }  // namespace bluetooth_hal::config

@@ -24,23 +24,21 @@
 namespace aidl::android::hardware::bluetooth::audio {
 
 class A2dpOffloadCodec {
- protected:
-  A2dpOffloadCodec(const CodecInfo& info) : info(info) {}
-  virtual ~A2dpOffloadCodec() {}
+  protected:
+    A2dpOffloadCodec(const CodecInfo& info) : info(info) {}
+    virtual ~A2dpOffloadCodec() {}
 
- public:
-  const CodecInfo& info;
+  public:
+    const CodecInfo& info;
 
-  const CodecId& GetCodecId() const { return info.id; }
+    const CodecId& GetCodecId() const { return info.id; }
 
-  virtual A2dpStatus ParseConfiguration(
-      const std::vector<uint8_t>& configuration,
-      CodecParameters* codec_parameters) const = 0;
+    virtual A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
+                                          CodecParameters* codec_parameters) const = 0;
 
-  virtual bool BuildConfiguration(
-      const std::vector<uint8_t>& remote_capabilities,
-      const std::optional<CodecParameters>& hint,
-      std::vector<uint8_t>* configuration) const = 0;
+    virtual bool BuildConfiguration(const std::vector<uint8_t>& remote_capabilities,
+                                    const std::optional<CodecParameters>& hint,
+                                    std::vector<uint8_t>* configuration) const = 0;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::audio

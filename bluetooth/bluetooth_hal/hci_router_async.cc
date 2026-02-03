@@ -85,429 +85,408 @@ using ::bluetooth_hal::util::power::WakeSource;
  *
  * Format of the map: {CurrentState, {ValidNextState1, ValidNextState2, ...}}
  */
-static const std::unordered_map<HalState, std::unordered_set<HalState>>
-    kHalStateMachine = {
+static const std::unordered_map<HalState, std::unordered_set<HalState>> kHalStateMachine = {
         {HalState::kShutdown, {HalState::kShutdown, HalState::kInit}},
-        {HalState::kInit,
-         {HalState::kShutdown, HalState::kPreFirmwareDownload}},
-        {HalState::kPreFirmwareDownload,
-         {HalState::kShutdown, HalState::kFirmwareDownloading}},
+        {HalState::kInit, {HalState::kShutdown, HalState::kPreFirmwareDownload}},
+        {HalState::kPreFirmwareDownload, {HalState::kShutdown, HalState::kFirmwareDownloading}},
         {HalState::kFirmwareDownloading,
          {HalState::kShutdown, HalState::kFirmwareDownloadCompleted}},
-        {HalState::kFirmwareDownloadCompleted,
-         {HalState::kShutdown, HalState::kFirmwareReady}},
-        {HalState::kFirmwareReady,
-         {HalState::kShutdown, HalState::kBtChipReady}},
-        {HalState::kBtChipReady,
-         {HalState::kShutdown, HalState::kBtChipReady, HalState::kRunning}},
+        {HalState::kFirmwareDownloadCompleted, {HalState::kShutdown, HalState::kFirmwareReady}},
+        {HalState::kFirmwareReady, {HalState::kShutdown, HalState::kBtChipReady}},
+        {HalState::kBtChipReady, {HalState::kShutdown, HalState::kBtChipReady, HalState::kRunning}},
         {HalState::kRunning, {HalState::kShutdown, HalState::kBtChipReady}},
 };
 
-HciRouterAsync::HciRouterAsync()
-    : Worker(std::bind_front(&HciRouterAsync::TaskHandler, this)) {}
+HciRouterAsync::HciRouterAsync() : Worker(std::bind_front(&HciRouterAsync::TaskHandler, this)) {}
 
 bool HciRouterAsync::DoInRouterThread(std::function<void()> task) {
-  if (Worker::Post(RouterTask(task))) {
-    VoteRouterTaskWakelock();
-    return true;
-  }
-  return false;
+    if (Worker::Post(RouterTask(task))) {
+        VoteRouterTaskWakelock();
+        return true;
+    }
+    return false;
 }
 
 bool HciRouterAsync::SynchronousDoInRouterThread(std::function<void()> task) {
-  if (std::this_thread::get_id() == Worker::GetThreadId()) {
-    // If the caller thread is the router thread, run the task directly.
-    task();
-    return true;
-  }
+    if (std::this_thread::get_id() == Worker::GetThreadId()) {
+        // If the caller thread is the router thread, run the task directly.
+        task();
+        return true;
+    }
 
-  std::promise<void> promise;
-  auto future = promise.get_future();
-  bool status = DoInRouterThread([&promise, task = std::move(task)]() {
-    task();
-    promise.set_value();
-  });
+    std::promise<void> promise;
+    auto future = promise.get_future();
+    bool status = DoInRouterThread([&promise, task = std::move(task)]() {
+        task();
+        promise.set_value();
+    });
 
-  if (status) {
-    future.wait();
-  }
-  return status;
+    if (status) {
+        future.wait();
+    }
+    return status;
 }
 
 void HciRouterAsync::TaskHandler(RouterTask task) {
-  SCOPED_ANCHOR(AnchorType::kRouterTask, __func__);
-  HAL_LOG(VERBOSE) << "HciRouterAsync: handling RouterTask";
-  task.Run();
-  UnvoteRouterTaskWakelock();
+    SCOPED_ANCHOR(AnchorType::kRouterTask, __func__);
+    HAL_LOG(VERBOSE) << "HciRouterAsync: handling RouterTask";
+    task.Run();
+    UnvoteRouterTaskWakelock();
 }
 
 void HciRouterAsync::VoteRouterTaskWakelock() {
-  // This method is called by the thread that dispatches a task to the router
-  // thread.
-  std::unique_lock<std::mutex> lock(task_wakelock_mutex_);
-  if (wake_lock_votes_ == 0) {
-    Wakelock::GetWakelock().Acquire(WakeSource::kRouterTask);
-  }
-  wake_lock_votes_++;
+    // This method is called by the thread that dispatches a task to the router
+    // thread.
+    std::unique_lock<std::mutex> lock(task_wakelock_mutex_);
+    if (wake_lock_votes_ == 0) {
+        Wakelock::GetWakelock().Acquire(WakeSource::kRouterTask);
+    }
+    wake_lock_votes_++;
 }
 
 void HciRouterAsync::UnvoteRouterTaskWakelock() {
-  // This method is called by the router thread when a task is completed.
-  std::unique_lock<std::mutex> lock(task_wakelock_mutex_);
-  Wakelock::GetWakelock().Release(WakeSource::kRouterTask);
-  wake_lock_votes_--;
-  if (wake_lock_votes_ > 0) {
-    Wakelock::GetWakelock().Acquire(WakeSource::kRouterTask);
-  }
+    // This method is called by the router thread when a task is completed.
+    std::unique_lock<std::mutex> lock(task_wakelock_mutex_);
+    Wakelock::GetWakelock().Release(WakeSource::kRouterTask);
+    wake_lock_votes_--;
+    if (wake_lock_votes_ > 0) {
+        Wakelock::GetWakelock().Acquire(WakeSource::kRouterTask);
+    }
 }
 
-bool HciRouterAsync::Initialize(
-    const std::shared_ptr<HciRouterCallback>& callback,
-    TransportInstanceCallback* transport_callback) {
-  HAL_LOG(INFO) << "Initializing Bluetooth HCI Router.";
-  hci_callback_ = callback;
-  return InitializeModules(transport_callback);
+bool HciRouterAsync::Initialize(const std::shared_ptr<HciRouterCallback>& callback,
+                                TransportInstanceCallback* transport_callback) {
+    HAL_LOG(INFO) << "Initializing Bluetooth HCI Router.";
+    hci_callback_ = callback;
+    return InitializeModules(transport_callback);
 }
 
-bool HciRouterAsync::InitializeModules(
-    TransportInstanceCallback* transport_callback) {
-  transport_callback_ = transport_callback;
-  switch (hal_state_) {
-    case HalState::kRunning:
-      LOG(WARNING) << "HciRouter has already initialized!";
-      return false;
-    case HalState::kShutdown:
-      break;
-    case HalState::kBtChipReady:
-      if (HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
+bool HciRouterAsync::InitializeModules(TransportInstanceCallback* transport_callback) {
+    transport_callback_ = transport_callback;
+    switch (hal_state_) {
+        case HalState::kRunning:
+            LOG(WARNING) << "HciRouter has already initialized!";
+            return false;
+        case HalState::kShutdown:
+            break;
+        case HalState::kBtChipReady:
+            if (HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
 #ifndef UNIT_TEST
-        AsyncChipProvisioner::GetProvisioner().PostResetFirmware();
+                AsyncChipProvisioner::GetProvisioner().PostResetFirmware();
 #endif
-        return true;
-      }
-      [[fallthrough]];
-    default:
-      LOG(WARNING) << "HciRouter is initializing!";
-      return true;
-  }
+                return true;
+            }
+            [[fallthrough]];
+        default:
+            LOG(WARNING) << "HciRouter is initializing!";
+            return true;
+    }
 
-  HciRouterAsync::UpdateHalState(HalState::kInit);
+    HciRouterAsync::UpdateHalState(HalState::kInit);
 
-  if (!InitializeTransport()) {
-    LOG(ERROR) << "Failed to initialize transport!";
-    Close();
-    return false;
-  }
+    if (!InitializeTransport()) {
+        LOG(ERROR) << "Failed to initialize transport!";
+        Close();
+        return false;
+    }
 
-  LOG(INFO) << "Start downloading Bluetooth firmware.";
+    LOG(INFO) << "Start downloading Bluetooth firmware.";
 #ifndef UNIT_TEST
-  AsyncChipProvisioner::GetProvisioner().PostInitialize(
-      [this](HalState hal_state) {
-        SynchronousDoInRouterThread(
-            [this, hal_state]() { UpdateHalState(hal_state); });
-      });
-  AsyncChipProvisioner::GetProvisioner().PostDownloadFirmware();
+    AsyncChipProvisioner::GetProvisioner().PostInitialize([this](HalState hal_state) {
+        SynchronousDoInRouterThread([this, hal_state]() { UpdateHalState(hal_state); });
+    });
+    AsyncChipProvisioner::GetProvisioner().PostDownloadFirmware();
 #endif
 
-  return true;
+    return true;
 }
 
 void HciRouterAsync::Close() {
-  if (hal_state_ == HalState::kRunning &&
-      HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
+    if (hal_state_ == HalState::kRunning &&
+        HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
 #ifndef UNIT_TEST
-    AsyncChipProvisioner::GetProvisioner().PostResetFirmware();
+        AsyncChipProvisioner::GetProvisioner().PostResetFirmware();
 #endif
-    return;
-  }
-  HciRouterAsync::Cleanup();
+        return;
+    }
+    HciRouterAsync::Cleanup();
 }
 
 void HciRouterAsync::Cleanup() {
-  HAL_LOG(INFO) << "Shutting down the HciRouter";
+    HAL_LOG(INFO) << "Shutting down the HciRouter";
 
-  SetBusy(false);
-  std::queue<QueuedHciCommand> empty;
-  std::swap(hci_cmd_queue_, empty);
+    SetBusy(false);
+    std::queue<QueuedHciCommand> empty;
+    std::swap(hci_cmd_queue_, empty);
 
-  if (ThreadHandler::IsHandlerRunning()) {
-    ThreadHandler::Cleanup();
-  }
+    if (ThreadHandler::IsHandlerRunning()) {
+        ThreadHandler::Cleanup();
+    }
 
-  TransportFactory::CleanupTransport();
+    TransportFactory::CleanupTransport();
 
-  HciRouterAsync::UpdateHalState(HalState::kShutdown);
-  hci_callback_ = nullptr;
-  transport_callback_ = nullptr;
+    HciRouterAsync::UpdateHalState(HalState::kShutdown);
+    hci_callback_ = nullptr;
+    transport_callback_ = nullptr;
 }
 
 bool HciRouterAsync::Send(const HalPacket& packet) {
-  if (hal_state_ == HalState::kShutdown) {
-    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
-    return false;
-  }
-  packet.SetDestination(PacketDestination::kController);
+    if (hal_state_ == HalState::kShutdown) {
+        HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+        return false;
+    }
+    packet.SetDestination(PacketDestination::kController);
 
-  if (packet.GetType() == HciPacketType::kCommand) {
-    return HciRouterAsync::SendCommand(
-        packet, std::make_shared<HalPacketCallback>(std::bind_front(
-                    &HciRouterCallback::OnCommandCallback, hci_callback_)));
-  }
+    if (packet.GetType() == HciPacketType::kCommand) {
+        return HciRouterAsync::SendCommand(
+                packet, std::make_shared<HalPacketCallback>(std::bind_front(
+                                &HciRouterCallback::OnCommandCallback, hci_callback_)));
+    }
 
-  if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-      MonitorMode::kIntercept) {
-    HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
-                   << packet.ToString();
-    return true;
-  }
-  return SendToTransport(packet);
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+        MonitorMode::kIntercept) {
+        HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
+        return true;
+    }
+    return SendToTransport(packet);
 }
 
-bool HciRouterAsync::SendCommand(
-    const HalPacket& packet,
-    const std::shared_ptr<HalPacketCallback>& callback) {
-  if (hal_state_ == HalState::kShutdown) {
-    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
-    return false;
-  }
-  packet.SetDestination(PacketDestination::kController);
+bool HciRouterAsync::SendCommand(const HalPacket& packet,
+                                 const std::shared_ptr<HalPacketCallback>& callback) {
+    if (hal_state_ == HalState::kShutdown) {
+        HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+        return false;
+    }
+    packet.SetDestination(PacketDestination::kController);
 
-  if (packet.GetCommandOpcode() ==
-      static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo)) {
-    return HciRouterAsync::SendCommandNoAck(packet);
-  }
+    if (packet.GetCommandOpcode() == static_cast<uint16_t>(CommandOpCode::kGoogleDebugInfo)) {
+        return HciRouterAsync::SendCommandNoAck(packet);
+    }
 
-  if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-      MonitorMode::kIntercept) {
-    HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
-                   << packet.ToString();
-    return true;
-  }
-  return SendOrQueueCommand(packet, callback);
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+        MonitorMode::kIntercept) {
+        HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
+        return true;
+    }
+    return SendOrQueueCommand(packet, callback);
 }
 
 bool HciRouterAsync::SendCommandNoAck(const HalPacket& packet) {
-  if (hal_state_ == HalState::kShutdown) {
-    HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
-    return false;
-  }
-  packet.SetDestination(PacketDestination::kController);
-  if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-      MonitorMode::kIntercept) {
-    HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, "
-                   << packet.ToString();
-    return true;
-  }
-  return SendToTransport(packet);
+    if (hal_state_ == HalState::kShutdown) {
+        HAL_LOG(WARNING) << __func__ << ": Hal is shut down.";
+        return false;
+    }
+    packet.SetDestination(PacketDestination::kController);
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+        MonitorMode::kIntercept) {
+        HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
+        return true;
+    }
+    return SendToTransport(packet);
 }
 
-HalState HciRouterAsync::GetHalState() { return hal_state_; }
+HalState HciRouterAsync::GetHalState() {
+    return hal_state_;
+}
 
 void HciRouterAsync::UpdateHalState(HalState state) {
-  std::stringstream ss;
-  ss << HalStateToString(hal_state_) << " (" << static_cast<int>(hal_state_)
-     << ") -> " << HalStateToString(state) << " (" << static_cast<int>(state)
-     << ")";
-  HAL_LOG(INFO) << "Bluetooth HAL state changed: " << ss.str();
-  if (!IsHalStateValid(state)) {
-    LOG(FATAL) << "Invalid Bluetooth HAL state changed! " << ss.str();
-  }
+    std::stringstream ss;
+    ss << HalStateToString(hal_state_) << " (" << static_cast<int>(hal_state_) << ") -> "
+       << HalStateToString(state) << " (" << static_cast<int>(state) << ")";
+    HAL_LOG(INFO) << "Bluetooth HAL state changed: " << ss.str();
+    if (!IsHalStateValid(state)) {
+        LOG(FATAL) << "Invalid Bluetooth HAL state changed! " << ss.str();
+    }
 
-  auto old_state = hal_state_;
-  hal_state_ = state;
-  std::shared_ptr<void> defer_task;
+    auto old_state = hal_state_;
+    hal_state_ = state;
+    std::shared_ptr<void> defer_task;
 
-  switch (state) {
-    case HalState::kShutdown:
-      VndSnoopLogger::GetLogger().StopRecording();
-      break;
-    case HalState::kInit:
-      VndSnoopLogger::GetLogger().StartNewRecording();
-      break;
-    case HalState::kFirmwareDownloading:
-    case HalState::kFirmwareDownloadCompleted:
-    case HalState::kFirmwareReady:
-      break;
-    case HalState::kBtChipReady:
-      if (HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
-        if (old_state == HalState::kRunning) {
-          VndSnoopLogger::GetLogger().StartNewRecording();
-        } else if (old_state == HalState::kFirmwareReady) {
-          if (HalConfigLoader::GetLoader().IsThreadDispatcherEnabled()) {
-            LOG(INFO) << "Initialize Thread handler.";
-            ThreadHandler::Initialize();
-          }
-        }
-      }
-      if (old_state == HalState::kFirmwareReady && hci_callback_ != nullptr) {
-        // Once HAL changes to chip ready, it will automatically update to the
-        // running state if the stack had called Initialize.
-        defer_task = std::shared_ptr<void>(
-            nullptr, [this](void*) { UpdateHalState(HalState::kRunning); });
-      }
-      break;
-    case HalState::kRunning:
-      VndSnoopLogger::GetLogger().StartNewRecording();
-      if (HalConfigLoader::GetLoader().IsThreadDispatcherEnabled() &&
-          !HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
-        LOG(INFO) << "Initialize Thread handler.";
-        ThreadHandler::Initialize();
-      }
-      break;
-    default:
-      break;
-  }
+    switch (state) {
+        case HalState::kShutdown:
+            VndSnoopLogger::GetLogger().StopRecording();
+            break;
+        case HalState::kInit:
+            VndSnoopLogger::GetLogger().StartNewRecording();
+            break;
+        case HalState::kFirmwareDownloading:
+        case HalState::kFirmwareDownloadCompleted:
+        case HalState::kFirmwareReady:
+            break;
+        case HalState::kBtChipReady:
+            if (HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
+                if (old_state == HalState::kRunning) {
+                    VndSnoopLogger::GetLogger().StartNewRecording();
+                } else if (old_state == HalState::kFirmwareReady) {
+                    if (HalConfigLoader::GetLoader().IsThreadDispatcherEnabled()) {
+                        LOG(INFO) << "Initialize Thread handler.";
+                        ThreadHandler::Initialize();
+                    }
+                }
+            }
+            if (old_state == HalState::kFirmwareReady && hci_callback_ != nullptr) {
+                // Once HAL changes to chip ready, it will automatically update to the
+                // running state if the stack had called Initialize.
+                defer_task = std::shared_ptr<void>(
+                        nullptr, [this](void*) { UpdateHalState(HalState::kRunning); });
+            }
+            break;
+        case HalState::kRunning:
+            VndSnoopLogger::GetLogger().StartNewRecording();
+            if (HalConfigLoader::GetLoader().IsThreadDispatcherEnabled() &&
+                !HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported()) {
+                LOG(INFO) << "Initialize Thread handler.";
+                ThreadHandler::Initialize();
+            }
+            break;
+        default:
+            break;
+    }
 
-  if (hci_callback_ != nullptr) {
-    hci_callback_->OnHalStateChanged(state, old_state);
-  }
-  HciRouterClientAgent::GetAgent().NotifyHalStateChange(state, old_state);
-  TransportFactory::NotifyHalStateChange(state);
+    if (hci_callback_ != nullptr) {
+        hci_callback_->OnHalStateChanged(state, old_state);
+    }
+    HciRouterClientAgent::GetAgent().NotifyHalStateChange(state, old_state);
+    TransportFactory::NotifyHalStateChange(state);
 }
 
 void HciRouterAsync::SendPacketToStack(const HalPacket& packet) {
-  if (hci_callback_ != nullptr) {
-    hci_callback_->OnPacketCallback(packet);
-  }
+    if (hci_callback_ != nullptr) {
+        hci_callback_->OnPacketCallback(packet);
+    }
 }
 
 void HciRouterAsync::OnTransportPacketReady(const HalPacket& packet) {
-  ScopedWakelock wakelock(WakeSource::kRx);
-  packet.SetDestination(PacketDestination::kHost);
-  packet.SetSource(PacketSource::kController);
+    ScopedWakelock wakelock(WakeSource::kRx);
+    packet.SetDestination(PacketDestination::kHost);
+    packet.SetSource(PacketSource::kController);
 
-  if (hal_state_ == HalState::kShutdown) {
-    LOG(WARNING) << __func__ << ": Hal is not ready to receive packets.";
-    return;
-  }
+    if (hal_state_ == HalState::kShutdown) {
+        LOG(WARNING) << __func__ << ": Hal is not ready to receive packets.";
+        return;
+    }
 
-  VndSnoopLogger::GetLogger().Capture(packet,
-                                      VndSnoopLogger::Direction::kIncoming);
-  HandleReceivedPacket(packet);
+    VndSnoopLogger::GetLogger().Capture(packet, VndSnoopLogger::Direction::kIncoming);
+    HandleReceivedPacket(packet);
 }
 
-bool HciRouterAsync::SendOrQueueCommand(
-    const HalPacket& packet,
-    const std::shared_ptr<HalPacketCallback> callback) {
-  bool is_queue_busy = !hci_cmd_queue_.empty();
+bool HciRouterAsync::SendOrQueueCommand(const HalPacket& packet,
+                                        const std::shared_ptr<HalPacketCallback> callback) {
+    bool is_queue_busy = !hci_cmd_queue_.empty();
 
-  hci_cmd_queue_.push({packet, callback});
+    hci_cmd_queue_.push({packet, callback});
 
-  if (is_queue_busy) {
-    HAL_LOG(DEBUG) << "command queued: " << packet.ToString();
+    if (is_queue_busy) {
+        HAL_LOG(DEBUG) << "command queued: " << packet.ToString();
+        return true;
+    }
+
+    SetBusy(true);
+    SendToTransport(packet);
     return true;
-  }
-
-  SetBusy(true);
-  SendToTransport(packet);
-  return true;
 }
 
 bool HciRouterAsync::SendToTransport(const HalPacket& packet) {
-  ScopedWakelock wakelock(WakeSource::kTx);
-  HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
-  if (!TransportFactory::GetTransport().IsTransportActive()) {
-    HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
-    return false;
-  }
-  VndSnoopLogger::GetLogger().Capture(packet,
-                                      VndSnoopLogger::Direction::kOutgoing);
+    ScopedWakelock wakelock(WakeSource::kTx);
+    HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
+    if (!TransportFactory::GetTransport().IsTransportActive()) {
+        HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
+        return false;
+    }
+    VndSnoopLogger::GetLogger().Capture(packet, VndSnoopLogger::Direction::kOutgoing);
 
-  return TransportFactory::GetTransport().Send(packet);
+    return TransportFactory::GetTransport().Send(packet);
 }
 
 void HciRouterAsync::HandleReceivedPacket(const HalPacket& packet) {
-  if (packet.IsCommandCompleteStatusEvent()) {
-    HandleCommandCompleteOrCommandStatusEvent(packet);
-    return;
-  }
-  if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) !=
-          MonitorMode::kIntercept &&
-      hci_callback_ != nullptr) {
-    hci_callback_->OnPacketCallback(packet);
-  }
+    if (packet.IsCommandCompleteStatusEvent()) {
+        HandleCommandCompleteOrCommandStatusEvent(packet);
+        return;
+    }
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) !=
+                MonitorMode::kIntercept &&
+        hci_callback_ != nullptr) {
+        hci_callback_->OnPacketCallback(packet);
+    }
 }
 
-void HciRouterAsync::HandleCommandCompleteOrCommandStatusEvent(
-    const HalPacket& event) {
-  auto state = HciRouterClientAgent::GetAgent().DispatchPacketToClients(event);
-  switch (state) {
-    case MonitorMode::kNone:
-    case MonitorMode::kMonitor: {
-      uint16_t opcode = event.GetCommandOpcodeFromGeneratedEvent();
-      if (hci_cmd_queue_.empty() ||
-          hci_cmd_queue_.front().command.GetCommandOpcode() != opcode) {
-        LOG(ERROR)
-            << "Unexpected command complete or command status event! opcode="
-            << opcode;
-        if (hci_callback_ != nullptr) {
-          hci_callback_->OnPacketCallback(event);
-        }
-        return;
-      }
-      std::shared_ptr<HalPacketCallback> callback =
-          hci_cmd_queue_.front().callback;
+void HciRouterAsync::HandleCommandCompleteOrCommandStatusEvent(const HalPacket& event) {
+    auto state = HciRouterClientAgent::GetAgent().DispatchPacketToClients(event);
+    switch (state) {
+        case MonitorMode::kNone:
+        case MonitorMode::kMonitor: {
+            uint16_t opcode = event.GetCommandOpcodeFromGeneratedEvent();
+            if (hci_cmd_queue_.empty() ||
+                hci_cmd_queue_.front().command.GetCommandOpcode() != opcode) {
+                LOG(ERROR) << "Unexpected command complete or command status event! opcode="
+                           << opcode;
+                if (hci_callback_ != nullptr) {
+                    hci_callback_->OnPacketCallback(event);
+                }
+                return;
+            }
+            std::shared_ptr<HalPacketCallback> callback = hci_cmd_queue_.front().callback;
 
-      if (callback == nullptr) {
-        LOG(ERROR) << "Command callback is null!";
-        if (hci_callback_ != nullptr) {
-          hci_callback_->OnPacketCallback(event);
+            if (callback == nullptr) {
+                LOG(ERROR) << "Command callback is null!";
+                if (hci_callback_ != nullptr) {
+                    hci_callback_->OnPacketCallback(event);
+                }
+            } else {
+                (*callback)(event);
+            }
+            break;
         }
-      } else {
-        (*callback)(event);
-      }
-      break;
+        case MonitorMode::kIntercept:
+            break;
+        case MonitorMode::kBypass:
+            if (hci_callback_ != nullptr) {
+                hci_callback_->OnPacketCallback(event);
+            }
+            return;
     }
-    case MonitorMode::kIntercept:
-      break;
-    case MonitorMode::kBypass:
-      if (hci_callback_ != nullptr) {
-        hci_callback_->OnPacketCallback(event);
-      }
-      return;
-  }
 
-  OnCommandCallbackCompleted();
+    OnCommandCallbackCompleted();
 }
 
 void HciRouterAsync::OnCommandCallbackCompleted() {
-  if (hci_cmd_queue_.empty()) {
-    LOG(ERROR) << "Unexpected callback completed! "
-               << "No command callback found in queue.";
-    return;
-  }
-  hci_cmd_queue_.pop();
+    if (hci_cmd_queue_.empty()) {
+        LOG(ERROR) << "Unexpected callback completed! "
+                   << "No command callback found in queue.";
+        return;
+    }
+    hci_cmd_queue_.pop();
 
-  bool has_queued_command = !hci_cmd_queue_.empty();
-  SetBusy(has_queued_command);
-  if (has_queued_command) {
-    HalPacket queued_command = hci_cmd_queue_.front().command;
-    SendToTransport(queued_command);
-  }
+    bool has_queued_command = !hci_cmd_queue_.empty();
+    SetBusy(has_queued_command);
+    if (has_queued_command) {
+        HalPacket queued_command = hci_cmd_queue_.front().command;
+        SendToTransport(queued_command);
+    }
 }
 
 bool HciRouterAsync::InitializeTransport() {
-  HAL_LOG(INFO) << "Initializing Bluetooth transport.";
-  if (transport_callback_ == nullptr) {
-    HAL_LOG(ERROR) << "Bluetooth transport is null!";
-    return false;
-  }
-  return TransportFactory::GetTransport().Initialize(transport_callback_);
+    HAL_LOG(INFO) << "Initializing Bluetooth transport.";
+    if (transport_callback_ == nullptr) {
+        HAL_LOG(ERROR) << "Bluetooth transport is null!";
+        return false;
+    }
+    return TransportFactory::GetTransport().Initialize(transport_callback_);
 }
 
 bool HciRouterAsync::IsHalStateValid(HalState new_state) {
-  return kHalStateMachine.at(hal_state_).count(new_state) > 0;
+    return kHalStateMachine.at(hal_state_).count(new_state) > 0;
 }
 
 void HciRouterAsync::SetBusy(bool busy) {
-  if (busy) {
-    Wakelock::GetWakelock().Acquire(WakeSource::kHciBusy);
-  } else {
-    Wakelock::GetWakelock().Release(WakeSource::kHciBusy);
-  }
+    if (busy) {
+        Wakelock::GetWakelock().Acquire(WakeSource::kHciBusy);
+    } else {
+        Wakelock::GetWakelock().Release(WakeSource::kHciBusy);
+    }
 
-  is_busy_ = busy;
-  TransportFactory::GetTransport().SetHciRouterBusy(busy);
+    is_busy_ = busy;
+    TransportFactory::GetTransport().SetHciRouterBusy(busy);
 }
 
 }  // namespace bluetooth_hal::hci

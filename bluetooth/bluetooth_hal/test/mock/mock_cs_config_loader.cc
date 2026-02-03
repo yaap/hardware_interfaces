@@ -22,16 +22,16 @@
 namespace bluetooth_hal::config {
 
 CsConfigLoader& CsConfigLoader::GetLoader() {
-  if (!MockCsConfigLoader::mock_cs_config_loader_) {
-    LOG(FATAL) << __func__
-               << ": mock_cs_config_loader_ is nullptr. Did you forget to call "
-                  "SetMockLoader in your test SetUp?";
-  }
-  return *MockCsConfigLoader::mock_cs_config_loader_;
+    if (!MockCsConfigLoader::mock_cs_config_loader_) {
+        LOG(FATAL) << __func__
+                   << ": mock_cs_config_loader_ is nullptr. Did you forget to call "
+                      "SetMockLoader in your test SetUp?";
+    }
+    return *MockCsConfigLoader::mock_cs_config_loader_;
 }
 
 void MockCsConfigLoader::SetMockLoader(MockCsConfigLoader* loader) {
-  mock_cs_config_loader_ = loader;
+    mock_cs_config_loader_ = loader;
 }
 
 }  // namespace bluetooth_hal::config

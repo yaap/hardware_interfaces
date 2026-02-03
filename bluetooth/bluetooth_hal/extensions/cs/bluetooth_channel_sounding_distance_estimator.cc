@@ -26,15 +26,16 @@ using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
 
 void ChannelSoundingDistanceEstimator::ResetVariables() {};
 
-double ChannelSoundingDistanceEstimator::EstimateDistanceImpl(
-    const std::any& data) {
-  if (std::any_cast<ChannelSoudingRawData>(&data)) {
-    return 0;
-  }
-  return -1;
+double ChannelSoundingDistanceEstimator::EstimateDistanceImpl(const std::any& data) {
+    if (std::any_cast<ChannelSoudingRawData>(&data)) {
+        return 0;
+    }
+    return -1;
 }
 
-double ChannelSoundingDistanceEstimator::GetConfidenceLevel() { return 0; }
+double ChannelSoundingDistanceEstimator::GetConfidenceLevel() {
+    return 0;
+}
 
 void ChannelSoundingDistanceEstimator::SetInlinePCT(bool /*is_enabled*/) {}
 

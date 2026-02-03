@@ -25,16 +25,16 @@
 namespace bluetooth_hal::config {
 
 class CsConfigLoader : public ConfigLoader {
- public:
-  virtual ~CsConfigLoader() = default;
+  public:
+    virtual ~CsConfigLoader() = default;
 
-  virtual bool LoadConfig() override = 0;
-  virtual std::string DumpConfigToString() const override = 0;
+    virtual bool LoadConfig() override = 0;
+    virtual std::string DumpConfigToString() const override = 0;
 
-  virtual const std::vector<::bluetooth_hal::hci::HalPacket>&
-  GetCsCalibrationCommands() const = 0;
+    virtual const std::vector<::bluetooth_hal::hci::HalPacket>& GetCsCalibrationCommands()
+            const = 0;
 
-  static CsConfigLoader& GetLoader();
+    static CsConfigLoader& GetLoader();
 };
 
 }  // namespace bluetooth_hal::config

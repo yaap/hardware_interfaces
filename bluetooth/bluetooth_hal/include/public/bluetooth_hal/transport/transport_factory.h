@@ -38,91 +38,90 @@ namespace bluetooth_hal::transport {
  * HAL state notifications.
  */
 class TransportFactory {
- public:
-  using VendorFactory =
-      ::bluetooth_hal::util::MultiKeyProviderFactory<TransportType,
-                                                     TransportInstance>;
-  using FactoryFn = VendorFactory::FactoryFn;
+  public:
+    using VendorFactory =
+            ::bluetooth_hal::util::MultiKeyProviderFactory<TransportType, TransportInstance>;
+    using FactoryFn = VendorFactory::FactoryFn;
 
-  /**
-   * @brief Retrieves the current transport instance.
-   *
-   * @return A reference to the active TransportInstance.
-   */
-  static TransportInstance& GetTransport();
+    /**
+     * @brief Retrieves the current transport instance.
+     *
+     * @return A reference to the active TransportInstance.
+     */
+    static TransportInstance& GetTransport();
 
-  /**
-   * @brief Cleans up the current transport and releases resources.
-   */
-  static void CleanupTransport();
+    /**
+     * @brief Cleans up the current transport and releases resources.
+     */
+    static void CleanupTransport();
 
-  /**
-   * @brief Updates the current transport type.
-   *
-   * This method allows switching the transport type. If the provided type
-   * differs from the current one, the internal transport will be updated.
-   *
-   * @param requested_type The new TransportType to set.
-   * @return `true` if the transport was successfully updated, `false`
-   * otherwise.
-   */
-  static bool UpdateTransportType(TransportType requested_type);
+    /**
+     * @brief Updates the current transport type.
+     *
+     * This method allows switching the transport type. If the provided type
+     * differs from the current one, the internal transport will be updated.
+     *
+     * @param requested_type The new TransportType to set.
+     * @return `true` if the transport was successfully updated, `false`
+     * otherwise.
+     */
+    static bool UpdateTransportType(TransportType requested_type);
 
-  /**
-   * @brief Retrieves the current transport type.
-   *
-   * @return The current TransportType.
-   */
-  static TransportType GetTransportType();
+    /**
+     * @brief Retrieves the current transport type.
+     *
+     * @return The current TransportType.
+     */
+    static TransportType GetTransportType();
 
-  /**
-   * @brief Registers a vendor-specific transport implementation.
-   *
-   * @param type The TransportType for the vendor transport.
-   * @param factory A factory function to create the transport instance.
-   * @return `true` if registration succeeds, `false` otherwise.
-   */
-  static bool RegisterVendorTransport(TransportType type, FactoryFn factory);
+    /**
+     * @brief Registers a vendor-specific transport implementation.
+     *
+     * @param type The TransportType for the vendor transport.
+     * @param factory A factory function to create the transport instance.
+     * @return `true` if registration succeeds, `false` otherwise.
+     */
+    static bool RegisterVendorTransport(TransportType type, FactoryFn factory);
 
-  /**
-   * @brief Unregisters a vendor-specific transport implementation.
-   *
-   * @param type The TransportType to unregister.
-   * @return `true` if unregistration succeeds, `false` otherwise.
-   */
-  static bool UnregisterVendorTransport(TransportType type);
+    /**
+     * @brief Unregisters a vendor-specific transport implementation.
+     *
+     * @param type The TransportType to unregister.
+     * @return `true` if unregistration succeeds, `false` otherwise.
+     */
+    static bool UnregisterVendorTransport(TransportType type);
 
-  /**
-   * @brief Notifies the transport layer of a change in the HAL state.
-   *
-   * @param hal_state The new state of the HAL.
-   */
-  static void NotifyHalStateChange(::bluetooth_hal::HalState hal_state);
+    /**
+     * @brief Notifies the transport layer of a change in the HAL state.
+     *
+     * @param hal_state The new state of the HAL.
+     */
+    static void NotifyHalStateChange(::bluetooth_hal::HalState hal_state);
 
-  /**
-   * @brief Subscribes a new subscriber to receive notifications.
-   *
-   * @param subscriber The subscriber to be added.
-   */
-  static void Subscribe(Subscriber& subscriber);
+    /**
+     * @brief Subscribes a new subscriber to receive notifications.
+     *
+     * @param subscriber The subscriber to be added.
+     */
+    static void Subscribe(Subscriber& subscriber);
 
-  /**
-   * @brief Unsubscribes an existing subscriber.
-   *
-   * @param subscriber The subscriber to be removed.
-   */
-  static void Unsubscribe(Subscriber& subscriber);
+    /**
+     * @brief Unsubscribes an existing subscriber.
+     *
+     * @param subscriber The subscriber to be removed.
+     */
+    static void Unsubscribe(Subscriber& subscriber);
 
- private:
-  static std::pair<std::unique_ptr<TransportInstance>, TransportType>
-  CreateOrAcquireTransport(TransportType requested_type);
+  private:
+    static std::pair<std::unique_ptr<TransportInstance>, TransportType> CreateOrAcquireTransport(
+            TransportType requested_type);
 
-  static inline TransportType current_transport_type_{TransportType::kUnknown};
-  static inline std::recursive_mutex transport_mutex_;
-  static std::unique_ptr<TransportInstance> current_transport_;
-  static inline std::atomic<::bluetooth_hal::HalState> hal_state_{
-      ::bluetooth_hal::HalState::kInit};
-  static inline std::vector<std::reference_wrapper<Subscriber>> subscribers_;
+    static inline TransportType current_transport_type_{TransportType::kUnknown};
+    static inline std::recursive_mutex transport_mutex_;
+    static std::unique_ptr<TransportInstance> current_transport_;
+    static inline std::atomic<::bluetooth_hal::HalState> hal_state_{
+            ::bluetooth_hal::HalState::kInit};
+    static inline std::vector<std::reference_wrapper<Subscriber>> subscribers_;
 };
 
 }  // namespace bluetooth_hal::transport

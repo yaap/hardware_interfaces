@@ -25,42 +25,41 @@ namespace bluetooth {
 namespace audio {
 
 class LeAudioSoftwareAudioProvider : public BluetoothAudioProvider {
- public:
-  LeAudioSoftwareAudioProvider();
+  public:
+    LeAudioSoftwareAudioProvider();
 
-  bool isValid(const SessionType& sessionType) override;
+    bool isValid(const SessionType& sessionType) override;
 
-  ndk::ScopedAStatus startSession(
-      const std::shared_ptr<IBluetoothAudioPort>& host_if,
-      const AudioConfiguration& audio_config,
-      const std::vector<LatencyMode>& latency_modes,
-      DataMQDesc* _aidl_return);
+    ndk::ScopedAStatus startSession(const std::shared_ptr<IBluetoothAudioPort>& host_if,
+                                    const AudioConfiguration& audio_config,
+                                    const std::vector<LatencyMode>& latency_modes,
+                                    DataMQDesc* _aidl_return);
 
- private:
-  // audio data queue for software encoding
-  std::unique_ptr<DataMQ> data_mq_;
+  private:
+    // audio data queue for software encoding
+    std::unique_ptr<DataMQ> data_mq_;
 
-  ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
+    ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
 };
 
 class LeAudioSoftwareOutputAudioProvider : public LeAudioSoftwareAudioProvider {
- public:
-  LeAudioSoftwareOutputAudioProvider();
+  public:
+    LeAudioSoftwareOutputAudioProvider();
 };
 
 class LeAudioSoftwareInputAudioProvider : public LeAudioSoftwareAudioProvider {
- public:
-  LeAudioSoftwareInputAudioProvider();
+  public:
+    LeAudioSoftwareInputAudioProvider();
 };
 
 class LeAudioSoftwareBroadcastOutputAudioProvider : public LeAudioSoftwareAudioProvider {
- public:
-  LeAudioSoftwareBroadcastOutputAudioProvider();
+  public:
+    LeAudioSoftwareBroadcastOutputAudioProvider();
 };
 
 class LeAudioSoftwareBroadcastInputAudioProvider : public LeAudioSoftwareAudioProvider {
- public:
-  LeAudioSoftwareBroadcastInputAudioProvider();
+  public:
+    LeAudioSoftwareBroadcastInputAudioProvider();
 };
 
 }  // namespace audio

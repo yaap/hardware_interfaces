@@ -21,39 +21,38 @@
 namespace aidl::android::hardware::bluetooth::audio {
 
 struct SbcParameters : public CodecParameters {
-  enum class AllocationMethod { SNR, LOUDNESS };
+    enum class AllocationMethod { SNR, LOUDNESS };
 
-  AllocationMethod allocation_method;
-  int block_length;
-  int subbands;
-  int min_bitpool;
-  int max_bitpool;
+    AllocationMethod allocation_method;
+    int block_length;
+    int subbands;
+    int min_bitpool;
+    int max_bitpool;
 };
 
 class A2dpOffloadCodecSbc : public A2dpOffloadCodec {
-  CodecInfo info_;
+    CodecInfo info_;
 
-  A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                CodecParameters* codec_parameters,
-                                SbcParameters* sbc_parameters) const;
+    A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
+                                  CodecParameters* codec_parameters,
+                                  SbcParameters* sbc_parameters) const;
 
- public:
-  A2dpOffloadCodecSbc();
+  public:
+    A2dpOffloadCodecSbc();
 
-  A2dpStatus ParseConfiguration(
-      const std::vector<uint8_t>& configuration,
-      CodecParameters* codec_parameters) const override {
-    return ParseConfiguration(configuration, codec_parameters, nullptr);
-  }
+    A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
+                                  CodecParameters* codec_parameters) const override {
+        return ParseConfiguration(configuration, codec_parameters, nullptr);
+    }
 
-  A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                SbcParameters* sbc_parameters) const {
-    return ParseConfiguration(configuration, sbc_parameters, sbc_parameters);
-  }
+    A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
+                                  SbcParameters* sbc_parameters) const {
+        return ParseConfiguration(configuration, sbc_parameters, sbc_parameters);
+    }
 
-  bool BuildConfiguration(const std::vector<uint8_t>& remote_capabilities,
-                          const std::optional<CodecParameters>& hint,
-                          std::vector<uint8_t>* configuration) const override;
+    bool BuildConfiguration(const std::vector<uint8_t>& remote_capabilities,
+                            const std::optional<CodecParameters>& hint,
+                            std::vector<uint8_t>* configuration) const override;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::audio

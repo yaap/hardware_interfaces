@@ -31,93 +31,88 @@ using ::bluetooth_hal::hci::BluetoothAddress;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 
-static constexpr uint8_t kHeaderSize =
-    4;  // H4 header(1) + opcode(2) + length(1)
+static constexpr uint8_t kHeaderSize = 4;  // H4 header(1) + opcode(2) + length(1)
 
 static void AppendFixedHeader(HalPacket& packet, uint8_t payload_length) {
-  packet.push_back(static_cast<uint8_t>(HciPacketType::kCommand));
-  packet.push_back(TimesyncConstants::kCommandOpCode & 0xFF);
-  packet.push_back((TimesyncConstants::kCommandOpCode >> 8) & 0xFF);
-  packet.push_back(payload_length);
+    packet.push_back(static_cast<uint8_t>(HciPacketType::kCommand));
+    packet.push_back(TimesyncConstants::kCommandOpCode & 0xFF);
+    packet.push_back((TimesyncConstants::kCommandOpCode >> 8) & 0xFF);
+    packet.push_back(payload_length);
 }
 
 }  // namespace
 
-HalPacket BluetoothCccTimesyncCommand::CreateAddCommand(
-    const BluetoothAddress& address, const AddressType address_type,
-    const CccDirection direction, const std::vector<CccLmpEventId>& lmp_ids) {
-  // Command Type (1) + Address (6) + Address Type (1) + Direction (1) + LmpId
-  // (X)
-  uint8_t payload_length =
-      TimesyncConstants::kCommandCommandTypeLength + address.size() +
-      TimesyncConstants::kCommandAddressTypeLength +
-      TimesyncConstants::kCommandDirectionLength + lmp_ids.size();
+HalPacket BluetoothCccTimesyncCommand::CreateAddCommand(const BluetoothAddress& address,
+                                                        const AddressType address_type,
+                                                        const CccDirection direction,
+                                                        const std::vector<CccLmpEventId>& lmp_ids) {
+    // Command Type (1) + Address (6) + Address Type (1) + Direction (1) + LmpId
+    // (X)
+    uint8_t payload_length = TimesyncConstants::kCommandCommandTypeLength + address.size() +
+                             TimesyncConstants::kCommandAddressTypeLength +
+                             TimesyncConstants::kCommandDirectionLength + lmp_ids.size();
 
-  HalPacket packet;
-  packet.reserve(kHeaderSize + payload_length);  // Fixed header (4) + payload
-  AppendFixedHeader(packet, payload_length);
+    HalPacket packet;
+    packet.reserve(kHeaderSize + payload_length);  // Fixed header (4) + payload
+    AppendFixedHeader(packet, payload_length);
 
-  // Command-specific Payload
-  packet.push_back(
-      static_cast<uint8_t>(TimesyncCommandType::kAdd));  // Command Type: ADD
-  for (int i = address.size() - 1; i >= 0; --i) {
-    packet.push_back(address[i]);  // Address
-  }
-  packet.push_back(static_cast<uint8_t>(address_type));  // Address Type
-  packet.push_back(static_cast<uint8_t>(direction));     // Direction
-  for (CccLmpEventId id : lmp_ids) {
-    uint8_t byte;
-    switch (id) {
-      case CccLmpEventId::kConnectInd:
-        byte = static_cast<uint8_t>(CccLmpEventIdByte::kConnectInd);
-        break;
-      case CccLmpEventId::kLlPhyUpdateInd:
-        byte = static_cast<uint8_t>(CccLmpEventIdByte::kLlPhyUpdateInd);
-        break;
-      default:
-        byte = static_cast<uint8_t>(CccLmpEventIdByte::kUndefined);
-        break;
+    // Command-specific Payload
+    packet.push_back(static_cast<uint8_t>(TimesyncCommandType::kAdd));  // Command Type: ADD
+    for (int i = address.size() - 1; i >= 0; --i) {
+        packet.push_back(address[i]);  // Address
     }
-    packet.push_back(byte);  // LmpId
-  }
+    packet.push_back(static_cast<uint8_t>(address_type));  // Address Type
+    packet.push_back(static_cast<uint8_t>(direction));     // Direction
+    for (CccLmpEventId id : lmp_ids) {
+        uint8_t byte;
+        switch (id) {
+            case CccLmpEventId::kConnectInd:
+                byte = static_cast<uint8_t>(CccLmpEventIdByte::kConnectInd);
+                break;
+            case CccLmpEventId::kLlPhyUpdateInd:
+                byte = static_cast<uint8_t>(CccLmpEventIdByte::kLlPhyUpdateInd);
+                break;
+            default:
+                byte = static_cast<uint8_t>(CccLmpEventIdByte::kUndefined);
+                break;
+        }
+        packet.push_back(byte);  // LmpId
+    }
 
-  return packet;
+    return packet;
 }
 
-HalPacket BluetoothCccTimesyncCommand::CreateRemoveCommand(
-    const BluetoothAddress& address, const AddressType address_type) {
-  // Command Type (1) + Address (6) + AddressType (1)
-  uint8_t payload_length = TimesyncConstants::kCommandCommandTypeLength +
-                           address.size() +
-                           TimesyncConstants::kCommandAddressTypeLength;
+HalPacket BluetoothCccTimesyncCommand::CreateRemoveCommand(const BluetoothAddress& address,
+                                                           const AddressType address_type) {
+    // Command Type (1) + Address (6) + AddressType (1)
+    uint8_t payload_length = TimesyncConstants::kCommandCommandTypeLength + address.size() +
+                             TimesyncConstants::kCommandAddressTypeLength;
 
-  HalPacket packet;
-  packet.reserve(kHeaderSize + payload_length);  // Fixed header (4) + payload
-  AppendFixedHeader(packet, payload_length);
+    HalPacket packet;
+    packet.reserve(kHeaderSize + payload_length);  // Fixed header (4) + payload
+    AppendFixedHeader(packet, payload_length);
 
-  // Command-specific Payload
-  packet.push_back(static_cast<uint8_t>(
-      TimesyncCommandType::kRemove));  // Command Type: REMOVE
-  for (int i = address.size() - 1; i >= 0; --i) {
-    packet.push_back(address[i]);  // Address
-  }
-  packet.push_back(static_cast<uint8_t>(address_type));  // Address Type
+    // Command-specific Payload
+    packet.push_back(static_cast<uint8_t>(TimesyncCommandType::kRemove));  // Command Type: REMOVE
+    for (int i = address.size() - 1; i >= 0; --i) {
+        packet.push_back(address[i]);  // Address
+    }
+    packet.push_back(static_cast<uint8_t>(address_type));  // Address Type
 
-  return packet;
+    return packet;
 }
 
 HalPacket BluetoothCccTimesyncCommand::CreateClearCommand() {
-  // Command Type (1)
-  uint8_t payload_length = TimesyncConstants::kCommandCommandTypeLength;
-  HalPacket packet;
-  packet.reserve(kHeaderSize + payload_length);  // Fixed header (4) + payload
-  AppendFixedHeader(packet, payload_length);
+    // Command Type (1)
+    uint8_t payload_length = TimesyncConstants::kCommandCommandTypeLength;
+    HalPacket packet;
+    packet.reserve(kHeaderSize + payload_length);  // Fixed header (4) + payload
+    AppendFixedHeader(packet, payload_length);
 
-  // Command-specific Payload
-  packet.push_back(static_cast<uint8_t>(
-      TimesyncCommandType::kClear));  // Command Type: CLEAR
+    // Command-specific Payload
+    packet.push_back(static_cast<uint8_t>(TimesyncCommandType::kClear));  // Command Type: CLEAR
 
-  return packet;
+    return packet;
 }
 
 }  // namespace bluetooth_hal::extensions::ccc

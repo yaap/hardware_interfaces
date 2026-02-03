@@ -21,40 +21,33 @@
 
 namespace aidl::android::hardware::bluetooth::ranging::impl {
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
-using ::aidl::android::hardware::bluetooth::ranging::
-    ChannelSoundingProcedureData;
+using ::aidl::android::hardware::bluetooth::ranging::ChannelSoundingProcedureData;
 using ::aidl::android::hardware::bluetooth::ranging::Config;
 using ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig;
 using ::aidl::android::hardware::bluetooth::ranging::Reason;
 using ::aidl::android::hardware::bluetooth::ranging::ResultType;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 
-class BluetoothChannelSoundingSession
-    : public BnBluetoothChannelSoundingSession {
- public:
-  BluetoothChannelSoundingSession(
-      std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback,
-      Reason reason);
+class BluetoothChannelSoundingSession : public BnBluetoothChannelSoundingSession {
+  public:
+    BluetoothChannelSoundingSession(
+            std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback, Reason reason);
 
-  ndk::ScopedAStatus getVendorSpecificReplies(
-      std::optional<std::vector<std::optional<VendorSpecificData>>>*
-          _aidl_return) override;
-  ndk::ScopedAStatus getSupportedResultTypes(
-      std::vector<ResultType>* _aidl_return) override;
-  ndk::ScopedAStatus isAbortedProcedureRequired(bool* _aidl_return) override;
-  ndk::ScopedAStatus writeRawData(
-      const ChannelSoudingRawData& in_rawData) override;
-  ndk::ScopedAStatus close(Reason in_reason) override;
-  ndk::ScopedAStatus writeProcedureData(
-      const ChannelSoundingProcedureData& in_procedureData) override;
-  ndk::ScopedAStatus updateChannelSoundingConfig(
-      const Config& in_config) override;
-  ndk::ScopedAStatus updateProcedureEnableConfig(
-      const ProcedureEnableConfig& in_procedureEnableConfig) override;
-  ndk::ScopedAStatus updateBleConnInterval(int in_bleConnInterval) override;
+    ndk::ScopedAStatus getVendorSpecificReplies(
+            std::optional<std::vector<std::optional<VendorSpecificData>>>* _aidl_return) override;
+    ndk::ScopedAStatus getSupportedResultTypes(std::vector<ResultType>* _aidl_return) override;
+    ndk::ScopedAStatus isAbortedProcedureRequired(bool* _aidl_return) override;
+    ndk::ScopedAStatus writeRawData(const ChannelSoudingRawData& in_rawData) override;
+    ndk::ScopedAStatus close(Reason in_reason) override;
+    ndk::ScopedAStatus writeProcedureData(
+            const ChannelSoundingProcedureData& in_procedureData) override;
+    ndk::ScopedAStatus updateChannelSoundingConfig(const Config& in_config) override;
+    ndk::ScopedAStatus updateProcedureEnableConfig(
+            const ProcedureEnableConfig& in_procedureEnableConfig) override;
+    ndk::ScopedAStatus updateBleConnInterval(int in_bleConnInterval) override;
 
- private:
-  std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback_;
+  private:
+    std::shared_ptr<IBluetoothChannelSoundingSessionCallback> callback_;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::ranging::impl

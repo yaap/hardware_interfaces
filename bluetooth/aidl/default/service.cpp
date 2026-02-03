@@ -29,13 +29,13 @@ using ::android::hardware::configureRpcThreadpool;
 using ::android::hardware::joinRpcThreadpool;
 
 int main(int /* argc */, char** /* argv */) {
-  ALOGI("Bluetooth HAL starting");
-  if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
-    ALOGI("failed to set thread pool max thread count");
-    return 1;
-  }
+    ALOGI("Bluetooth HAL starting");
+    if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
+        ALOGI("failed to set thread pool max thread count");
+        return 1;
+    }
 
-  IBluetoothHci_addService(new BluetoothHci());
-  ABinderProcess_joinThreadPool();
-  return 0;
+    IBluetoothHci_addService(new BluetoothHci());
+    ABinderProcess_joinThreadPool();
+    return 0;
 }

@@ -55,21 +55,18 @@ bool WriteToFile(const std::string& path, const std::string& data);
 bool RemoveFile(const std::string& path);
 
 // Returns created time_point of given file, return std::nullopt on failure
-std::optional<std::chrono::time_point<std::chrono::system_clock,
-                                      std::chrono::nanoseconds>>
+std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
 FileCreatedTime(const std::string& path);
 
 std::string GetLastLogPath(std::string log_file_path);
 
-void CreateLogFile(const std::string& log_file_path,
-                   std::ofstream& log_file_stream);
+void CreateLogFile(const std::string& log_file_path, std::ofstream& log_file_stream);
 
 void CloseLogFileStream(std::ofstream& log_file_stream);
 
 // Delete the oldest files in `directory` that match `file_prefix` until only
 // `files_to_keep` files remain.
-void DeleteOldestFiles(std::string_view directory,
-                       std::optional<std::string_view> file_prefix,
+void DeleteOldestFiles(std::string_view directory, std::optional<std::string_view> file_prefix,
                        size_t files_to_keep);
 
 }  // namespace bluetooth_hal::util

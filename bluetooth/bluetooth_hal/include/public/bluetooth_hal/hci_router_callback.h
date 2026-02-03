@@ -22,33 +22,33 @@
 namespace bluetooth_hal::hci {
 
 class HciRouterCallback {
- public:
-  virtual ~HciRouterCallback() = default;
+  public:
+    virtual ~HciRouterCallback() = default;
 
-  /**
-   * @brief Callback for the command complete and command status events.
-   *
-   * @param packet The HCI event packet.
-   */
-  virtual void OnCommandCallback(const HalPacket& packet) = 0;
+    /**
+     * @brief Callback for the command complete and command status events.
+     *
+     * @param packet The HCI event packet.
+     */
+    virtual void OnCommandCallback(const HalPacket& packet) = 0;
 
-  /**
-   * @brief Callback for the packets other than command complete and command
-   * status events
-   *
-   * @param packet The HCI event packet.
-   * @return The monitor mode of the callback handling the packet.
-   */
-  virtual MonitorMode OnPacketCallback(const HalPacket& packet) = 0;
+    /**
+     * @brief Callback for the packets other than command complete and command
+     * status events
+     *
+     * @param packet The HCI event packet.
+     * @return The monitor mode of the callback handling the packet.
+     */
+    virtual MonitorMode OnPacketCallback(const HalPacket& packet) = 0;
 
-  /**
-   * @brief Callback for the HAL state change from the HciRouter.
-   *
-   * @param previous_state The previous HAL state.
-   * @param new_state The new HAL state.
-   */
-  virtual void OnHalStateChanged(const ::bluetooth_hal::HalState new_state,
-                                 const ::bluetooth_hal::HalState old_state) = 0;
+    /**
+     * @brief Callback for the HAL state change from the HciRouter.
+     *
+     * @param previous_state The previous HAL state.
+     * @param new_state The new HAL state.
+     */
+    virtual void OnHalStateChanged(const ::bluetooth_hal::HalState new_state,
+                                   const ::bluetooth_hal::HalState old_state) = 0;
 };
 
 }  // namespace bluetooth_hal::hci

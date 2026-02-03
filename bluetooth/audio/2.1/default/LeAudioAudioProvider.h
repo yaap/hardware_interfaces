@@ -36,31 +36,31 @@ using ::android::hardware::MessageQueue;
 using DataMQ = MessageQueue<uint8_t, kSynchronizedReadWrite>;
 
 class LeAudioAudioProvider : public BluetoothAudioProvider {
- public:
-  LeAudioAudioProvider();
+  public:
+    LeAudioAudioProvider();
 
-  bool isValid(const SessionType& sessionType) override;
-  bool isValid(const V2_0::SessionType& sessionType) override;
+    bool isValid(const SessionType& sessionType) override;
+    bool isValid(const V2_0::SessionType& sessionType) override;
 
-  Return<void> startSession_2_1(const sp<V2_0::IBluetoothAudioPort>& hostIf,
-                                const AudioConfiguration& audioConfig,
-                                startSession_cb _hidl_cb) override;
+    Return<void> startSession_2_1(const sp<V2_0::IBluetoothAudioPort>& hostIf,
+                                  const AudioConfiguration& audioConfig,
+                                  startSession_cb _hidl_cb) override;
 
- private:
-  /** queue for software encodec/decoded audio data */
-  std::unique_ptr<DataMQ> mDataMQ;
+  private:
+    /** queue for software encodec/decoded audio data */
+    std::unique_ptr<DataMQ> mDataMQ;
 
-  Return<void> onSessionReady(startSession_cb _hidl_cb) override;
+    Return<void> onSessionReady(startSession_cb _hidl_cb) override;
 };
 
 class LeAudioOutputAudioProvider : public LeAudioAudioProvider {
- public:
-  LeAudioOutputAudioProvider();
+  public:
+    LeAudioOutputAudioProvider();
 };
 
 class LeAudioInputAudioProvider : public LeAudioAudioProvider {
- public:
-  LeAudioInputAudioProvider();
+  public:
+    LeAudioInputAudioProvider();
 };
 
 }  // namespace implementation

@@ -42,13 +42,10 @@
 namespace bluetooth_hal::extensions::cs {
 namespace {
 
-using ::aidl::android::hardware::bluetooth::ranging::
-    BluetoothChannelSoundingParameters;
+using ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters;
 using ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel;
-using ::aidl::android::hardware::bluetooth::ranging::
-    IBluetoothChannelSoundingSession;
-using ::aidl::android::hardware::bluetooth::ranging::
-    IBluetoothChannelSoundingSessionCallback;
+using ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSession;
+using ::aidl::android::hardware::bluetooth::ranging::IBluetoothChannelSoundingSessionCallback;
 using ::aidl::android::hardware::bluetooth::ranging::SessionType;
 using ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData;
 
@@ -61,59 +58,49 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void RangingV1Initializer() {
-  RegisterHalService(SharedRefBase::make<BluetoothChannelSoundingV1>());
+    RegisterHalService(SharedRefBase::make<BluetoothChannelSoundingV1>());
 }
 
 }  // namespace
 
 struct RangingV1Registrar {
-  RangingV1Registrar() { BluetoothHalRegisterExtension(RangingV1Initializer); }
+    RangingV1Registrar() { BluetoothHalRegisterExtension(RangingV1Initializer); }
 };
 
 RangingV1Registrar g_ranging_v1_registrar;
 
 ScopedAStatus BluetoothChannelSoundingV1::getVendorSpecificData(
-    std::optional<std::vector<std::optional<VendorSpecificData>>>*
-        _aidl_return) {
-  bool status =
-      bluetooth_channel_sounding_handler_.GetVendorSpecificData(_aidl_return);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+        std::optional<std::vector<std::optional<VendorSpecificData>>>* _aidl_return) {
+    bool status = bluetooth_channel_sounding_handler_.GetVendorSpecificData(_aidl_return);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothChannelSoundingV1::getSupportedSessionTypes(
-    std::optional<std::vector<SessionType>>* _aidl_return) {
-  bool status = bluetooth_channel_sounding_handler_.GetSupportedSessionTypes(
-      _aidl_return);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+        std::optional<std::vector<SessionType>>* _aidl_return) {
+    bool status = bluetooth_channel_sounding_handler_.GetSupportedSessionTypes(_aidl_return);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothChannelSoundingV1::getMaxSupportedCsSecurityLevel(
-    CsSecurityLevel* _aidl_return) {
-  bool status =
-      bluetooth_channel_sounding_handler_.GetMaxSupportedCsSecurityLevel(
-          _aidl_return);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+        CsSecurityLevel* _aidl_return) {
+    bool status = bluetooth_channel_sounding_handler_.GetMaxSupportedCsSecurityLevel(_aidl_return);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothChannelSoundingV1::openSession(
-    const BluetoothChannelSoundingParameters& in_params,
-    const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&
-        in_callback,
-    std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) {
-  LOG(INFO) << __func__;
+        const BluetoothChannelSoundingParameters& in_params,
+        const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>& in_callback,
+        std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) {
+    LOG(INFO) << __func__;
 
-  if (in_callback.get() == nullptr) {
-    return ScopedAStatus::fromExceptionCodeWithMessage(
-        EX_ILLEGAL_ARGUMENT, "Invalid nullptr callback");
-  }
+    if (in_callback.get() == nullptr) {
+        return ScopedAStatus::fromExceptionCodeWithMessage(EX_ILLEGAL_ARGUMENT,
+                                                           "Invalid nullptr callback");
+    }
 
-  bool status = bluetooth_channel_sounding_handler_.OpenSession(
-      in_params, in_callback, _aidl_return);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    bool status =
+            bluetooth_channel_sounding_handler_.OpenSession(in_params, in_callback, _aidl_return);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 }  // namespace bluetooth_hal::extensions::cs

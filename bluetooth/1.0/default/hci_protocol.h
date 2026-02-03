@@ -34,15 +34,15 @@ using PacketReadCallback = std::function<void(const hidl_vec<uint8_t>&)>;
 
 // Implementation of HCI protocol bits common to different transports
 class HciProtocol {
- public:
-  HciProtocol() = default;
-  virtual ~HciProtocol(){};
+  public:
+    HciProtocol() = default;
+    virtual ~HciProtocol() {};
 
-  // Protocol-specific implementation of sending packets.
-  virtual size_t Send(uint8_t type, const uint8_t* data, size_t length) = 0;
+    // Protocol-specific implementation of sending packets.
+    virtual size_t Send(uint8_t type, const uint8_t* data, size_t length) = 0;
 
- protected:
-  static size_t WriteSafely(int fd, const uint8_t* data, size_t length);
+  protected:
+    static size_t WriteSafely(int fd, const uint8_t* data, size_t length);
 };
 
 }  // namespace hci

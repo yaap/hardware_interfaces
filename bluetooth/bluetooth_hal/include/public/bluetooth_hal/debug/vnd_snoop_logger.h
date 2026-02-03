@@ -21,46 +21,45 @@
 namespace bluetooth_hal::debug {
 
 class VndSnoopLogger {
- public:
-  enum class Direction : int {
-    kIncoming,
-    kOutgoing,
-  };
+  public:
+    enum class Direction : int {
+        kIncoming,
+        kOutgoing,
+    };
 
-  virtual ~VndSnoopLogger() = default;
+    virtual ~VndSnoopLogger() = default;
 
-  /**
-   * @brief Get the singleton instance of VndSnoopLogger.
-   *
-   * @return The singleton instance of VndSnoopLogger.
-   *
-   */
-  static VndSnoopLogger& GetLogger();
+    /**
+     * @brief Get the singleton instance of VndSnoopLogger.
+     *
+     * @return The singleton instance of VndSnoopLogger.
+     *
+     */
+    static VndSnoopLogger& GetLogger();
 
-  /**
-   * @brief Initiates the logging process for Bluetooth events.
-   *
-   * Starts logging to new log file.
-   */
-  virtual void StartNewRecording() = 0;
+    /**
+     * @brief Initiates the logging process for Bluetooth events.
+     *
+     * Starts logging to new log file.
+     */
+    virtual void StartNewRecording() = 0;
 
-  /**
-   * @brief Stops the ongoing recording process.
-   *
-   * Ends the logging of Bluetooth events and closes any open resources.
-   */
-  virtual void StopRecording() = 0;
+    /**
+     * @brief Stops the ongoing recording process.
+     *
+     * Ends the logging of Bluetooth events and closes any open resources.
+     */
+    virtual void StopRecording() = 0;
 
-  /**
-   * @brief Captures an HCI packet for logging.
-   *
-   * @param packet The HCI packet data to capture.
-   * @param direction Specifies whether the packet is incoming or outgoing.
-   *
-   * Adds a Bluetooth HCI packet to the log, recording its metadata and type.
-   */
-  virtual void Capture(const ::bluetooth_hal::hci::HalPacket& packet,
-                       Direction direction) = 0;
+    /**
+     * @brief Captures an HCI packet for logging.
+     *
+     * @param packet The HCI packet data to capture.
+     * @param direction Specifies whether the packet is incoming or outgoing.
+     *
+     * Adds a Bluetooth HCI packet to the log, recording its metadata and type.
+     */
+    virtual void Capture(const ::bluetooth_hal::hci::HalPacket& packet, Direction direction) = 0;
 };
 
 }  // namespace bluetooth_hal::debug

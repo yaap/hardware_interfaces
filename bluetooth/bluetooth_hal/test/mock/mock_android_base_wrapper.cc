@@ -22,16 +22,16 @@
 namespace bluetooth_hal::util {
 
 AndroidBaseWrapper& AndroidBaseWrapper::GetWrapper() {
-  if (!MockAndroidBaseWrapper::mock_android_base_wrapper_) {
-    LOG(FATAL) << __func__
-               << ": mock_android_base_wrapper_ is nullptr. Did you forget to "
-                  "call SetMockWrapper in your test SetUp?";
-  }
-  return *MockAndroidBaseWrapper::mock_android_base_wrapper_;
+    if (!MockAndroidBaseWrapper::mock_android_base_wrapper_) {
+        LOG(FATAL) << __func__
+                   << ": mock_android_base_wrapper_ is nullptr. Did you forget to "
+                      "call SetMockWrapper in your test SetUp?";
+    }
+    return *MockAndroidBaseWrapper::mock_android_base_wrapper_;
 }
 
 void MockAndroidBaseWrapper::SetMockWrapper(MockAndroidBaseWrapper* wrapper) {
-  mock_android_base_wrapper_ = wrapper;
+    mock_android_base_wrapper_ = wrapper;
 }
 
 }  // namespace bluetooth_hal::util

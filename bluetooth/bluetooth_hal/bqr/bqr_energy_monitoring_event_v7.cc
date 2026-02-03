@@ -30,7 +30,7 @@ namespace {
 using ::bluetooth_hal::hci::HalPacket;
 
 constexpr size_t kEnergyMonitoringEventV7MinSize =
-    static_cast<size_t>(EnergyMonitoringOffsetV7::kEnd);
+        static_cast<size_t>(EnergyMonitoringOffsetV7::kEnd);
 
 }  // namespace
 
@@ -38,43 +38,44 @@ BqrEnergyMonitoringEventV7::BqrEnergyMonitoringEventV7(const HalPacket& packet)
     : BqrEnergyMonitoringEventV6(packet),
       bredr_rx_active_scan_totaltime_(0),
       le_rx_active_scan_totaltime_(0) {
-  is_valid_ = BqrEnergyMonitoringEventV6::IsValid() &&
-              size() >= kEnergyMonitoringEventV7MinSize;
-  ParseData();
+    is_valid_ = BqrEnergyMonitoringEventV6::IsValid() && size() >= kEnergyMonitoringEventV7MinSize;
+    ParseData();
 }
 
 void BqrEnergyMonitoringEventV7::ParseData() {
-  if (is_valid_) {
-    bredr_rx_active_scan_totaltime_ = AtUint32LittleEndian(
-        EnergyMonitoringOffsetV7::kBredrRxActiveScanTotaltime);
-    le_rx_active_scan_totaltime_ = AtUint32LittleEndian(
-        EnergyMonitoringOffsetV7::kLeRxActiveScanTotaltime);
-  }
+    if (is_valid_) {
+        bredr_rx_active_scan_totaltime_ =
+                AtUint32LittleEndian(EnergyMonitoringOffsetV7::kBredrRxActiveScanTotaltime);
+        le_rx_active_scan_totaltime_ =
+                AtUint32LittleEndian(EnergyMonitoringOffsetV7::kLeRxActiveScanTotaltime);
+    }
 }
 
-bool BqrEnergyMonitoringEventV7::IsValid() const { return is_valid_; }
+bool BqrEnergyMonitoringEventV7::IsValid() const {
+    return is_valid_;
+}
 
 uint32_t BqrEnergyMonitoringEventV7::GetBredrRxActiveScanTotaltime() const {
-  return bredr_rx_active_scan_totaltime_;
+    return bredr_rx_active_scan_totaltime_;
 }
 
 uint32_t BqrEnergyMonitoringEventV7::GetLeRxActiveScanTotaltime() const {
-  return le_rx_active_scan_totaltime_;
+    return le_rx_active_scan_totaltime_;
 }
 
 std::string BqrEnergyMonitoringEventV7::ToString() const {
-  if (!is_valid_) {
-    return "BqrEnergyMonitoringEventV7(Invalid)";
-  }
-  return "BqrEnergyMonitoringEventV7: " + ToBqrString();
+    if (!is_valid_) {
+        return "BqrEnergyMonitoringEventV7(Invalid)";
+    }
+    return "BqrEnergyMonitoringEventV7: " + ToBqrString();
 }
 
 std::string BqrEnergyMonitoringEventV7::ToBqrString() const {
-  std::stringstream ss;
-  ss << BqrEnergyMonitoringEventV6::ToBqrString()
-     << ", BR/EDR_Rx_Act_Scan: " << std::dec << bredr_rx_active_scan_totaltime_
-     << " ms, LE_Rx_Act_Scan: " << le_rx_active_scan_totaltime_ << " ms";
-  return ss.str();
+    std::stringstream ss;
+    ss << BqrEnergyMonitoringEventV6::ToBqrString() << ", BR/EDR_Rx_Act_Scan: " << std::dec
+       << bredr_rx_active_scan_totaltime_ << " ms, LE_Rx_Act_Scan: " << le_rx_active_scan_totaltime_
+       << " ms";
+    return ss.str();
 }
 
 }  // namespace bluetooth_hal::bqr

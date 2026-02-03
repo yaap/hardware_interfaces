@@ -32,41 +32,35 @@
 namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCccHandler : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  BluetoothCccHandler();
+  public:
+    BluetoothCccHandler();
 
-  static BluetoothCccHandler& GetHandler();
+    static BluetoothCccHandler& GetHandler();
 
-  bool RegisterForLmpEvents(
-      const std::shared_ptr<BluetoothCccHandlerCallback>& callback);
+    bool RegisterForLmpEvents(const std::shared_ptr<BluetoothCccHandlerCallback>& callback);
 
-  bool UnregisterLmpEvents(
-      const ::bluetooth_hal::hci::BluetoothAddress& address);
+    bool UnregisterLmpEvents(const ::bluetooth_hal::hci::BluetoothAddress& address);
 
-  bool UnregisterLmpEventsWithType(
-      const ::bluetooth_hal::hci::BluetoothAddress& address,
-      AddressType address_type);
+    bool UnregisterLmpEventsWithType(const ::bluetooth_hal::hci::BluetoothAddress& address,
+                                     AddressType address_type);
 
- protected:
-  void OnCommandCallback(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override;
-  void OnBluetoothDisabled() override;
+  protected:
+    void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override;
+    void OnBluetoothDisabled() override;
 
- private:
-  uint64_t GetSystemTime(uint8_t current_toggle_count, uint16_t offse);
+  private:
+    uint64_t GetSystemTime(uint8_t current_toggle_count, uint16_t offse);
 
-  std::deque<std::shared_ptr<BluetoothCccHandlerCallback>>
-      pending_callbacks_deque_;
-  std::list<std::shared_ptr<BluetoothCccHandlerCallback>> monitor_callbacks_;
-  std::mutex mutex_;
-  std::condition_variable pending_callbacks_cv_;
-  uint8_t previous_toggle_count_;
+    std::deque<std::shared_ptr<BluetoothCccHandlerCallback>> pending_callbacks_deque_;
+    std::list<std::shared_ptr<BluetoothCccHandlerCallback>> monitor_callbacks_;
+    std::mutex mutex_;
+    std::condition_variable pending_callbacks_cv_;
+    uint8_t previous_toggle_count_;
 };
 
 }  // namespace bluetooth_hal::extensions::ccc

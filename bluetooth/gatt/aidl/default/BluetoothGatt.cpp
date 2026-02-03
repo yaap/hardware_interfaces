@@ -22,35 +22,31 @@ BluetoothGatt::BluetoothGatt() {}
 BluetoothGatt::~BluetoothGatt() {}
 
 ::ndk::ScopedAStatus BluetoothGatt::init(
-    const std::shared_ptr<IBluetoothGattCallback>& in_callback) {
-  if (in_callback == nullptr) {
-    return ::ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-  }
-  callback_ = in_callback;
-  return ::ndk::ScopedAStatus::ok();
+        const std::shared_ptr<IBluetoothGattCallback>& in_callback) {
+    if (in_callback == nullptr) {
+        return ::ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    callback_ = in_callback;
+    return ::ndk::ScopedAStatus::ok();
 }
 
-::ndk::ScopedAStatus BluetoothGatt::getGattCapabilities(
-    GattCapabilities* _aidl_return) {
-  _aidl_return->supportedGattClientProperties = 0;
-  _aidl_return->supportedGattServerProperties = 0;
-  return ::ndk::ScopedAStatus::ok();
+::ndk::ScopedAStatus BluetoothGatt::getGattCapabilities(GattCapabilities* _aidl_return) {
+    _aidl_return->supportedGattClientProperties = 0;
+    _aidl_return->supportedGattServerProperties = 0;
+    return ::ndk::ScopedAStatus::ok();
 }
 
 ::ndk::ScopedAStatus BluetoothGatt::registerService(
-    const ::aidl::android::hardware::bluetooth::gatt::
-        GattSession& /* in_session */) {
-  return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+        const ::aidl::android::hardware::bluetooth::gatt::GattSession& /* in_session */) {
+    return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-::ndk::ScopedAStatus BluetoothGatt::unregisterService(
-    int32_t /* in_sessionId */) {
-  return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+::ndk::ScopedAStatus BluetoothGatt::unregisterService(int32_t /* in_sessionId */) {
+    return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
-::ndk::ScopedAStatus BluetoothGatt::clearServices(
-    int32_t /* in_aclConnectionHandle */) {
-  return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+::ndk::ScopedAStatus BluetoothGatt::clearServices(int32_t /* in_aclConnectionHandle */) {
+    return ::ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 
 }  // namespace aidl::android::hardware::bluetooth::gatt::impl

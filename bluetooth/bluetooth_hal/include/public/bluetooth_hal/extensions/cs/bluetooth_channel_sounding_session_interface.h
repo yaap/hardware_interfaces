@@ -24,15 +24,15 @@
 namespace bluetooth_hal::extensions::cs {
 
 class BluetoothChannelSoundingSessionInterface {
- public:
-  virtual ~BluetoothChannelSoundingSessionInterface() = default;
+  public:
+    virtual ~BluetoothChannelSoundingSessionInterface() = default;
 
-  virtual void HandleVendorSpecificData(
-      const std::optional<std::vector<std::optional<
-          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
-          vendor_specific_data) = 0;
-  virtual bool ShouldEnableFakeNotification() = 0;
-  virtual bool ShouldEnableMode0ChannelMap() = 0;
+    virtual void HandleVendorSpecificData(
+            const std::optional<std::vector<std::optional<
+                    ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>
+                    vendor_specific_data) = 0;
+    virtual bool ShouldEnableFakeNotification() = 0;
+    virtual bool ShouldEnableMode0ChannelMap() = 0;
 };
 
 }  // namespace bluetooth_hal::extensions::cs

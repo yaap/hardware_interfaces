@@ -33,36 +33,35 @@ namespace audio {
  * the corresponding method in BluetoothAudioSessionControl directly.
  */
 class BluetoothAudioSessionControl_V6 : public BluetoothAudioSessionControl {
- public:
-  /***
-   * The control API for the bluetooth_audio module to get current
-   * AudioConfiguration
-   ***/
-  static const AudioConfiguration GetAudioConfig(
-      const SessionType& session_type) {
-    std::shared_ptr<BluetoothAudioSession> session_ptr =
-        BluetoothAudioSessionInstance::GetSessionInstance(session_type);
-    if (session_ptr != nullptr) {
-      return session_ptr->GetAudioConfig();
+  public:
+    /***
+     * The control API for the bluetooth_audio module to get current
+     * AudioConfiguration
+     ***/
+    static const AudioConfiguration GetAudioConfig(const SessionType& session_type) {
+        std::shared_ptr<BluetoothAudioSession> session_ptr =
+                BluetoothAudioSessionInstance::GetSessionInstance(session_type);
+        if (session_ptr != nullptr) {
+            return session_ptr->GetAudioConfig();
+        }
+        switch (session_type) {
+            case SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
+            case SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH:
+                return AudioConfiguration(CodecConfiguration{});
+            case SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH:
+                return AudioConfiguration(HfpConfiguration{});
+            case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
+            case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH:
+            case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH:
+            case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH:
+                return AudioConfiguration(LeAudioConfiguration{});
+            case SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
+            case SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH:
+                return AudioConfiguration(LeAudioBroadcastConfiguration{});
+            default:
+                return AudioConfiguration(PcmConfiguration{});
+        }
     }
-    switch (session_type) {
-      case SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
-      case SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH:
-        return AudioConfiguration(CodecConfiguration{});
-      case SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH:
-        return AudioConfiguration(HfpConfiguration{});
-      case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
-      case SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH:
-      case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH:
-      case SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_DECODING_DATAPATH:
-        return AudioConfiguration(LeAudioConfiguration{});
-      case SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_ENCODING_DATAPATH:
-      case SessionType::LE_AUDIO_BROADCAST_HARDWARE_OFFLOAD_DECODING_DATAPATH:
-        return AudioConfiguration(LeAudioBroadcastConfiguration{});
-      default:
-        return AudioConfiguration(PcmConfiguration{});
-    }
-  }
 };
 
 }  // namespace audio

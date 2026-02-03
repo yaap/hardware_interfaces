@@ -21,69 +21,69 @@
 namespace bluetooth_hal::util::power {
 
 class Wakelock {
- public:
-  /**
-   * @brief Vote for acquiring wakelock from the system.
-   *
-   * @param source The source of the requester.
-   *
-   */
-  virtual void Acquire(WakeSource source) = 0;
+  public:
+    /**
+     * @brief Vote for acquiring wakelock from the system.
+     *
+     * @param source The source of the requester.
+     *
+     */
+    virtual void Acquire(WakeSource source) = 0;
 
-  /**
-   * @brief Un-vote for wakelock from the system.
-   *
-   * @param source The source of the requester.
-   *
-   */
-  virtual void Release(WakeSource source) = 0;
+    /**
+     * @brief Un-vote for wakelock from the system.
+     *
+     * @param source The source of the requester.
+     *
+     */
+    virtual void Release(WakeSource source) = 0;
 
-  /**
-   * @brief Check if the wakelock is acquired.
-   *
-   * @return true if the wakelock is acquired, otherwise false.
-   *
-   */
-  virtual bool IsAcquired() = 0;
+    /**
+     * @brief Check if the wakelock is acquired.
+     *
+     * @return true if the wakelock is acquired, otherwise false.
+     *
+     */
+    virtual bool IsAcquired() = 0;
 
-  /**
-   * @brief Check if the wakelock is voted by a certain requester.
-   *
-   * @param source The source of the requester.
-   * @return true if the wakelock is acquired by the requester, otherwise
-   * false.
-   *
-   */
-  virtual bool IsWakeSourceAcquired(WakeSource source) = 0;
+    /**
+     * @brief Check if the wakelock is voted by a certain requester.
+     *
+     * @param source The source of the requester.
+     * @return true if the wakelock is acquired by the requester, otherwise
+     * false.
+     *
+     */
+    virtual bool IsWakeSourceAcquired(WakeSource source) = 0;
 
-  /**
-   * @brief Set the timeout for releasing the wakelock.
-   *
-   * When the last wake source is released, a timer is scheduled to release
-   * the system wakelock after this timeout. This helps prevent rapid
-   * acquiring and releasing of the wakelock.
-   *
-   * @param timeout The timeout in milliseconds.
-   *
-   */
-  virtual void SetWakelockTimeout(const int timeout) = 0;
+    /**
+     * @brief Set the timeout for releasing the wakelock.
+     *
+     * When the last wake source is released, a timer is scheduled to release
+     * the system wakelock after this timeout. This helps prevent rapid
+     * acquiring and releasing of the wakelock.
+     *
+     * @param timeout The timeout in milliseconds.
+     *
+     */
+    virtual void SetWakelockTimeout(const int timeout) = 0;
 
-  static Wakelock& GetWakelock();
+    static Wakelock& GetWakelock();
 
- protected:
-  virtual ~Wakelock() = default;
+  protected:
+    virtual ~Wakelock() = default;
 };
 
 class ScopedWakelock {
- public:
-  ScopedWakelock(WakeSource source) : source_(source) {
-    Wakelock::GetWakelock().Acquire(source_);
-  }
+  public:
+    ScopedWakelock(WakeSource source) : source_(source) {
+        Wakelock::GetWakelock().Acquire(source_);
+    }
 
-  ~ScopedWakelock() { Wakelock::GetWakelock().Release(source_); }
+    ~ScopedWakelock() { Wakelock::GetWakelock().Release(source_); }
 
- private:
-  WakeSource source_;
+  private:
+    WakeSource source_;
 };
 
 }  // namespace bluetooth_hal::util::power

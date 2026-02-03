@@ -23,78 +23,78 @@
 namespace bluetooth_hal::hci {
 
 class HciRouterClientAgent {
- public:
-  virtual ~HciRouterClientAgent() = default;
+  public:
+    virtual ~HciRouterClientAgent() = default;
 
-  /**
-   * @brief Get the singleton instance of HciRouterClientAgent.
-   *
-   * @return The singleton instance of HciRouterClientAgent.
-   *
-   */
-  static HciRouterClientAgent& GetAgent();
+    /**
+     * @brief Get the singleton instance of HciRouterClientAgent.
+     *
+     * @return The singleton instance of HciRouterClientAgent.
+     *
+     */
+    static HciRouterClientAgent& GetAgent();
 
-  /**
-   * @brief Register HciRouterClientCallback for the agent to service.
-   *
-   * @param callback The callback for the HciRouter client.
-   * @return true if the callback is registered, otherwise false.
-   *
-   */
-  virtual bool RegisterClient(HciRouterClientCallback* callback) = 0;
+    /**
+     * @brief Register HciRouterClientCallback for the agent to service.
+     *
+     * @param callback The callback for the HciRouter client.
+     * @return true if the callback is registered, otherwise false.
+     *
+     */
+    virtual bool RegisterClient(HciRouterClientCallback* callback) = 0;
 
-  /**
-   * @brief Unregister HciRouterClientCallback from the agent.
-   *
-   * @param callback The callback for the HciRouter client.
-   * @return true if the callback is unregistered, otherwise false.
-   *
-   */
-  virtual bool UnregisterClient(HciRouterClientCallback* callback) = 0;
+    /**
+     * @brief Unregister HciRouterClientCallback from the agent.
+     *
+     * @param callback The callback for the HciRouter client.
+     * @return true if the callback is unregistered, otherwise false.
+     *
+     */
+    virtual bool UnregisterClient(HciRouterClientCallback* callback) = 0;
 
-  /**
-   * @brief Called when the router receives an HCI packet. The router agent will
-   * try to dispatch the packet to the interested clients.
-   *
-   * @param packet The HAL packet containing the HCI event.
-   *
-   * @return A `MonitorMode` value indicating whether the packet should be
-   * processed by other clients.
-   *
-   */
-  virtual MonitorMode DispatchPacketToClients(const HalPacket& packet) = 0;
+    /**
+     * @brief Called when the router receives an HCI packet. The router agent will
+     * try to dispatch the packet to the interested clients.
+     *
+     * @param packet The HAL packet containing the HCI event.
+     *
+     * @return A `MonitorMode` value indicating whether the packet should be
+     * processed by other clients.
+     *
+     */
+    virtual MonitorMode DispatchPacketToClients(const HalPacket& packet) = 0;
 
-  /**
-   * @brief Called when the HAL state changes.
-   *
-   * @param old_state The old HAL state.
-   * @param new_state The new HAL state.
-   *
-   * @note The `HciRouterClientAgent` uses below method to inform
-   * HciRouterClients for HAL state changes.
-   *        - `OnBluetoothChipReady()`
-   *        - `OnBluetoothChipClosed()`
-   *        - `OnBluetoothEnabled()`
-   *        - `OnBluetoothDisabled()`
-   *
-   */
-  virtual void NotifyHalStateChange(HalState new_state, HalState old_state) = 0;
+    /**
+     * @brief Called when the HAL state changes.
+     *
+     * @param old_state The old HAL state.
+     * @param new_state The new HAL state.
+     *
+     * @note The `HciRouterClientAgent` uses below method to inform
+     * HciRouterClients for HAL state changes.
+     *        - `OnBluetoothChipReady()`
+     *        - `OnBluetoothChipClosed()`
+     *        - `OnBluetoothEnabled()`
+     *        - `OnBluetoothDisabled()`
+     *
+     */
+    virtual void NotifyHalStateChange(HalState new_state, HalState old_state) = 0;
 
-  /**
-   * @brief Returns whether Bluetooth is enabled.
-   *
-   * @return `true` if Bluetooth is enabled, `false` otherwise.
-   *
-   */
-  virtual bool IsBluetoothEnabled() = 0;
+    /**
+     * @brief Returns whether Bluetooth is enabled.
+     *
+     * @return `true` if Bluetooth is enabled, `false` otherwise.
+     *
+     */
+    virtual bool IsBluetoothEnabled() = 0;
 
-  /**
-   * @brief Returns whether the Bluetooth chip is ready.
-   *
-   * @return `true` if the Bluetooth chip is ready, `false` otherwise.
-   *
-   */
-  virtual bool IsBluetoothChipReady() = 0;
+    /**
+     * @brief Returns whether the Bluetooth chip is ready.
+     *
+     * @return `true` if the Bluetooth chip is ready, `false` otherwise.
+     *
+     */
+    virtual bool IsBluetoothChipReady() = 0;
 };
 
 }  // namespace bluetooth_hal::hci

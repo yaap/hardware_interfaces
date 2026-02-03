@@ -27,36 +27,33 @@
 
 namespace bluetooth_hal::hci {
 
-class HciRouterInterface
-    : public HciRouter,
-      public ::bluetooth_hal::transport::TransportInstanceCallback {
- public:
-  explicit HciRouterInterface();
+class HciRouterInterface : public HciRouter,
+                           public ::bluetooth_hal::transport::TransportInstanceCallback {
+  public:
+    explicit HciRouterInterface();
 
-  // HciRouter overrides
-  bool Initialize(const std::shared_ptr<HciRouterCallback>& callback) override;
-  void Close() override;
-  void Cleanup() override;
-  bool Send(const HalPacket& packet) override;
-  bool SendCommand(const HalPacket& packet,
-                   const HalPacketCallback& callback) override;
-  bool SendCommandNoAck(const HalPacket& packet) override;
-  ::bluetooth_hal::HalState GetHalState() override;
-  void UpdateHalState(::bluetooth_hal::HalState state) override;
-  void SendPacketToStack(const HalPacket& packet) override;
+    // HciRouter overrides
+    bool Initialize(const std::shared_ptr<HciRouterCallback>& callback) override;
+    void Close() override;
+    void Cleanup() override;
+    bool Send(const HalPacket& packet) override;
+    bool SendCommand(const HalPacket& packet, const HalPacketCallback& callback) override;
+    bool SendCommandNoAck(const HalPacket& packet) override;
+    ::bluetooth_hal::HalState GetHalState() override;
+    void UpdateHalState(::bluetooth_hal::HalState state) override;
+    void SendPacketToStack(const HalPacket& packet) override;
 
-  // TransportInstanceCallback overrides
-  void OnTransportClosed() override;
-  void OnTransportPacketReady(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
+    // TransportInstanceCallback overrides
+    void OnTransportClosed() override;
+    void OnTransportPacketReady(const ::bluetooth_hal::hci::HalPacket& packet) override;
 
- protected:
-  explicit HciRouterInterface(std::shared_ptr<HciRouterAsync> hci_router_async);
-  std::shared_ptr<HciRouterAsync> hci_router_async_;
+  protected:
+    explicit HciRouterInterface(std::shared_ptr<HciRouterAsync> hci_router_async);
+    std::shared_ptr<HciRouterAsync> hci_router_async_;
 
- private:
-  bool DoInRouterThread(std::function<void()> task);
-  bool SynchronousDoInRouterThread(std::function<void()> task);
+  private:
+    bool DoInRouterThread(std::function<void()> task);
+    bool SynchronousDoInRouterThread(std::function<void()> task);
 };
 
 }  // namespace bluetooth_hal::hci

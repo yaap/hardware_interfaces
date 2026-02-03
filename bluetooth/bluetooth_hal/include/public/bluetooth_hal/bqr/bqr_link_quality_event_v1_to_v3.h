@@ -26,19 +26,18 @@ namespace bluetooth_hal::bqr {
 using LinkQualityOffsetV1ToV3 = LinkQualityOffset;
 
 class BqrLinkQualityEventV1ToV3 : public BqrLinkQualityEventBase {
- public:
-  explicit BqrLinkQualityEventV1ToV3(
-      const ::bluetooth_hal::hci::HalPacket& packet);
-  ~BqrLinkQualityEventV1ToV3() = default;
+  public:
+    explicit BqrLinkQualityEventV1ToV3(const ::bluetooth_hal::hci::HalPacket& packet);
+    ~BqrLinkQualityEventV1ToV3() = default;
 
-  // Checks if the BQR Link Quality Event is valid.
-  bool IsValid() const override;
+    // Checks if the BQR Link Quality Event is valid.
+    bool IsValid() const override;
 
-  // Returns a string representation of the event.
-  std::string ToString() const;
+    // Returns a string representation of the event.
+    std::string ToString() const;
 
- protected:
-  std::string ToBqrString() const;
+  protected:
+    std::string ToBqrString() const;
 };
 
 }  // namespace bluetooth_hal::bqr

@@ -36,89 +36,93 @@ using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 
 class HciProxyFfiCallback : public BluetoothHciCallback {
- public:
-  HciProxyFfiCallback(const std::shared_ptr<IBluetoothHciCallbacks>& cb)
-      : bluetooth_hci_callback_(cb) {};
+  public:
+    HciProxyFfiCallback(const std::shared_ptr<IBluetoothHciCallbacks>& cb)
+        : bluetooth_hci_callback_(cb) {};
 
-  void InitializationComplete(BluetoothHciStatus status) override {
-    auto hci_status = BluetoothHciStatusToAidlStatus(status);
-    bluetooth_hci_callback_->initializationComplete(hci_status);
-  }
-
-  void HciEventReceived(const HalPacket& packet) override {
-    bluetooth_hci_callback_->hciEventReceived(packet.GetBody());
-  }
-
-  void AclDataReceived(const HalPacket& packet) override {
-    bluetooth_hci_callback_->aclDataReceived(packet.GetBody());
-  }
-
-  void ScoDataReceived(const HalPacket& packet) override {
-    bluetooth_hci_callback_->scoDataReceived(packet.GetBody());
-  }
-
-  void IsoDataReceived(const HalPacket& packet) override {
-    bluetooth_hci_callback_->isoDataReceived(packet.GetBody());
-  }
-
- private:
-  Status BluetoothHciStatusToAidlStatus(BluetoothHciStatus status) {
-    switch (status) {
-      case BluetoothHciStatus::kSuccess:
-        return Status::SUCCESS;
-      case BluetoothHciStatus::kAlreadyInitialized:
-        return Status::ALREADY_INITIALIZED;
-      case BluetoothHciStatus::kHardwareInitializeError:
-        return Status::HARDWARE_INITIALIZATION_ERROR;
-      default:
-        break;
+    void InitializationComplete(BluetoothHciStatus status) override {
+        auto hci_status = BluetoothHciStatusToAidlStatus(status);
+        bluetooth_hci_callback_->initializationComplete(hci_status);
     }
-    return Status::UNKNOWN;
-  }
 
-  std::shared_ptr<IBluetoothHciCallbacks> bluetooth_hci_callback_;
+    void HciEventReceived(const HalPacket& packet) override {
+        bluetooth_hci_callback_->hciEventReceived(packet.GetBody());
+    }
+
+    void AclDataReceived(const HalPacket& packet) override {
+        bluetooth_hci_callback_->aclDataReceived(packet.GetBody());
+    }
+
+    void ScoDataReceived(const HalPacket& packet) override {
+        bluetooth_hci_callback_->scoDataReceived(packet.GetBody());
+    }
+
+    void IsoDataReceived(const HalPacket& packet) override {
+        bluetooth_hci_callback_->isoDataReceived(packet.GetBody());
+    }
+
+  private:
+    Status BluetoothHciStatusToAidlStatus(BluetoothHciStatus status) {
+        switch (status) {
+            case BluetoothHciStatus::kSuccess:
+                return Status::SUCCESS;
+            case BluetoothHciStatus::kAlreadyInitialized:
+                return Status::ALREADY_INITIALIZED;
+            case BluetoothHciStatus::kHardwareInitializeError:
+                return Status::HARDWARE_INITIALIZATION_ERROR;
+            default:
+                break;
+        }
+        return Status::UNKNOWN;
+    }
+
+    std::shared_ptr<IBluetoothHciCallbacks> bluetooth_hci_callback_;
 };
 
 HciProxyFfi::HciProxyFfi() {
-  ANCHOR_LOG_INFO(AnchorType::kStartHci)
-      << __func__ << ": Starting BluetoothHci with ffi proxy.";
-  BluetoothHci::StartHci();
-  std::signal(SIGTERM, SigtermHandler);
+    ANCHOR_LOG_INFO(AnchorType::kStartHci) << __func__ << ": Starting BluetoothHci with ffi proxy.";
+    BluetoothHci::StartHci();
+    std::signal(SIGTERM, SigtermHandler);
 }
 
 void HciProxyFfi::SigtermHandler(int signum) {
-  BluetoothHci::GetHci().HandleSignal(signum);
+    BluetoothHci::GetHci().HandleSignal(signum);
 }
 
-void HciProxyFfi::initialize(
-    const std::shared_ptr<IBluetoothHciCallbacks>& cb) {
-  BluetoothHci::GetHci().Initialize(std::make_shared<HciProxyFfiCallback>(cb));
+void HciProxyFfi::initialize(const std::shared_ptr<IBluetoothHciCallbacks>& cb) {
+    BluetoothHci::GetHci().Initialize(std::make_shared<HciProxyFfiCallback>(cb));
 }
 
 void HciProxyFfi::sendHciCommand(const std::vector<uint8_t>& command) {
-  HalPacket packet(static_cast<uint8_t>(HciPacketType::kCommand), command);
-  BluetoothHci::GetHci().SendHciCommand(packet);
+    HalPacket packet(static_cast<uint8_t>(HciPacketType::kCommand), command);
+    BluetoothHci::GetHci().SendHciCommand(packet);
 }
 
 void HciProxyFfi::sendAclData(const std::vector<uint8_t>& data) {
-  HalPacket packet(static_cast<uint8_t>(HciPacketType::kAclData), data);
-  BluetoothHci::GetHci().SendAclData(packet);
+    HalPacket packet(static_cast<uint8_t>(HciPacketType::kAclData), data);
+    BluetoothHci::GetHci().SendAclData(packet);
 }
 
 void HciProxyFfi::sendScoData(const std::vector<uint8_t>& data) {
-  HalPacket packet(static_cast<uint8_t>(HciPacketType::kScoData), data);
-  BluetoothHci::GetHci().SendScoData(packet);
+    HalPacket packet(static_cast<uint8_t>(HciPacketType::kScoData), data);
+    BluetoothHci::GetHci().SendScoData(packet);
 }
 
 void HciProxyFfi::sendIsoData(const std::vector<uint8_t>& data) {
-  HalPacket packet(static_cast<uint8_t>(HciPacketType::kIsoData), data);
-  BluetoothHci::GetHci().SendIsoData(packet);
+    HalPacket packet(static_cast<uint8_t>(HciPacketType::kIsoData), data);
+    BluetoothHci::GetHci().SendIsoData(packet);
 }
 
-void HciProxyFfi::clientDied() { BluetoothHci::GetHci().HandleServiceDied(); }
+void HciProxyFfi::clientDied() {
+    BluetoothHci::GetHci().HandleServiceDied();
+}
 
-void HciProxyFfi::close() { BluetoothHci::GetHci().Close(); }
+void HciProxyFfi::close() {
+    BluetoothHci::GetHci().Close();
+}
 
-void HciProxyFfi::dump(int fd) { BluetoothHci::GetHci().Dump(fd); }
+void HciProxyFfi::dump(int fd) {
+    BluetoothHci::GetHci().Dump(fd);
+}
 
 }  // namespace bluetooth_hal

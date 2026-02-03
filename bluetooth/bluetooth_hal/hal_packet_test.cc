@@ -25,382 +25,376 @@ using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 
 enum class TestEnumInt : int {
-  kTest = 0,
-  kOutOfBond = 99,
+    kTest = 0,
+    kOutOfBond = 99,
 };
 
 enum class TestEnumUint8 : uint8_t {
-  kTest = 0,
-  kOutOfBond = 99,
+    kTest = 0,
+    kOutOfBond = 99,
 };
 
 enum class TestEnumUint32 : uint32_t {
-  kTest = 0,
-  kOutOfBond = 99,
+    kTest = 0,
+    kOutOfBond = 99,
 };
 
 enum class TestEnumUint64 : uint64_t {
-  kTest = 0,
-  kOutOfBond = 99,
+    kTest = 0,
+    kOutOfBond = 99,
 };
 
 TEST(HalPacketTest, HandleAt) {
-  HalPacket packet({0x01, 0x02, 0x03, 0x04});
-  EXPECT_EQ(packet.At(0), 0x01);
-  EXPECT_EQ(packet.At(TestEnumInt::kTest), 0x01);
-  EXPECT_EQ(packet.At(TestEnumUint8::kTest), 0x01);
-  EXPECT_EQ(packet.At(TestEnumUint32::kTest), 0x01);
-  EXPECT_EQ(packet.At(TestEnumUint64::kTest), 0x01);
+    HalPacket packet({0x01, 0x02, 0x03, 0x04});
+    EXPECT_EQ(packet.At(0), 0x01);
+    EXPECT_EQ(packet.At(TestEnumInt::kTest), 0x01);
+    EXPECT_EQ(packet.At(TestEnumUint8::kTest), 0x01);
+    EXPECT_EQ(packet.At(TestEnumUint32::kTest), 0x01);
+    EXPECT_EQ(packet.At(TestEnumUint64::kTest), 0x01);
 
-  EXPECT_EQ(packet.At(99), 0);
-  EXPECT_EQ(packet.At(TestEnumInt::kOutOfBond), 0);
-  EXPECT_EQ(packet.At(TestEnumUint8::kOutOfBond), 0);
-  EXPECT_EQ(packet.At(TestEnumUint32::kOutOfBond), 0);
-  EXPECT_EQ(packet.At(TestEnumUint64::kOutOfBond), 0);
+    EXPECT_EQ(packet.At(99), 0);
+    EXPECT_EQ(packet.At(TestEnumInt::kOutOfBond), 0);
+    EXPECT_EQ(packet.At(TestEnumUint8::kOutOfBond), 0);
+    EXPECT_EQ(packet.At(TestEnumUint32::kOutOfBond), 0);
+    EXPECT_EQ(packet.At(TestEnumUint64::kOutOfBond), 0);
 }
 
 TEST(HalPacketTest, HandleAtUint16LittleEndian) {
-  HalPacket packet({0x01, 0x02, 0x03, 0x04});
-  EXPECT_EQ(packet.AtUint16LittleEndian(0), 0x0201);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumInt::kTest), 0x0201);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint8::kTest), 0x0201);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint32::kTest), 0x0201);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint64::kTest), 0x0201);
+    HalPacket packet({0x01, 0x02, 0x03, 0x04});
+    EXPECT_EQ(packet.AtUint16LittleEndian(0), 0x0201);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumInt::kTest), 0x0201);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint8::kTest), 0x0201);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint32::kTest), 0x0201);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint64::kTest), 0x0201);
 
-  EXPECT_EQ(packet.AtUint16LittleEndian(99), 0);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumInt::kOutOfBond), 0);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint8::kOutOfBond), 0);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint32::kOutOfBond), 0);
-  EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint64::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint16LittleEndian(99), 0);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumInt::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint8::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint32::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint16LittleEndian(TestEnumUint64::kOutOfBond), 0);
 }
 
 TEST(HalPacketTest, HandleAtUint64LittleEndian) {
-  HalPacket packet({0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08});
-  EXPECT_EQ(packet.AtUint64LittleEndian(0), 0x0807060504030201);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumInt::kTest),
-            0x0807060504030201);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint8::kTest),
-            0x0807060504030201);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint32::kTest),
-            0x0807060504030201);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint64::kTest),
-            0x0807060504030201);
+    HalPacket packet({0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08});
+    EXPECT_EQ(packet.AtUint64LittleEndian(0), 0x0807060504030201);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumInt::kTest), 0x0807060504030201);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint8::kTest), 0x0807060504030201);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint32::kTest), 0x0807060504030201);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint64::kTest), 0x0807060504030201);
 
-  EXPECT_EQ(packet.AtUint64LittleEndian(99), 0);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumInt::kOutOfBond), 0);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint8::kOutOfBond), 0);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint32::kOutOfBond), 0);
-  EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint64::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint64LittleEndian(99), 0);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumInt::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint8::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint32::kOutOfBond), 0);
+    EXPECT_EQ(packet.AtUint64LittleEndian(TestEnumUint64::kOutOfBond), 0);
 }
 
 TEST(HalPacketTest, HandleToString) {
-  HalPacket packet({0x01, 0x02, 0x03, 0x04});
-  std::string expected = "(4)[01 02 03 04]";
-  std::string actual = packet.ToString();
-  EXPECT_EQ(actual, expected);
+    HalPacket packet({0x01, 0x02, 0x03, 0x04});
+    std::string expected = "(4)[01 02 03 04]";
+    std::string actual = packet.ToString();
+    EXPECT_EQ(actual, expected);
 }
 
 TEST(HalPacketTest, HandleToStringEmpty) {
-  HalPacket packet;
-  std::string expected = "(0)[]";
-  std::string actual = packet.ToString();
-  EXPECT_EQ(actual, expected);
+    HalPacket packet;
+    std::string expected = "(0)[]";
+    std::string actual = packet.ToString();
+    EXPECT_EQ(actual, expected);
 }
 
 TEST(HalPacketTest, HandleConstructorWithType) {
-  // HCI Reset Command
-  uint8_t type = static_cast<uint8_t>(HciPacketType::kCommand);
-  std::vector<uint8_t> payload = {0x03, 0x0C, 0x00};
+    // HCI Reset Command
+    uint8_t type = static_cast<uint8_t>(HciPacketType::kCommand);
+    std::vector<uint8_t> payload = {0x03, 0x0C, 0x00};
 
-  HalPacket packet(type, payload);
+    HalPacket packet(type, payload);
 
-  ASSERT_EQ(packet[0], type);
-  ASSERT_EQ(packet.size(), payload.size() + 1);
-  for (size_t i = 1; i < payload.size(); i++) {
-    ASSERT_EQ(packet[i + 1], payload[i]);
-  }
+    ASSERT_EQ(packet[0], type);
+    ASSERT_EQ(packet.size(), payload.size() + 1);
+    for (size_t i = 1; i < payload.size(); i++) {
+        ASSERT_EQ(packet[i + 1], payload[i]);
+    }
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kCommand);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0x0c03);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kCommand);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0x0c03);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandlePacketInit) {
-  // Uninitialized packet
-  HalPacket packet;
+    // Uninitialized packet
+    HalPacket packet;
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kUnknown);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kUnknown);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleInvalidPacket) {
-  // Invalid packet with an unimplmeneted type 0xFF
-  HalPacket packet({0xFF, 0x00, 0x00, 0x01, 0x00});
+    // Invalid packet with an unimplmeneted type 0xFF
+    HalPacket packet({0xFF, 0x00, 0x00, 0x01, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kUnknown);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kUnknown);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleHciCommand) {
-  // HCI Reset Command
-  HalPacket packet({0x01, 0x03, 0x0c, 0x00});
+    // HCI Reset Command
+    HalPacket packet({0x01, 0x03, 0x0c, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kCommand);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0x0c03);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kCommand);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0x0c03);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleHciEvent) {
-  // Mode Change Event (event code = 0x14)
-  HalPacket packet({0x04, 0x14, 0x06, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00});
+    // Mode Change Event (event code = 0x14)
+    HalPacket packet({0x04, 0x14, 0x06, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0x14);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0x14);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleHciCommandCompleteEvent) {
-  // HCI Reset Complete Event
-  HalPacket packet({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00});
+    // HCI Reset Complete Event
+    HalPacket packet({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0x0e);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_TRUE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kSuccess));
-  ASSERT_TRUE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0x0c03);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0x0e);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_TRUE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kSuccess));
+    ASSERT_TRUE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0x0c03);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleHciCommandStatusEvent) {
-  // HCI Create Connection Status Event
-  HalPacket packet({0x04, 0x0f, 0x04, 0x00, 0x01, 0x05, 0x04});
+    // HCI Create Connection Status Event
+    HalPacket packet({0x04, 0x0f, 0x04, 0x00, 0x01, 0x05, 0x04});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0x0f);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_TRUE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kSuccess));
-  ASSERT_TRUE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0x0405);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0x0f);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_TRUE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kSuccess));
+    ASSERT_TRUE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0x0405);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleBleMetaEvent) {
-  // LE Connection Update Complete event (sub-event code = 0x03)
-  HalPacket packet({0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00,
-                    0x00, 0x00, 0x0a});
+    // LE Connection Update Complete event (sub-event code = 0x03)
+    HalPacket packet(
+            {0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x0a});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0x3e);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_TRUE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0x03);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kEvent);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0x3e);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_TRUE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0x03);
 }
 
 TEST(HalPacketTest, HandleAclData) {
-  // ACL data
-  HalPacket packet({0x02, 0x41, 0x00, 0x01, 0x00});
+    // ACL data
+    HalPacket packet({0x02, 0x41, 0x00, 0x01, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kAclData);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kAclData);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleScoData) {
-  // SCO data
-  HalPacket packet({0x03, 0x41, 0x00, 0x01, 0x00});
+    // SCO data
+    HalPacket packet({0x03, 0x41, 0x00, 0x01, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kScoData);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kScoData);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleIsoData) {
-  // ISO data
-  HalPacket packet({0x05, 0x41, 0x00, 0x01, 0x00});
+    // ISO data
+    HalPacket packet({0x05, 0x41, 0x00, 0x01, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kIsoData);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kIsoData);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleThreadData) {
-  // Thread data
-  HalPacket packet({0x70, 0x00, 0x00, 0x01, 0x00});
+    // Thread data
+    HalPacket packet({0x70, 0x00, 0x00, 0x01, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kThreadData);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kThreadData);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, HandleHdlcData) {
-  // HDLC data
-  HalPacket packet({0x7e, 0x00, 0x00, 0x01, 0x00});
+    // HDLC data
+    HalPacket packet({0x7e, 0x00, 0x00, 0x01, 0x00});
 
-  ASSERT_EQ(packet.GetType(), HciPacketType::kHdlcData);
-  ASSERT_EQ(packet.GetCommandOpcode(), 0);
-  ASSERT_FALSE(packet.IsVendorCommand());
-  ASSERT_EQ(packet.GetEventCode(), 0);
-  ASSERT_FALSE(packet.IsVendorEvent());
-  ASSERT_FALSE(packet.IsCommandCompleteEvent());
-  ASSERT_FALSE(packet.IsCommandStatusEvent());
-  ASSERT_EQ(packet.GetCommandCompleteEventResult(),
-            static_cast<uint8_t>(EventResultCode::kFailure));
-  ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
-  ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
-  ASSERT_FALSE(packet.IsBleMetaEvent());
-  ASSERT_EQ(packet.GetBleSubEventCode(), 0);
+    ASSERT_EQ(packet.GetType(), HciPacketType::kHdlcData);
+    ASSERT_EQ(packet.GetCommandOpcode(), 0);
+    ASSERT_FALSE(packet.IsVendorCommand());
+    ASSERT_EQ(packet.GetEventCode(), 0);
+    ASSERT_FALSE(packet.IsVendorEvent());
+    ASSERT_FALSE(packet.IsCommandCompleteEvent());
+    ASSERT_FALSE(packet.IsCommandStatusEvent());
+    ASSERT_EQ(packet.GetCommandCompleteEventResult(),
+              static_cast<uint8_t>(EventResultCode::kFailure));
+    ASSERT_FALSE(packet.IsCommandCompleteStatusEvent());
+    ASSERT_EQ(packet.GetCommandOpcodeFromGeneratedEvent(), 0);
+    ASSERT_FALSE(packet.IsBleMetaEvent());
+    ASSERT_EQ(packet.GetBleSubEventCode(), 0);
 }
 
 TEST(HalPacketTest, GetValidBluetoothAddressFromPacket) {
-  HalPacket packet({0x04, 0x04, 0x0a, 0xcb, 0x24, 0x60, 0xc8, 0x8b, 0x08, 0x0c,
-                    0x42, 0x5a, 0x01});
-  BluetoothAddress expected_address({0x08, 0x8b, 0xc8, 0x60, 0x24, 0xcb});
-  std::string expected_address_in_full_string = "08:8B:C8:60:24:CB";
+    HalPacket packet(
+            {0x04, 0x04, 0x0a, 0xcb, 0x24, 0x60, 0xc8, 0x8b, 0x08, 0x0c, 0x42, 0x5a, 0x01});
+    BluetoothAddress expected_address({0x08, 0x8b, 0xc8, 0x60, 0x24, 0xcb});
+    std::string expected_address_in_full_string = "08:8B:C8:60:24:CB";
 
-  EXPECT_EQ(packet.GetBluetoothAddressAt(3), expected_address);
-  EXPECT_EQ(packet.GetBluetoothAddressAt(3).ToFullString(),
-            expected_address_in_full_string);
+    EXPECT_EQ(packet.GetBluetoothAddressAt(3), expected_address);
+    EXPECT_EQ(packet.GetBluetoothAddressAt(3).ToFullString(), expected_address_in_full_string);
 }
 
 TEST(HalPacketTest, GetInvalidBluetoothAddressFromPacket) {
-  HalPacket packet({0x04, 0x04, 0x05, 0xcb, 0x24, 0x60, 0xc8, 0x8b});
-  std::string expected_address_in_full_string = "00:00:00:00:00:00";
+    HalPacket packet({0x04, 0x04, 0x05, 0xcb, 0x24, 0x60, 0xc8, 0x8b});
+    std::string expected_address_in_full_string = "00:00:00:00:00:00";
 
-  EXPECT_EQ(packet.GetBluetoothAddressAt(3).ToFullString(),
-            expected_address_in_full_string);
+    EXPECT_EQ(packet.GetBluetoothAddressAt(3).ToFullString(), expected_address_in_full_string);
 }
 
 TEST(HalPacketTest, HandlePacketDestination) {
-  HalPacket packet({0x01, 0x02, 0x03, 0x04});
-  for (int i = static_cast<int>(PacketDestination::kNone);
-       i < static_cast<int>(PacketDestination::kMax); ++i) {
-    auto dest_to_test = static_cast<PacketDestination>(i);
-    packet.SetDestination(dest_to_test);
-    EXPECT_EQ(packet.GetDestination(), dest_to_test);
-  }
+    HalPacket packet({0x01, 0x02, 0x03, 0x04});
+    for (int i = static_cast<int>(PacketDestination::kNone);
+         i < static_cast<int>(PacketDestination::kMax); ++i) {
+        auto dest_to_test = static_cast<PacketDestination>(i);
+        packet.SetDestination(dest_to_test);
+        EXPECT_EQ(packet.GetDestination(), dest_to_test);
+    }
 }
 
 TEST(HalPacketTest, HandlePacketSource) {
-  HalPacket packet({0x01, 0x02, 0x03, 0x04});
-  for (int i = static_cast<int>(PacketSource::kNone);
-       i < static_cast<int>(PacketSource::kMax); ++i) {
-    auto source_to_test = static_cast<PacketSource>(i);
-    packet.SetSource(source_to_test);
-    EXPECT_EQ(packet.GetSource(), source_to_test);
-  }
+    HalPacket packet({0x01, 0x02, 0x03, 0x04});
+    for (int i = static_cast<int>(PacketSource::kNone); i < static_cast<int>(PacketSource::kMax);
+         ++i) {
+        auto source_to_test = static_cast<PacketSource>(i);
+        packet.SetSource(source_to_test);
+        EXPECT_EQ(packet.GetSource(), source_to_test);
+    }
 }
 
 }  // namespace

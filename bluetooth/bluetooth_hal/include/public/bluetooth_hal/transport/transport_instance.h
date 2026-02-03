@@ -29,30 +29,29 @@ namespace bluetooth_hal::transport {
  * should provide concrete behaviors for these events.
  */
 class TransportInstanceCallback {
- public:
-  virtual ~TransportInstanceCallback() = default;
+  public:
+    virtual ~TransportInstanceCallback() = default;
 
-  /**
-   * @brief Called when the transport connection is closed.
-   *
-   * Implementations should handle any necessary cleanup or state updates when
-   * the transport is closed.
-   *
-   */
-  virtual void OnTransportClosed() = 0;
+    /**
+     * @brief Called when the transport connection is closed.
+     *
+     * Implementations should handle any necessary cleanup or state updates when
+     * the transport is closed.
+     *
+     */
+    virtual void OnTransportClosed() = 0;
 
-  /**
-   * @brief Called when a packet is ready to be processed.
-   *
-   * @param packet The received packet that needs to be processed.
-   *
-   * Implementations should process the given packet accordingly. This method
-   * does not return a callback, meaning the implementation is expected to
-   * handle the packet directly within this function.
-   *
-   */
-  virtual void OnTransportPacketReady(
-      const ::bluetooth_hal::hci::HalPacket& packet) = 0;
+    /**
+     * @brief Called when a packet is ready to be processed.
+     *
+     * @param packet The received packet that needs to be processed.
+     *
+     * Implementations should process the given packet accordingly. This method
+     * does not return a callback, meaning the implementation is expected to
+     * handle the packet directly within this function.
+     *
+     */
+    virtual void OnTransportPacketReady(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
 };
 
 /**
@@ -60,67 +59,66 @@ class TransportInstanceCallback {
  * control and data management.
  */
 class TransportInstance {
- public:
-  virtual ~TransportInstance() = default;
+  public:
+    virtual ~TransportInstance() = default;
 
-  /**
-   * @brief Initializes the transport instance with a transport callback.
-   *
-   * @param transport_instance_callback A pointer to a
-   * `TransportInstanceCallback` responsible for handling transport layer
-   * events such as packet reception, connection closure, etc.
-   *
-   * @return True if initialization succeeds, false otherwise.
-   *
-   */
-  virtual bool Initialize(
-      TransportInstanceCallback* transport_instance_callback) = 0;
+    /**
+     * @brief Initializes the transport instance with a transport callback.
+     *
+     * @param transport_instance_callback A pointer to a
+     * `TransportInstanceCallback` responsible for handling transport layer
+     * events such as packet reception, connection closure, etc.
+     *
+     * @return True if initialization succeeds, false otherwise.
+     *
+     */
+    virtual bool Initialize(TransportInstanceCallback* transport_instance_callback) = 0;
 
-  /**
-   * @brief Cleans up resources and disconnects the transport instance.
-   *
-   */
-  virtual void Cleanup() = 0;
+    /**
+     * @brief Cleans up resources and disconnects the transport instance.
+     *
+     */
+    virtual void Cleanup() = 0;
 
-  /**
-   * @brief Checks if the current transport is active and operational.
-   *
-   * @return `true` if the transport is active and communication is operational,
-   * `false` otherwise.
-   *
-   */
-  virtual bool IsTransportActive() const = 0;
+    /**
+     * @brief Checks if the current transport is active and operational.
+     *
+     * @return `true` if the transport is active and communication is operational,
+     * `false` otherwise.
+     *
+     */
+    virtual bool IsTransportActive() const = 0;
 
-  /**
-   * @brief Sends a single packet with the specified type.
-   *
-   * @param packet The content of the packet to be transmitted.
-   *
-   * @return `true` if packet is sent successfully, `false` otherwise.
-   *
-   */
-  virtual bool Send(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
+    /**
+     * @brief Sends a single packet with the specified type.
+     *
+     * @param packet The content of the packet to be transmitted.
+     *
+     * @return `true` if packet is sent successfully, `false` otherwise.
+     *
+     */
+    virtual bool Send(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
 
-  /**
-   * @brief Retrieves the specific transport type of this instance.
-   *
-   * @return The TransportType of this concrete transport instance.
-   *
-   */
-  virtual TransportType GetInstanceTransportType() const = 0;
+    /**
+     * @brief Retrieves the specific transport type of this instance.
+     *
+     * @return The TransportType of this concrete transport instance.
+     *
+     */
+    virtual TransportType GetInstanceTransportType() const = 0;
 
-  /**
-   * @brief Updates the busy state of the hci router.
-   *
-   * This function is called to indicate whether the hci router is currently
-   * busy. The base implementation does nothing. Derived classes can override
-   * this to handle the busy state change. This should be called by hci router.
-   *
-   * @param is_busy A boolean indicating the new busy state of the hci router.
-   * Pass true if the hci router is busy, or false otherwise.
-   *
-   */
-  virtual void SetHciRouterBusy(bool /*is_busy*/) {}
+    /**
+     * @brief Updates the busy state of the hci router.
+     *
+     * This function is called to indicate whether the hci router is currently
+     * busy. The base implementation does nothing. Derived classes can override
+     * this to handle the busy state change. This should be called by hci router.
+     *
+     * @param is_busy A boolean indicating the new busy state of the hci router.
+     * Pass true if the hci router is busy, or false otherwise.
+     *
+     */
+    virtual void SetHciRouterBusy(bool /*is_busy*/) {}
 };
 
 }  // namespace bluetooth_hal::transport

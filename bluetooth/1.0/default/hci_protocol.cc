@@ -29,27 +29,26 @@ namespace bluetooth {
 namespace hci {
 
 size_t HciProtocol::WriteSafely(int fd, const uint8_t* data, size_t length) {
-  size_t transmitted_length = 0;
-  while (length > 0) {
-    ssize_t ret =
-        TEMP_FAILURE_RETRY(write(fd, data + transmitted_length, length));
+    size_t transmitted_length = 0;
+    while (length > 0) {
+        ssize_t ret = TEMP_FAILURE_RETRY(write(fd, data + transmitted_length, length));
 
-    if (ret == -1) {
-      if (errno == EAGAIN) continue;
-      ALOGE("%s error writing to UART (%s)", __func__, strerror(errno));
-      break;
+        if (ret == -1) {
+            if (errno == EAGAIN) continue;
+            ALOGE("%s error writing to UART (%s)", __func__, strerror(errno));
+            break;
 
-    } else if (ret == 0) {
-      // Nothing written :(
-      ALOGE("%s zero bytes written - something went wrong...", __func__);
-      break;
+        } else if (ret == 0) {
+            // Nothing written :(
+            ALOGE("%s zero bytes written - something went wrong...", __func__);
+            break;
+        }
+
+        transmitted_length += ret;
+        length -= ret;
     }
 
-    transmitted_length += ret;
-    length -= ret;
-  }
-
-  return transmitted_length;
+    return transmitted_length;
 }
 
 }  // namespace hci

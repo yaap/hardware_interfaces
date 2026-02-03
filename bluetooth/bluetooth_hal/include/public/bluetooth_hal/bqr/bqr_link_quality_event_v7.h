@@ -24,17 +24,17 @@
 namespace bluetooth_hal::bqr {
 
 class BqrLinkQualityEventV7 : public BqrLinkQualityEventV6 {
- public:
-  explicit BqrLinkQualityEventV7(const ::bluetooth_hal::hci::HalPacket& packet);
+  public:
+    explicit BqrLinkQualityEventV7(const ::bluetooth_hal::hci::HalPacket& packet);
 
-  // Checks if the BQR Link Quality Event V6 is valid.
-  bool IsValid() const override;
+    // Checks if the BQR Link Quality Event V6 is valid.
+    bool IsValid() const override;
 
-  // Returns a string representation of the event.
-  std::string ToString() const;
+    // Returns a string representation of the event.
+    std::string ToString() const;
 
- protected:
-  std::string ToBqrString() const;
+  protected:
+    std::string ToBqrString() const;
 };
 
 }  // namespace bluetooth_hal::bqr

@@ -22,41 +22,33 @@
 namespace bluetooth_hal::debug {
 
 class MockDebugCentral : public DebugCentral {
- public:
-  MOCK_METHOD(bool, RegisterDebugClient, (DebugClient * debug_client),
-              (override));
-  MOCK_METHOD(bool, UnregisterDebugClient, (DebugClient * debug_client),
-              (override));
-  MOCK_METHOD(void, Dump, (int fd), (override));
-  MOCK_METHOD(void, SetBtUartDebugPort, (const std::string& uart_port),
-              (override));
-  MOCK_METHOD(void, AddLog, (AnchorType type, const std::string& log),
-              (override));
-  MOCK_METHOD(void, ReportBqrError,
-              (::bluetooth_hal::bqr::BqrErrorCode error,
-               std::string extra_info),
-              (override));
-  MOCK_METHOD(void, HandleRootInflammationEvent,
-              (const ::bluetooth_hal::bqr::BqrRootInflammationEvent& event),
-              (override));
-  MOCK_METHOD(void, HandleDebugInfoEvent,
-              (const ::bluetooth_hal::hci::HalPacket& packet), (override));
-  MOCK_METHOD(void, HandleDebugInfoCommand, (), (override));
-  MOCK_METHOD(void, GenerateVendorDumpFile,
-              (const std::string& file_path, const std::vector<uint8_t>& data,
-               uint8_t vendor_error_code),
-              (override));
-  MOCK_METHOD(void, GenerateCoredump,
-              (CoredumpErrorCode error_code, uint8_t sub_error_code),
-              (override));
-  MOCK_METHOD(void, ResetCoredumpGenerator, (), (override));
-  MOCK_METHOD(bool, IsCoredumpGenerated, (), (override));
-  MOCK_METHOD(std::string&, GetCoredumpTimestampString, (), (override));
-  MOCK_METHOD(void, DumpPartialHalLogToLogcat, (), (override));
+  public:
+    MOCK_METHOD(bool, RegisterDebugClient, (DebugClient * debug_client), (override));
+    MOCK_METHOD(bool, UnregisterDebugClient, (DebugClient * debug_client), (override));
+    MOCK_METHOD(void, Dump, (int fd), (override));
+    MOCK_METHOD(void, SetBtUartDebugPort, (const std::string& uart_port), (override));
+    MOCK_METHOD(void, AddLog, (AnchorType type, const std::string& log), (override));
+    MOCK_METHOD(void, ReportBqrError,
+                (::bluetooth_hal::bqr::BqrErrorCode error, std::string extra_info), (override));
+    MOCK_METHOD(void, HandleRootInflammationEvent,
+                (const ::bluetooth_hal::bqr::BqrRootInflammationEvent& event), (override));
+    MOCK_METHOD(void, HandleDebugInfoEvent, (const ::bluetooth_hal::hci::HalPacket& packet),
+                (override));
+    MOCK_METHOD(void, HandleDebugInfoCommand, (), (override));
+    MOCK_METHOD(void, GenerateVendorDumpFile,
+                (const std::string& file_path, const std::vector<uint8_t>& data,
+                 uint8_t vendor_error_code),
+                (override));
+    MOCK_METHOD(void, GenerateCoredump, (CoredumpErrorCode error_code, uint8_t sub_error_code),
+                (override));
+    MOCK_METHOD(void, ResetCoredumpGenerator, (), (override));
+    MOCK_METHOD(bool, IsCoredumpGenerated, (), (override));
+    MOCK_METHOD(std::string&, GetCoredumpTimestampString, (), (override));
+    MOCK_METHOD(void, DumpPartialHalLogToLogcat, (), (override));
 
-  static void SetMockDebugCentral(MockDebugCentral* mock_debug_central);
+    static void SetMockDebugCentral(MockDebugCentral* mock_debug_central);
 
-  static inline MockDebugCentral* mock_debug_central_{nullptr};
+    static inline MockDebugCentral* mock_debug_central_{nullptr};
 };
 
 }  // namespace bluetooth_hal::debug

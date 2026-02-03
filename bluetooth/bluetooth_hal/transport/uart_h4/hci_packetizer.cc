@@ -44,134 +44,129 @@ constexpr size_t kLogByteLimit = 6;
 
 std::string GenerateUnimplementedPacketLog(HciPacketType packet_type,
                                            std::span<const uint8_t> buffer) {
-  std::ostringstream oss;
-  oss << "Host Received Unimplemented Packet Type: " << std::hex
-      << std::uppercase << std::setw(2) << std::setfill('0')
-      << static_cast<int>(packet_type) << ", bytes_read: " << buffer.size()
-      << ", packet:";
+    std::ostringstream oss;
+    oss << "Host Received Unimplemented Packet Type: " << std::hex << std::uppercase << std::setw(2)
+        << std::setfill('0') << static_cast<int>(packet_type) << ", bytes_read: " << buffer.size()
+        << ", packet:";
 
-  const unsigned long max_bytes_to_print =
-      std::min(buffer.size(), kLogByteLimit);
-  for (size_t i = 0; i < max_bytes_to_print; ++i) {
-    oss << " " << std::hex << std::uppercase << static_cast<int>(buffer[i]);
-  }
-  return oss.str();
+    const unsigned long max_bytes_to_print = std::min(buffer.size(), kLogByteLimit);
+    for (size_t i = 0; i < max_bytes_to_print; ++i) {
+        oss << " " << std::hex << std::uppercase << static_cast<int>(buffer[i]);
+    }
+    return oss.str();
 }
 
 bool IsValidHciPacketType(HciPacketType hci_packet_type) {
-  switch (hci_packet_type) {
-    case HciPacketType::kCommand:
-    case HciPacketType::kAclData:
-    case HciPacketType::kScoData:
-    case HciPacketType::kIsoData:
-    case HciPacketType::kEvent:
-    case HciPacketType::kThreadData:
-      return true;
-    default:
-      return false;
-  }
+    switch (hci_packet_type) {
+        case HciPacketType::kCommand:
+        case HciPacketType::kAclData:
+        case HciPacketType::kScoData:
+        case HciPacketType::kIsoData:
+        case HciPacketType::kEvent:
+        case HciPacketType::kThreadData:
+            return true;
+        default:
+            return false;
+    }
 }
 
 size_t GetPayloadLength(std::span<const uint8_t> packet) {
-  if (packet.empty()) {
-    return 0;
-  }
+    if (packet.empty()) {
+        return 0;
+    }
 
-  HciPacketType packet_type = static_cast<HciPacketType>(packet[0]);
-  if (packet.size() < 1 + HciConstants::GetPreambleSize(packet_type)) {
-    return 0;
-  }
+    HciPacketType packet_type = static_cast<HciPacketType>(packet[0]);
+    if (packet.size() < 1 + HciConstants::GetPreambleSize(packet_type)) {
+        return 0;
+    }
 
-  const size_t offset = HciConstants::GetPacketLengthOffset(packet_type);
+    const size_t offset = HciConstants::GetPacketLengthOffset(packet_type);
 
-  switch (packet_type) {
-    case HciPacketType::kAclData:
-    case HciPacketType::kThreadData:
-      return (static_cast<size_t>(packet[offset + 1]) << 8) | packet[offset];
-    case HciPacketType::kIsoData:
-      return ((static_cast<size_t>(packet[offset + 1]) & 0x3F) << 8) |
-             packet[offset];
-    default:
-      return packet[offset];
-  }
+    switch (packet_type) {
+        case HciPacketType::kAclData:
+        case HciPacketType::kThreadData:
+            return (static_cast<size_t>(packet[offset + 1]) << 8) | packet[offset];
+        case HciPacketType::kIsoData:
+            return ((static_cast<size_t>(packet[offset + 1]) & 0x3F) << 8) | packet[offset];
+        default:
+            return packet[offset];
+    }
 }
 
 }  // namespace
 
 size_t HciPacketizer::ProcessData(std::span<const uint8_t> data) {
-  if (!data.size()) {
-    return 0;
-  }
+    if (!data.size()) {
+        return 0;
+    }
 
-  size_t cur_bytes_read = 0;
-  const size_t len = data.size();
+    size_t cur_bytes_read = 0;
+    const size_t len = data.size();
 
-  switch (state_) {
-    case State::kHciHeader: {
-      const auto hci_packet_type = static_cast<HciPacketType>(data[0]);
-      packet_.clear();
+    switch (state_) {
+        case State::kHciHeader: {
+            const auto hci_packet_type = static_cast<HciPacketType>(data[0]);
+            packet_.clear();
 
-      size_t offset = 0;
-      bool packet_found = IsValidHciPacketType(hci_packet_type);
-      if (!packet_found &&
-          HalConfigLoader::GetLoader().IsEnhancedPacketValidationSupported()) {
-        offset = hci_packet_rescuer_.FindValidPacketOffset(data);
-        if (offset < len) {
-          packet_found = true;
-          LOG(INFO) << __func__ << ": Drop " << offset << " bytes to recovery.";
+            size_t offset = 0;
+            bool packet_found = IsValidHciPacketType(hci_packet_type);
+            if (!packet_found &&
+                HalConfigLoader::GetLoader().IsEnhancedPacketValidationSupported()) {
+                offset = hci_packet_rescuer_.FindValidPacketOffset(data);
+                if (offset < len) {
+                    packet_found = true;
+                    LOG(INFO) << __func__ << ": Drop " << offset << " bytes to recovery.";
+                }
+            }
+
+            if (!packet_found) {
+                const std::string err_msg = GenerateUnimplementedPacketLog(hci_packet_type, data);
+                LOG(ERROR) << __func__ << ": " << err_msg;
+            } else {
+                packet_.push_back(data[offset]);
+                state_ = State::kHciPreamble;
+                cur_bytes_read = offset + 1;
+            }
+            break;
         }
-      }
 
-      if (!packet_found) {
-        const std::string err_msg =
-            GenerateUnimplementedPacketLog(hci_packet_type, data);
-        LOG(ERROR) << __func__ << ": " << err_msg;
-      } else {
-        packet_.push_back(data[offset]);
-        state_ = State::kHciPreamble;
-        cur_bytes_read = offset + 1;
-      }
-      break;
+        case State::kHciPreamble: {
+            const size_t preamble_size = HciConstants::GetPreambleSize(packet_.GetType());
+            const size_t to_read = std::min(len, preamble_size - total_bytes_read_);
+
+            packet_.insert(packet_.end(), data.begin(), data.begin() + to_read);
+
+            total_bytes_read_ += to_read;
+            cur_bytes_read = to_read;
+
+            if (total_bytes_read_ == preamble_size) {
+                state_ = State::kHciPayload;
+                payload_length_ = GetPayloadLength(std::span(packet_));
+                total_bytes_read_ = 0;
+            }
+            break;
+        }
+
+        case State::kHciPayload: {
+            const size_t to_read = std::min(len, payload_length_ - total_bytes_read_);
+
+            packet_.insert(packet_.end(), data.begin(), data.begin() + to_read);
+
+            total_bytes_read_ += to_read;
+            cur_bytes_read = to_read;
+
+            if (total_bytes_read_ == payload_length_) {
+                on_packet_ready_(packet_);
+
+                state_ = State::kHciHeader;
+                payload_length_ = 0;
+                total_bytes_read_ = 0;
+            }
+            break;
+        }
     }
 
-    case State::kHciPreamble: {
-      const size_t preamble_size =
-          HciConstants::GetPreambleSize(packet_.GetType());
-      const size_t to_read = std::min(len, preamble_size - total_bytes_read_);
-
-      packet_.insert(packet_.end(), data.begin(), data.begin() + to_read);
-
-      total_bytes_read_ += to_read;
-      cur_bytes_read = to_read;
-
-      if (total_bytes_read_ == preamble_size) {
-        state_ = State::kHciPayload;
-        payload_length_ = GetPayloadLength(std::span(packet_));
-        total_bytes_read_ = 0;
-      }
-      break;
-    }
-
-    case State::kHciPayload: {
-      const size_t to_read = std::min(len, payload_length_ - total_bytes_read_);
-
-      packet_.insert(packet_.end(), data.begin(), data.begin() + to_read);
-
-      total_bytes_read_ += to_read;
-      cur_bytes_read = to_read;
-
-      if (total_bytes_read_ == payload_length_) {
-        on_packet_ready_(packet_);
-
-        state_ = State::kHciHeader;
-        payload_length_ = 0;
-        total_bytes_read_ = 0;
-      }
-      break;
-    }
-  }
-
-  return cur_bytes_read;
+    return cur_bytes_read;
 }
 
 }  // namespace bluetooth_hal::transport

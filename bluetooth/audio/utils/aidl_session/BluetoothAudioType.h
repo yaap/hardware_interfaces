@@ -21,8 +21,7 @@ constexpr uint8_t kIsoDataPathDisabled = 0xFF;
 /* Direction */
 constexpr uint8_t kLeAudioDirectionSink = 0x01;
 constexpr uint8_t kLeAudioDirectionSource = 0x02;
-constexpr uint8_t kLeAudioDirectionBoth =
-    kLeAudioDirectionSink | kLeAudioDirectionSource;
+constexpr uint8_t kLeAudioDirectionBoth = kLeAudioDirectionSink | kLeAudioDirectionSource;
 
 /* Sampling Frequencies */
 constexpr uint8_t kLeAudioSamplingFreq8000Hz = 0x01;
@@ -76,21 +75,19 @@ constexpr uint32_t kLeAudioLocationLeftSurround = 0x04000000;
 constexpr uint32_t kLeAudioLocationRightSurround = 0x08000000;
 
 constexpr uint32_t kLeAudioLocationAnyLeft =
-    kLeAudioLocationFrontLeft | kLeAudioLocationBackLeft |
-    kLeAudioLocationFrontLeftOfCenter | kLeAudioLocationSideLeft |
-    kLeAudioLocationTopFrontLeft | kLeAudioLocationTopBackLeft |
-    kLeAudioLocationTopSideLeft | kLeAudioLocationBottomFrontLeft |
-    kLeAudioLocationFrontLeftWide | kLeAudioLocationLeftSurround;
+        kLeAudioLocationFrontLeft | kLeAudioLocationBackLeft | kLeAudioLocationFrontLeftOfCenter |
+        kLeAudioLocationSideLeft | kLeAudioLocationTopFrontLeft | kLeAudioLocationTopBackLeft |
+        kLeAudioLocationTopSideLeft | kLeAudioLocationBottomFrontLeft |
+        kLeAudioLocationFrontLeftWide | kLeAudioLocationLeftSurround;
 
 constexpr uint32_t kLeAudioLocationAnyRight =
-    kLeAudioLocationFrontRight | kLeAudioLocationBackRight |
-    kLeAudioLocationFrontRightOfCenter | kLeAudioLocationSideRight |
-    kLeAudioLocationTopFrontRight | kLeAudioLocationTopBackRight |
-    kLeAudioLocationTopSideRight | kLeAudioLocationBottomFrontRight |
-    kLeAudioLocationFrontRightWide | kLeAudioLocationRightSurround;
+        kLeAudioLocationFrontRight | kLeAudioLocationBackRight |
+        kLeAudioLocationFrontRightOfCenter | kLeAudioLocationSideRight |
+        kLeAudioLocationTopFrontRight | kLeAudioLocationTopBackRight |
+        kLeAudioLocationTopSideRight | kLeAudioLocationBottomFrontRight |
+        kLeAudioLocationFrontRightWide | kLeAudioLocationRightSurround;
 
-constexpr uint32_t kLeAudioLocationStereo =
-    kLeAudioLocationFrontLeft | kLeAudioLocationFrontRight;
+constexpr uint32_t kLeAudioLocationStereo = kLeAudioLocationFrontLeft | kLeAudioLocationFrontRight;
 
 /* Octets Per Frame */
 constexpr uint16_t kLeAudioCodecFrameLen30 = 30;
@@ -116,13 +113,13 @@ constexpr uint16_t kLeAudioVendorCodecIdOpus = 0x0001;
 constexpr uint16_t kLeAudioVendorCodecIdHeadTracker = 0x0002;
 
 const CodecId::Vendor opus_codec{
-    .codecId = kLeAudioVendorCodecIdOpus,
-    .id = kLeAudioVendorCompanyIdGoogle,
+        .codecId = kLeAudioVendorCodecIdOpus,
+        .id = kLeAudioVendorCompanyIdGoogle,
 };
 
 const CodecId::Vendor dsa_headtracker_codec{
-    .codecId = kLeAudioVendorCodecIdHeadTracker,
-    .id = kLeAudioVendorCompanyIdGoogle,
+        .codecId = kLeAudioVendorCodecIdHeadTracker,
+        .id = kLeAudioVendorCompanyIdGoogle,
 };
 
 /* Opus Hi-res */
@@ -132,8 +129,7 @@ constexpr uint32_t kOpusHiresComplexity = 10;
 constexpr bool kOpusHiresVbr = false;
 
 /* Utility conversion */
-const std::map<CodecSpecificConfigurationLtv::SamplingFrequency, uint32_t>
-    sampling_rate_ltv_map = {
+const std::map<CodecSpecificConfigurationLtv::SamplingFrequency, uint32_t> sampling_rate_ltv_map = {
         {CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000, 8000},
         {CodecSpecificConfigurationLtv::SamplingFrequency::HZ11025, 11025},
         {CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000, 16000},
@@ -148,153 +144,134 @@ const std::map<CodecSpecificConfigurationLtv::SamplingFrequency, uint32_t>
         {CodecSpecificConfigurationLtv::SamplingFrequency::HZ384000, 384000},
 };
 
-const std::map<CodecSpecificConfigurationLtv::FrameDuration, int32_t>
-    frame_duration_ltv_map = {
+const std::map<CodecSpecificConfigurationLtv::FrameDuration, int32_t> frame_duration_ltv_map = {
         {CodecSpecificConfigurationLtv::FrameDuration::US7500, 7500},
         {CodecSpecificConfigurationLtv::FrameDuration::US10000, 10000},
         {CodecSpecificConfigurationLtv::FrameDuration::US20000, 20000},
 };
 
 const std::map<uint32_t, CodecSpecificConfigurationLtv::SamplingFrequency>
-    codec_cfg_map_to_sampling_rate_ltv = {
-        {0x01, CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000},
-        {0x02, CodecSpecificConfigurationLtv::SamplingFrequency::HZ11025},
-        {0x03, CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000},
-        {0x04, CodecSpecificConfigurationLtv::SamplingFrequency::HZ22050},
-        {0x05, CodecSpecificConfigurationLtv::SamplingFrequency::HZ24000},
-        {0x06, CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000},
-        {0x07, CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100},
-        {0x08, CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000},
-        {0x09, CodecSpecificConfigurationLtv::SamplingFrequency::HZ88200},
-        {0x0A, CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000},
-        {0x0B, CodecSpecificConfigurationLtv::SamplingFrequency::HZ176400},
-        {0x0C, CodecSpecificConfigurationLtv::SamplingFrequency::HZ192000},
-        {0x0D, CodecSpecificConfigurationLtv::SamplingFrequency::HZ384000},
+        codec_cfg_map_to_sampling_rate_ltv = {
+                {0x01, CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000},
+                {0x02, CodecSpecificConfigurationLtv::SamplingFrequency::HZ11025},
+                {0x03, CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000},
+                {0x04, CodecSpecificConfigurationLtv::SamplingFrequency::HZ22050},
+                {0x05, CodecSpecificConfigurationLtv::SamplingFrequency::HZ24000},
+                {0x06, CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000},
+                {0x07, CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100},
+                {0x08, CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000},
+                {0x09, CodecSpecificConfigurationLtv::SamplingFrequency::HZ88200},
+                {0x0A, CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000},
+                {0x0B, CodecSpecificConfigurationLtv::SamplingFrequency::HZ176400},
+                {0x0C, CodecSpecificConfigurationLtv::SamplingFrequency::HZ192000},
+                {0x0D, CodecSpecificConfigurationLtv::SamplingFrequency::HZ384000},
 };
 
 const std::map<uint32_t, CodecSpecificConfigurationLtv::FrameDuration>
-    codec_cfg_map_to_frame_duration_ltv = {
-        {0x00, CodecSpecificConfigurationLtv::FrameDuration::US7500},
-        {0x01, CodecSpecificConfigurationLtv::FrameDuration::US10000},
-        {0x02, CodecSpecificConfigurationLtv::FrameDuration::US20000},
+        codec_cfg_map_to_frame_duration_ltv = {
+                {0x00, CodecSpecificConfigurationLtv::FrameDuration::US7500},
+                {0x01, CodecSpecificConfigurationLtv::FrameDuration::US10000},
+                {0x02, CodecSpecificConfigurationLtv::FrameDuration::US20000},
 };
 
-const std::map<uint8_t, CodecSpecificConfigurationLtv::SamplingFrequency>
-    sampling_freq_map = {
-        {kLeAudioSamplingFreq8000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000},
-        {kLeAudioSamplingFreq16000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000},
-        {kLeAudioSamplingFreq24000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ24000},
-        {kLeAudioSamplingFreq32000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000},
-        {kLeAudioSamplingFreq44100Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100},
-        {kLeAudioSamplingFreq48000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000},
-        {kLeAudioSamplingFreq96000Hz,
-         CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000}};
+const std::map<uint8_t, CodecSpecificConfigurationLtv::SamplingFrequency> sampling_freq_map = {
+        {kLeAudioSamplingFreq8000Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000},
+        {kLeAudioSamplingFreq16000Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000},
+        {kLeAudioSamplingFreq24000Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ24000},
+        {kLeAudioSamplingFreq32000Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000},
+        {kLeAudioSamplingFreq44100Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100},
+        {kLeAudioSamplingFreq48000Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000},
+        {kLeAudioSamplingFreq96000Hz, CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000}};
 
 /* Helper map for matching various frame durations notations */
-const std::map<uint8_t, CodecSpecificConfigurationLtv::FrameDuration>
-    frame_duration_map = {
-        {kLeAudioCodecFrameDur7500us,
-         CodecSpecificConfigurationLtv::FrameDuration::US7500},
-        {kLeAudioCodecFrameDur10000us,
-         CodecSpecificConfigurationLtv::FrameDuration::US10000},
-        {kLeAudioCodecFrameDur20000us,
-         CodecSpecificConfigurationLtv::FrameDuration::US20000}};
+const std::map<uint8_t, CodecSpecificConfigurationLtv::FrameDuration> frame_duration_map = {
+        {kLeAudioCodecFrameDur7500us, CodecSpecificConfigurationLtv::FrameDuration::US7500},
+        {kLeAudioCodecFrameDur10000us, CodecSpecificConfigurationLtv::FrameDuration::US10000},
+        {kLeAudioCodecFrameDur20000us, CodecSpecificConfigurationLtv::FrameDuration::US20000}};
 
 /* Helper map for matching various audio channel allocation notations */
 const std::map<uint32_t, uint32_t> audio_channel_allocation_map = {
-    {kLeAudioLocationMonoAudio,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::MONO},
-    {kLeAudioLocationFrontLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT},
-    {kLeAudioLocationFrontRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT},
-    {kLeAudioLocationFrontCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_CENTER},
-    {kLeAudioLocationLowFreqEffects1,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::
-         LOW_FREQUENCY_EFFECTS_1},
-    {kLeAudioLocationBackLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::BACK_LEFT},
-    {kLeAudioLocationBackRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::BACK_RIGHT},
-    {kLeAudioLocationFrontLeftOfCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::
-         FRONT_LEFT_OF_CENTER},
-    {kLeAudioLocationFrontRightOfCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::
-         FRONT_RIGHT_OF_CENTER},
-    {kLeAudioLocationBackCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::BACK_CENTER},
-    {kLeAudioLocationLowFreqEffects2,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::
-         LOW_FREQUENCY_EFFECTS_2},
-    {kLeAudioLocationSideLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::SIDE_LEFT},
-    {kLeAudioLocationSideRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::SIDE_RIGHT},
-    {kLeAudioLocationTopFrontLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_FRONT_LEFT},
-    {kLeAudioLocationTopFrontRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_FRONT_RIGHT},
-    {kLeAudioLocationTopFrontCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_FRONT_CENTER},
-    {kLeAudioLocationTopCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_CENTER},
-    {kLeAudioLocationTopBackLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_BACK_LEFT},
-    {kLeAudioLocationTopBackRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_BACK_RIGHT},
-    {kLeAudioLocationTopSideLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_SIDE_LEFT},
-    {kLeAudioLocationTopSideRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_SIDE_RIGHT},
-    {kLeAudioLocationTopBackCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_BACK_CENTER},
-    {kLeAudioLocationBottomFrontCenter,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::
-         BOTTOM_FRONT_CENTER},
-    {kLeAudioLocationBottomFrontLeft,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::BOTTOM_FRONT_LEFT},
-    {kLeAudioLocationBottomFrontRight,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::BOTTOM_FRONT_RIGHT},
-    {kLeAudioLocationFrontLeftWide,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT_WIDE},
-    {kLeAudioLocationFrontRightWide,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT_WIDE},
-    {kLeAudioLocationLeftSurround,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::LEFT_SURROUND},
-    {kLeAudioLocationRightSurround,
-     CodecSpecificConfigurationLtv::AudioChannelAllocation::RIGHT_SURROUND},
+        {kLeAudioLocationMonoAudio, CodecSpecificConfigurationLtv::AudioChannelAllocation::MONO},
+        {kLeAudioLocationFrontLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT},
+        {kLeAudioLocationFrontRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT},
+        {kLeAudioLocationFrontCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_CENTER},
+        {kLeAudioLocationLowFreqEffects1,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::LOW_FREQUENCY_EFFECTS_1},
+        {kLeAudioLocationBackLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::BACK_LEFT},
+        {kLeAudioLocationBackRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::BACK_RIGHT},
+        {kLeAudioLocationFrontLeftOfCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT_OF_CENTER},
+        {kLeAudioLocationFrontRightOfCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT_OF_CENTER},
+        {kLeAudioLocationBackCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::BACK_CENTER},
+        {kLeAudioLocationLowFreqEffects2,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::LOW_FREQUENCY_EFFECTS_2},
+        {kLeAudioLocationSideLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::SIDE_LEFT},
+        {kLeAudioLocationSideRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::SIDE_RIGHT},
+        {kLeAudioLocationTopFrontLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_FRONT_LEFT},
+        {kLeAudioLocationTopFrontRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_FRONT_RIGHT},
+        {kLeAudioLocationTopFrontCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_FRONT_CENTER},
+        {kLeAudioLocationTopCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_CENTER},
+        {kLeAudioLocationTopBackLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_BACK_LEFT},
+        {kLeAudioLocationTopBackRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_BACK_RIGHT},
+        {kLeAudioLocationTopSideLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_SIDE_LEFT},
+        {kLeAudioLocationTopSideRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_SIDE_RIGHT},
+        {kLeAudioLocationTopBackCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::TOP_BACK_CENTER},
+        {kLeAudioLocationBottomFrontCenter,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::BOTTOM_FRONT_CENTER},
+        {kLeAudioLocationBottomFrontLeft,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::BOTTOM_FRONT_LEFT},
+        {kLeAudioLocationBottomFrontRight,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::BOTTOM_FRONT_RIGHT},
+        {kLeAudioLocationFrontLeftWide,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT_WIDE},
+        {kLeAudioLocationFrontRightWide,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT_WIDE},
+        {kLeAudioLocationLeftSurround,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::LEFT_SURROUND},
+        {kLeAudioLocationRightSurround,
+         CodecSpecificConfigurationLtv::AudioChannelAllocation::RIGHT_SURROUND},
 };
 
 const std::map<CodecSpecificConfigurationLtv::SamplingFrequency, uint32_t>
-    sampling_rate_ltv_to_codec_cfg_map = {
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000, 0x01},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ11025, 0x02},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000, 0x03},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ22050, 0x04},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ24000, 0x05},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000, 0x06},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100, 0x07},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000, 0x08},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ88200, 0x09},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000, 0x0A},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ176400, 0x0B},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ192000, 0x0C},
-        {CodecSpecificConfigurationLtv::SamplingFrequency::HZ384000, 0x0D},
+        sampling_rate_ltv_to_codec_cfg_map = {
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000, 0x01},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ11025, 0x02},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ16000, 0x03},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ22050, 0x04},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ24000, 0x05},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ32000, 0x06},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ44100, 0x07},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ48000, 0x08},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ88200, 0x09},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000, 0x0A},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ176400, 0x0B},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ192000, 0x0C},
+                {CodecSpecificConfigurationLtv::SamplingFrequency::HZ384000, 0x0D},
 };
 
 const std::map<CodecSpecificConfigurationLtv::FrameDuration, uint32_t>
-    frame_duration_ltv_to_codec_cfg_map = {
-        {CodecSpecificConfigurationLtv::FrameDuration::US7500, 0x00},
-        {CodecSpecificConfigurationLtv::FrameDuration::US10000, 0x01},
-        {CodecSpecificConfigurationLtv::FrameDuration::US20000, 0x02},
+        frame_duration_ltv_to_codec_cfg_map = {
+                {CodecSpecificConfigurationLtv::FrameDuration::US7500, 0x00},
+                {CodecSpecificConfigurationLtv::FrameDuration::US10000, 0x01},
+                {CodecSpecificConfigurationLtv::FrameDuration::US20000, 0x02},
 };
 
 }  // namespace audio

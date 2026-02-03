@@ -21,24 +21,20 @@
 namespace bluetooth_hal {
 
 enum class BluetoothHciStatus : uint8_t {
-  kSuccess = 0,
-  kAlreadyInitialized,
-  kHardwareInitializeError,
+    kSuccess = 0,
+    kAlreadyInitialized,
+    kHardwareInitializeError,
 };
 
 class BluetoothHciCallback {
- public:
-  virtual ~BluetoothHciCallback() = default;
+  public:
+    virtual ~BluetoothHciCallback() = default;
 
-  virtual void InitializationComplete(BluetoothHciStatus status) = 0;
-  virtual void HciEventReceived(
-      const ::bluetooth_hal::hci::HalPacket& packet) = 0;
-  virtual void AclDataReceived(
-      const ::bluetooth_hal::hci::HalPacket& packet) = 0;
-  virtual void ScoDataReceived(
-      const ::bluetooth_hal::hci::HalPacket& packet) = 0;
-  virtual void IsoDataReceived(
-      const ::bluetooth_hal::hci::HalPacket& packet) = 0;
+    virtual void InitializationComplete(BluetoothHciStatus status) = 0;
+    virtual void HciEventReceived(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
+    virtual void AclDataReceived(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
+    virtual void ScoDataReceived(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
+    virtual void IsoDataReceived(const ::bluetooth_hal::hci::HalPacket& packet) = 0;
 };
 
 }  // namespace bluetooth_hal

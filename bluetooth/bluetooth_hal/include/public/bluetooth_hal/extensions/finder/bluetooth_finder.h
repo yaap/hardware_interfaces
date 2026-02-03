@@ -27,21 +27,19 @@
 
 namespace bluetooth_hal::extensions::finder {
 
-class BluetoothFinder
-    : public ::aidl::android::hardware::bluetooth::finder::BnBluetoothFinder {
- public:
-  BluetoothFinder();
+class BluetoothFinder : public ::aidl::android::hardware::bluetooth::finder::BnBluetoothFinder {
+  public:
+    BluetoothFinder();
 
-  ::ndk::ScopedAStatus sendEids(
-      const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>&
-          eids) override;
+    ::ndk::ScopedAStatus sendEids(
+            const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>& eids) override;
 
-  ::ndk::ScopedAStatus setPoweredOffFinderMode(bool enable) override;
+    ::ndk::ScopedAStatus setPoweredOffFinderMode(bool enable) override;
 
-  ::ndk::ScopedAStatus getPoweredOffFinderMode(bool* _aidl_return) override;
+    ::ndk::ScopedAStatus getPoweredOffFinderMode(bool* _aidl_return) override;
 
- private:
-  BluetoothFinderHandler& handler_;
+  private:
+    BluetoothFinderHandler& handler_;
 };
 
 }  // namespace bluetooth_hal::extensions::finder

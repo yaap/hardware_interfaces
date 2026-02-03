@@ -26,14 +26,13 @@
 namespace bluetooth_hal::extensions::channel_avoidance {
 
 class BluetoothChannelAvoidance
-    : public ::aidl::hardware::google::bluetooth::bt_channel_avoidance::
-          BnBTChannelAvoidance {
- public:
-  ::ndk::ScopedAStatus setBluetoothChannelStatus(
-      const std::array<uint8_t, 10>& channel_map) override;
+    : public ::aidl::hardware::google::bluetooth::bt_channel_avoidance::BnBTChannelAvoidance {
+  public:
+    ::ndk::ScopedAStatus setBluetoothChannelStatus(
+            const std::array<uint8_t, 10>& channel_map) override;
 
- private:
-  BluetoothChannelAvoidanceHandler handler_;
+  private:
+    BluetoothChannelAvoidanceHandler handler_;
 };
 
 }  // namespace bluetooth_hal::extensions::channel_avoidance

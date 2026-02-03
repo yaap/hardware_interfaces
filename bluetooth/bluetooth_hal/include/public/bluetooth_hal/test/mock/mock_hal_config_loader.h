@@ -26,75 +26,71 @@
 namespace bluetooth_hal::config {
 
 class MockHalConfigLoader : public HalConfigLoader {
- public:
-  MOCK_METHOD(bool, LoadConfig, (), (override));
+  public:
+    MOCK_METHOD(bool, LoadConfig, (), (override));
 
-  MOCK_METHOD(bool, IsFastDownloadEnabled, (), (const, override));
+    MOCK_METHOD(bool, IsFastDownloadEnabled, (), (const, override));
 
-  MOCK_METHOD(bool, IsSarBackoffHighResolutionEnabled, (), (const, override));
+    MOCK_METHOD(bool, IsSarBackoffHighResolutionEnabled, (), (const, override));
 
-  MOCK_METHOD(int, GetBtRegOnDelayMs, (), (const, override));
+    MOCK_METHOD(int, GetBtRegOnDelayMs, (), (const, override));
 
-  MOCK_METHOD(const std::string&, GetBtUartDevicePort, (), (const, override));
+    MOCK_METHOD(const std::string&, GetBtUartDevicePort, (), (const, override));
 
-  MOCK_METHOD(const std::vector< ::bluetooth_hal::transport::TransportType>&,
-              GetTransportTypePriority, (), (const, override));
+    MOCK_METHOD(const std::vector<::bluetooth_hal::transport::TransportType>&,
+                GetTransportTypePriority, (), (const, override));
 
-  MOCK_METHOD(bool, IsAcceleratedBtOnSupported, (), (const, override));
+    MOCK_METHOD(bool, IsAcceleratedBtOnSupported, (), (const, override));
 
-  MOCK_METHOD(bool, IsThreadDispatcherEnabled, (), (const, override));
+    MOCK_METHOD(bool, IsThreadDispatcherEnabled, (), (const, override));
 
-  MOCK_METHOD(bool, IsBtPowerControlledByLpp, (), (const, override));
+    MOCK_METHOD(bool, IsBtPowerControlledByLpp, (), (const, override));
 
-  MOCK_METHOD(const std::vector<std::string>&,
-              GetHwStagesWithoutLppControlBtPowerPin, (), (const, override));
+    MOCK_METHOD(const std::vector<std::string>&, GetHwStagesWithoutLppControlBtPowerPin, (),
+                (const, override));
 
-  MOCK_METHOD(const std::vector<std::string>&, GetUnsupportedHwStages, (),
-              (const, override));
+    MOCK_METHOD(const std::vector<std::string>&, GetUnsupportedHwStages, (), (const, override));
 
-  MOCK_METHOD(int, GetVendorTransportCrashIntervalSec, (), (const, override));
+    MOCK_METHOD(int, GetVendorTransportCrashIntervalSec, (), (const, override));
 
-  MOCK_METHOD(bool, IsHpUartSkipSuspendSupported, (), (const, override));
+    MOCK_METHOD(bool, IsHpUartSkipSuspendSupported, (), (const, override));
 
-  MOCK_METHOD(bool, IsEnergyControllerLoggingSupported, (), (const, override));
+    MOCK_METHOD(bool, IsEnergyControllerLoggingSupported, (), (const, override));
 
-  MOCK_METHOD(bool, IsBtHalRestartRecoverySupported, (), (const, override));
+    MOCK_METHOD(bool, IsBtHalRestartRecoverySupported, (), (const, override));
 
-  MOCK_METHOD(bool, IsBleNonConnectionSarEnabled, (), (const, override));
+    MOCK_METHOD(bool, IsBleNonConnectionSarEnabled, (), (const, override));
 
-  MOCK_METHOD(int, GetKernelRxWakelockTimeMilliseconds, (), (const, override));
+    MOCK_METHOD(int, GetKernelRxWakelockTimeMilliseconds, (), (const, override));
 
-  MOCK_METHOD(bool, IsLowPowerModeSupported, (), (const, override));
+    MOCK_METHOD(bool, IsLowPowerModeSupported, (), (const, override));
 
-  MOCK_METHOD(bool, IsTranportFallbackEnabled, (), (const, override));
+    MOCK_METHOD(bool, IsTranportFallbackEnabled, (), (const, override));
 
-  MOCK_METHOD(bool, IsBtSnoopLogFullModeOn, (), (const, override));
+    MOCK_METHOD(bool, IsBtSnoopLogFullModeOn, (), (const, override));
 
-  MOCK_METHOD(::bluetooth_hal::uart::BaudRate, GetUartBaudRate,
-              (::bluetooth_hal::transport::TransportType type),
-              (const, override));
+    MOCK_METHOD(::bluetooth_hal::uart::BaudRate, GetUartBaudRate,
+                (::bluetooth_hal::transport::TransportType type), (const, override));
 
-  MOCK_METHOD(bool, IsUserDebugOrEngBuild, (), (const, override));
+    MOCK_METHOD(bool, IsUserDebugOrEngBuild, (), (const, override));
 
-  MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
+    MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
 
-  MOCK_METHOD(const std::string&, GetLpmEnableProcNode, (), (const, override));
+    MOCK_METHOD(const std::string&, GetLpmEnableProcNode, (), (const, override));
 
-  MOCK_METHOD(const std::string&, GetLpmWakingProcNode, (), (const, override));
+    MOCK_METHOD(const std::string&, GetLpmWakingProcNode, (), (const, override));
 
-  MOCK_METHOD(const std::string&, GetLpmWakelockCtrlProcNode, (),
-              (const, override));
+    MOCK_METHOD(const std::string&, GetLpmWakelockCtrlProcNode, (), (const, override));
 
-  MOCK_METHOD(const std::string&, GetRfkillFolderPrefix, (), (const, override));
+    MOCK_METHOD(const std::string&, GetRfkillFolderPrefix, (), (const, override));
 
-  MOCK_METHOD(const std::string&, GetRfkillTypeBluetooth, (),
-              (const, override));
+    MOCK_METHOD(const std::string&, GetRfkillTypeBluetooth, (), (const, override));
 
-  MOCK_METHOD(bool, IsEnhancedPacketValidationSupported, (), (const, override));
+    MOCK_METHOD(bool, IsEnhancedPacketValidationSupported, (), (const, override));
 
-  static void SetMockLoader(MockHalConfigLoader* loader);
+    static void SetMockLoader(MockHalConfigLoader* loader);
 
-  static inline MockHalConfigLoader* mock_hal_config_loader_{nullptr};
+    static inline MockHalConfigLoader* mock_hal_config_loader_{nullptr};
 };
 
 }  // namespace bluetooth_hal::config

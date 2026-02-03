@@ -34,35 +34,31 @@
 
 namespace bluetooth_hal::extensions::cs {
 
-class BluetoothChannelSoundingV1 : public ::aidl::android::hardware::bluetooth::
-                                       ranging::BnBluetoothChannelSounding {
- public:
-  BluetoothChannelSoundingV1() = default;
-  ~BluetoothChannelSoundingV1() override = default;
+class BluetoothChannelSoundingV1
+    : public ::aidl::android::hardware::bluetooth::ranging::BnBluetoothChannelSounding {
+  public:
+    BluetoothChannelSoundingV1() = default;
+    ~BluetoothChannelSoundingV1() override = default;
 
-  ::ndk::ScopedAStatus getVendorSpecificData(
-      std::optional<std::vector<std::optional<
-          ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
-          _aidl_return) override;
-  ::ndk::ScopedAStatus getSupportedSessionTypes(
-      std::optional<std::vector<
-          ::aidl::android::hardware::bluetooth::ranging::SessionType>>*
-          _aidl_return) override;
-  ::ndk::ScopedAStatus getMaxSupportedCsSecurityLevel(
-      ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel*
-          _aidl_return) override;
-  ::ndk::ScopedAStatus openSession(
-      const ::aidl::android::hardware::bluetooth::ranging::
-          BluetoothChannelSoundingParameters& in_params,
-      const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                                IBluetoothChannelSoundingSessionCallback>&
-          in_callback,
-      std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
-                          IBluetoothChannelSoundingSession>* _aidl_return)
-      override;
+    ::ndk::ScopedAStatus getVendorSpecificData(
+            std::optional<std::vector<std::optional<
+                    ::aidl::android::hardware::bluetooth::ranging::VendorSpecificData>>>*
+                    _aidl_return) override;
+    ::ndk::ScopedAStatus getSupportedSessionTypes(
+            std::optional<std::vector<::aidl::android::hardware::bluetooth::ranging::SessionType>>*
+                    _aidl_return) override;
+    ::ndk::ScopedAStatus getMaxSupportedCsSecurityLevel(
+            ::aidl::android::hardware::bluetooth::ranging::CsSecurityLevel* _aidl_return) override;
+    ::ndk::ScopedAStatus openSession(
+            const ::aidl::android::hardware::bluetooth::ranging::BluetoothChannelSoundingParameters&
+                    in_params,
+            const std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                          IBluetoothChannelSoundingSessionCallback>& in_callback,
+            std::shared_ptr<::aidl::android::hardware::bluetooth::ranging::
+                                    IBluetoothChannelSoundingSession>* _aidl_return) override;
 
- private:
-  BluetoothChannelSoundingHandler bluetooth_channel_sounding_handler_;
+  private:
+    BluetoothChannelSoundingHandler bluetooth_channel_sounding_handler_;
 };
 
 }  // namespace bluetooth_hal::extensions::cs

@@ -24,43 +24,40 @@ BluetoothChannelSounding::BluetoothChannelSounding() {}
 BluetoothChannelSounding::~BluetoothChannelSounding() {}
 
 ndk::ScopedAStatus BluetoothChannelSounding::getVendorSpecificData(
-    std::optional<
-        std::vector<std::optional<VendorSpecificData>>>* /*_aidl_return*/) {
-  return ::ndk::ScopedAStatus::ok();
+        std::optional<std::vector<std::optional<VendorSpecificData>>>* /*_aidl_return*/) {
+    return ::ndk::ScopedAStatus::ok();
 }
 ndk::ScopedAStatus BluetoothChannelSounding::getSupportedSessionTypes(
-    std::optional<std::vector<SessionType>>* _aidl_return) {
-  std::vector<SessionType> supported_session_types = {};
-  *_aidl_return = supported_session_types;
-  return ::ndk::ScopedAStatus::ok();
+        std::optional<std::vector<SessionType>>* _aidl_return) {
+    std::vector<SessionType> supported_session_types = {};
+    *_aidl_return = supported_session_types;
+    return ::ndk::ScopedAStatus::ok();
 }
 ndk::ScopedAStatus BluetoothChannelSounding::getMaxSupportedCsSecurityLevel(
-    CsSecurityLevel* _aidl_return) {
-  CsSecurityLevel security_level = CsSecurityLevel::NOT_SUPPORTED;
-  *_aidl_return = security_level;
-  return ::ndk::ScopedAStatus::ok();
+        CsSecurityLevel* _aidl_return) {
+    CsSecurityLevel security_level = CsSecurityLevel::NOT_SUPPORTED;
+    *_aidl_return = security_level;
+    return ::ndk::ScopedAStatus::ok();
 }
 ndk::ScopedAStatus BluetoothChannelSounding::openSession(
-    const BluetoothChannelSoundingParameters& /*in_params*/,
-    const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>&
-        in_callback,
-    std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) {
-  if (in_callback == nullptr) {
-    return ndk::ScopedAStatus::fromExceptionCodeWithMessage(
-        EX_ILLEGAL_ARGUMENT, "Invalid nullptr callback");
-  }
-  std::shared_ptr<BluetoothChannelSoundingSession> session = nullptr;
-  session = ndk::SharedRefBase::make<BluetoothChannelSoundingSession>(
-      in_callback, Reason::LOCAL_STACK_REQUEST);
-  *_aidl_return = session;
-  return ::ndk::ScopedAStatus::ok();
+        const BluetoothChannelSoundingParameters& /*in_params*/,
+        const std::shared_ptr<IBluetoothChannelSoundingSessionCallback>& in_callback,
+        std::shared_ptr<IBluetoothChannelSoundingSession>* _aidl_return) {
+    if (in_callback == nullptr) {
+        return ndk::ScopedAStatus::fromExceptionCodeWithMessage(EX_ILLEGAL_ARGUMENT,
+                                                                "Invalid nullptr callback");
+    }
+    std::shared_ptr<BluetoothChannelSoundingSession> session = nullptr;
+    session = ndk::SharedRefBase::make<BluetoothChannelSoundingSession>(
+            in_callback, Reason::LOCAL_STACK_REQUEST);
+    *_aidl_return = session;
+    return ::ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus BluetoothChannelSounding::getSupportedCsSecurityLevels(
-    std::vector<CsSecurityLevel>* _aidl_return) {
-  std::vector<CsSecurityLevel> supported_security_levels = {
-      CsSecurityLevel::NOT_SUPPORTED};
-  *_aidl_return = supported_security_levels;
-  return ::ndk::ScopedAStatus::ok();
+        std::vector<CsSecurityLevel>* _aidl_return) {
+    std::vector<CsSecurityLevel> supported_security_levels = {CsSecurityLevel::NOT_SUPPORTED};
+    *_aidl_return = supported_security_levels;
+    return ::ndk::ScopedAStatus::ok();
 }
 }  // namespace aidl::android::hardware::bluetooth::ranging::impl

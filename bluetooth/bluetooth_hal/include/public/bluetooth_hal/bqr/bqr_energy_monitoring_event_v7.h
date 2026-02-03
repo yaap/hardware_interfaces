@@ -25,35 +25,33 @@
 namespace bluetooth_hal::bqr {
 
 enum class EnergyMonitoringOffsetV7 : uint8_t {
-  kBredrRxActiveScanTotaltime =
-      static_cast<uint8_t>(EnergyMonitoringOffsetV6::kEnd),    // 4 bytes
-  kLeRxActiveScanTotaltime = kBredrRxActiveScanTotaltime + 4,  // 4 bytes
-  kEnd = kLeRxActiveScanTotaltime + 4,
+    kBredrRxActiveScanTotaltime = static_cast<uint8_t>(EnergyMonitoringOffsetV6::kEnd),  // 4 bytes
+    kLeRxActiveScanTotaltime = kBredrRxActiveScanTotaltime + 4,                          // 4 bytes
+    kEnd = kLeRxActiveScanTotaltime + 4,
 };
 
 // BQR Energy Monitoring event V7.
 class BqrEnergyMonitoringEventV7 : public BqrEnergyMonitoringEventV6 {
- public:
-  explicit BqrEnergyMonitoringEventV7(
-      const ::bluetooth_hal::hci::HalPacket& packet);
-  virtual ~BqrEnergyMonitoringEventV7() = default;
+  public:
+    explicit BqrEnergyMonitoringEventV7(const ::bluetooth_hal::hci::HalPacket& packet);
+    virtual ~BqrEnergyMonitoringEventV7() = default;
 
-  bool IsValid() const override;
+    bool IsValid() const override;
 
-  uint32_t GetBredrRxActiveScanTotaltime() const;
-  uint32_t GetLeRxActiveScanTotaltime() const;
+    uint32_t GetBredrRxActiveScanTotaltime() const;
+    uint32_t GetLeRxActiveScanTotaltime() const;
 
-  // Returns a string representation of the event.
-  std::string ToString() const;
+    // Returns a string representation of the event.
+    std::string ToString() const;
 
- protected:
-  void ParseData();
-  std::string ToBqrString() const;
+  protected:
+    void ParseData();
+    std::string ToBqrString() const;
 
- private:
-  bool is_valid_;
-  uint32_t bredr_rx_active_scan_totaltime_;
-  uint32_t le_rx_active_scan_totaltime_;
+  private:
+    bool is_valid_;
+    uint32_t bredr_rx_active_scan_totaltime_;
+    uint32_t le_rx_active_scan_totaltime_;
 };
 
 }  // namespace bluetooth_hal::bqr

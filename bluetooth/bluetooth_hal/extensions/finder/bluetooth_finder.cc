@@ -46,36 +46,32 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void FinderInitializer() {
-  RegisterHalService(SharedRefBase::make<BluetoothFinder>());
+    RegisterHalService(SharedRefBase::make<BluetoothFinder>());
 }
 
 }  // namespace
 
 struct FinderRegistrar {
-  FinderRegistrar() { BluetoothHalRegisterExtension(FinderInitializer); }
+    FinderRegistrar() { BluetoothHalRegisterExtension(FinderInitializer); }
 };
 
 FinderRegistrar g_finder_registrar;
 
-BluetoothFinder::BluetoothFinder()
-    : handler_(BluetoothFinderHandler::GetHandler()) {}
+BluetoothFinder::BluetoothFinder() : handler_(BluetoothFinderHandler::GetHandler()) {}
 
 ScopedAStatus BluetoothFinder::sendEids(const std::vector<Eid>& eids) {
-  bool status = handler_.SendEids(eids);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    bool status = handler_.SendEids(eids);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothFinder::setPoweredOffFinderMode(bool enable) {
-  bool status = handler_.SetPoweredOffFinderMode(enable);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    bool status = handler_.SetPoweredOffFinderMode(enable);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 ScopedAStatus BluetoothFinder::getPoweredOffFinderMode(bool* _aidl_return) {
-  bool status = handler_.GetPoweredOffFinderMode(_aidl_return);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+    bool status = handler_.GetPoweredOffFinderMode(_aidl_return);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 }  // namespace bluetooth_hal::extensions::finder

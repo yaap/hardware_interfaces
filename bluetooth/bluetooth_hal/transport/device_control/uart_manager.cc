@@ -45,145 +45,136 @@ using ::bluetooth_hal::util::SystemCallWrapper;
 
 // TODO: b/391226112 - Move to property config manager.
 constexpr std::chrono::milliseconds kUartStartupSettlementMs{50};
-constexpr std::string_view kUartCtrlNode =
-    "/sys/devices/platform/155d0000.serial/uart_dbg";
+constexpr std::string_view kUartCtrlNode = "/sys/devices/platform/155d0000.serial/uart_dbg";
 
 bool ConfigureUartPort(int fd) {
-  termios tty_attrs = {};
-  if (tcgetattr(fd, &tty_attrs) != 0) {
-    LOG(ERROR) << "Failed to get UART attributes: " << strerror(errno);
-    return false;
-  }
+    termios tty_attrs = {};
+    if (tcgetattr(fd, &tty_attrs) != 0) {
+        LOG(ERROR) << "Failed to get UART attributes: " << strerror(errno);
+        return false;
+    }
 
-  cfmakeraw(&tty_attrs);
-  // Enable RTS/CTS (hardware flow control).
-  tty_attrs.c_cflag |= CRTSCTS;
+    cfmakeraw(&tty_attrs);
+    // Enable RTS/CTS (hardware flow control).
+    tty_attrs.c_cflag |= CRTSCTS;
 
-  // Set baud rate to 115200.
-  if (cfsetspeed(&tty_attrs, B115200) != 0) {
-    LOG(ERROR) << "Failed to set baud rate: " << strerror(errno);
-    return false;
-  }
+    // Set baud rate to 115200.
+    if (cfsetspeed(&tty_attrs, B115200) != 0) {
+        LOG(ERROR) << "Failed to set baud rate: " << strerror(errno);
+        return false;
+    }
 
-  if (tcsetattr(fd, TCSANOW, &tty_attrs) != 0) {
-    LOG(ERROR) << "Failed to set UART attributes: " << strerror(errno);
-    return false;
-  }
+    if (tcsetattr(fd, TCSANOW, &tty_attrs) != 0) {
+        LOG(ERROR) << "Failed to set UART attributes: " << strerror(errno);
+        return false;
+    }
 
-  // Flush input and output queues.
-  if (tcflush(fd, TCIOFLUSH) != 0) {
-    LOG(ERROR) << "Failed to flush UART port: " << strerror(errno);
-    return false;
-  }
+    // Flush input and output queues.
+    if (tcflush(fd, TCIOFLUSH) != 0) {
+        LOG(ERROR) << "Failed to flush UART port: " << strerror(errno);
+        return false;
+    }
 
-  return true;
+    return true;
 }
 
 }  // namespace
 
 bool UartManager::Open() {
-  SCOPED_ANCHOR(AnchorType::kUserialOpen, __func__);
+    SCOPED_ANCHOR(AnchorType::kUserialOpen, __func__);
 
-  const std::string bt_uart_port =
-      HalConfigLoader::GetLoader().GetBtUartDevicePort();
+    const std::string bt_uart_port = HalConfigLoader::GetLoader().GetBtUartDevicePort();
 
 #ifndef UNIT_TEST
-  DebugCentral::Get().SetBtUartDebugPort(bt_uart_port);
+    DebugCentral::Get().SetBtUartDebugPort(bt_uart_port);
 #endif
 
-  ANCHOR_LOG(AnchorType::kUserialTtyOpen)
-      << __func__ << ": open " << bt_uart_port;
+    ANCHOR_LOG(AnchorType::kUserialTtyOpen) << __func__ << ": open " << bt_uart_port;
 
-  uart_fd_.reset(
-      SystemCallWrapper::GetWrapper().Open(bt_uart_port.c_str(), O_RDWR));
-  if (!uart_fd_.ok()) {
+    uart_fd_.reset(SystemCallWrapper::GetWrapper().Open(bt_uart_port.c_str(), O_RDWR));
+    if (!uart_fd_.ok()) {
 #ifndef UNIT_TEST
-    DebugCentral::Get().ReportBqrError(BqrErrorCode::kHostOpenUserial,
-                                       "Host Open Port Error");
+        DebugCentral::Get().ReportBqrError(BqrErrorCode::kHostOpenUserial, "Host Open Port Error");
 #endif
-    return false;
-  }
+        return false;
+    }
 
-  if (!ConfigureUartPort(uart_fd_.get())) {
-    LOG(ERROR) << __func__
-               << ": Failed to configure UART port: " << strerror(errno) << " ("
-               << errno << ").";
-  }
+    if (!ConfigureUartPort(uart_fd_.get())) {
+        LOG(ERROR) << __func__ << ": Failed to configure UART port: " << strerror(errno) << " ("
+                   << errno << ").";
+    }
 
-  // Wait for the device to power cycle and stabilize.
-  std::this_thread::sleep_for(kUartStartupSettlementMs);
+    // Wait for the device to power cycle and stabilize.
+    std::this_thread::sleep_for(kUartStartupSettlementMs);
 
-  return true;
+    return true;
 }
 
 void UartManager::Close() {
-  SCOPED_ANCHOR(AnchorType::kUserialClose, __func__);
-  uart_fd_.reset();
+    SCOPED_ANCHOR(AnchorType::kUserialClose, __func__);
+    uart_fd_.reset();
 }
 
 bool UartManager::SetUartSkipSuspend(bool skip_suspend) {
-  LOG(INFO) << __func__ << ": Open UartCtrl device node.";
+    LOG(INFO) << __func__ << ": Open UartCtrl device node.";
 
-  unique_fd ctrl_fd(
-      SystemCallWrapper::GetWrapper().Open(kUartCtrlNode.data(), O_WRONLY));
-  if (!ctrl_fd.ok()) {
-    LOG(WARNING) << __func__ << ": Unable to open UartCtrl port ("
-                 << kUartCtrlNode << "): " << strerror(errno) << " (" << errno
-                 << ").";
-    return false;
-  }
+    unique_fd ctrl_fd(SystemCallWrapper::GetWrapper().Open(kUartCtrlNode.data(), O_WRONLY));
+    if (!ctrl_fd.ok()) {
+        LOG(WARNING) << __func__ << ": Unable to open UartCtrl port (" << kUartCtrlNode
+                     << "): " << strerror(errno) << " (" << errno << ").";
+        return false;
+    }
 
-  char skip_suspend_cmd = skip_suspend ? '8' : '9';
-  const ssize_t length =
-      TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
-          ctrl_fd.get(), &skip_suspend_cmd, sizeof(skip_suspend_cmd)));
-  if (length < 1) {
-    LOG(ERROR) << __func__ << ": Unable to set uart IOCTRL:" << strerror(errno)
-               << " (" << errno << ")";
-    return false;
-  }
+    char skip_suspend_cmd = skip_suspend ? '8' : '9';
+    const ssize_t length = TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
+            ctrl_fd.get(), &skip_suspend_cmd, sizeof(skip_suspend_cmd)));
+    if (length < 1) {
+        LOG(ERROR) << __func__ << ": Unable to set uart IOCTRL:" << strerror(errno) << " (" << errno
+                   << ")";
+        return false;
+    }
 
-  LOG(INFO) << __func__ << ": Is enabled: " << skip_suspend;
+    LOG(INFO) << __func__ << ": Is enabled: " << skip_suspend;
 
-  return true;
+    return true;
 }
 
 void UartManager::UpdateBaudRate(BaudRate rate) const {
-  speed_t kernel_rate;
-  switch (rate) {
-    case BaudRate::kRate115200:
-      kernel_rate = B115200;
-      break;
-    case BaudRate::kRate3000000:
-      kernel_rate = B3000000;
-      break;
-    case BaudRate::kRate4000000:
-      kernel_rate = B4000000;
-      break;
-    default:
-      LOG(WARNING) << __func__ << ": Baud rate (" << static_cast<int>(rate)
-                   << ") unsupported";
-      return;
-  };
+    speed_t kernel_rate;
+    switch (rate) {
+        case BaudRate::kRate115200:
+            kernel_rate = B115200;
+            break;
+        case BaudRate::kRate3000000:
+            kernel_rate = B3000000;
+            break;
+        case BaudRate::kRate4000000:
+            kernel_rate = B4000000;
+            break;
+        default:
+            LOG(WARNING) << __func__ << ": Baud rate (" << static_cast<int>(rate)
+                         << ") unsupported";
+            return;
+    };
 
-  termios tty_attrs;
-  if (tcgetattr(uart_fd_.get(), &tty_attrs) != 0) {
-    LOG(ERROR) << __func__ << ": Failed to get terminal attributes: "
-               << std::strerror(errno);
-    return;
-  }
+    termios tty_attrs;
+    if (tcgetattr(uart_fd_.get(), &tty_attrs) != 0) {
+        LOG(ERROR) << __func__ << ": Failed to get terminal attributes: " << std::strerror(errno);
+        return;
+    }
 
-  cfmakeraw(&tty_attrs);
-  cfsetspeed(&tty_attrs, kernel_rate);
-  if (tcsetattr(uart_fd_.get(), TCSANOW, &tty_attrs) != 0) {
-    LOG(ERROR) << __func__ << ": Failed to set terminal attributes: "
-               << std::strerror(errno);
-    return;
-  }
+    cfmakeraw(&tty_attrs);
+    cfsetspeed(&tty_attrs, kernel_rate);
+    if (tcsetattr(uart_fd_.get(), TCSANOW, &tty_attrs) != 0) {
+        LOG(ERROR) << __func__ << ": Failed to set terminal attributes: " << std::strerror(errno);
+        return;
+    }
 
-  tcflush(uart_fd_, TCIOFLUSH);
+    tcflush(uart_fd_, TCIOFLUSH);
 }
 
-int UartManager::GetFd() { return uart_fd_.get(); }
+int UartManager::GetFd() {
+    return uart_fd_.get();
+}
 
 }  // namespace bluetooth_hal::transport

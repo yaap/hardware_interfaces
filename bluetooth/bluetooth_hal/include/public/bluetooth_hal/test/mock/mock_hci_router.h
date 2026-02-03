@@ -28,32 +28,29 @@ namespace bluetooth_hal::hci {
 
 // A mock implementation of the HciRouter class for testing purposes.
 class MockHciRouter : public HciRouter {
- public:
-  static void SetMockRouter(MockHciRouter* mock_hci_router);
+  public:
+    static void SetMockRouter(MockHciRouter* mock_hci_router);
 
-  MOCK_METHOD(bool, Initialize,
-              (const std::shared_ptr<HciRouterCallback>& callback), (override));
+    MOCK_METHOD(bool, Initialize, (const std::shared_ptr<HciRouterCallback>& callback), (override));
 
-  MOCK_METHOD(void, Close, (), (override));
+    MOCK_METHOD(void, Close, (), (override));
 
-  MOCK_METHOD(void, Cleanup, (), (override));
+    MOCK_METHOD(void, Cleanup, (), (override));
 
-  MOCK_METHOD(bool, Send, (const HalPacket& packet), (override));
+    MOCK_METHOD(bool, Send, (const HalPacket& packet), (override));
 
-  MOCK_METHOD(bool, SendCommand,
-              (const HalPacket& packet, const HalPacketCallback& callback),
-              (override));
+    MOCK_METHOD(bool, SendCommand, (const HalPacket& packet, const HalPacketCallback& callback),
+                (override));
 
-  MOCK_METHOD(bool, SendCommandNoAck, (const HalPacket& packet), (override));
+    MOCK_METHOD(bool, SendCommandNoAck, (const HalPacket& packet), (override));
 
-  MOCK_METHOD(::bluetooth_hal::HalState, GetHalState, (), (override));
+    MOCK_METHOD(::bluetooth_hal::HalState, GetHalState, (), (override));
 
-  MOCK_METHOD(void, UpdateHalState, (::bluetooth_hal::HalState state),
-              (override));
+    MOCK_METHOD(void, UpdateHalState, (::bluetooth_hal::HalState state), (override));
 
-  MOCK_METHOD(void, SendPacketToStack, (const HalPacket& packet), (override));
+    MOCK_METHOD(void, SendPacketToStack, (const HalPacket& packet), (override));
 
-  static inline MockHciRouter* mock_hci_router_{nullptr};
+    static inline MockHciRouter* mock_hci_router_{nullptr};
 };
 
 }  // namespace bluetooth_hal::hci

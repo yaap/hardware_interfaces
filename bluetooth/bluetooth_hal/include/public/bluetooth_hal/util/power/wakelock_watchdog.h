@@ -21,39 +21,39 @@
 namespace bluetooth_hal::util::power {
 
 class WakelockWatchdog {
- public:
-  /**
-   * @brief Start a watchdog timer for the WakeSource.
-   *
-   * @param source The source of the requester.
-   *
-   */
-  virtual void Start(WakeSource source) = 0;
+  public:
+    /**
+     * @brief Start a watchdog timer for the WakeSource.
+     *
+     * @param source The source of the requester.
+     *
+     */
+    virtual void Start(WakeSource source) = 0;
 
-  /**
-   * @brief Stop the watchdog timer for a WakeSource.
-   *
-   * @param source The source of the requester.
-   *
-   */
-  virtual void Stop(WakeSource source) = 0;
+    /**
+     * @brief Stop the watchdog timer for a WakeSource.
+     *
+     * @param source The source of the requester.
+     *
+     */
+    virtual void Stop(WakeSource source) = 0;
 
-  /**
-   * @brief Pause all wakelock watchdog from barking or biting. This is used
-   * when the HAL is handling error and do not want the watchdog interrupts the
-   * process.
-   */
-  virtual void Pause() = 0;
+    /**
+     * @brief Pause all wakelock watchdog from barking or biting. This is used
+     * when the HAL is handling error and do not want the watchdog interrupts the
+     * process.
+     */
+    virtual void Pause() = 0;
 
-  /**
-   * @brief Resume the watchdog to bark or bite from a Pause.
-   */
-  virtual void Resume() = 0;
+    /**
+     * @brief Resume the watchdog to bark or bite from a Pause.
+     */
+    virtual void Resume() = 0;
 
-  static WakelockWatchdog& GetWatchdog();
+    static WakelockWatchdog& GetWatchdog();
 
- protected:
-  virtual ~WakelockWatchdog() = default;
+  protected:
+    virtual ~WakelockWatchdog() = default;
 };
 
 }  // namespace bluetooth_hal::util::power

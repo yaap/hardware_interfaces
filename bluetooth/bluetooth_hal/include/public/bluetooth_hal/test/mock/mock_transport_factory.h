@@ -28,28 +28,25 @@ namespace bluetooth_hal::transport {
  * @brief Mock class for TransportFactory static methods.
  */
 class MockTransportFactory {
- public:
-  MOCK_METHOD(TransportInstance&, GetTransport, (), ());
-  MOCK_METHOD(bool, UpdateTransportType, (TransportType requested_type), ());
-  MOCK_METHOD(TransportType, GetTransportType, (), ());
-  MOCK_METHOD(void, CleanupTransport, (), ());
-  MOCK_METHOD(bool, RegisterVendorTransport,
-              (TransportType type, TransportFactory::FactoryFn factory), ());
-  MOCK_METHOD(bool, UnregisterVendorTransport, (TransportType type), ());
-  MOCK_METHOD(void, NotifyHalStateChange,
-              (::bluetooth_hal::HalState hal_state));
-  MOCK_METHOD(::bluetooth_hal::HalState, GetHalState, ());
-  MOCK_METHOD(void, Subscribe, (Subscriber & subscriber));
-  MOCK_METHOD(void, Unsubscribe, (Subscriber & subscriber));
-  MOCK_METHOD(void, Reset, ());
+  public:
+    MOCK_METHOD(TransportInstance&, GetTransport, (), ());
+    MOCK_METHOD(bool, UpdateTransportType, (TransportType requested_type), ());
+    MOCK_METHOD(TransportType, GetTransportType, (), ());
+    MOCK_METHOD(void, CleanupTransport, (), ());
+    MOCK_METHOD(bool, RegisterVendorTransport,
+                (TransportType type, TransportFactory::FactoryFn factory), ());
+    MOCK_METHOD(bool, UnregisterVendorTransport, (TransportType type), ());
+    MOCK_METHOD(void, NotifyHalStateChange, (::bluetooth_hal::HalState hal_state));
+    MOCK_METHOD(::bluetooth_hal::HalState, GetHalState, ());
+    MOCK_METHOD(void, Subscribe, (Subscriber & subscriber));
+    MOCK_METHOD(void, Unsubscribe, (Subscriber & subscriber));
+    MOCK_METHOD(void, Reset, ());
 
-  static void SetMockFactory(MockTransportFactory* factory) {
-    mock_transport_factory_ = factory;
-  }
-  static MockTransportFactory* GetFactory() { return mock_transport_factory_; }
+    static void SetMockFactory(MockTransportFactory* factory) { mock_transport_factory_ = factory; }
+    static MockTransportFactory* GetFactory() { return mock_transport_factory_; }
 
- private:
-  static inline MockTransportFactory* mock_transport_factory_ = nullptr;
+  private:
+    static inline MockTransportFactory* mock_transport_factory_ = nullptr;
 };
 
 }  // namespace bluetooth_hal::transport

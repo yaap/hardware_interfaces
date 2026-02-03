@@ -42,22 +42,21 @@ using ::ndk::ScopedAStatus;
 using ::ndk::SharedRefBase;
 
 void ExtInitializer() {
-  RegisterHalService(SharedRefBase::make<BluetoothExt>());
+    RegisterHalService(SharedRefBase::make<BluetoothExt>());
 }
 
 }  // namespace
 
 struct ExtRegistrar {
-  ExtRegistrar() { BluetoothHalRegisterExtension(ExtInitializer); }
+    ExtRegistrar() { BluetoothHalRegisterExtension(ExtInitializer); }
 };
 
 ExtRegistrar g_ext_registrar;
 
-ScopedAStatus BluetoothExt::setBluetoothCmdPacket(
-    char16_t opcode, const std::vector<uint8_t>& params, bool* ret) {
-  bool status = handler_.SetBluetoothCmdPacket(opcode, params, ret);
-  return status ? ScopedAStatus::ok()
-                : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
+ScopedAStatus BluetoothExt::setBluetoothCmdPacket(char16_t opcode,
+                                                  const std::vector<uint8_t>& params, bool* ret) {
+    bool status = handler_.SetBluetoothCmdPacket(opcode, params, ret);
+    return status ? ScopedAStatus::ok() : ScopedAStatus::fromServiceSpecificError(STATUS_BAD_VALUE);
 }
 
 }  // namespace bluetooth_hal::extensions::ext

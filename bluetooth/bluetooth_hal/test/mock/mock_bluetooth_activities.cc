@@ -22,17 +22,16 @@
 namespace bluetooth_hal::debug {
 
 BluetoothActivities& BluetoothActivities::Get() {
-  if (!MockBluetoothActivities::mock_bluetooth_activities_) {
-    LOG(FATAL) << __func__
-               << ": mock_bluetooth_activities_ is nullptr. Did you forget to "
-                  "call SetMockBluetoothActivities in your test SetUp?";
-  }
-  return *MockBluetoothActivities::mock_bluetooth_activities_;
+    if (!MockBluetoothActivities::mock_bluetooth_activities_) {
+        LOG(FATAL) << __func__
+                   << ": mock_bluetooth_activities_ is nullptr. Did you forget to "
+                      "call SetMockBluetoothActivities in your test SetUp?";
+    }
+    return *MockBluetoothActivities::mock_bluetooth_activities_;
 }
 
-void MockBluetoothActivities::SetMockBluetoothActivities(
-    MockBluetoothActivities* mock) {
-  mock_bluetooth_activities_ = mock;
+void MockBluetoothActivities::SetMockBluetoothActivities(MockBluetoothActivities* mock) {
+    mock_bluetooth_activities_ = mock;
 }
 
 }  // namespace bluetooth_hal::debug

@@ -40,64 +40,59 @@ using DataMQ = MessageQueue<uint8_t, kSynchronizedReadWrite>;
 
 LeAudioOffloadOutputAudioProvider::LeAudioOffloadOutputAudioProvider()
     : LeAudioOffloadAudioProvider() {
-  session_type_ = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH;
+    session_type_ = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH;
 }
 
 LeAudioOffloadInputAudioProvider::LeAudioOffloadInputAudioProvider()
     : LeAudioOffloadAudioProvider() {
-  session_type_ = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH;
+    session_type_ = SessionType::LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH;
 }
 
-LeAudioOffloadAudioProvider::LeAudioOffloadAudioProvider()
-    : BluetoothAudioProvider() {}
+LeAudioOffloadAudioProvider::LeAudioOffloadAudioProvider() : BluetoothAudioProvider() {}
 
 bool LeAudioOffloadAudioProvider::isValid(const V2_0::SessionType& sessionType) {
-  LOG(ERROR) << __func__ << ", invalid session type for Offloaded Le Audio provider: "
-             << toString(sessionType);
+    LOG(ERROR) << __func__ << ", invalid session type for Offloaded Le Audio provider: "
+               << toString(sessionType);
 
-  return false;
+    return false;
 }
 
 bool LeAudioOffloadAudioProvider::isValid(const SessionType& sessionType) {
-  return (sessionType == session_type_);
+    return (sessionType == session_type_);
 }
 
 Return<void> LeAudioOffloadAudioProvider::startSession_2_1(
-    const sp<V2_0::IBluetoothAudioPort>& hostIf,
-    const AudioConfiguration& audioConfig, startSession_cb _hidl_cb) {
-  /**
-   * Initialize the audio platform if audioConfiguration is supported.
-   * Save the IBluetoothAudioPort interface, so that it can be used
-   * later to send stream control commands to the HAL client, based on
-   * interaction with Audio framework.
-   */
-  if (audioConfig.getDiscriminator() !=
-      AudioConfiguration::hidl_discriminator::leAudioCodecConfig) {
-    LOG(WARNING) << __func__
-                 << " - Invalid Audio Configuration=" << toString(audioConfig);
-    _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION,
-             DataMQ::Descriptor());
-    return Void();
-  }
+        const sp<V2_0::IBluetoothAudioPort>& hostIf, const AudioConfiguration& audioConfig,
+        startSession_cb _hidl_cb) {
+    /**
+     * Initialize the audio platform if audioConfiguration is supported.
+     * Save the IBluetoothAudioPort interface, so that it can be used
+     * later to send stream control commands to the HAL client, based on
+     * interaction with Audio framework.
+     */
+    if (audioConfig.getDiscriminator() !=
+        AudioConfiguration::hidl_discriminator::leAudioCodecConfig) {
+        LOG(WARNING) << __func__ << " - Invalid Audio Configuration=" << toString(audioConfig);
+        _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION, DataMQ::Descriptor());
+        return Void();
+    }
 
-  if (!android::bluetooth::audio::IsOffloadLeAudioConfigurationValid(session_type_,
-                 audioConfig.leAudioCodecConfig())) {
-    LOG(WARNING) << __func__ << " - Unsupported LC3 Offloaded Configuration="
-                 << toString(audioConfig.leAudioCodecConfig());
-    _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION,
-             DataMQ::Descriptor());
-    return Void();
-  }
+    if (!android::bluetooth::audio::IsOffloadLeAudioConfigurationValid(
+                session_type_, audioConfig.leAudioCodecConfig())) {
+        LOG(WARNING) << __func__ << " - Unsupported LC3 Offloaded Configuration="
+                     << toString(audioConfig.leAudioCodecConfig());
+        _hidl_cb(BluetoothAudioStatus::UNSUPPORTED_CODEC_CONFIGURATION, DataMQ::Descriptor());
+        return Void();
+    }
 
-  return BluetoothAudioProvider::startSession_2_1(hostIf, audioConfig,
-                                                  _hidl_cb);
+    return BluetoothAudioProvider::startSession_2_1(hostIf, audioConfig, _hidl_cb);
 }
 
 Return<void> LeAudioOffloadAudioProvider::onSessionReady(startSession_cb _hidl_cb) {
-  BluetoothAudioSessionReport_2_1::OnSessionStarted(session_type_, stack_iface_,
-                                                    nullptr, audio_config_);
-  _hidl_cb(BluetoothAudioStatus::SUCCESS, DataMQ::Descriptor());
-  return Void();
+    BluetoothAudioSessionReport_2_1::OnSessionStarted(session_type_, stack_iface_, nullptr,
+                                                      audio_config_);
+    _hidl_cb(BluetoothAudioStatus::SUCCESS, DataMQ::Descriptor());
+    return Void();
 }
 
 }  // namespace implementation
