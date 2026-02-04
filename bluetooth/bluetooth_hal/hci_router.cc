@@ -238,7 +238,7 @@ class TxHandler {
     }
 
     bool SendToTransport(const HalPacket& packet) {
-        ScopedWakelock wakelock(WakeSource::kTx);
+        ScopedWakelock wakelock(WakeSource::kTx, packet.GetType());
         HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
         if (!TransportFactory::GetTransport().IsTransportActive()) {
             HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
@@ -692,7 +692,7 @@ void HciRouterImpl::HandleCommandCompleteOrCommandStatusEvent(const HalPacket& e
 }
 
 void HciRouterImpl::OnTransportPacketReady(const HalPacket& packet) {
-    ScopedWakelock wakelock(WakeSource::kRx);
+    ScopedWakelock wakelock(WakeSource::kRx, packet.GetType());
     SCOPED_ANCHOR(AnchorType::kRxTask, __func__);
     HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
     packet.SetDestination(PacketDestination::kHost);

@@ -8,6 +8,36 @@ package android.audio.policy.configuration {
 
   public enum AudioChannelMask {
     method @NonNull public String getRawName();
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_0;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_0_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_1;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_10;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_10_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_11;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_11_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_12;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_12_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_13;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_13_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_14;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_14_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_1_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_2;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_2_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_3;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_3_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_4;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_4_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_5;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_5_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_6;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_6_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_7;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_7_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_8;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_8_HRZ;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_9;
+    enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_ACN_ORDER_9_HRZ;
     enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_INDEX_MASK_1;
     enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_INDEX_MASK_10;
     enum_constant public static final android.audio.policy.configuration.AudioChannelMask AUDIO_CHANNEL_INDEX_MASK_11;
