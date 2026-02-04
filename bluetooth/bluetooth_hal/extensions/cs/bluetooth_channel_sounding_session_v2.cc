@@ -136,6 +136,12 @@ void CsWriteLog(const std::string& type, const std::string& content) {
         return;
     }
 
+    // Capture the monotonic time in nanoseconds
+    auto now_steady = std::chrono::steady_clock::now();
+    auto timestampSinceBootNanos =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(now_steady.time_since_epoch())
+                    .count();
+
     // If not the first entry, overwrite the previous closing bracket ']' and add
     // a comma
     if (!g_cs_log_first_entry) {
@@ -152,6 +158,7 @@ void CsWriteLog(const std::string& type, const std::string& content) {
     log_file << "  {\n";
     log_file << "    \"type\": \"" << type << "\",\n";
     log_file << "    \"timestamp\": \"" << GetTimestamp() << "\",\n";
+    log_file << "    \"timestampSinceBootNanos\": " << timestampSinceBootNanos << ",\n";
     log_file << "    \"content\": " << padded_content << "\n";
     log_file << "  }\n";
     log_file << "]";  // Always append the closing bracket
