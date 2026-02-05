@@ -25,7 +25,7 @@
 #include <media/nbaio/MonoPipeReader.h>
 
 #include "Stream.h"
-#include "alsa/Utils.h"
+#include "alsa/UtilsAlsa.h"
 
 namespace aidl::android::hardware::audio::core {
 

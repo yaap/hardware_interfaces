@@ -20,11 +20,11 @@
 #define LOG_TAG "AHAL_StreamAlsa"
 #include <Log.h>
 
-#include <Utils.h>
 #include <audio_utils/clock.h>
 #include <error/expected_utils.h>
 #include <media/AidlConversionCppNdk.h>
 
+#include "UtilsAlsa.h"
 #include "core-impl/StreamAlsa.h"
 
 using aidl::android::hardware::audio::common::getChannelCount;

@@ -16,7 +16,7 @@
 
 #define LOG_TAG "AlsaUtilsTest"
 
-#include <alsa/Utils.h>
+#include <alsa/UtilsAlsa.h>
 #include <android-base/macros.h>
 #include <audio_utils/primitives.h>
 #include <gtest/gtest.h>
