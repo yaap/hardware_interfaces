@@ -67,7 +67,7 @@ cc_library {
         "alsa/Mixer.cpp",
         "alsa/ModuleAlsa.cpp",
         "alsa/StreamAlsa.cpp",
-        "alsa/Utils.cpp",
+        "alsa/UtilsAlsa.cpp",
         "bluetooth/DevicePortProxy.cpp",
         "bluetooth/ModuleBluetoothBase.cpp",
         "bluetooth/ModuleBluetooth.cpp",
@@ -282,7 +282,7 @@ cc_test {
         "libaudioaidl_headers",
     ],
     srcs: [
-        "alsa/Utils.cpp",
+        "alsa/UtilsAlsa.cpp",
         "tests/AlsaUtilsTest.cpp",
     ],
     cflags: [

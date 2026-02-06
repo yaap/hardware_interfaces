@@ -21,7 +21,7 @@
 #include <Utils.h>
 
 #include "UsbAlsaMixerControl.h"
-#include "alsa/Utils.h"
+#include "alsa/UtilsAlsa.h"
 #include "core-impl/ModuleUsb.h"
 #include "core-impl/StreamUsb.h"
 
