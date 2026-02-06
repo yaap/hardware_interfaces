@@ -197,7 +197,9 @@ void DrmHalTest::SetUp() {
     char bootloader_state[PROPERTY_VALUE_MAX] = {};
     if (property_get("ro.boot.vbmeta.device_state", bootloader_state, "") != 0) {
         if (!strcmp(bootloader_state, "unlocked")) {
-            GTEST_SKIP() << "Skip test because bootloader is unlocked";
+            if (drmInstance.find("widevine") != std::string::npos) {
+                GTEST_SKIP() << "Skip widevine test because bootloader is unlocked";
+            }
         }
     }
 
