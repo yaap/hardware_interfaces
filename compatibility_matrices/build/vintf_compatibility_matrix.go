@@ -192,7 +192,6 @@ func (g *vintfCompatibilityMatrixRule) GenerateAndroidBuildActions(ctx android.M
 		productMatrixs := android.PathsForSource(ctx, ctx.Config().DeviceProductCompatibilityMatrixFile())
 		if len(productMatrixs) > 0 {
 			inputPaths = append(inputPaths, productMatrixs...)
-			extraArgs = append(extraArgs, "-c", android.PathForSource(ctx, emptyManifest).String())
 		} else {
 			// For product_fcm, if DEVICE_PRODUCT_COMPATIBILITY_MATRIX_FILE not set, treat it as a phony target without any output generated.
 			g.phonyOnly = true
