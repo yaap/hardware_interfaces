@@ -292,6 +292,20 @@ cc_library_static {
 }
 
 cc_library_static {
+    name: "libbluetooth_hal_lmp_event",
+    vendor_available: true,
+    defaults: ["libbluetooth_hal_extension_defaults"],
+    srcs: [
+        "extensions/ccc/bluetooth_lmp_event.cc",
+    ],
+    shared_libs: [
+        "android.hardware.bluetooth.lmp_event-V1-ndk",
+    ],
+    cflags: ["-DUSE_CCC_V1"],
+    export_include_dirs: ["include/public"],
+}
+
+cc_library_static {
     name: "libbluetooth_hal_channel_avoidance",
     vendor_available: true,
     defaults: ["libbluetooth_hal_extension_defaults"],
