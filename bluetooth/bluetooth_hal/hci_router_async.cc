@@ -50,6 +50,7 @@ using ::bluetooth_hal::hci::HciPacketType;
 using ::bluetooth_hal::thread::ThreadHandler;
 using ::bluetooth_hal::transport::TransportFactory;
 using ::bluetooth_hal::transport::TransportInstanceCallback;
+using ::bluetooth_hal::transport::TransportType;
 using ::bluetooth_hal::util::Worker;
 using ::bluetooth_hal::util::power::ScopedWakelock;
 using ::bluetooth_hal::util::power::Wakelock;
@@ -389,6 +390,10 @@ bool HciRouterAsync::SendOrQueueCommand(const HalPacket& packet,
 bool HciRouterAsync::SendToTransport(const HalPacket& packet) {
     ScopedWakelock wakelock(WakeSource::kTx, packet.GetType());
     HAL_LOG(VERBOSE) << __func__ << ": " << packet.ToString();
+    if (TransportFactory::GetTransportType() == TransportType::kUnknown) {
+        HAL_LOG(WARNING) << "Transport is closed. Drop packet: " << packet.ToString();
+        return false;
+    }
     if (!TransportFactory::GetTransport().IsTransportActive()) {
         HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
         return false;
@@ -486,6 +491,9 @@ void HciRouterAsync::SetBusy(bool busy) {
     }
 
     is_busy_ = busy;
+    if (TransportFactory::GetTransportType() == TransportType::kUnknown) {
+        return;
+    }
     TransportFactory::GetTransport().SetHciRouterBusy(busy);
 }
 

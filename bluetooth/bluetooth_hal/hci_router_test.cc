@@ -59,6 +59,7 @@ using ::bluetooth_hal::debug::MockVndSnoopLogger;
 using ::bluetooth_hal::transport::MockTransportFactory;
 using ::bluetooth_hal::transport::MockTransportInstance;
 using ::bluetooth_hal::transport::TransportInstanceCallback;
+using ::bluetooth_hal::transport::TransportType;
 using ::bluetooth_hal::util::power::MockWakelock;
 
 HalPacketCallback EmptyHalPacketCallback = []([[maybe_unused]] const HalPacket& packet) {};
@@ -1014,6 +1015,29 @@ TEST_F(HciRouterTest, HandleComplexInterceptScenarioB) {
     EXPECT_TRUE(SendToRouter(command_A));
     WaitPacketSentToTransport(command_B);
     transport_instance_callback_->OnTransportPacketReady(event_B);
+}
+
+TEST_F(HciRouterTest, HandleSendToTransportWhenClosed) {
+    EXPECT_CALL(mock_transport_factory_, GetTransportType())
+            .WillRepeatedly(Return(TransportType::kUnknown));
+
+    EXPECT_CALL(mock_transport_factory_, GetTransport()).Times(0);
+
+    HalPacket packet({0x02, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07});
+    EXPECT_TRUE(router_->Send(packet));
+
+    // Wait for the asynchronous TxHandler thread to process the task and perform the check.
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+}
+
+TEST_F(HciRouterTest, HandleSetBusyWhenClosed) {
+    EXPECT_CALL(mock_transport_factory_, GetTransportType())
+            .WillRepeatedly(Return(TransportType::kUnknown));
+
+    EXPECT_CALL(mock_transport_factory_, GetTransport()).Times(0);
+
+    // Trigger Cleanup, which resets tx_handler_ and calls SetBusy(false) internally.
+    router_->Cleanup();
 }
 
 }  // namespace
