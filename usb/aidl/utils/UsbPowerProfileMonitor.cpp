@@ -101,8 +101,10 @@ string getUsbPdDir(string usbpd_path) {
 
     n = readlink(usbpd_path.c_str(), buf, BUFFER_MAX_LEN);
     if (n == -1) {
-        ALOGE("error reading usb_power_delivery symbolic link for path %s, errno %d",
-              usbpd_path.c_str(), errno);
+        if (errno != ENOENT) {
+            ALOGE("error reading usb_power_delivery symbolic link for path %s, errno %d",
+                  usbpd_path.c_str(), errno);
+        }
         return "";
     }
     symLink = string(buf);
@@ -560,7 +562,9 @@ std::vector<std::optional<PowerProfile>> UsbPowerProfileMonitor::populatePowerPr
     pathCaps = kUsbPdPath + namePd + "/" + strCaps + "/";
     dirCaps = opendir(pathCaps.c_str());
     if (!dirCaps) {
-        ALOGE("%s: couldn't open %s", __func__, pathCaps.c_str());
+        if (errno != ENOENT) {
+            ALOGE("%s: couldn't open %s, errno=%d", __func__, pathCaps.c_str(), errno);
+        }
         return profiles;
     }
     while ((ep = readdir(dirCaps))) {
