@@ -30,23 +30,21 @@ vintf_compatibility_matrix {
 }
 
 // Phony target that installs all system compatibility matrix files
-// These are the FCMs for A17 devices. We drop support for FCM 5 from Android R
-// and drop support for HALs in FCM 6 from Android S.
-SYSTEM_MATRIX_DEPS_A17 = [
+// These are the FCMs for in-development devices.
+SYSTEM_MATRIX_DEPS_A18 = [
     "framework_compatibility_matrix.6.android17.xml",
     "framework_compatibility_matrix.7.xml",
     "framework_compatibility_matrix.8.xml",
     "framework_compatibility_matrix.202404.xml",
     "framework_compatibility_matrix.202504.xml",
     "framework_compatibility_matrix.202604.xml",
-    "framework_compatibility_matrix.202604.xml",
+    "framework_compatibility_matrix.202704.xml",
     "framework_compatibility_matrix.device.xml",
 ]
 
-// These are the FCMs for A16 that are still supported during QPRs
-SYSTEM_MATRIX_DEPS_A16 = [
-    "framework_compatibility_matrix.5.xml",
-    "framework_compatibility_matrix.6.xml",
+// These are the FCMs that are still supported during QPRs
+SYSTEM_MATRIX_DEPS_A17 = [
+    "framework_compatibility_matrix.6.android17.xml",
     "framework_compatibility_matrix.7.xml",
     "framework_compatibility_matrix.8.xml",
     "framework_compatibility_matrix.202404.xml",
@@ -58,8 +56,8 @@ SYSTEM_MATRIX_DEPS_A16 = [
 phony {
     name: "system_compatibility_matrix.xml",
     required: select(release_flag("RELEASE_AIDL_USE_UNFROZEN"), {
-        true: SYSTEM_MATRIX_DEPS_A17,
-        default: SYSTEM_MATRIX_DEPS_A16,
+        true: SYSTEM_MATRIX_DEPS_A18,
+        default: SYSTEM_MATRIX_DEPS_A17,
     }),
 }
 
@@ -72,14 +70,14 @@ vintf_compatibility_matrix {
 }
 
 // Phony target that installs all framework compatibility matrix files (system + product)
+FRAMEWORK_MATRIX_DEPS_A18 = SYSTEM_MATRIX_DEPS_A18 + ["product_compatibility_matrix.xml"]
 FRAMEWORK_MATRIX_DEPS_A17 = SYSTEM_MATRIX_DEPS_A17 + ["product_compatibility_matrix.xml"]
-FRAMEWORK_MATRIX_DEPS_A16 = SYSTEM_MATRIX_DEPS_A16 + ["product_compatibility_matrix.xml"]
 
 phony {
     name: "framework_compatibility_matrix.xml",
     required: select(release_flag("RELEASE_AIDL_USE_UNFROZEN"), {
-        true: SYSTEM_MATRIX_DEPS_A17,
-        default: SYSTEM_MATRIX_DEPS_A16,
+        true: SYSTEM_MATRIX_DEPS_A18,
+        default: SYSTEM_MATRIX_DEPS_A17,
     }),
 }
 
@@ -87,31 +85,6 @@ phony {
 // AUTO GENERATED MODULES
 // DO NOT ADD MORE MODULES BELOW THIS LINE
 ////////////////////////////////////////////
-
-// System compatibility matrices
-vintf_compatibility_matrix {
-    name: "framework_compatibility_matrix.5.xml",
-    stem: "compatibility_matrix.5.xml",
-    srcs: [
-        "compatibility_matrix.5.xml",
-    ],
-    kernel_configs: [
-        "kernel_config_r_5.4",
-    ],
-}
-
-vintf_compatibility_matrix {
-    name: "framework_compatibility_matrix.6.xml",
-    stem: "compatibility_matrix.6.xml",
-    srcs: [
-        "compatibility_matrix.6.xml",
-    ],
-    kernel_configs: [
-        "kernel_config_s_4.19",
-        "kernel_config_s_5.4",
-        "kernel_config_s_5.10",
-    ],
-}
 
 vintf_compatibility_matrix {
     name: "framework_compatibility_matrix.6.android17.xml",
@@ -174,5 +147,12 @@ vintf_compatibility_matrix {
     name: "framework_compatibility_matrix.202604.xml",
     stem: "compatibility_matrix.202604.xml",
     srcs: ["compatibility_matrix.202604.xml"],
+    kernel_configs: ["kernel_config_c_6.18"],
+}
+
+vintf_compatibility_matrix {
+    name: "framework_compatibility_matrix.202704.xml",
+    stem: "compatibility_matrix.202704.xml",
+    srcs: ["compatibility_matrix.202704.xml"],
     kernel_configs: ["kernel_config_c_6.18"],
 }
