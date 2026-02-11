@@ -473,6 +473,11 @@ oneway interface IRadioNetwork {
     /**
      * Starts a network scan.
      *
+     * On devices launching with VINTF target level 202604 or later, for all Radio Access Networks,
+     * the channels specified in {@link RadioAccessSpecifier} must correspond to the bands
+     * specified in {@link RadioAccessSpecifier}. On older devices, this requirement is not
+     * enforced but strongly recommended.
+     *
      * @param serial Serial number of request.
      * @param request Defines the radio networks/bands/channels which need to be scanned.
      *
