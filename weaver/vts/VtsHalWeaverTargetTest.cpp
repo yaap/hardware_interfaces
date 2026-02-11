@@ -691,11 +691,17 @@ TEST_P(WeaverTest, TimeoutIsAtLeastOneMinuteAfterAtMostFiveAttempts) {
         ASSERT_TRUE(ret.isOk());
 
         if (response.status == WeaverReadStatus::OK) {
-            // Note that no slack time is used here. It should be unnecessary, since time_elapsed is
-            // an overestimate of the true timeout: it measures the time from a point just *before*
-            // the last failed read to a point just *after* the successful read. Meanwhile,
+            // A 5% tolerance is used here, to accommodate secure elements whose clock runs slightly
+            // faster than the application processor's clock. It is expected that when the two
+            // clocks are independent, implementers may have trouble keeping them in sync and will
+            // need to error on the side of making the secure element's clock slightly too fast. (If
+            // it was too slow instead, HAL users would see unexpected failures.)
+            //
+            // Note that no extra slack time is needed to account for execution time, seeing as
+            // time_elapsed is an overestimate. It measures the time from a point just *before* the
+            // last failed read to a point just *after* the successful read. Meanwhile,
             // reported_timeout should be either the true timeout or slightly less than it.
-            if (time_elapsed >= reported_timeout) {
+            if (time_elapsed >= reported_timeout * 95 / 100) {
                 GTEST_LOG_(INFO) << "Read succeeded in " << time_elapsed
                                  << ". Timeout was enforced.";
                 return;
