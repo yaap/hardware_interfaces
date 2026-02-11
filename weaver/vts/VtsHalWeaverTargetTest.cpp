@@ -19,12 +19,15 @@
 #include <aidl/android/hardware/weaver/IWeaver.h>
 #include <android-base/file.h>
 #include <android-base/parseint.h>
+#include <android-base/properties.h>
 #include <android-base/strings.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
 #include <android/hardware/weaver/1.0/IWeaver.h>
 #include <hidl/GtestPrinter.h>
 #include <hidl/ServiceManagement.h>
+#include <chrono>
+#include <thread>
 
 #include <limits>
 
@@ -193,7 +196,7 @@ class WeaverHidlAdapter : public WeaverAdapter {
 class WeaverTest : public ::testing::TestWithParam<std::tuple<std::string, std::string>> {
   protected:
     void SetUp() override;
-    void TearDown() override {}
+    void TearDown() override;
     void FindFreeSlots();
 
     std::unique_ptr<WeaverAdapter> weaver_;
@@ -235,6 +238,13 @@ void WeaverTest::SetUp() {
     FindFreeSlots();
     GTEST_LOG_(INFO) << "First free slot is " << first_free_slot_ << ", last free slot is "
                      << last_free_slot_;
+}
+
+void WeaverTest::TearDown() {
+    // Some of the test cases can leave a timeout in first_free_slot_.
+    // Overwrite the slot to ensure the timeout gets reset to zero.
+    auto ret = weaver_->write(first_free_slot_, KEY, VALUE);
+    EXPECT_TRUE(ret.isOk());
 }
 
 void WeaverTest::FindFreeSlots() {
@@ -573,6 +583,136 @@ TEST_P(WeaverTest, GetTimeoutOnInvalidSlotFails) {
     }
     ASSERT_EQ(EX_ILLEGAL_ARGUMENT, ret.getExceptionCode());
     ASSERT_EQ(-1, timeout);
+}
+
+// VSR-3.10-026: CHIPSETs that set ro.board.first_api_level or ro.board.api_level to 202604 or
+// higher: For any unique failed primary authentication attempt, if subsequent attempts are
+// permitted, are STRONGLY RECOMMENDED to enforce a minimum time interval as specified in the
+// following table:
+//
+//      Number of unique failed attempts    Minimum timeout
+//      --------------------------------    ---------------
+//      0-4                                 none
+//      5                                   1 minute
+//      6                                   5 minutes
+//      ...                                 [continues with exponentially increasing timeouts]
+//
+// Unfortunately, verifying the entire timeout table in VTS is impractical, since it would take far
+// too long. Therefore, this test case just tests the 1 minute timeout. This is still sufficient to
+// differentiate between the old and recommended timeout tables, since the old one had only a 30
+// second timeout after 5 failures.
+TEST_P(WeaverTest, TimeoutIsAtLeastOneMinuteAfterAtMostFiveAttempts) {
+    const uint32_t slotId = first_free_slot_;
+    constexpr auto min_timeout_after_5_failures = std::chrono::minutes(1);
+
+    // Determine whether the version prerequisite is met. However, for now just continue with the
+    // test regardless, since the test is currently non-enforcing.
+    const int board_first_api_level = android::base::GetIntProperty("ro.board.first_api_level", -1);
+    const int board_api_level = android::base::GetIntProperty("ro.board.api_level", -1);
+    const bool version_req_met = std::max(board_first_api_level, board_api_level) >= 202604;
+    GTEST_LOG_(INFO) << "board_first_api_level=" << board_first_api_level
+                     << ", board_api_level=" << board_api_level
+                     << ", version_req_met=" << version_req_met;
+
+    // Write to a Weaver slot.
+    {
+        const auto ret = weaver_->write(slotId, KEY, VALUE);
+        ASSERT_TRUE(ret.isOk());
+    }
+
+    // Read from the slot using up to five unique wrong keys, stopping when either all five keys
+    // have been attempted or when the HAL reports that there is a timeout of at least
+    // min_timeout_after_5_failures. Collect the last_attempt_time and reported_timeout from the
+    // last attempt before the loop stops.
+    std::chrono::steady_clock::time_point last_attempt_time;
+    std::chrono::milliseconds reported_timeout;
+    int attempts_made = 0;
+    do {
+        attempts_made++;
+        auto wrong_key = WRONG_KEY;
+        wrong_key[0] = attempts_made;
+        GTEST_LOG_(INFO) << "Read attempt #" << attempts_made << " with unique wrong key";
+
+        // To avoid flakes, collect last_attempt_time just *before* the read.
+        last_attempt_time = std::chrono::steady_clock::now();
+
+        WeaverReadResponse response;
+        const auto ret = weaver_->read(slotId, wrong_key, &response);
+
+        ASSERT_TRUE(ret.isOk());
+        ASSERT_TRUE(response.value.empty());
+        ASSERT_TRUE(response.status == WeaverReadStatus::INCORRECT_KEY ||
+                    response.status == WeaverReadStatus::THROTTLE);
+        ASSERT_GE(response.timeout, 0);  // Negative timeouts aren't allowed.
+        reported_timeout = std::chrono::milliseconds(response.timeout);
+
+        if (attempts_made < 5 && reported_timeout.count() != 0) {
+            // While the recommended policy has no timeout after the first four failures,
+            // technically it's allowed to have a stronger policy that imposes a timeout earlier.
+            // In such a case, check whether the reported timeout is at least 1 minute. If it is,
+            // then consider it too long to skip over in this loop and just continue to the part of
+            // the test where we verify that the timeout is really enforced and not just reported.
+            // If it's not, just wait for the timeout and keep going.
+            GTEST_LOG_(INFO) << "Got timeout of " << reported_timeout << " after " << attempts_made
+                             << " failures, which is stronger than the recommended policy";
+            if (reported_timeout >= min_timeout_after_5_failures) {
+                GTEST_LOG_(INFO) << "Breaking the loop before reaching 5 failures";
+                break;
+            }
+            GTEST_LOG_(INFO) << "Waiting for the timeout to expire";
+            std::this_thread::sleep_for(reported_timeout + std::chrono::seconds(1));
+        }
+    } while (attempts_made < 5);
+    GTEST_LOG_(INFO) << "Reported timeout: " << reported_timeout;
+    // Verify that the reported timeout is at least the minimum expected, with a bit of slack to
+    // account for the time the test has been running.
+    if (reported_timeout < min_timeout_after_5_failures - std::chrono::seconds(1)) {
+        // TODO: upgrade to failure (conditional on the appropriate version prerequisite being
+        // met) when the requirement is upgraded to MUST.
+        GTEST_SKIP() << "Reported timeout after " << attempts_made << " attempts is "
+                     << reported_timeout << ", but expected at least "
+                     << min_timeout_after_5_failures;
+    }
+
+    // Now verify that reads fail with WeaverReadStatus::THROTTLE for at least the reported timeout.
+    // However, to keep the test from taking too long on implementations that use a timeout longer
+    // than the recommended one (which is not expected, but is technically allowed), stop the test
+    // after min_timeout_after_5_failures rather than reported_timeout.
+    GTEST_LOG_(INFO) << "Verifying that the timeout is actually enforced";
+    std::chrono::steady_clock::duration time_elapsed;
+    do {
+        WeaverReadResponse response;
+        const auto ret = weaver_->read(slotId, KEY, &response);
+
+        // To avoid flakes, calculate time_elapsed just *after* the read.
+        time_elapsed = std::chrono::steady_clock::now() - last_attempt_time;
+
+        GTEST_LOG_(INFO) << "Read with correct key, time_elapsed=" << time_elapsed;
+        ASSERT_TRUE(ret.isOk());
+
+        if (response.status == WeaverReadStatus::OK) {
+            // Note that no slack time is used here. It should be unnecessary, since time_elapsed is
+            // an overestimate of the true timeout: it measures the time from a point just *before*
+            // the last failed read to a point just *after* the successful read. Meanwhile,
+            // reported_timeout should be either the true timeout or slightly less than it.
+            if (time_elapsed >= reported_timeout) {
+                GTEST_LOG_(INFO) << "Read succeeded in " << time_elapsed
+                                 << ". Timeout was enforced.";
+                return;
+            }
+            // TODO: upgrade to failure (conditional on the appropriate version prerequisite being
+            // met) when the requirement is upgraded to MUST.
+            GTEST_SKIP() << "Read succeeded in " << time_elapsed << ", which is too soon!";
+        }
+
+        // Read failed. It should be due to the timeout still being active.
+        ASSERT_TRUE(response.value.empty());
+        ASSERT_EQ(response.status, WeaverReadStatus::THROTTLE);
+        ASSERT_GT(response.timeout, 0);
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    } while (time_elapsed < min_timeout_after_5_failures);
+    GTEST_LOG_(INFO) << "Timeout was enforced for at least " << min_timeout_after_5_failures;
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WeaverTest);

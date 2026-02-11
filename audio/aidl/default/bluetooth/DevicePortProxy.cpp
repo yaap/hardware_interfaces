@@ -388,8 +388,13 @@ bool BluetoothAudioPortAidl::getRecommendedLatencyModes(std::vector<LatencyMode>
 }
 
 bool BluetoothAudioPortAidl::getRecommendedLatencyModes(std::vector<LatencyMode>* latency_modes) {
-    std::lock_guard guard(mCvMutex);
-    return getRecommendedLatencyModes(latency_modes, &mSupportsLowLatency);
+    std::optional<bool> supportsLowLatency;
+    if (getRecommendedLatencyModes(latency_modes, &supportsLowLatency)) {
+        std::lock_guard guard(mCvMutex);
+        mSupportsLowLatency = supportsLowLatency;
+        return true;
+    }
+    return false;
 }
 
 bool BluetoothAudioPortAidl::loadAudioConfig(PcmConfiguration& audio_cfg) {
