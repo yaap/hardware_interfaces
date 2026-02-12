@@ -44,10 +44,10 @@ namespace {
 // device node for Battery percentage.
 constexpr char kBtteryPercentageNode[] = "/sys/class/power_supply/battery/capacity";
 
-void HandleError(const std::string& temp_path, int* dir_fd, FILE** fp) {
+void HandleError(std::string_view temp_path, int* dir_fd, FILE** fp) {
     // This indicates there is a write issue.  Unlink as partial data is not
     // acceptable.
-    unlink(temp_path.c_str());
+    unlink(std::string(temp_path).c_str());
     if (*fp) {
         fclose(*fp);
         *fp = nullptr;
@@ -60,14 +60,14 @@ void HandleError(const std::string& temp_path, int* dir_fd, FILE** fp) {
 
 }  // namespace
 
-bool GetFsDebugDump(int fd, const std::string& debugfs) {
+bool GetFsDebugDump(int fd, std::string_view debugfs) {
     std::stringstream ss;
     std::ifstream file;
 
     ss << "=============================================" << std::endl;
     ss << "Debugfs:" << debugfs << std::endl;
     ss << "=============================================" << std::endl;
-    file.open(debugfs);
+    file.open(std::string(debugfs));
     if (file.is_open()) {
         ss << file.rdbuf() << std::endl;
     } else {
@@ -101,11 +101,11 @@ bool GetBatteryPercentage(std::string& batt_level) {
     return true;
 }
 
-std::string GetLastLogPath(std::string log_file_path) {
-    return log_file_path.append(".last");
+std::string GetLastLogPath(std::string_view log_file_path) {
+    return std::string(log_file_path).append(".last");
 }
 
-void CreateLogFile(const std::string& log_file_path, std::ofstream& log_file_stream) {
+void CreateLogFile(std::string_view log_file_path, std::ofstream& log_file_stream) {
     LOG(INFO) << __func__ << ": log_file_path: " << log_file_path << ".";
     std::string last_file_path = GetLastLogPath(log_file_path);
 
@@ -125,10 +125,10 @@ void CreateLogFile(const std::string& log_file_path, std::ofstream& log_file_str
     }
 
     // do not use std::ios::app as we want override the existing file
-    log_file_stream.open(log_file_path, std::ios::out);
+    log_file_stream.open(std::string(log_file_path), std::ios::out);
 
     // Change the file's permissions to OWNER Read/Write, GROUP Read, OTHER Read
-    if (chmod(log_file_path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) != 0) {
+    if (chmod(std::string(log_file_path).c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) != 0) {
         LOG(ERROR) << __func__ << ": Unable to change file permissions " << log_file_path << ".";
     }
     if (!log_file_stream.good()) {
@@ -145,13 +145,13 @@ void CloseLogFileStream(std::ofstream& log_file_stream) {
     }
 }
 
-bool FileExists(const std::string& path) {
-    std::ifstream input(path, std::ios::binary | std::ios::ate);
+bool FileExists(std::string_view path) {
+    std::ifstream input(std::string(path), std::ios::binary | std::ios::ate);
     return input.good();
 }
 
-bool RenameFile(const std::string& from, const std::string& to) {
-    if (std::rename(from.c_str(), to.c_str()) != 0) {
+bool RenameFile(std::string_view from, std::string_view to) {
+    if (std::rename(std::string(from).c_str(), std::string(to).c_str()) != 0) {
         LOG(ERROR) << __func__ << ": Unable to rename file from '" << from << "' to '" << to
                    << "', error: " << strerror(errno) << ".";
         return false;
@@ -159,8 +159,8 @@ bool RenameFile(const std::string& from, const std::string& to) {
     return true;
 }
 
-std::optional<std::string> ReadSmallFile(const std::string& path) {
-    std::ifstream input(path, std::ios::binary | std::ios::ate);
+std::optional<std::string> ReadSmallFile(std::string_view path) {
+    std::ifstream input(std::string(path), std::ios::binary | std::ios::ate);
     if (!input) {
         LOG(WARNING) << __func__ << ": Failed to open file '" << path
                      << "', error: " << strerror(errno) << ".";
@@ -187,7 +187,7 @@ std::optional<std::string> ReadSmallFile(const std::string& path) {
     return result;
 }
 
-bool WriteToFile(const std::string& path, const std::string& data) {
+bool WriteToFile(std::string_view path, std::string_view data) {
     // TBD: ASSERT(!path.empty());
     // Steps to ensure content of data gets to disk:
     //
@@ -205,7 +205,7 @@ bool WriteToFile(const std::string& path, const std::string& data) {
     // - fsync() to ensure content is written to disk
 
     // Build temp config file based on config file (e.g. bt_config.conf.new).
-    const std::string temp_path = path + ".new";
+    const std::string temp_path = std::string(path) + ".new";
 
     // Extract directory from file path (e.g. /data/misc/bluedroid).
     // libc++fs is not supported in APEX yet and hence cannot use
@@ -239,7 +239,7 @@ bool WriteToFile(const std::string& path, const std::string& data) {
         return false;
     }
 
-    if (std::fprintf(fp, "%s", data.c_str()) < 0) {
+    if (std::fprintf(fp, "%s", std::string(data).c_str()) < 0) {
         LOG(ERROR) << __func__ << ": Unable to write to file '" << temp_path
                    << "', error: " << strerror(errno) << ".";
         HandleError(temp_path, &dir_fd, &fp);
@@ -279,7 +279,7 @@ bool WriteToFile(const std::string& path, const std::string& data) {
     }
 
     // Rename written temp file to the actual config file.
-    if (std::rename(temp_path.c_str(), path.c_str()) != 0) {
+    if (std::rename(temp_path.c_str(), std::string(path).c_str()) != 0) {
         LOG(ERROR) << __func__ << ": Unable to commit file from '" << temp_path << "' to '" << path
                    << "', error: " << strerror(errno) << ".";
         HandleError(temp_path, &dir_fd, &fp);
@@ -301,8 +301,8 @@ bool WriteToFile(const std::string& path, const std::string& data) {
     return true;
 }
 
-bool RemoveFile(const std::string& path) {
-    if (remove(path.c_str()) != 0) {
+bool RemoveFile(std::string_view path) {
+    if (remove(std::string(path).c_str()) != 0) {
         LOG(ERROR) << __func__ << ": Unable to remove file '" << path
                    << "', error: " << strerror(errno) << ".";
         return false;
@@ -311,9 +311,9 @@ bool RemoveFile(const std::string& path) {
 }
 
 std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
-FileCreatedTime(const std::string& path) {
+FileCreatedTime(std::string_view path) {
     struct stat file_info;
-    if (stat(path.c_str(), &file_info) != 0) {
+    if (stat(std::string(path).c_str(), &file_info) != 0) {
         LOG(ERROR) << __func__ << ": Unable to read '" << path
                    << "' file metadata, error: " << strerror(errno) << ".";
         return std::nullopt;
@@ -329,8 +329,8 @@ FileCreatedTime(const std::string& path) {
 
 void DeleteOldestFiles(std::string_view directory, std::optional<std::string_view> file_prefix,
                        size_t files_to_keep) {
-    LOG(INFO) << __func__ << " (directory: " << directory.data()
-              << ", file_prefix: " << (file_prefix.has_value() ? file_prefix.value().data() : "")
+    LOG(INFO) << __func__ << " (directory: " << directory
+              << ", file_prefix: " << (file_prefix.has_value() ? file_prefix.value() : "")
               << ", files_to_keep: " << files_to_keep << ")";
     std::vector<std::filesystem::directory_entry> files;
 

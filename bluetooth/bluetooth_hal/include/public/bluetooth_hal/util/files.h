@@ -24,43 +24,43 @@
 namespace bluetooth_hal::util {
 
 // Get FS Debug Dump
-bool GetFsDebugDump(int fd, const std::string& debugfs);
+bool GetFsDebugDump(int fd, std::string_view debugfs);
 
 // Get Battery Percentage
 bool GetBatteryPercentage(std::string& batt_level);
 
 // Return true if |path| exists on disk
-bool FileExists(const std::string& path);
+bool FileExists(std::string_view path);
 
 // Rename file from |from| to |to|
-bool RenameFile(const std::string& from, const std::string& to);
+bool RenameFile(std::string_view from, std::string_view to);
 
 // Implement ability to read a whole file from |path| into a C++ string, return
 // std::nullopt on failure
 //
 // Do not use this with large files
-std::optional<std::string> ReadSmallFile(const std::string& path);
+std::optional<std::string> ReadSmallFile(std::string_view path);
 
 // Implement ability to safely write to a file. This function is needed because
 // of deficiencies in existing C++ file libraries, namely:
 // - The ability to open and sync directories with storage media
 // - The ability to block and sync file to storage media
 // Return true on success, false on failure
-bool WriteToFile(const std::string& path, const std::string& data);
+bool WriteToFile(std::string_view path, std::string_view data);
 
 // Remove file and print error message if failed
 // Print error log when file is failed to be removed, hence user should make
 // sure file exists before calling this Return true on success, false on failure
 // (e.g. file not exist, failed to remove, etc)
-bool RemoveFile(const std::string& path);
+bool RemoveFile(std::string_view path);
 
 // Returns created time_point of given file, return std::nullopt on failure
 std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
-FileCreatedTime(const std::string& path);
+FileCreatedTime(std::string_view path);
 
-std::string GetLastLogPath(std::string log_file_path);
+std::string GetLastLogPath(std::string_view log_file_path);
 
-void CreateLogFile(const std::string& log_file_path, std::ofstream& log_file_stream);
+void CreateLogFile(std::string_view log_file_path, std::ofstream& log_file_stream);
 
 void CloseLogFileStream(std::ofstream& log_file_stream);
 
