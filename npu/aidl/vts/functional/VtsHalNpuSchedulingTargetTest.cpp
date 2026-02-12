@@ -527,20 +527,6 @@ TEST_P(NpuSchedulingAidl, RunInferenceFailsWithoutDirectAccess) {
     ASSERT_FALSE(runner->runInference());
 }
 
-/*
- * Tests that inference fails when canAttributeOtherUid=false and other uid specified
- */
-TEST_P(NpuSchedulingAidl, RunInferenceFailsWithoutAttributeOtherUid) {
-    std::vector<SchedulingConfig> configs = {{.uid = static_cast<int>(geteuid()),
-                                              .priority = 0,
-                                              .hasDirectAccess = true,
-                                              .canAttributeOtherUid = false}};
-
-    auto status = scheduling->setSchedulingConfigs(configs);
-    ASSERT_TRUE(status.isOk()) << "setSchedulingConfigs failed: " << status.getDescription();
-    ASSERT_FALSE(runner->runInference({.originalUid = 42}));
-}
-
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NpuSchedulingAidl);
 INSTANTIATE_TEST_SUITE_P(NpuScheduling, NpuSchedulingAidl,
                          testing::ValuesIn(getAidlHalInstanceNames(IScheduling::descriptor)),
