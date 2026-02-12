@@ -77,8 +77,8 @@ constexpr int kDebugInfoLastBlockOffset = 5;
 constexpr int kHandleDebugInfoCommandMs = 1000;
 constexpr int kRestartHalTimeoutMs = 6000;
 constexpr int kMaxCoredumpFiles = 3;
-const std::string kCoredumpFilePrefix = kCoredumpFilePath + kCoredumpPrefix;
-const std::string kSocdumpFilePrefix = kCoredumpFilePath + "coredump_bt_socdump_";
+const std::string kCoredumpFilePrefix = std::string(kCoredumpFilePath) + kCoredumpPrefix;
+const std::string kSocdumpFilePrefix = std::string(kCoredumpFilePath) + "coredump_bt_socdump_";
 
 const std::string kDebugNodeBtLpm = "dev/logbuffer_btlpm";
 constexpr char kDebugNodeBtUartPrefix[] = "/dev/logbuffer_tty";
