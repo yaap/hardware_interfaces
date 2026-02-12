@@ -8,12 +8,11 @@
 namespace aidl::android::hardware::npu {
 
 const int DEFAULT_PRIORITY = 500;
-const int DEFAULT_ORIGINAL_UID = -1;
 
 struct InferenceOptions {
     int priority = DEFAULT_PRIORITY;
-    int originalUid = DEFAULT_ORIGINAL_UID;
-    int uid = -1;
+    std::optional<int> originalUid = std::nullopt;
+    std::optional<int> uid = std::nullopt;
 };
 
 class InferenceRunner : public ::android::RefBase {

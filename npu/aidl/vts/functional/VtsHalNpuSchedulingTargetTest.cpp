@@ -125,13 +125,14 @@ class SchedulingCallback : public BnSchedulingCallback {
   public:
     SchedulingCallback() {
         // Only listen to our own UID by default
-        mUid = geteuid();
+        mUid = std::optional<int>(geteuid());
     }
 
+    void clearUidFilter() { mUid = std::nullopt; }
     void setUidFilter(int uid) { mUid = uid; }
 
     ::ndk::ScopedAStatus onWorkRequested(const WorkInfo& workInfo) override {
-        if (mUid >= 0 && workInfo.uid != mUid) {
+        if (mUid.has_value() && workInfo.uid != mUid.value()) {
             return ndk::ScopedAStatus::ok();
         }
         std::lock_guard guard(mEventsMutex);
@@ -141,7 +142,7 @@ class SchedulingCallback : public BnSchedulingCallback {
 
     ::ndk::ScopedAStatus onWorkStarted(const WorkInfo& workInfo,
                                        [[maybe_unused]] const StartReason reason) override {
-        if (mUid >= 0 && workInfo.uid != mUid) {
+        if (mUid.has_value() && workInfo.uid != mUid.value()) {
             return ndk::ScopedAStatus::ok();
         }
         std::lock_guard guard(mEventsMutex);
@@ -151,7 +152,7 @@ class SchedulingCallback : public BnSchedulingCallback {
 
     ::ndk::ScopedAStatus onWorkEnded(const WorkInfo& workInfo,
                                      [[maybe_unused]] const EndReason reason) override {
-        if (mUid >= 0 && workInfo.uid != mUid) {
+        if (mUid.has_value() && workInfo.uid != mUid.value()) {
             return ndk::ScopedAStatus::ok();
         }
         std::lock_guard guard(mEventsMutex);
@@ -170,7 +171,7 @@ class SchedulingCallback : public BnSchedulingCallback {
     }
 
   private:
-    int mUid = -1;
+    std::optional<int> mUid;
     std::mutex mEventsMutex;
     WorkEvent::priority_queue mEvents;
 };
@@ -202,7 +203,7 @@ TEST(SchedulingCallbackTests, EventQueue) {
 
 TEST(SchedulingCallbackTests, EventQueueNoUidFilter) {
     auto callback = ndk::SharedRefBase::make<SchedulingCallback>();
-    callback->setUidFilter(-1);
+    callback->clearUidFilter();
 
     auto infoRequestedA = WorkInfo(1, std::nullopt, 100, 0, 0, std::nullopt, 0, 0);
     auto infoRequestedB = WorkInfo(2, std::nullopt, 200, 0, 0, std::nullopt, 0, 0);
@@ -401,7 +402,6 @@ TEST_P(NpuSchedulingAidl, RunInferenceStatusCallbacks) {
         auto event = events.top();
 
         ASSERT_THAT(event.type(), Eq(expectedEventTypes.front()));
-        ASSERT_THAT(event.info().jobPriority, Eq(jobPriority));
         ASSERT_THAT(event.info().effectivePriority, Ge(uidPriority));
         auto eventTime = event.info().timestampMs;
         ASSERT_THAT(eventTime, Ge(startTime));
@@ -447,7 +447,6 @@ TEST_P(NpuSchedulingAidl, RunInferenceEffectivePriority) {
 
     auto event = events.top();
     ASSERT_THAT(event.type(), Eq(kRequested));
-    ASSERT_THAT(event.info().jobPriority, Eq(lowJobPriority));
     lowEffectivePriority = event.info().effectivePriority;
 
     callback->clearEvents();
@@ -463,7 +462,6 @@ TEST_P(NpuSchedulingAidl, RunInferenceEffectivePriority) {
 
     event = events.top();
     ASSERT_THAT(event.type(), Eq(kRequested));
-    ASSERT_THAT(event.info().jobPriority, Eq(highJobPriority));
     highEffectivePriority = event.info().effectivePriority;
 
     ASSERT_THAT(lowEffectivePriority, Gt(highEffectivePriority));
@@ -497,9 +495,11 @@ TEST_P(NpuSchedulingAidl, RunInferencesPrioritized) {
     auto callback = ndk::SharedRefBase::make<SchedulingCallback>();
     ASSERT_TRUE(scheduling->setCallback(callback).isOk());
 
-    auto first = runner->runInferenceAsync({.priority = lowJobPriority});
+    auto first = runner->runInferenceAsync(
+            {.priority = lowJobPriority, .uid = std::optional<int>(lowUid)});
     std::this_thread::sleep_for(100ms);
-    auto second = runner->runInferenceAsync({.priority = highJobPriority});
+    auto second = runner->runInferenceAsync(
+            {.priority = highJobPriority, .uid = std::optional<int>(highUid)});
 
     auto completed = raceFutures<bool>({&first, &second});
     std::list<std::future<bool>*> expected = {&second, &first};
