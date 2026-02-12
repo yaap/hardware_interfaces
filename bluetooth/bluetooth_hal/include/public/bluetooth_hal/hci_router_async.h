@@ -21,6 +21,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <utility>
 
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
@@ -32,7 +33,7 @@ namespace bluetooth_hal::hci {
 
 class RouterTask {
   public:
-    RouterTask(std::function<void()> task) : task_(task) {};
+    RouterTask(std::function<void()> task) : task_(std::move(task)) {};
     void Run() { task_(); }
 
   private:

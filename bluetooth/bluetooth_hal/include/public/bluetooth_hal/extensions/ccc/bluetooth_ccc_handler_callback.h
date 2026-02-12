@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "bluetooth_hal/bluetooth_address.h"
@@ -27,13 +28,16 @@ namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCccHandlerCallback {
   public:
-    BluetoothCccHandlerCallback(const ::bluetooth_hal::hci::BluetoothAddress& address,
-                                const std::vector<CccLmpEventId>& lmp_event_ids)
-        : address_(address), address_type_(AddressType::kRandom), lmp_event_ids_(lmp_event_ids) {};
-    BluetoothCccHandlerCallback(const ::bluetooth_hal::hci::BluetoothAddress& address,
-                                const AddressType address_type,
-                                const std::vector<CccLmpEventId>& lmp_event_ids)
-        : address_(address), address_type_(address_type), lmp_event_ids_(lmp_event_ids) {};
+    BluetoothCccHandlerCallback(::bluetooth_hal::hci::BluetoothAddress address,
+                                std::vector<CccLmpEventId> lmp_event_ids)
+        : address_(std::move(address)),
+          address_type_(AddressType::kRandom),
+          lmp_event_ids_(std::move(lmp_event_ids)) {};
+    BluetoothCccHandlerCallback(::bluetooth_hal::hci::BluetoothAddress address,
+                                AddressType address_type, std::vector<CccLmpEventId> lmp_event_ids)
+        : address_(std::move(address)),
+          address_type_(address_type),
+          lmp_event_ids_(std::move(lmp_event_ids)) {};
     virtual ~BluetoothCccHandlerCallback() = default;
     virtual void OnEventGenerated(const CccTimestamp& timestamp,
                                   const ::bluetooth_hal::hci::BluetoothAddress& address,
