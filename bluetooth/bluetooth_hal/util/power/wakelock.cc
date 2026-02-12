@@ -44,7 +44,7 @@ class WakelockImpl : public Wakelock {
     void Release(WakeSource source) override;
     bool IsAcquired() override;
     bool IsWakeSourceAcquired(WakeSource source) override;
-    void SetWakelockTimeout(const int timeout) override;
+    void SetWakelockTimeout(int timeout) override;
 
   private:
     void ReleaseWakelock();
@@ -130,7 +130,7 @@ void WakelockImpl::ReleaseWakelock() {
     }
 }
 
-void WakelockImpl::SetWakelockTimeout(const int timeout) {
+void WakelockImpl::SetWakelockTimeout(int timeout) {
     if (timeout == wakelock_timeout_) {
         return;
     }

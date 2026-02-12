@@ -31,8 +31,7 @@ class BluetoothActivities {
   public:
     virtual ~BluetoothActivities() = default;
 
-    using ConnectionCountChangedCallback =
-            std::function<void(const int new_connected_device_count)>;
+    using ConnectionCountChangedCallback = std::function<void(int new_connected_device_count)>;
 
     class [[nodiscard]] ConnectionCallbackSubscription {
       public:
