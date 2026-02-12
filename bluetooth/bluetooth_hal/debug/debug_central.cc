@@ -88,7 +88,7 @@ constexpr char kHwStage[] = "ro.boot.hardware.revision";
 
 void LogFatal(BqrErrorCode error, std::string_view extra_info);
 
-DurationTracker::DurationTracker(AnchorType type, const std::string& log) : log_(log), type_(type) {
+DurationTracker::DurationTracker(AnchorType type, std::string_view log) : log_(log), type_(type) {
     std::stringstream ss;
     ss << "[ IN] " << log_;
     DebugCentral::Get().AddLog(type_, ss.str());
@@ -114,11 +114,12 @@ class DebugCentralImpl : public DebugCentral {
 
     void Dump(int fd) override;
 
-    void SetBtUartDebugPort(const std::string& uart_port) override;
+    void SetBtUartDebugPort(std::string_view uart_port) override;
 
-    void AddLog(AnchorType type, const std::string& log) override;
+    void AddLog(AnchorType type, std::string_view log) override;
 
-    void ReportBqrError(::bluetooth_hal::bqr::BqrErrorCode error, std::string extra_info) override;
+    void ReportBqrError(::bluetooth_hal::bqr::BqrErrorCode error,
+                        std::string_view extra_info) override;
 
     void HandleRootInflammationEvent(
             const ::bluetooth_hal::bqr::BqrRootInflammationEvent& event) override;
@@ -127,7 +128,7 @@ class DebugCentralImpl : public DebugCentral {
 
     void HandleDebugInfoCommand() override;
 
-    void GenerateVendorDumpFile(const std::string& file_path, const std::vector<uint8_t>& data,
+    void GenerateVendorDumpFile(std::string_view file_path, const std::vector<uint8_t>& data,
                                 uint8_t vendor_error_code = 0) override;
 
     void GenerateCoredump(CoredumpErrorCode error_code, uint8_t sub_error_code = 0) override;
@@ -157,7 +158,7 @@ class DebugCentralImpl : public DebugCentral {
     bool OkToGenerateCrashDump(uint8_t error_code);
     bool IsHardwareStageSupported();
     std::string GetOrCreateCoredumpTimestampString();
-    int OpenOrCreateCoredumpBin(const std::string& file_prefix);
+    int OpenOrCreateCoredumpBin(std::string_view file_prefix);
     std::vector<Coredump> GetCoredumpFromDebugClients();
 };
 
@@ -222,7 +223,7 @@ void DebugCentralImpl::Dump(int fd) {
     FlushCoredumpToFd(fd);
 }
 
-void DebugCentralImpl::SetBtUartDebugPort(const std::string& uart_port) {
+void DebugCentralImpl::SetBtUartDebugPort(std::string_view uart_port) {
     if (uart_port.empty()) {
         LOG(ERROR) << __func__ << ": UART port is empty!";
         return;
@@ -230,14 +231,14 @@ void DebugCentralImpl::SetBtUartDebugPort(const std::string& uart_port) {
 
     std::size_t const found = uart_port.find_first_of("0123456789");
     if (found != std::string::npos) {
-        serial_debug_port_ = kDebugNodeBtUartPrefix + uart_port.substr(found);
+        serial_debug_port_ = kDebugNodeBtUartPrefix + std::string(uart_port.substr(found));
         LOG(INFO) << __func__ << ": Serial debug port: " << serial_debug_port_ << ".";
         return;
     }
     LOG(ERROR) << __func__ << ": Cannot found uart port!";
 }
 
-void DebugCentralImpl::AddLog(AnchorType type, const std::string& log) {
+void DebugCentralImpl::AddLog(AnchorType type, std::string_view log) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::string timestamp_str = Logger::GetLogFormatTimestamp();
     std::pair log_with_timestamp = std::pair<std::string, std::string>(log, timestamp_str);
@@ -250,7 +251,7 @@ void DebugCentralImpl::AddLog(AnchorType type, const std::string& log) {
     }
 }
 
-void DebugCentralImpl::ReportBqrError(BqrErrorCode error, std::string extra_info) {
+void DebugCentralImpl::ReportBqrError(BqrErrorCode error, std::string_view extra_info) {
     HalPacket bqr_event({0xff, 0x04, 0x58, 0x05, 0x00, static_cast<uint8_t>(error)});
 
     HAL_LOG(ERROR) << extra_info;
@@ -284,7 +285,7 @@ void DebugCentralImpl::HandleDebugInfoCommand() {
             std::chrono::milliseconds(kHandleDebugInfoCommandMs));
 }
 
-void DebugCentralImpl::GenerateVendorDumpFile(const std::string& file_path,
+void DebugCentralImpl::GenerateVendorDumpFile(std::string_view file_path,
                                               const std::vector<uint8_t>& data,
                                               uint8_t vendor_error_code) {
     if (file_path.empty()) {
@@ -491,8 +492,9 @@ void DebugCentralImpl::GenerateCoredump(CoredumpErrorCode error_code, uint8_t su
     close(coredump_fd);
 }
 
-int DebugCentralImpl::OpenOrCreateCoredumpBin(const std::string& file_name_prefix) {
-    std::string file_name = file_name_prefix + GetOrCreateCoredumpTimestampString() + ".bin";
+int DebugCentralImpl::OpenOrCreateCoredumpBin(std::string_view file_name_prefix) {
+    std::string file_name =
+            std::string(file_name_prefix) + GetOrCreateCoredumpTimestampString() + ".bin";
 
     if (access(file_name.c_str(), F_OK) != 0) {
         // File does not exist, require to create a new one.
@@ -515,10 +517,10 @@ int DebugCentralImpl::OpenOrCreateCoredumpBin(const std::string& file_name_prefi
 
     // Delete old files and keep the latest ones.
     size_t last_slash_pos = file_name_prefix.find_last_of('/');
-    if (last_slash_pos != std::string::npos) {
+    if (last_slash_pos != std::string_view::npos) {
         auto file_path = file_name_prefix.substr(0, last_slash_pos + 1);
         auto prefix = file_name_prefix.substr(last_slash_pos + 1);
-        DeleteOldestBinFiles(file_path, prefix, kMaxCoredumpFiles);
+        DeleteOldestBinFiles(std::string(file_path), std::string(prefix), kMaxCoredumpFiles);
     }
     return fd;
 }

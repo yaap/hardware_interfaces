@@ -26,17 +26,18 @@ class MockDebugCentral : public DebugCentral {
     MOCK_METHOD(bool, RegisterDebugClient, (DebugClient * debug_client), (override));
     MOCK_METHOD(bool, UnregisterDebugClient, (DebugClient * debug_client), (override));
     MOCK_METHOD(void, Dump, (int fd), (override));
-    MOCK_METHOD(void, SetBtUartDebugPort, (const std::string& uart_port), (override));
-    MOCK_METHOD(void, AddLog, (AnchorType type, const std::string& log), (override));
+    MOCK_METHOD(void, SetBtUartDebugPort, (std::string_view uart_port), (override));
+    MOCK_METHOD(void, AddLog, (AnchorType type, std::string_view log), (override));
     MOCK_METHOD(void, ReportBqrError,
-                (::bluetooth_hal::bqr::BqrErrorCode error, std::string extra_info), (override));
+                (::bluetooth_hal::bqr::BqrErrorCode error, std::string_view extra_info),
+                (override));
     MOCK_METHOD(void, HandleRootInflammationEvent,
                 (const ::bluetooth_hal::bqr::BqrRootInflammationEvent& event), (override));
     MOCK_METHOD(void, HandleDebugInfoEvent, (const ::bluetooth_hal::hci::HalPacket& packet),
                 (override));
     MOCK_METHOD(void, HandleDebugInfoCommand, (), (override));
     MOCK_METHOD(void, GenerateVendorDumpFile,
-                (const std::string& file_path, const std::vector<uint8_t>& data,
+                (std::string_view file_path, const std::vector<uint8_t>& data,
                  uint8_t vendor_error_code),
                 (override));
     MOCK_METHOD(void, GenerateCoredump, (CoredumpErrorCode error_code, uint8_t sub_error_code),
