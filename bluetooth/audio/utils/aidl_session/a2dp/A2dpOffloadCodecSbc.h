@@ -33,21 +33,21 @@ struct SbcParameters : public CodecParameters {
 class A2dpOffloadCodecSbc : public A2dpOffloadCodec {
     CodecInfo info_;
 
-    A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                  CodecParameters* codec_parameters,
-                                  SbcParameters* sbc_parameters) const;
+    A2dpStatus SelectA2dpConfiguration(const std::vector<uint8_t>& configuration,
+                                       CodecParameters* codec_parameters,
+                                       SbcParameters* sbc_parameters) const;
 
   public:
     A2dpOffloadCodecSbc();
 
-    A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                  CodecParameters* codec_parameters) const override {
-        return ParseConfiguration(configuration, codec_parameters, nullptr);
+    A2dpStatus SelectA2dpConfiguration(const std::vector<uint8_t>& configuration,
+                                       CodecParameters* codec_parameters) const override {
+        return SelectA2dpConfiguration(configuration, codec_parameters, nullptr);
     }
 
-    A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                  SbcParameters* sbc_parameters) const {
-        return ParseConfiguration(configuration, sbc_parameters, sbc_parameters);
+    A2dpStatus SelectA2dpConfiguration(const std::vector<uint8_t>& configuration,
+                                       SbcParameters* sbc_parameters) const {
+        return SelectA2dpConfiguration(configuration, sbc_parameters, sbc_parameters);
     }
 
     bool BuildConfiguration(const std::vector<uint8_t>& remote_capabilities,
