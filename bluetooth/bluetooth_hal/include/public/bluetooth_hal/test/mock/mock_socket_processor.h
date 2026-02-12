@@ -18,7 +18,7 @@
 
 #include <cstdint>
 #include <optional>
-#include <string>
+#include <string_view>
 #include <vector>
 
 #include "bluetooth_hal/extensions/thread/socket_processor.h"
@@ -31,7 +31,7 @@ class MockSocketProcessor : public SocketProcessor {
   public:
     // Mocks the static Initialize and Cleanup methods of SocketProcessor.
     MOCK_METHOD(void, Initialize,
-                (const std::string& socket_path,
+                (std::string_view socket_path,
                  std::optional<::bluetooth_hal::hci::HalPacketCallback> hal_packet_cb));
     MOCK_METHOD(void, Cleanup, ());
 

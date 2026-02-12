@@ -17,7 +17,7 @@
 #include "bluetooth_hal/test/mock/mock_socket_processor.h"
 
 #include <optional>
-#include <string>
+#include <string_view>
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/extensions/thread/socket_processor.h"
@@ -27,7 +27,7 @@ namespace bluetooth_hal::thread {
 
 using ::bluetooth_hal::hci::HalPacketCallback;
 
-void SocketProcessor::Initialize(const std::string& socket_path,
+void SocketProcessor::Initialize(std::string_view socket_path,
                                  std::optional<HalPacketCallback> hal_packet_cb) {
     if (MockSocketProcessor::mock_socket_processor_) {
         MockSocketProcessor::mock_socket_processor_->Initialize(socket_path, hal_packet_cb);
