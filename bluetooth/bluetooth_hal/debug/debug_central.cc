@@ -36,6 +36,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_set>
 #include <utility>
@@ -85,7 +86,7 @@ constexpr char kHwStage[] = "ro.boot.hardware.revision";
 
 }  // namespace
 
-void LogFatal(BqrErrorCode error, std::string extra_info);
+void LogFatal(BqrErrorCode error, std::string_view extra_info);
 
 DurationTracker::DurationTracker(AnchorType type, const std::string& log) : log_(log), type_(type) {
     std::stringstream ss;
