@@ -175,7 +175,14 @@ class DebugCentral {
      */
     virtual void GenerateVendorDumpFile(std::string_view file_path,
                                         const std::vector<uint8_t>& data,
-                                        uint8_t vendor_error_code = 0) = 0;
+                                        uint8_t vendor_error_code) = 0;
+
+    /**
+     * @brief Request the Bluetooth HAL to generate a vendor dump file with default
+     * vendor error code (0).
+     */
+    virtual void GenerateVendorDumpFile(std::string_view file_path,
+                                        const std::vector<uint8_t>& data) = 0;
 
     /**
      * @brief Request the Bluetooth HAL to generate a coredump.
@@ -184,7 +191,15 @@ class DebugCentral {
      * @param sub_error_code An optional sub error code that is used by some of
      * the CoredumpErrorCodes.
      */
-    virtual void GenerateCoredump(CoredumpErrorCode error_code, uint8_t sub_error_code = 0) = 0;
+    virtual void GenerateCoredump(CoredumpErrorCode error_code, uint8_t sub_error_code) = 0;
+
+    /**
+     * @brief Request the Bluetooth HAL to generate a coredump with default
+     * sub error code (0).
+     *
+     * @param error_code The reason for the coredump.
+     */
+    virtual void GenerateCoredump(CoredumpErrorCode error_code) = 0;
 
     /**
      * @brief The debug central only keeps one coredump per Bluetooth cycle.

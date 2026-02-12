@@ -40,7 +40,8 @@ using ::bluetooth_hal::hci::HciPacketType;
 class WakelockImpl : public Wakelock {
   public:
     WakelockImpl() : wakelock_timeout_(kWakelockTimeMilliseconds) {};
-    void Acquire(WakeSource source, HciPacketType type = HciPacketType::kUnknown) override;
+    void Acquire(WakeSource source, HciPacketType type) override;
+    void Acquire(WakeSource source) override;
     void Release(WakeSource source) override;
     bool IsAcquired() override;
     bool IsWakeSourceAcquired(WakeSource source) override;
@@ -61,6 +62,10 @@ class WakelockImpl : public Wakelock {
     static constexpr int kWakelockTimeMilliseconds = 100;
     int wakelock_timeout_;
 };
+
+void WakelockImpl::Acquire(WakeSource source) {
+    Acquire(source, HciPacketType::kUnknown);
+}
 
 void WakelockImpl::Acquire(WakeSource source, HciPacketType type) {
     std::unique_lock<std::recursive_mutex> lock(mutex_);

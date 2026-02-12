@@ -154,7 +154,7 @@ TEST_F(DataProcessorTest, ReadInavlidHciPacketNoCallbackInvokedWithCoredumpFeatu
                                  Return(6)));
     EXPECT_CALL(mock_packet_handler_, HalPacketCallback(_)).Times(0);
     EXPECT_CALL(mock_debug_central_,
-                GenerateCoredump(CoredumpErrorCode::kControllerUnimplementedPacketType, _))
+                GenerateCoredump(CoredumpErrorCode::kControllerUnimplementedPacketType))
             .Times(1);
     data_processor_->Recv(test_fd_);
 }
