@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
@@ -85,8 +86,8 @@ bool GetBatteryPercentage(std::string& batt_level) {
         return false;
     }
     ssize_t length;
-    char buffer[4] = {};
-    length = TEMP_FAILURE_RETRY(read(batt_ctl_fd.get(), &buffer, sizeof(buffer) - 1));
+    std::array<char, 4> buffer = {};
+    length = TEMP_FAILURE_RETRY(read(batt_ctl_fd.get(), buffer.data(), buffer.size() - 1));
 
     if (length < 1) {
         return false;
@@ -94,7 +95,7 @@ bool GetBatteryPercentage(std::string& batt_level) {
     if (buffer[length - 1] == '\n') {
         buffer[length - 1] = '\0';
     }
-    batt_level.assign(buffer);
+    batt_level.assign(buffer.data());
 
     return true;
 }
