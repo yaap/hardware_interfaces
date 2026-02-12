@@ -193,14 +193,6 @@ PowerProfile createPowerProfile(string pathPd, string type, bool sink) {
         sprAvsProfile.maxCurrent15vMa = readPdValue(pathPd, "maximum_current_9V_to_15V");
         sprAvsProfile.maxCurrent20vMa = readPdValue(pathPd, "maximum_current_15V_to_20V");
         profile.set<PowerProfile::sprAvsProfile>(sprAvsProfile);
-    } else if (!strncmp(type.c_str(), "typec_default", strlen("typec_default"))) {
-        TypecDefault typecDefaultProfile;
-        typecDefaultProfile.maxCurrentMa = 500;
-        profile.set<PowerProfile::typecDefaultProfile>(typecDefaultProfile);
-    } else if (!strncmp(type.c_str(), "typec_1.5A", strlen("typec_1.5A"))) {
-        profile.set<PowerProfile::typec15AProfile>(true);
-    } else if (!strncmp(type.c_str(), "typec_3.0A", strlen("typec_3.0A"))) {
-        profile.set<PowerProfile::typec30AProfile>(true);
     }
 
     return profile;
@@ -210,8 +202,9 @@ PowerProfile createPowerProfile(string pathPd, string type, bool sink) {
  * createTypecProfiles - adds Type-C PowerProfile objects to profiles based on
  * the maximum current supported.
  */
-void createTypecProfiles(std::vector<std::optional<PowerProfile>>* profiles, int maxCurrentMa) {
-    PowerProfile profile;
+void createTypecProfiles(std::vector<std::optional<PowerProfile>>* profiles, int maxCurrentMa,
+                         ProfileType profileType, Bc12Type partnerBc12Type) {
+    PowerProfile profile, typecDef, typec15a, typec30a;
 
     /* ----- Input Handling ----- */
     if (!profiles) {
@@ -220,20 +213,45 @@ void createTypecProfiles(std::vector<std::optional<PowerProfile>>* profiles, int
     }
     /* ----- */
 
+    // Create Type-C Default
     if (maxCurrentMa >= 500) {
-        profile = createPowerProfile("", "typec_default", false);
-        (*profiles).push_back(profile);
-        ALOGI("adding profile %s", profile.toString().c_str());
+        TypecDefault typecDefaultProfile;
+        switch (profileType) {
+            case PORT_SINK:
+                typecDefaultProfile.maxCurrentMa = 1500;
+                break;
+            case PORT_SOURCE:
+                typecDefaultProfile.maxCurrentMa = 900;
+                break;
+            case PARTNER_SINK:
+                typecDefaultProfile.maxCurrentMa = 500;
+                break;
+            case PARTNER_SOURCE:
+                typecDefaultProfile.maxCurrentMa =
+                        (partnerBc12Type == Bc12Type::CDP || partnerBc12Type == Bc12Type::DCP)
+                                ? 1500
+                                : 500;
+                break;
+            default:
+                break;
+        }
+        typecDef.set<PowerProfile::typecDefaultProfile>(typecDefaultProfile);
+        (*profiles).push_back(typecDef);
+        ALOGI("adding profile %s", typecDef.toString().c_str());
     }
+
+    // Create Type-C 1.5A
     if (maxCurrentMa >= 1500) {
-        profile = createPowerProfile("", "typec_1.5A", false);
-        (*profiles).push_back(profile);
-        ALOGI("adding profile %s", profile.toString().c_str());
+        typec15a.set<PowerProfile::typec15AProfile>(true);
+        (*profiles).push_back(typec15a);
+        ALOGI("adding profile %s", typec15a.toString().c_str());
     }
+
+    // Create Type-C 3.0A
     if (maxCurrentMa >= 3000) {
-        profile = createPowerProfile("", "typec_3.0A", false);
-        (*profiles).push_back(profile);
-        ALOGI("adding profile %s", profile.toString().c_str());
+        typec30a.set<PowerProfile::typec30AProfile>(true);
+        (*profiles).push_back(typec30a);
+        ALOGI("adding profile %s", typec30a.toString().c_str());
     }
 }
 
@@ -258,6 +276,7 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
     UsbPdFixed portFixed, partnerFixed;
     UsbPdSprPps portSprPps, partnerSprPps;
     UsbPdSprAvs portSprAvs, partnerSprAvs;
+    TypecDefault portDefault, partnerDefault;
 
     /* Perform initial matching based on voltage equivalents */
     for (int i = 0; i < portProfiles.size(); i++) {
@@ -284,7 +303,11 @@ std::vector<std::optional<PowerProfileMatchResult>> matchPowerProfiles(
 
                 switch (portProfiles[i]->getTag()) {
                     case PowerProfile::typecDefaultProfile:
-                        typecDefaultProfile.maxCurrentMa = 500;
+                        portDefault = portProfiles[i]->get<PowerProfile::typecDefaultProfile>();
+                        partnerDefault =
+                                partnerProfiles[j]->get<PowerProfile::typecDefaultProfile>();
+                        typecDefaultProfile.maxCurrentMa =
+                                std::min(portDefault.maxCurrentMa, partnerDefault.maxCurrentMa);
                         matchProfile.set<PowerProfile::typecDefaultProfile>(typecDefaultProfile);
                         break;
                     case PowerProfile::typec15AProfile:
@@ -456,7 +479,8 @@ Bc12Type UsbPowerProfileMonitor::getBc12Type(string portName) {
  * @param profiles          The PowerProfile vector to update
  */
 void UsbPowerProfileMonitor::populateTypecProfiles(
-        string portName, std::vector<std::optional<PowerProfile>>* profiles) {
+        string portName, std::vector<std::optional<PowerProfile>>* profiles,
+        ProfileType profileType) {
     bool pdSupported = false;
     UsbPdFixed profileFixed;
     int maxCurrentMa = 0;
@@ -485,7 +509,7 @@ void UsbPowerProfileMonitor::populateTypecProfiles(
     }
 
     if (pdSupported) {
-        createTypecProfiles(profiles, maxCurrentMa);
+        createTypecProfiles(profiles, maxCurrentMa, profileType, mPartnerBc12Type);
     } else {
         /* Verify that partner is connected */
         if (!isTypeCPartnerConnected(portName.c_str())) {
@@ -507,7 +531,7 @@ void UsbPowerProfileMonitor::populateTypecProfiles(
         }
 
         maxCurrentMa = power_operation_mode_strings[powerOp];
-        createTypecProfiles(profiles, maxCurrentMa);
+        createTypecProfiles(profiles, maxCurrentMa, profileType, mPartnerBc12Type);
     }
 }
 
@@ -582,7 +606,7 @@ std::vector<std::optional<PowerProfile>> UsbPowerProfileMonitor::populatePowerPr
     closedir(dirCaps);
 
 populate_typec:
-    populateTypecProfiles(portName, &profiles);
+    populateTypecProfiles(portName, &profiles, profileType);
     return profiles;
 }
 
@@ -749,10 +773,17 @@ void UsbPowerProfileMonitor::queryPowerProfileStatus(std::vector<PortStatus>* cu
             continue;
         }
 
+        /*
+         * Bc12Type gets cached because it's used to determine the partner Type-C default profile
+         * later.
+         */
+        mPartnerBc12Type = Bc12Type::UNKNOWN;
+
         (*currentPortStatus)[i].supportsPartnerBc12Type = mSupportsPartnerBc12Reporting;
         (*currentPortStatus)[i].supportsPowerProfiles = mSupportsPowerProfiles;
 
         (*currentPortStatus)[i].partnerStatus->bc12Type = getBc12Type(portName);
+        mPartnerBc12Type = (*currentPortStatus)[i].partnerStatus->bc12Type;
         updatePowerProfiles(portName, &(*currentPortStatus)[i]);
     }
 }

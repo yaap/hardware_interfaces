@@ -83,11 +83,17 @@ class UsbPowerProfileMonitor {
     bool mSupportsPartnerBc12Reporting;
     bool mSupportsPowerProfiles;
 
+    /*
+     * Cached values
+     */
+    Bc12Type mPartnerBc12Type;
+
     Bc12Type getBc12Type(string portName);
 
     std::vector<std::optional<PowerProfile>> populatePowerProfiles(string portName,
                                                                    ProfileType profileType);
-    void populateTypecProfiles(string portName, std::vector<std::optional<PowerProfile>>* profiles);
+    void populateTypecProfiles(string portName, std::vector<std::optional<PowerProfile>>* profiles,
+                               ProfileType profileType);
 
     void handlePowerProfileEvent(bool remove, string pdName);
     void updateBc12State();

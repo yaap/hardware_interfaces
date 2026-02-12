@@ -243,6 +243,13 @@ TEST_P(RadioDataTest, setupDataCall_trafficDescriptorConnectionCapability) {
                         "due to undefined FEATURE_TELEPHONY_DATA";
     }
 
+    int32_t version;
+    ndk::ScopedAStatus aidl_status = radio_data->getInterfaceVersion(&version);
+    ASSERT_OK(aidl_status);
+    if (version < 5) {
+        GTEST_SKIP() << "Skipping connectionCapability test for HAL version " << version;
+    }
+
     serial = GetRandomSerialNumber();
 
     AccessNetwork accessNetwork = AccessNetwork::EUTRAN;
