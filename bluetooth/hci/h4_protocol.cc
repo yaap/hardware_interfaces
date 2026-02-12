@@ -146,7 +146,11 @@ void H4Protocol::OnDataReady() {
         return;
     }
     if (bytes_read < 0) {
-        ALOGW("error reading from UART (%s)", strerror(errno));
+        if (errno == EPIPE) {
+            LOG_ALWAYS_FATAL("fatal error reading from UART (%s)", strerror(errno));
+        } else {
+            ALOGW("error reading from UART (%s)", strerror(errno));
+        }
         return;
     }
     SendDataToPacketizer(buffer, bytes_read);

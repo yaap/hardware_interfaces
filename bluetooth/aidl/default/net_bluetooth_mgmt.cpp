@@ -25,9 +25,11 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <thread>
 
 // Definitions imported from <linux/net/bluetooth/bluetooth.h>
 #define BTPROTO_HCI 1
@@ -119,23 +121,18 @@ int NetBluetoothMgmt::waitHciDev(int hci_interface) {
             .len = 0,
     };
 
-    if (write(fd, &cmd, 6) != 6) {
-        ALOGE("error writing mgmt command: %s", strerror(errno));
-        goto end;
-    }
-
-    // Poll the control socket waiting for the command response,
-    // and subsequent [Index Added] events. The loops continue without
-    // timeout until the selected hci interface is detected.
-    pollfd = {.fd = fd, .events = POLLIN};
-
     for (;;) {
-        ret = poll(&pollfd, 1, -1);
-
-        // Poll interrupted, try again.
-        if (ret == -1 && (errno == EINTR || errno == EAGAIN)) {
-            continue;
+        if (write(fd, &cmd, 6) != 6) {
+            ALOGE("error writing mgmt command: %s", strerror(errno));
+            goto end;
         }
+
+        // Poll the control socket waiting for the command response,
+        // and subsequent [Index Added] events.
+        do {
+            pollfd = {.fd = fd, .events = POLLIN};
+            ret = poll(&pollfd, 1, 500);
+        } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
 
         // Poll failure, abandon.
         if (ret == -1) {
@@ -156,8 +153,8 @@ int NetBluetoothMgmt::waitHciDev(int hci_interface) {
             goto end;
         }
 
-        // Received [Read Index List] command response.
         if (ev.opcode == MGMT_EV_CMD_COMPLETE) {
+            // Received [Read Index List] command response.
             struct mgmt_ev_read_index_list* data = (struct mgmt_ev_read_index_list*)ev.data;
 
             // Prefer the exact hci_interface
@@ -179,8 +176,8 @@ int NetBluetoothMgmt::waitHciDev(int hci_interface) {
             }
         }
 
-        // Received [Index Added] event.
-        if (ev.opcode == MGMT_EV_INDEX_ADDED && ev.index == hci_interface) {
+        else if (ev.opcode == MGMT_EV_INDEX_ADDED && ev.index == hci_interface) {
+            // Received [Index Added] event.
             ALOGI("hci interface %d added", hci_interface);
             ret = hci_interface;
             goto end;
