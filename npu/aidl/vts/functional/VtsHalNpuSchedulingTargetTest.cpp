@@ -551,11 +551,6 @@ TEST_P(NpuSchedulingAidl, RunInferenceFailsWithoutDirectAccess) {
     ASSERT_FALSE(runner->runInference());
 }
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NpuSchedulingAidl);
-INSTANTIATE_TEST_SUITE_P(NpuScheduling, NpuSchedulingAidl,
-                         testing::ValuesIn(getAidlHalInstanceNames(IScheduling::descriptor)),
-                         PrintInstanceNameToString);
-
 // Check whether the given named feature is available.
 static bool checkFeature(const std::string& name) {
     ::android::sp<::android::IServiceManager> sm(::android::defaultServiceManager());
@@ -579,6 +574,18 @@ static bool checkFeature(const std::string& name) {
     }
     return hasFeature;
 }
+
+static std::vector<std::string> getSchedulingInstanceNames() {
+    if (!checkFeature(kFeatureHardwareNpu)) {
+        return {};
+    }
+    return getAidlHalInstanceNames(IScheduling::descriptor);
+}
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NpuSchedulingAidl);
+INSTANTIATE_TEST_SUITE_P(NpuScheduling, NpuSchedulingAidl,
+                         testing::ValuesIn(getSchedulingInstanceNames()),
+                         PrintInstanceNameToString);
 
 // [VSR-5.7-001] (if device has an NPU as indicated by kFeatureHardwareNpu) MUST support
 // FEATURE_NPU and implement the android.hardware.npu HAL interface
