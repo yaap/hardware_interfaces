@@ -302,9 +302,9 @@ A2dpOffloadCodecSbc::A2dpOffloadCodecSbc()
     a2dp_info.bitdepth.push_back(kBitdepth);
 }
 
-A2dpStatus A2dpOffloadCodecSbc::ParseConfiguration(const std::vector<uint8_t>& configuration,
-                                                   CodecParameters* codec_parameters,
-                                                   SbcParameters* sbc_parameters) const {
+A2dpStatus A2dpOffloadCodecSbc::SelectA2dpConfiguration(const std::vector<uint8_t>& configuration,
+                                                        CodecParameters* codec_parameters,
+                                                        SbcParameters* sbc_parameters) const {
     auto& a2dp_info = info.transport.get<CodecInfo::Transport::Tag::a2dp>();
 
     if (configuration.size() != a2dp_info.capabilities.size()) return A2dpStatus::BAD_LENGTH;

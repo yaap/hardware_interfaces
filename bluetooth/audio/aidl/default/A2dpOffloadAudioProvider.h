@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "A2dpOffloadCodecFactory.h"
+#include "../../utils/aidl_session/a2dp/A2dpOffloadCodecFactory.h"
 #include "BluetoothAudioProvider.h"
 
 namespace aidl {

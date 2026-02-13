@@ -38,6 +38,9 @@ cc_library_shared {
     vendor: true,
     host_supported: true,
     srcs: [
+        "aidl_session/a2dp/A2dpOffloadCodecAac.cpp",
+        "aidl_session/a2dp/A2dpOffloadCodecFactory.cpp",
+        "aidl_session/a2dp/A2dpOffloadCodecSbc.cpp",
         "aidl_session/BluetoothAudioCodecs.cpp",
         "aidl_session/BluetoothAudioSession.cpp",
         "aidl_session/HidlToAidlMiddleware.cpp",

@@ -13,7 +13,8 @@
             "property": "VehicleProperty::INFO_FUEL_TYPE",
             "defaultValue": {
                 "int32Values": [
-                    "FuelType::FUEL_TYPE_UNLEADED"
+                    "FuelType::FUEL_TYPE_UNLEADED",
+                    "FuelType::FUEL_TYPE_ELECTRIC"
                 ]
             }
         },

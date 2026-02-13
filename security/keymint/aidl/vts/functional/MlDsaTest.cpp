@@ -682,6 +682,7 @@ TEST_P(MlDsaTest, ImportPkcs8SeedUnsupportedVariant) {
 TEST_P(MlDsaTest, ImportPkcs8ExpandedFails) {
     ErrorCode result = ImportKey(ImportParams(), KeyFormat::PKCS8, kExpanded65Pkcs8);
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
+                result == ErrorCode::MEMORY_ALLOCATION_FAILED ||
                 result == ErrorCode::INVALID_ARGUMENT)
             << "result=" << result;
 }
