@@ -154,7 +154,7 @@ class ModuleConfig {
         return generateAudioMixPortConfigs(getMixPorts(isInput, false /*connectedOnly*/), isInput,
                                            false /*singleProfile*/);
     }
-    std::vector<aidl::android::media::audio::common::AudioPortConfig> getPortConfigsForMixPorts(
+    std::vector<aidl::android::media::audio::common::AudioPortConfig> getPortConfigsForMixPort(
             bool isInput, const aidl::android::media::audio::common::AudioPort& port) const {
         return generateAudioMixPortConfigs({port}, isInput, false /*singleProfile*/);
     }
