@@ -6246,12 +6246,54 @@ TEST_P(EncryptionOperationsTest, AesEcbIncremental) {
 }
 
 /*
+ * EncryptionOperationsTest.AesEcbIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for ECB block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesEcbIncrementalProcessLastChunkInFinish) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (SecLevel() == SecurityLevel::STRONGBOX && vendor_api_level <= last_unsupported_api_level) {
+        // Skipped for StrongBox: Some implementations, including the reference implementation,
+        // mistakenly require strict block alignment for the final data segment in AES/DES ECB and
+        // CBC modes. While the specification allows for non-aligned data in the finish operation,
+        // these implementations erroneously reject it and return KM_ERROR_INVALID_INPUT_LENGTH.
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+    CheckAesIncrementalEncryptOperation(BlockMode::ECB, 240, true /* final_chunk_via_finish */);
+}
+
+/*
  * EncryptionOperationsTest.AesCbcIncremental
  *
  * Verifies that AES works for CBC block mode, when provided data in various size increments.
  */
 TEST_P(EncryptionOperationsTest, AesCbcIncremental) {
     CheckAesIncrementalEncryptOperation(BlockMode::CBC, 240);
+}
+
+/*
+ * EncryptionOperationsTest.AesCbcIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for CBC block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesCbcIncrementalProcessLastChunkInFinish) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (SecLevel() == SecurityLevel::STRONGBOX && vendor_api_level <= last_unsupported_api_level) {
+        // Skipped for StrongBox: Some implementations, including the reference implementation,
+        // mistakenly require strict block alignment for the final data segment in AES/DES ECB and
+        // CBC modes. While the specification allows for non-aligned data in the finish operation,
+        // these implementations erroneously reject it and return KM_ERROR_INVALID_INPUT_LENGTH.
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+    CheckAesIncrementalEncryptOperation(BlockMode::CBC, 240, true /* final_chunk_via_finish */);
 }
 
 /*
@@ -6264,12 +6306,32 @@ TEST_P(EncryptionOperationsTest, AesCtrIncremental) {
 }
 
 /*
+ * EncryptionOperationsTest.AesCtrIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for CTR block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesCtrIncrementalProcessLastChunkInFinish) {
+    CheckAesIncrementalEncryptOperation(BlockMode::CTR, 240, true /* final_chunk_via_finish */);
+}
+
+/*
  * EncryptionOperationsTest.AesGcmIncremental
  *
  * Verifies that AES works for GCM block mode, when provided data in various size increments.
  */
 TEST_P(EncryptionOperationsTest, AesGcmIncremental) {
     CheckAesIncrementalEncryptOperation(BlockMode::GCM, 240);
+}
+
+/*
+ * EncryptionOperationsTest.AesGcmIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for GCM block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesGcmIncrementalProcessLastChunkInFinish) {
+    CheckAesIncrementalEncryptOperation(BlockMode::GCM, 240, true /* final_chunk_via_finish */);
 }
 
 /*

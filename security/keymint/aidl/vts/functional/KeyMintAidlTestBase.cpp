@@ -959,7 +959,8 @@ string KeyMintAidlTestBase::MacMessage(const string& message, Digest digest, siz
 }
 
 void KeyMintAidlTestBase::CheckAesIncrementalEncryptOperation(BlockMode block_mode,
-                                                              int message_size) {
+                                                              int message_size,
+                                                              bool final_chunk_via_finish) {
     auto builder = AuthorizationSetBuilder()
                            .Authorization(TAG_NO_AUTH_REQUIRED)
                            .AesEncryptionKey(128)
@@ -982,8 +983,15 @@ void KeyMintAidlTestBase::CheckAesIncrementalEncryptOperation(BlockMode block_mo
 
         string ciphertext;
         string to_send;
-        for (size_t i = 0; i < message.size(); i += increment) {
-            EXPECT_EQ(ErrorCode::OK, Update(message.substr(i, increment), &ciphertext));
+        for (size_t i = 0; i < message_size; i += increment) {
+            // If the final_chunk_via_finish is enabled then check if the current iteration would go
+            // past the end of the message
+            if (final_chunk_via_finish && (i + increment) >= message_size) {
+                to_send = message.substr(i, increment);
+                break;
+            } else {
+                EXPECT_EQ(ErrorCode::OK, Update(message.substr(i, increment), &ciphertext));
+            }
         }
         EXPECT_EQ(ErrorCode::OK, Finish(to_send, &ciphertext))
                 << "Error sending " << to_send << " with block mode " << block_mode;
@@ -1019,9 +1027,18 @@ void KeyMintAidlTestBase::CheckAesIncrementalEncryptOperation(BlockMode block_mo
         EXPECT_EQ(ErrorCode::OK, Begin(KeyPurpose::DECRYPT, params))
                 << "Decrypt begin() failed for block mode " << block_mode;
 
+        to_send.clear();
         string plaintext;
-        for (size_t i = 0; i < ciphertext.size(); i += increment) {
-            EXPECT_EQ(ErrorCode::OK, Update(ciphertext.substr(i, increment), &plaintext));
+        size_t ciphertext_size = ciphertext.size();
+        for (size_t i = 0; i < ciphertext_size; i += increment) {
+            // If the final_chunk_via_finish is enabled then check if the current iteration would go
+            // past the end of the message
+            if (final_chunk_via_finish && (i + increment) >= ciphertext_size) {
+                to_send = ciphertext.substr(i, increment);
+                break;
+            } else {
+                EXPECT_EQ(ErrorCode::OK, Update(ciphertext.substr(i, increment), &plaintext));
+            }
         }
         ErrorCode error = Finish(to_send, &plaintext);
         ASSERT_EQ(ErrorCode::OK, error) << "Decryption failed for block mode " << block_mode

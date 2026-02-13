@@ -246,7 +246,8 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
 
     string MacMessage(const string& message, Digest digest, size_t mac_length);
 
-    void CheckAesIncrementalEncryptOperation(BlockMode block_mode, int message_size);
+    void CheckAesIncrementalEncryptOperation(BlockMode block_mode, int message_size,
+                                             bool final_chunk_via_finish = false);
 
     void AesCheckEncryptOneByteAtATime(const string& key, BlockMode block_mode,
                                        PaddingMode padding_mode, const string& iv,
