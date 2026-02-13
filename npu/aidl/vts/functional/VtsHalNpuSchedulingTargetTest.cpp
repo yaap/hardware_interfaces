@@ -514,6 +514,30 @@ TEST_P(NpuSchedulingAidl, RunInferencesPrioritized) {
 }
 
 /*
+ * Tests that that apps with no SchedulingConfig have directAccess=true and effectivePriority >=
+ * 1000
+ */
+TEST_P(NpuSchedulingAidl, RunInferenceNoConfig) {
+    // Clear all configs
+    ASSERT_TRUE(scheduling->setSchedulingConfigs({}).isOk());
+
+    auto callback = ndk::SharedRefBase::make<SchedulingCallback>();
+    ASSERT_TRUE(scheduling->setCallback(callback).isOk());
+
+    ASSERT_TRUE(runner->runInference({.priority = 500}));
+
+    // Ensure debouncing has completed
+    std::this_thread::sleep_for(100ms);
+
+    auto events = callback->events();
+    ASSERT_FALSE(events.empty());
+
+    auto event = events.top();
+    ASSERT_THAT(event.type(), Eq(kRequested));
+    ASSERT_THAT(event.info().effectivePriority, Ge(1000));
+}
+
+/*
  * Tests that inference fails when hasDirectAccess=false
  */
 TEST_P(NpuSchedulingAidl, RunInferenceFailsWithoutDirectAccess) {
