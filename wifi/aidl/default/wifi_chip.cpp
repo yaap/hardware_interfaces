@@ -995,20 +995,41 @@ ndk::ScopedAStatus WifiChip::removeIfaceInstanceFromBridgedApIfaceInternal(
     return ndk::ScopedAStatus::ok();
 }
 
+// Returns true if the device is identified as a desktop (PC type).
+bool isDesktopDevice() {
+    std::array<char, PROPERTY_VALUE_MAX> buffer;
+    if (property_get("ro.build.characteristics", buffer.data(), nullptr) > 0) {
+        std::string characteristics = buffer.data();
+        if (characteristics.find("desktop") != std::string::npos) {
+            LOG(INFO) << "Device identified as PC type via ro.build.characteristics.";
+            return true;
+        }
+    }
+    return false;
+}
+
 std::pair<std::shared_ptr<IWifiNanIface>, ndk::ScopedAStatus> WifiChip::createNanIfaceInternal() {
     if (!canCurrentModeSupportConcurrencyTypeWithCurrentTypes(IfaceConcurrencyType::NAN_IFACE)) {
         return {nullptr, createWifiStatus(WifiStatusCode::ERROR_NOT_AVAILABLE)};
     }
     bool is_dedicated_iface = true;
+    std::shared_ptr<WifiNanIface> iface;
     std::string ifname = getPredefinedNanIfaceName();
-    if (ifname.empty() || !iface_util_->ifNameToIndex(ifname)) {
-        // Use the first shared STA iface (wlan0) if a dedicated aware iface is
-        // not defined.
-        ifname = getFirstActiveWlanIfaceName();
-        is_dedicated_iface = false;
+    if (isDesktopDevice()) {
+        if (ifname.empty()) {
+            return {nullptr, createWifiStatus(WifiStatusCode::ERROR_UNKNOWN)};
+        }
+        iface = ndk::SharedRefBase::make<WifiNanIface>(ifname, is_dedicated_iface, legacy_hal_,
+                                                       iface_util_);
+    } else {
+        if (ifname.empty() || !iface_util_->ifNameToIndex(ifname)) {
+            // Use the first shared STA iface (wlan0) if a dedicated aware iface is
+            // not defined.
+            ifname = getFirstActiveWlanIfaceName();
+            is_dedicated_iface = false;
+        }
+        iface = WifiNanIface::create(ifname, is_dedicated_iface, legacy_hal_, iface_util_);
     }
-    std::shared_ptr<WifiNanIface> iface =
-            WifiNanIface::create(ifname, is_dedicated_iface, legacy_hal_, iface_util_);
     if (!iface) {
         LOG(ERROR) << "Unable to create NAN iface";
         return {nullptr, createWifiStatus(WifiStatusCode::ERROR_UNKNOWN)};
