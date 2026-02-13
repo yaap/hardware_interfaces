@@ -29,7 +29,7 @@ class MockWakelock : public Wakelock {
     MOCK_METHOD(void, Release, (WakeSource source), (override));
     MOCK_METHOD(bool, IsAcquired, (), (override));
     MOCK_METHOD(bool, IsWakeSourceAcquired, (WakeSource source), (override));
-    MOCK_METHOD(void, SetWakelockTimeout, (const int timeout), (override));
+    MOCK_METHOD(void, SetWakelockTimeout, (int timeout), (override));
 
     static void SetMockWakelock(MockWakelock* wakelock);
 

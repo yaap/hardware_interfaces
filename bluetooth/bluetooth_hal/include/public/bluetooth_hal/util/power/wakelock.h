@@ -69,7 +69,7 @@ class Wakelock {
      * @param timeout The timeout in milliseconds.
      *
      */
-    virtual void SetWakelockTimeout(const int timeout) = 0;
+    virtual void SetWakelockTimeout(int timeout) = 0;
 
     static Wakelock& GetWakelock();
 
