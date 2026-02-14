@@ -29,12 +29,12 @@ bool InferenceRunner::runInference(const InferenceOptions& options) {
     }
 
     std::string command = toolPath_ + " --job-priority " + std::to_string(options.priority);
-    if (options.originalUid >= 0) {
-        command += " --original-uid " + std::to_string(options.originalUid);
+    if (options.originalUid.has_value()) {
+        command += " --original-uid " + std::to_string(options.originalUid.value());
     }
 
-    if (options.uid >= 0) {
-        command = std::string("su ") + std::to_string(options.uid) + " " + command;
+    if (options.uid.has_value()) {
+        command = std::string("su ") + std::to_string(options.uid.value()) + " " + command;
     }
 
     return std::system(command.c_str()) == 0;

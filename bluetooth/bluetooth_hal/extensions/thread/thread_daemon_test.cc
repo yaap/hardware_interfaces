@@ -92,9 +92,9 @@ class ThreadDaemonTest : public Test {
         EXPECT_CALL(mock_socket_processor_, Initialize(_, _)).Times(1);
         EXPECT_CALL(mock_socket_processor_, SetSocketMode(_)).Times(1);
 
-        thread_daemon_ = std::make_unique<ThreadDaemon>(
-                std::bind(&MockPacketHandler::HalPacketCallback, &mock_packet_handler_,
-                          std::placeholders::_1));
+        thread_daemon_ = std::make_unique<ThreadDaemon>([this](const HalPacket& packet) {
+            mock_packet_handler_.HalPacketCallback(packet);
+        });
     }
 
     void TestCleanUp() {

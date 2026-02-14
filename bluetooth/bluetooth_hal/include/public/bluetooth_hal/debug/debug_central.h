@@ -20,6 +20,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "android-base/logging.h"
@@ -74,7 +75,7 @@ namespace bluetooth_hal::debug {
 
 class DurationTracker {
   public:
-    DurationTracker(AnchorType type, const std::string& log);
+    DurationTracker(AnchorType type, std::string_view log);
 
     // Manually release the auto debug anchor.
     ~DurationTracker();
@@ -118,19 +119,19 @@ class DebugCentral {
     /*
      * set bluetooth serial port information.
      */
-    virtual void SetBtUartDebugPort(const std::string& uart_port) = 0;
+    virtual void SetBtUartDebugPort(std::string_view uart_port) = 0;
 
     /*
      * Write debug message to logger.
      */
-    virtual void AddLog(AnchorType type, const std::string& log) = 0;
+    virtual void AddLog(AnchorType type, std::string_view log) = 0;
 
     /*
      * Notify BtHal have detected error, we will collect debug log first then and
      * report eror code to stack via BQR root inflammation event
      */
     virtual void ReportBqrError(::bluetooth_hal::bqr::BqrErrorCode error,
-                                std::string extra_info) = 0;
+                                std::string_view extra_info) = 0;
 
     /**
      * @brief Inform DebugCentral to handle Root Inflammation Event reported from
@@ -172,7 +173,7 @@ class DebugCentral {
      * coredump file. If the coredump was initiated by the vendor implementation,
      * this vendor erroc code is also sent back to the caller as sub_error_code.
      */
-    virtual void GenerateVendorDumpFile(const std::string& file_path,
+    virtual void GenerateVendorDumpFile(std::string_view file_path,
                                         const std::vector<uint8_t>& data,
                                         uint8_t vendor_error_code = 0) = 0;
 

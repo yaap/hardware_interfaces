@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace bluetooth_hal::util {
 
@@ -39,7 +40,7 @@ class AndroidBaseWrapper {
      * property is unset.
      *
      */
-    virtual std::string GetProperty(const std::string& key, const std::string& default_value) = 0;
+    virtual std::string GetProperty(std::string_view key, std::string_view default_value) = 0;
 
     /**
      * @brief Retrieves a system property as a boolean.
@@ -56,7 +57,7 @@ class AndroidBaseWrapper {
      * property is unset.
      *
      */
-    virtual bool GetBoolProperty(const std::string& key, bool default_value) = 0;
+    virtual bool GetBoolProperty(std::string_view key, bool default_value) = 0;
 
     /**
      * @brief Sets a system property to the specified string value.
@@ -71,7 +72,7 @@ class AndroidBaseWrapper {
      * @return `true` if the property was successfully set; otherwise, `false`.
      *
      */
-    virtual bool SetProperty(const std::string& key, const std::string& value) = 0;
+    virtual bool SetProperty(std::string_view key, std::string_view value) = 0;
 
     /**
      * @brief Parses an unsigned integer from a string.
@@ -86,7 +87,7 @@ class AndroidBaseWrapper {
      * @return `true` if the parsing was successful, `false` otherwise.
      *
      */
-    virtual bool ParseUint(const std::string& s, uint8_t* out, uint8_t max) = 0;
+    virtual bool ParseUint(std::string_view s, uint8_t* out, uint8_t max) = 0;
 };
 
 }  // namespace bluetooth_hal::util

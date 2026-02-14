@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
@@ -26,134 +27,134 @@ using ::bluetooth_hal::bqr::BqrErrorCode;
 
 typedef struct {
     BqrErrorCode error_code;
-    void (*func)(std::string);
+    void (*func)(std::string_view);
 } ErrorCodeMap;
 
-void UartParsing(std::string msg) {
+void UartParsing(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void UartIncompletePacket(std::string msg) {
+void UartIncompletePacket(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareChecksum(std::string msg) {
+void FirmwareChecksum(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareHardFault(std::string msg) {
+void FirmwareHardFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareMemManageFault(std::string msg) {
+void FirmwareMemManageFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareBusFault(std::string msg) {
+void FirmwareBusFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareFirmwareUsageFault(std::string msg) {
+void FirmwareFirmwareUsageFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareWatchdogTimeout(std::string msg) {
+void FirmwareWatchdogTimeout(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareAssertionFailure(std::string msg) {
+void FirmwareAssertionFailure(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareMiscellaneous(std::string msg) {
+void FirmwareMiscellaneous(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareMiscellaneousMajorFault(std::string msg) {
+void FirmwareMiscellaneousMajorFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareMiscellaneousCriticalFault(std::string msg) {
+void FirmwareMiscellaneousCriticalFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareThreadGenericError(std::string msg) {
+void FirmwareThreadGenericError(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareThreadInvalidFrame(std::string msg) {
+void FirmwareThreadInvalidFrame(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareThreadInvalidParam(std::string msg) {
+void FirmwareThreadInvalidParam(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void FirmwareThreadUnsupportedFrame(std::string msg) {
+void FirmwareThreadUnsupportedFrame(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void SocBigHammerFault(std::string msg) {
+void SocBigHammerFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostRxThreadStuck(std::string msg) {
+void HostRxThreadStuck(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostHciCommandTimeout(std::string msg) {
+void HostHciCommandTimeout(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostInvalidHciEvent(std::string msg) {
+void HostInvalidHciEvent(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostUnimplementedPacketType(std::string msg) {
+void HostUnimplementedPacketType(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HosHcitH4TxError(std::string msg) {
+void HosHcitH4TxError(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostOpenUserial(std::string msg) {
+void HostOpenUserial(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostPowerUpController(std::string msg) {
+void HostPowerUpController(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostResetBeforeFw(std::string msg) {
+void HostResetBeforeFw(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostChangeBaudrate(std::string msg) {
+void HostChangeBaudrate(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostDownloadFw(std::string msg) {
+void HostDownloadFw(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostResetAfterFw(std::string msg) {
+void HostResetAfterFw(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostBdaddrFault(std::string msg) {
+void HostBdaddrFault(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostCoexDeviceOpenError(std::string msg) {
+void HostCoexDeviceOpenError(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostAccelatedBtInitFailed(std::string msg) {
+void HostAccelatedBtInitFailed(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
-void HostAccelatedBtShutdownFailed(std::string msg) {
+void HostAccelatedBtShutdownFailed(std::string_view msg) {
     LOG(FATAL) << msg;
 }
 
@@ -191,12 +192,13 @@ ErrorCodeMap kErrorCodeMap[]{
         {BqrErrorCode::kHostAccelBtInitFailed, HostAccelatedBtInitFailed},
         {BqrErrorCode::kHostAccelBtShutdownFailed, HostAccelatedBtShutdownFailed}};
 
-void LogFatal(BqrErrorCode error_code, std::string extra_info) {
+void LogFatal(BqrErrorCode error_code, std::string_view extra_info) {
     int size = (int)(sizeof(kErrorCodeMap) / sizeof(ErrorCodeMap));
     std::string msg = "Bluetooth HAL crash with error code 0, vendor error code " +
                       std::to_string((uint8_t)error_code);
     if (!extra_info.empty()) {
-        msg = msg + ", extra info: " + extra_info;
+        msg += ", extra info: ";
+        msg += extra_info;
     }
     for (int index = 0; index < size; index++) {
         if (kErrorCodeMap[index].error_code == error_code) {

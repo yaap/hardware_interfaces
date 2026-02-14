@@ -108,7 +108,7 @@ TimerManagerImpl::TimerManagerImpl() {
         return;
     }
 
-    epoll_fd_ = RunSyscallUntilNoIntr(std::bind(epoll_create1, 0));
+    epoll_fd_ = RunSyscallUntilNoIntr([]() { return epoll_create1(0); });
     if (epoll_fd_ < 0) {
         LOG(ERROR) << "Failed to create epoll fd: " << strerror(errno);
         close(timer_fd_);
