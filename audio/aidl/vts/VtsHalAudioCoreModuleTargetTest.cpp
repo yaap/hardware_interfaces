@@ -4065,6 +4065,7 @@ class StreamLogicDefaultDriver : public StreamLogicDriver {
 
 static constexpr size_t kDefaultBurstCount = 10;
 // Defined later together with state transition sequences.
+StateDag::Node makeAsyncBurstCommands(StateDag* d, size_t burstCount, StateDag::Node last);
 std::shared_ptr<StateSequence> makeBurstCommands(bool isSync,
                                                  size_t burstCount = kDefaultBurstCount,
                                                  bool standbyInputWhenDone = false);
@@ -4360,7 +4361,7 @@ class AudioStream : public AudioCoreModule {
             if (maxStreamCount == 0) {
                 continue;
             }
-            auto portConfigs = moduleConfig->getPortConfigsForMixPorts(isInput, port);
+            auto portConfigs = moduleConfig->getPortConfigsForMixPort(isInput, port);
             if (portConfigs.size() < maxStreamCount + 1) {
                 // Not able to open a sufficient number of streams for this port.
                 continue;
@@ -6323,6 +6324,224 @@ TEST_P(AudioCoreSoundDose, RegisterSoundDoseNullCallbackThrowsException) {
 
     EXPECT_STATUS(EX_ILLEGAL_ARGUMENT, soundDose->registerSoundDoseCallback(nullptr))
             << "Registering nullptr sound dose callback should throw EX_ILLEGAL_ARGUMENT";
+}
+
+// Custom State Sequence for Gapless Offload.
+// The logic:
+// 1. Start: IDLE -> BURST -> ACTIVE -> DRAIN(Early) -> DRAINING
+// 2. Loop:  DRAINING -> Wait(DrainReady) -> BURST -> ACTIVE -> DRAIN(Early) -> ...
+// 3. End:   ... -> ACTIVE -> DRAIN(Early) -> DRAINING -> IDLE
+// Note: It is also allowed to go to 'IDLE' directly (skip 'DRAINING') with 'onDrainReady'.
+static std::shared_ptr<StateSequence> makeGaplessOffloadCommands(size_t loopCount,
+                                                                 size_t initialBurstCount) {
+    using State = StreamDescriptor::State;
+    using NodeRef = std::reference_wrapper<StateDag::value_type>;
+    auto d = std::make_unique<StateDag>();
+
+    // Final State
+    StateDag::Node last = d->makeFinalNode(State::IDLE);
+    NodeRef next = last;
+    NodeRef nextAlt = last;
+
+    // Loop Body (Tracks 2 to N)
+    for (size_t i = loopCount; i > 1; --i) {
+        StateDag::Node loopDraining = d->makeNode(State::DRAINING, kDrainReadyEvent, next);
+        if (i < loopCount) {  // nextAlt is IDLE, and so is 'last'.
+            loopDraining.children().push_back(nextAlt);
+        }
+        StateDag::Node loopActive = d->makeNode(State::ACTIVE, kDrainOutEarlyCommand, loopDraining);
+        StateDag::Node remainingBursts =
+                makeAsyncBurstCommands(d.get(), initialBurstCount - 1, loopActive);
+        StateDag::Node waitDraining =
+                d->makeNode(State::DRAINING, kDrainReadyEvent, remainingBursts);
+        waitDraining.children().push_back(
+                d->makeNode(State::TRANSFERRING, kTransferReadyEvent, remainingBursts));
+        StateDag::Node waitTransfer =
+                d->makeNode(State::TRANSFERRING, kTransferReadyEvent, remainingBursts);
+        waitTransfer.children().push_back(
+                d->makeNode(State::DRAINING, kDrainReadyEvent, remainingBursts));
+        // Burst from DRAINING state (Gapless transition)
+        StateDag::Node burst = d->makeNode(State::DRAINING, kBurstCommand, waitTransfer,
+                                           waitDraining, remainingBursts);
+        // Burst from IDLE state (if the stream goes from DRAINING to IDLE)
+        StateDag::Node burstFromIdle = d->makeNode(State::IDLE, kBurstCommand, waitTransfer,
+                                                   waitDraining, remainingBursts);
+        next = burst;
+        nextAlt = burstFromIdle;
+    }
+
+    // First Track
+    StateDag::Node draining = d->makeNode(State::DRAINING, kDrainReadyEvent, next);
+    draining.children().push_back(nextAlt);
+    StateDag::Node drain = d->makeNode(State::ACTIVE, kDrainOutEarlyCommand, draining);
+
+    // Burst from IDLE state
+    StateDag::Node active = makeAsyncBurstCommands(d.get(), initialBurstCount, drain);
+    StateDag::Node idle = d->makeNode(State::IDLE, kBurstCommand, active);
+    idle.children().push_back(d->makeNode(State::TRANSFERRING, kTransferReadyEvent, active));
+    d->makeNode(State::STANDBY, kStartCommand, idle);
+
+    return std::make_shared<StateSequenceFollower>(std::move(d));
+}
+
+// Custom Driver to intercept DRAIN command and update metadata.
+class GaplessStreamLogicDriver : public StreamLogicDefaultDriver {
+  public:
+    GaplessStreamLogicDriver(std::shared_ptr<StateSequence> seq, size_t frameSize,
+                             std::shared_ptr<IStreamOut> stream, const AudioOffloadMetadata& meta)
+        : StreamLogicDefaultDriver(seq, frameSize, false /*isMmap*/),
+          mStream(stream),
+          mMetadata(meta) {}
+
+    TransitionTrigger getNextTrigger(int maxDataSize, int* actualSize) override {
+        auto trigger = StreamLogicDefaultDriver::getNextTrigger(maxDataSize, actualSize);
+
+        // Intercept DRAIN command to update metadata before the drain is executed.
+        if (auto* cmd = std::get_if<StreamDescriptor::Command>(&trigger)) {
+            if (cmd->getTag() == StreamDescriptor::Command::Tag::drain) {
+                mStream->updateOffloadMetadata(mMetadata);
+            }
+        }
+        return trigger;
+    }
+
+  private:
+    std::shared_ptr<IStreamOut> mStream;
+    AudioOffloadMetadata mMetadata;
+};
+
+// @VsrTest = VSR-4.3-002
+TEST_P(AudioCoreModule, Mp3FormatGaplessOffload) {
+    static constexpr int kMp3DelayFrames = 576;
+    static constexpr int kMp3PaddingFrames = 756;
+
+    if (aidlVersion < kAidlVersion4) {
+        GTEST_SKIP() << "Current HAL version less than " << kAidlVersion4 << ". Skipping the test ";
+    }
+
+    std::vector<VendorParameter> parameters;
+    if (module->getVendorParameters({"aosp.clipTransitionSupport"}, &parameters).isOk() &&
+        !parameters.empty()) {
+        GTEST_SKIP() << "Skipping test: aosp.clipTransitionSupport is exposed. "
+                     << "This test relies on a simplified state machine incompatible with clip "
+                        "transition support.";
+    }
+
+    ASSERT_NO_FATAL_FAILURE(SetUpModuleConfig());
+
+    // 'delay' is the amount of frames ignored at the beginning, 'padding' is the amount of frames
+    // ignored at the end of the track. Extra 1000 samples are requested for trimming to reduce the
+    // test running time.
+    const int delayFrames = kMp3DelayFrames + 1000;
+    const int paddingFrames = kMp3PaddingFrames + 1000;
+
+    const int precisionMs = 1000;  // error accumulation we want to detect
+
+    bool atLeastOneConfigTested = false;
+
+    auto offloadPorts =
+            moduleConfig->getOffloadMixPorts(true /*connectedOnly*/, false /*singlePort*/);
+
+    for (const auto& port : offloadPorts) {
+        if (!isBitPositionFlagSet(port.flags.get<AudioIoFlags::Tag::output>(),
+                                  AudioOutputFlags::GAPLESS_OFFLOAD)) {
+            continue;
+        }
+
+        auto portConfigs = moduleConfig->getPortConfigsForMixPort(false, port);
+        for (const auto& portConfig : portConfigs) {
+            SCOPED_TRACE(portConfig.toString());
+
+            if (portConfig.format.value().encoding != kMp3FileAudioFormat.encoding) {
+                continue;
+            }
+
+            const int testSampleRateHz = portConfig.sampleRate.value().value;
+            // How many times to loop the track so that the sum of gapless delay and padding from
+            // the first presentation end to the last is at least 'precisionMs'.
+            const int loopCount =
+                    (precisionMs * testSampleRateHz) / (1000 * (delayFrames + paddingFrames)) + 1;
+            LOG(DEBUG) << "Loop count: " << loopCount;
+
+            auto availableTestFilesInfo = getMediaFileInfoForConfig(portConfig);
+            for (const auto& fileInfo : availableTestFilesInfo) {
+                SCOPED_TRACE("File: " + fileInfo.path);
+
+                atLeastOneConfigTested = true;
+                StreamFixture<IStreamOut> fixture;
+                fixture.SetUpStreamForMixPortConfig(module.get(), moduleConfig.get(), portConfig,
+                                                    &fileInfo);
+                if (!fixture.skipTestReason().empty()) {
+                    ADD_FAILURE() << "Setup failed: " << fixture.skipTestReason();
+                    continue;
+                }
+
+                // Prepare Metadata for the Driver
+                std::optional<AudioOffloadInfo> offloadInfo =
+                        generateOffloadInfoIfNeeded(portConfig, &fileInfo);
+                ASSERT_TRUE(offloadInfo.has_value()) << "Offload info not found";
+                AudioOffloadMetadata gaplessMeta{
+                        .sampleRate = offloadInfo.value().base.sampleRate,
+                        .channelMask = offloadInfo.value().base.channelMask,
+                        .averageBitRatePerSecond = offloadInfo.value().bitRatePerSecond,
+                        .delayFrames = delayFrames,
+                        .paddingFrames = paddingFrames};
+
+                auto context = fixture.getStreamContext();
+
+                // Calculate the number of bursts required to drain the file content
+                std::error_code ec;
+                size_t fileSize = std::filesystem::file_size(fileInfo.path, ec);
+                if (ec) {
+                    ADD_FAILURE() << "Failed to get file size for " << fileInfo.path << ": "
+                                  << ec.message();
+                    continue;
+                }
+                size_t bufferSize = context->getBufferSizeBytes();
+                size_t initialBurstCount = (fileSize + bufferSize - 1) / bufferSize;
+
+                // Create Custom Driver to inject updateOffloadMetadata calls
+                auto driver = std::make_unique<GaplessStreamLogicDriver>(
+                        makeGaplessOffloadCommands(loopCount, initialBurstCount),
+                        context->getFrameSizeBytes(), fixture.getStreamSharedPointer(),
+                        gaplessMeta);
+
+                // Instantiate StreamWriter (Worker Thread)
+                StreamWriter worker(*context, driver.get(), fixture.getStreamWorkerMethods(),
+                                    fixture.getStreamEventReceiver());
+
+                // Supply data directly to the worker logic
+                worker.setMediaFilePath(fileInfo.path);
+
+                auto start = std::chrono::steady_clock::now();
+                // Run the Worker Sequence
+                LOG(DEBUG) << testing::UnitTest::GetInstance()->current_test_info()->name()
+                           << ": starting worker...";
+                ASSERT_TRUE(worker.start());
+                LOG(DEBUG) << testing::UnitTest::GetInstance()->current_test_info()->name()
+                           << ": joining worker...";
+                worker.join();
+                auto end = std::chrono::steady_clock::now();
+                EXPECT_FALSE(worker.hasError()) << worker.getError();
+
+                long avgDuration =
+                        std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() /
+                        loopCount;
+
+                const int fullTrackDurationMs =
+                        fileInfo.durationMs +
+                        ((kMp3DelayFrames + kMp3PaddingFrames) * 1000 / testSampleRateHz);
+                const int durationMs = fullTrackDurationMs -
+                                       (delayFrames + paddingFrames) * 1000 / testSampleRateHz;
+
+                EXPECT_NEAR(avgDuration, durationMs, precisionMs * 0.1)
+                        << "Playback Timing Mismatch";
+            }
+        }
+    }
+    if (!atLeastOneConfigTested) {
+        GTEST_SKIP() << "No Gapless MP3 support found or no matching test file available";
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(AudioCoreModuleTest, AudioCoreModule,
