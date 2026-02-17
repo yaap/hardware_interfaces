@@ -1,0 +1,27 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#111827',
+    'primaryBorderColor': '#374151',
+    'lineColor': '#4b5563',
+    'secondaryColor': '#f9fafb',
+    'tertiaryColor': '#f3f4f6',
+    'fontSize': '14px',
+    'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+  }
+}}%%
+stateDiagram-v2
+    InitialState --> InitialState: Copy
+    InitialState --> InitialState: SetMemoryBuffer
+    InitialState --> RunningCryptoOperation: SetOperationParameters
+    RunningCryptoOperation --> RunningCryptoOperation: Copy
+    RunningCryptoOperation --> RunningCryptoOperation: AadInput
+    RunningCryptoOperation --> RunningCryptoOperation: DataOutput
+    RunningCryptoOperation --> RunningCryptoOperation: SetPattern
+    RunningCryptoOperation --> RunningCryptoOperation: SetMemoryBuffer
+    RunningCryptoOperation --> InitialState: Finish
+    RunningCryptoOperation --> ExecuteCryptoOperation: DataInput
+    ExecuteCryptoOperation -->RunningCryptoOperation
+    RunningCryptoOperation -->[*]: DestroyContext
+    InitialState -->[*]: DestroyContext

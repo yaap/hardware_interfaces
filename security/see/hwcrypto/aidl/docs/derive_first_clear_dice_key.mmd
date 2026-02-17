@@ -1,0 +1,26 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#111827',
+    'primaryBorderColor': '#374151',
+    'lineColor': '#4b5563',
+    'secondaryColor': '#f9fafb',
+    'tertiaryColor': '#f3f4f6',
+    'fontSize': '14px',
+    'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+  }
+}}%%
+sequenceDiagram
+Title: Derive first key using current DICE policy
+
+participant c as Client
+participant hwc as HwCrypto
+
+c->>+hwc: deriveCurrentDicePolicyBoundKey(derivationKey=DEVICE_BOUND_KEY)
+hwc-->>-c: (opaqueDerivationKey1, generated_policy_1)
+
+c->>+hwc: deriveKey(derivationKey=opaqueDerivationKey1, keyParameters=keySize, context="aKey")
+hwc-->>-c: (clear_aKey_ver_1)
+
+Note over c,hwc: clients stores generated_policy_1 to be able to re-derive clear_aKey_ver_1
