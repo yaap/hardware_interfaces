@@ -459,10 +459,16 @@ void HciRouterImpl::Close() {
 #endif
         return;
     }
+
     Cleanup();
 }
 
 void HciRouterImpl::Cleanup() {
+    if (GetHalState() == HalState::kShutdown) {
+      HAL_LOG(WARNING) << "Cleanup was called, when already in kShutdown state";
+      return;
+    }
+
     is_cleaning_up_ = true;
 
 #ifndef UNIT_TEST

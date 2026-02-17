@@ -130,7 +130,9 @@ class HciRouterTest : public Test {
     }
 
     void CleanupHciRouter() {
-        EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(AtLeast(1));
+        if (router_->GetHalState() != HalState::kShutdown) {
+          EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(AtLeast(1));
+        }
         router_->Cleanup();
         ASSERT_EQ(new_state_, HalState::kShutdown);
         ASSERT_EQ(router_->GetHalState(), HalState::kShutdown);
@@ -1038,6 +1040,20 @@ TEST_F(HciRouterTest, HandleSetBusyWhenClosed) {
 
     // Trigger Cleanup, which resets tx_handler_ and calls SetBusy(false) internally.
     router_->Cleanup();
+}
+
+TEST_F(HciRouterTest, HandleMultipleClose) {
+     // First call to Close() should transition the HAL to kShutdown.
+     // And a single call to CleanupTransport should occur
+     EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(1);
+     router_->Close();
+     EXPECT_EQ(router_->GetHalState(), HalState::kShutdown);
+
+     // Subsequent calls should be no-ops and not crash.
+     // At this point no calls to CleanupTransport should occur
+     EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(0);
+     router_->Close();
+     EXPECT_EQ(router_->GetHalState(), HalState::kShutdown);
 }
 
 }  // namespace
