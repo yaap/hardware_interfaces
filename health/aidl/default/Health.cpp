@@ -290,6 +290,14 @@ void Health::UpdateHealthInfo(HealthInfo* /* health_info */) {
     */
 }
 
+int32_t Health::getFullChargeUah() const {
+    return battery_monitor_.getFullChargeUah();
+}
+
+int32_t Health::getFullChargeDesignCapacityUah() const {
+    return battery_monitor_.getFullChargeDesignCapacityUah();
+}
+
 //
 // Methods that handle callbacks.
 //

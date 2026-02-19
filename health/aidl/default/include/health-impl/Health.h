@@ -101,6 +101,8 @@ class Health : public BnHealth, public HalHealthLoopCallback {
     // By default, it does nothing.
     // See implementation of Health for code samples.
     virtual void UpdateHealthInfo(HealthInfo* health_info);
+    int32_t getFullChargeUah() const;
+    int32_t getFullChargeDesignCapacityUah() const;
 
   private:
     friend LinkedCallback;  // for exposing death_recipient_
