@@ -300,45 +300,6 @@ int parseDigits(const char** s, int numDigits) {
     return result;
 }
 
-bool parseAsn1Time(const ASN1_TIME* asn1Time, time_t* outTime) {
-    struct tm tm;
-
-    memset(&tm, '\0', sizeof(tm));
-    const char* timeStr = (const char*)asn1Time->data;
-    const char* s = timeStr;
-    if (asn1Time->type == V_ASN1_UTCTIME) {
-        tm.tm_year = parseDigits(&s, 2);
-        if (tm.tm_year < 70) {
-            tm.tm_year += 100;
-        }
-    } else if (asn1Time->type == V_ASN1_GENERALIZEDTIME) {
-        tm.tm_year = parseDigits(&s, 4) - 1900;
-        tm.tm_year -= 1900;
-    } else {
-        LOG(ERROR) << "Unsupported ASN1_TIME type " << asn1Time->type;
-        return false;
-    }
-    tm.tm_mon = parseDigits(&s, 2) - 1;
-    tm.tm_mday = parseDigits(&s, 2);
-    tm.tm_hour = parseDigits(&s, 2);
-    tm.tm_min = parseDigits(&s, 2);
-    tm.tm_sec = parseDigits(&s, 2);
-    // This may need to be updated if someone create certificates using +/- instead of Z.
-    //
-    if (*s != 'Z') {
-        LOG(ERROR) << "Expected Z in string '" << timeStr << "' at offset " << (s - timeStr);
-        return false;
-    }
-
-    time_t t = timegm(&tm);
-    if (t == -1) {
-        LOG(ERROR) << "Error converting broken-down time to time_t";
-        return false;
-    }
-    *outTime = t;
-    return true;
-}
-
 void validateAttestationCertificate(const vector<Certificate>& credentialKeyCertChain,
                                     const vector<uint8_t>& expectedChallenge,
                                     const vector<uint8_t>& expectedAppId, bool isTestCredential) {
@@ -359,7 +320,7 @@ void validateAttestationCertificate(const vector<Certificate>& credentialKeyCert
     X509_NAME* batchSubject = X509_get_subject_name(batchCert.get());
     ASSERT_NE(nullptr, batchSubject);
     time_t batchNotAfter;
-    ASSERT_TRUE(parseAsn1Time(X509_get0_notAfter(batchCert.get()), &batchNotAfter));
+    ASSERT_TRUE(ASN1_TIME_to_time_t(X509_get0_notAfter(batchCert.get()), &batchNotAfter));
 
     // Check all the requirements from IWritableIdentityCredential::getAttestationCertificate()...
     //
@@ -392,7 +353,7 @@ void validateAttestationCertificate(const vector<Certificate>& credentialKeyCert
     //  created and until now
     //
     time_t notBefore;
-    ASSERT_TRUE(parseAsn1Time(X509_get0_notBefore(cert.get()), &notBefore));
+    ASSERT_TRUE(ASN1_TIME_to_time_t(X509_get0_notBefore(cert.get()), &notBefore));
     uint64_t now = time(nullptr);
     int64_t diffSecs = now - notBefore;
     int64_t allowDriftSecs = 10;
@@ -400,7 +361,7 @@ void validateAttestationCertificate(const vector<Certificate>& credentialKeyCert
     EXPECT_GE(allowDriftSecs, diffSecs);
 
     time_t notAfter;
-    ASSERT_TRUE(parseAsn1Time(X509_get0_notAfter(cert.get()), &notAfter));
+    ASSERT_TRUE(ASN1_TIME_to_time_t(X509_get0_notAfter(cert.get()), &notAfter));
     EXPECT_EQ(notAfter, batchNotAfter);
 
     auto [err, attRec] = keymaster::V4_1::parse_attestation_record(certBytes);
@@ -521,8 +482,8 @@ void verifyAuthKeyCertificate(const vector<uint8_t>& authKeyCertChain) {
 
     //  - validity: should be from current time and one year in the future (365 days).
     time_t notBefore, notAfter;
-    ASSERT_TRUE(parseAsn1Time(X509_get0_notAfter(cert.get()), &notAfter));
-    ASSERT_TRUE(parseAsn1Time(X509_get0_notBefore(cert.get()), &notBefore));
+    ASSERT_TRUE(ASN1_TIME_to_time_t(X509_get0_notAfter(cert.get()), &notAfter));
+    ASSERT_TRUE(ASN1_TIME_to_time_t(X509_get0_notBefore(cert.get()), &notBefore));
 
     //  Allow for 10 seconds drift to account for the time drift between Secure HW
     //  and this environment plus the difference between when the certificate was
