@@ -138,7 +138,7 @@ nn::ExecutionResult<ExecutionResult> executeSynchronously(
         LOG(ERROR) << "executeSynchronously failed with " << code << ": " << message;
         return ExecutionResult{.outputSufficientSize = false,
                                .outputShapes = utils::convert(outputShapes).value(),
-                               .timing = {.timeInDriverNs = -1, .timeOnDeviceNs = -1}};
+                               .timing = {.timeOnDeviceNs = -1, .timeInDriverNs = -1}};
     }
 
     const auto& [outputShapes, timing] = NN_TRY(result);
@@ -202,7 +202,7 @@ nn::ExecutionResult<ExecutionResult> executeSynchronously(const nn::IExecution& 
         LOG(ERROR) << "executeSynchronously failed with " << code << ": " << message;
         return ExecutionResult{.outputSufficientSize = false,
                                .outputShapes = utils::convert(outputShapes).value(),
-                               .timing = {.timeInDriverNs = -1, .timeOnDeviceNs = -1}};
+                               .timing = {.timeOnDeviceNs = -1, .timeInDriverNs = -1}};
     }
 
     const auto& [outputShapes, timing] = NN_TRY(result);
