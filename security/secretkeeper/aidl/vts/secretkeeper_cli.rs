@@ -17,13 +17,13 @@
 //! Command line test tool for interacting with Secretkeeper.
 
 use android_hardware_security_secretkeeper::aidl::android::hardware::security::secretkeeper::{
-    ISecretkeeper::ISecretkeeper, SecretId::SecretId,
+    ISecretkeeper::ISecretkeeper, PublicKey::PublicKey, SecretId::SecretId,
 };
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use authgraph_boringssl::BoringSha256;
 use authgraph_core::traits::Sha256;
 use clap::{Args, Parser, Subcommand};
-use coset::CborSerializable;
+use coset::{CborSerializable, CoseKey};
 use dice_policy_builder::{
     policy_for_dice_chain, ConstraintSpec, ConstraintType, MissingAction, TargetEntry,
     WILDCARD_FULL_ARRAY,
@@ -78,6 +78,8 @@ enum Command {
     Delete(DeleteArgs),
     /// Delete all secret values.
     DeleteAll(DeleteAllArgs),
+    /// Print SecretKeeper identity.
+    GetIdentity,
 }
 
 #[derive(Args, Debug)]
@@ -235,6 +237,15 @@ impl SkClient {
         }
     }
 
+    fn identity(&mut self) -> Result<PublicKey> {
+        let version = self
+            .sk
+            .getInterfaceVersion()
+            .context("Failed to get SecretKeeper interface version")?;
+        ensure!(version >= 2, "Version {version} does not implement getSecretKeeperIdentity()");
+        self.sk.getSecretkeeperIdentity().context("getSecretKeeperIdentity")
+    }
+
     /// Helper method to delete secrets.
     fn delete(&self, ids: &[&Id]) -> Result<()> {
         let ids: Vec<SecretId> = ids.iter().map(|id| SecretId { id: id.0 }).collect();
@@ -379,6 +390,13 @@ fn main() -> Result<()> {
             }
             println!("DELETE_ALL");
             sk_client.delete_all().context("DELETE_ALL")?;
+        }
+        Command::GetIdentity => {
+            let identity = sk_client.identity().context("IDENTITY")?;
+            println!("Key Material: {}", hex::encode(&identity.keyMaterial));
+            CoseKey::from_slice(&identity.keyMaterial)
+                .map(|k| println!("Decoded COSE Key:\n{:#?}", k))
+                .inspect_err(|e| eprintln!("Failed to decode COSE key: {:?}", e))?;
         }
     }
     Ok(())
