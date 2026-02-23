@@ -119,7 +119,6 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.wifi@1.2",
 
             // b/400531264 for HIDL HALs deprecated in S
-            "android.hardware.automotive.sv@1.0",
             "android.hardware.bluetooth.audio@2.0",
             "android.hardware.bluetooth.audio@2.1",
             "android.hardware.contexthub@1.2",

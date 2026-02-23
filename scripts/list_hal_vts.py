@@ -56,8 +56,8 @@ def infer_package(path):
   :param path: a path like 'hardware/interfaces/vibrator/aidl/vts'
   :return: The inferred *IDL package, e.g. 'android.hardware.vibrator'
 
-  >>> infer_package('hardware/interfaces/automotive/sv/1.0/vts/functional')
-  'android.hardware.automotive.sv@1.0'
+  >>> infer_package('hardware/interfaces/automotive/evs/1.1/vts/functional')
+  'android.hardware.automotive.evs@1.1'
   >>> infer_package('hardware/interfaces/vibrator/aidl/vts')
   'android.hardware.vibrator'
   """
