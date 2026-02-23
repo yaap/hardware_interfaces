@@ -149,7 +149,7 @@ interface IGnssCallback {
          *            + 100
          *            i.e. report an FCN of -7 as 93, FCN of 0 as 100, and FCN of +6
          *            as 106.
-         * - QZSS:    183-206
+         * - QZSS:    183-212
          * - Galileo: 1-36
          * - Beidou:  1-63
          * - IRNSS:   1-14
