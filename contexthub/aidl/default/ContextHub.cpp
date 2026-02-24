@@ -1103,7 +1103,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
                     }
 
                     if (numElementsRes.value() > 0) {
-                        ALOGD("Popping %" PRIu64 " elements from the fixed sized consumer",
+                        ALOGD("Popping %zu elements from the fixed sized consumer",
                               numElementsRes.value());
 
                         size_t elementSize = consumer.getElementSize();
@@ -1122,7 +1122,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
                     }
 
                     if (headSizeRes.value() > 0) {
-                        ALOGD("Popping %" PRIu64 " bytes from the variable sized consumer",
+                        ALOGD("Popping %zu bytes from the variable sized consumer",
                               headSizeRes.value());
 
                         buffer.resize(headSizeRes.value());
