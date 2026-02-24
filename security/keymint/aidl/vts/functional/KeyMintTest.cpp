@@ -8908,6 +8908,7 @@ using DestroyAttestationIdsTest = KeyMintAidlTestBase;
 // ErrorCode::UNIMPLEMENTED. However, out of an abundance of caution, it is still disabled
 // to avoid damaging test devices (for example, in cases where tests are run before all
 // changes needed to fully implement KeyMint v5 are made).
+// @GmsTest = 9.5-002.001
 TEST_P(DestroyAttestationIdsTest, DISABLED_DestroyTest) {
     auto result = DestroyAttestationIds();
     if (AidlVersion() >= 5) {
