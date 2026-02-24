@@ -1384,7 +1384,7 @@ TEST_P(RadioNetworkTest, setNetworkSelectionModeManual) {
     // can't camp on nonexistent MCCMNC, so we expect this to fail.
     ndk::ScopedAStatus res =
             radio_network->setNetworkSelectionModeManual(serial, "123456", AccessNetwork::EUTRAN);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(std::cv_status::no_timeout, wait(MODEM_SET_NETWORK_SELECTION_MODE_MANUAL_TIMEOUT));
     EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
     EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
 
@@ -1393,7 +1393,7 @@ TEST_P(RadioNetworkTest, setNetworkSelectionModeManual) {
             {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE, RadioError::INVALID_ARGUMENTS,
              RadioError::INVALID_STATE, RadioError::NO_MEMORY, RadioError::INTERNAL_ERR,
              RadioError::SYSTEM_ERR, RadioError::CANCELLED, RadioError::MODEM_ERR,
-             RadioError::REQUEST_NOT_SUPPORTED}));
+             RadioError::REQUEST_NOT_SUPPORTED, RadioError::ABORTED, RadioError::GENERIC_FAILURE}));
 }
 
 /*
