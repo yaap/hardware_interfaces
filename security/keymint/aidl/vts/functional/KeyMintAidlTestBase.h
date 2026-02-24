@@ -196,6 +196,9 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
 
     void CheckedDeleteKey();
 
+    void GetUniqueId(const std::string& app_id, uint64_t datetime, vector<uint8_t>* unique_id,
+                     bool reset = false);
+
     ErrorCode Begin(KeyPurpose purpose, const vector<uint8_t>& key_blob,
                     const AuthorizationSet& in_params, AuthorizationSet* out_params,
                     std::shared_ptr<IKeyMintOperation>& op);
