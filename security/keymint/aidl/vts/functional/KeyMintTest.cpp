@@ -9127,7 +9127,8 @@ TEST_P(VsrRequirementTest, Vsr16Test) {
     EXPECT_GE(AidlVersion(), 4) << "VSR 16+ requires KeyMint version 4 in TEE";
 }
 
-// @VsrTest = GMS-VSR-3.10
+// @VsrTest = GMS-VSR-3.10-023
+// @VsrTest = VSR-3.10-023
 TEST_P(VsrRequirementTest, Vsr17Test) {
     int vendor_api_level = get_vendor_api_level();
     int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
