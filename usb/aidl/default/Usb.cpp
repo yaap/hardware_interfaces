@@ -615,16 +615,71 @@ ScopedAStatus Usb::queryStaticPortInformation(const string& in_portName, int64_t
     callback = mCallback;
     pthread_mutex_unlock(&mLock);
 
-    if (callback != nullptr) {
-        ScopedAStatus ret = callback->notifyQueryStaticPortInformation(
-                in_portName, StaticPortInformation{}, Status::NOT_SUPPORTED, in_transactionId);
-        if (!ret.isOk())
-            ALOGE("queryStaticPortInformation for queryStaticPortInfo error %s",
-                  ret.getDescription().c_str());
-    } else {
+    if (callback == nullptr) {
         ALOGE("Not notifying the userspace. Callback is not set");
+        return ScopedAStatus::ok();
     }
 
+    StaticPortInformation staticPortInformation;
+    staticPortInformation.portName = in_portName;
+    staticPortInformation.sysfsPath = kTypecPath + in_portName;
+    Status status = Status::ERROR;
+
+    if (!usb_flags::enable_usb_capabilities_reporting()) {
+        status = Status::NOT_SUPPORTED;
+    } else {
+        std::unordered_map<string, bool> portNamesConnectedMap;
+        getTypeCPortNamesHelper(&portNamesConnectedMap);
+        std::unordered_map<string, bool>::const_iterator matchingPort =
+                portNamesConnectedMap.find(in_portName);
+
+        if (matchingPort != portNamesConnectedMap.end()) {
+            staticPortInformation.connectorType =
+                    ConnectorType::C;  // This HAL implementation only records Type-C ports.
+            staticPortInformation.capabilities = {
+                    Capability::HOST_MODE};  // GMS-VSR-5.4-001 (Android 16) Devices MUST support
+                                             // USB host mode.
+
+            // The AIDL struct defaults powerRolesSupported and dataRolesSupported to [NONE].
+            // The kernel shows supported roles if DRD (Dual Role Data) or DRP (Dual Role Power) or
+            // fixed roles in drivers/usb/typec/class.c in the functions power_role_show and
+            // data_role_show.
+            string dataRolePath = appendRoleNodeHelper(in_portName, PortRole::dataRole);
+            string powerRolePath = appendRoleNodeHelper(in_portName, PortRole::powerRole);
+            string dataRoleStr, powerRoleStr;
+
+            if (ReadFileToString(dataRolePath, &dataRoleStr)) {
+                if (dataRoleStr.find("host") != string::npos) {
+                    staticPortInformation.dataRolesSupported.push_back(PortDataRole::HOST);
+                }
+                if (dataRoleStr.find("device") != string::npos) {
+                    staticPortInformation.dataRolesSupported.push_back(PortDataRole::DEVICE);
+                }
+            } else {
+                ALOGE("Error reading data role path: %s", dataRolePath.c_str());
+            }
+
+            if (ReadFileToString(powerRolePath, &powerRoleStr)) {
+                if (powerRoleStr.find("source") != string::npos) {
+                    staticPortInformation.powerRolesSupported.push_back(PortPowerRole::SOURCE);
+                }
+                if (powerRoleStr.find("sink") != string::npos) {
+                    staticPortInformation.powerRolesSupported.push_back(PortPowerRole::SINK);
+                }
+            } else {
+                ALOGE("Error reading power role path: %s", powerRolePath.c_str());
+            }
+            status = Status::SUCCESS;
+        } else {
+            ALOGE("portName not found: %s", in_portName.c_str());
+        }
+    }
+
+    ScopedAStatus ret = callback->notifyQueryStaticPortInformation(
+            in_portName, staticPortInformation, status, in_transactionId);
+    if (!ret.isOk())
+        ALOGE("queryStaticPortInformation for queryStaticPortInfo error %s",
+              ret.getDescription().c_str());
     return ScopedAStatus::ok();
 }
 
@@ -788,7 +843,6 @@ ScopedAStatus Usb::setCallback(const shared_ptr<IUsbCallback>& in_callback) {
     }
 
     mCallback = in_callback;
-    ALOGI("registering callback");
 
     if (mCallback == NULL) {
         if (!pthread_kill(mPoll, SIGUSR1)) {
