@@ -1941,6 +1941,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationTags) {
  * Verifies that creation of an attested ECDSA key includes various ID tags in the
  * attestation extension one by one.
  */
+// @VsrTest = GMS-VSR-3.10-024
 TEST_P(NewKeyGenerationTest, EcdsaAttestationIdTags) {
     auto challenge = "hello";
     auto app_id = "foo";
@@ -2018,6 +2019,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationIdTags) {
  * Verifies that creation of an attested ECDSA key includes various ID tags in the
  * attestation extension all together.
  */
+// @VsrTest = GMS-VSR-3.10-024
 TEST_P(NewKeyGenerationTest, EcdsaAttestationIdAllTags) {
     auto challenge = "hello";
     auto app_id = "foo";
