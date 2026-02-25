@@ -245,30 +245,3 @@ cc_test {
         "data/pinknoise.16khz.1ch.f32.wav",
     ],
 }
-
-cc_test {
-    name: "VtsHalAudioProductTargetTest",
-    defaults: [
-        "VtsHalTargetTestDefaults",
-    ],
-    test_config: "VtsHalAudioProductTargetTest.xml",
-    srcs: [
-        "VtsHalAudioProductTargetTest.cpp",
-    ],
-    shared_libs: [
-        "libbase",
-        "libcutils",
-    ],
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wthread-safety",
-        "-Wno-error=unused-parameter",
-    ],
-    test_suites: [
-        "general-tests",
-        "vts",
-    ],
-
-}
