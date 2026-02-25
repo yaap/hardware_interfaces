@@ -2145,61 +2145,70 @@ TEST_P(NewKeyGenerationTest, DeviceIdAttestationDisabled) {
 }
 
 /*
+ * NewKeyGenerationTest.EcdsaAttestationUniqueIdLargeDates
+ *
+ * This test ensures that distinct unique IDs are generated for different creation timestamps. It
+ * specifically uses unusual year values to validate the underlying implementation's ability to
+ * handle a wide range of dates.
+ */
+TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueIdLargeDates) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__);
+    if (SecLevel() == SecurityLevel::STRONGBOX && vendor_api_level <= last_unsupported_api_level) {
+        // Some Strongbox implementations fail to correctly generate unique IDs for large creation
+        // timestamps, leading to ID collisions or integer overflow.
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+
+    vector<uint64_t> test_vector_creation_data_time = {
+            26223868799000,  /* 2800-12-31T23:59:59Z */
+            43106803199000,  /* 3335-12-31T23:59:59Z */
+            45157996799000,  /* 3400-12-31T23:59:59Z */
+            60719587199000,  /* 3894-02-15T23:59:59Z */
+            95302051199000,  /* 4989-12-31T23:59:59Z */
+            86182012799000,  /* 4700-12-31T23:59:59Z */
+            111427574399000, /* 5500-12-31T23:59:59Z */
+            136988668799000, /* 6310-12-31T23:59:59Z */
+            139828895999000, /* 6400-12-31T23:59:59Z */
+            169839503999000, /* 7351-12-31T23:59:59Z */
+            171385804799000, /* 7400-12-31T23:59:59Z */
+            190320019199000, /* 8000-12-31T23:59:59Z */
+            193475692799000, /* 8100-12-31T23:59:59Z */
+            242515209599000, /* 9654-12-31T23:59:59Z */
+            250219065599000, /* 9899-02-15T23:59:59Z */
+    };
+
+    std::set<vector<uint8_t>> unique_ids;
+    for (auto cdt : test_vector_creation_data_time) {
+        auto app_id = "foo";
+        vector<uint8_t> unique_id;
+        GetUniqueId(app_id, cdt, &unique_id);
+
+        SCOPED_TRACE(testing::Message() << "CREATION_DATETIME" << cdt);
+
+        bool inserted = unique_ids.insert(std::move(unique_id)).second;
+
+        EXPECT_TRUE(inserted) << "Unique IDs created more than 30 days apart must not match.";
+    }
+}
+
+/*
  * NewKeyGenerationTest.EcdsaAttestationUniqueId
  *
  * Verifies that creation of an attested ECDSA key with a UNIQUE_ID included.
  */
 TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
-    auto get_unique_id = [this](const std::string& app_id, uint64_t datetime,
-                                vector<uint8_t>* unique_id, bool reset = false) {
-        auto challenge = "hello";
-        auto subject = "cert subj 2";
-        vector<uint8_t> subject_der(make_name_from_str(subject));
-        uint64_t serial_int = 0x1010;
-        vector<uint8_t> serial_blob(build_serial_blob(serial_int));
-        AuthorizationSetBuilder builder =
-                AuthorizationSetBuilder()
-                        .Authorization(TAG_NO_AUTH_REQUIRED)
-                        .Authorization(TAG_INCLUDE_UNIQUE_ID)
-                        .EcdsaSigningKey(EcCurve::P_256)
-                        .Digest(Digest::NONE)
-                        .AttestationChallenge(challenge)
-                        .Authorization(TAG_CERTIFICATE_SERIAL, serial_blob)
-                        .Authorization(TAG_CERTIFICATE_SUBJECT, subject_der)
-                        .AttestationApplicationId(app_id)
-                        .Authorization(TAG_CREATION_DATETIME, datetime)
-                        .SetDefaultValidity();
-        if (reset) {
-            builder.Authorization(TAG_RESET_SINCE_ID_ROTATION);
-        }
-        auto result = GenerateKey(builder);
-        ASSERT_EQ(ErrorCode::OK, result);
-        ASSERT_GT(key_blob_.size(), 0U);
-
-        EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
-        ASSERT_GT(cert_chain_.size(), 0);
-        verify_subject_and_serial(cert_chain_[0], serial_int, subject, /* self_signed = */ false);
-
-        AuthorizationSet hw_enforced = HwEnforcedAuthorizations(key_characteristics_);
-        AuthorizationSet sw_enforced = SwEnforcedAuthorizations(key_characteristics_);
-
-        // Check that the unique ID field in the extension is non-empty.
-        EXPECT_TRUE(verify_attestation_record(AidlVersion(), challenge, app_id, sw_enforced,
-                                              hw_enforced, SecLevel(),
-                                              cert_chain_[0].encodedCertificate, unique_id));
-        EXPECT_GT(unique_id->size(), 0);
-        CheckedDeleteKey();
-    };
-
     // Generate unique ID
     auto app_id = "foo";
     uint64_t cert_date = 1619621648000;  // Wed Apr 28 14:54:08 2021 in ms since epoch
     vector<uint8_t> unique_id;
-    get_unique_id(app_id, cert_date, &unique_id);
+    GetUniqueId(app_id, cert_date, &unique_id);
 
     // Generating a new key with the same parameters should give the same unique ID.
     vector<uint8_t> unique_id2;
-    get_unique_id(app_id, cert_date, &unique_id2);
+    GetUniqueId(app_id, cert_date, &unique_id2);
     EXPECT_EQ(unique_id, unique_id2);
 
     // Generating a new key with a slightly different date should give the same unique ID.
@@ -2208,30 +2217,30 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
     uint64_t max_date = ((rounded_date + 1) * 2592000000LLU) - 1;
 
     vector<uint8_t> unique_id3;
-    get_unique_id(app_id, min_date, &unique_id3);
+    GetUniqueId(app_id, min_date, &unique_id3);
     EXPECT_EQ(unique_id, unique_id3);
 
     vector<uint8_t> unique_id4;
-    get_unique_id(app_id, max_date, &unique_id4);
+    GetUniqueId(app_id, max_date, &unique_id4);
     EXPECT_EQ(unique_id, unique_id4);
 
     // A different attestation application ID should yield a different unique ID.
     auto app_id2 = "different_foo";
     vector<uint8_t> unique_id5;
-    get_unique_id(app_id2, cert_date, &unique_id5);
+    GetUniqueId(app_id2, cert_date, &unique_id5);
     EXPECT_NE(unique_id, unique_id5);
 
     // A radically different date should yield a different unique ID.
     vector<uint8_t> unique_id6;
-    get_unique_id(app_id, 1611621648000, &unique_id6);
+    GetUniqueId(app_id, 1611621648000, &unique_id6);
     EXPECT_NE(unique_id, unique_id6);
 
     vector<uint8_t> unique_id7;
-    get_unique_id(app_id, max_date + 1, &unique_id7);
+    GetUniqueId(app_id, max_date + 1, &unique_id7);
     EXPECT_NE(unique_id, unique_id7);
 
     vector<uint8_t> unique_id8;
-    get_unique_id(app_id, min_date - 1, &unique_id8);
+    GetUniqueId(app_id, min_date - 1, &unique_id8);
     EXPECT_NE(unique_id, unique_id8);
 
     // Some StrongBox implementations did not correctly handle RESET_SINCE_ID_ROTATION when
@@ -2244,7 +2253,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
           vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__))) {
         // Marking RESET_SINCE_ID_ROTATION should give a different unique ID.
         vector<uint8_t> unique_id9;
-        get_unique_id(app_id, cert_date, &unique_id9, /* reset_id = */ true);
+        GetUniqueId(app_id, cert_date, &unique_id9, /* reset_id = */ true);
         EXPECT_NE(unique_id, unique_id9);
     }
 }
