@@ -79,6 +79,12 @@ static constexpr const char* FEATURE_TELEPHONY_SUBSCRIPTION =
 static constexpr const char* FEATURE_TELEPHONY_RADIO_ACCESS =
         "android.hardware.telephony.radio.access";
 
+#define WAIT_TIMEOUT_PERIOD 75
+/*
+ * Some MBIM modems have a registration timeout higher than 75 seconds (e.g., 180 seconds).
+ * This timeout is specifically for manual network selection which can take a long time.
+ */
+#define MODEM_SET_NETWORK_SELECTION_MODE_MANUAL_TIMEOUT 200
 #define MODEM_EMERGENCY_CALL_ESTABLISH_TIME 3
 #define MODEM_EMERGENCY_CALL_DISCONNECT_TIME 3
 #define MODEM_SET_SIM_POWER_DELAY_IN_SECONDS 2
@@ -161,7 +167,7 @@ class RadioServiceTest : public ::testing::TestWithParam<std::string> {
     void notify(int receivedSerial);
 
     /* Test code calls this function to wait for response */
-    std::cv_status wait();
+    std::cv_status wait(int timeout_seconds = WAIT_TIMEOUT_PERIOD);
 
     /* Get the radio HAL capabilities */
     bool getRadioHalCapabilities();
