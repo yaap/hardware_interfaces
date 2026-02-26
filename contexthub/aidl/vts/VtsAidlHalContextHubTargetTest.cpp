@@ -1283,28 +1283,40 @@ class RegisterOffloadSinkCallback : public IEndpointCommunication::BnRegisterOff
 TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     if (!registerDefaultHub()) GTEST_SKIP() << "Not implemented";
 
+    std::unordered_set<int64_t> dataFlowSupportedHubs;
+    std::vector<HubInfo> hubs;
+    ASSERT_TRUE(mContextHub->getHubs(&hubs).isOk());
+    bool dataFlowsSupported = false;
+    for (const auto& hub : hubs) {
+        if (hub.sharedDataCapabilities.has_value() &&
+            hub.sharedDataCapabilities->dataFlowsSupported) {
+            dataFlowSupportedHubs.insert(hub.hubId);
+        }
+    }
+
     std::vector<EndpointInfo> endpoints;
     mContextHub->getEndpoints(&endpoints);
     if (endpoints.empty()) {
         GTEST_SKIP() << "No endpoints returned by HAL";
     }
     EndpointId halEndpointId;
-    bool foundEchoEndpoint = false;
+    bool foundSupportedEchoEndpoint = false;
     for (const auto& endpoint : endpoints) {
         for (const auto& service : endpoint.services) {
-            if (service.serviceDescriptor == "android.hardware.contexthub.test.EchoService") {
-                halEndpointId = endpoints[0].id;
-                foundEchoEndpoint = true;
+            if (service.serviceDescriptor == "android.hardware.contexthub.test.EchoService" &&
+                dataFlowSupportedHubs.find(endpoint.id.hubId) != dataFlowSupportedHubs.end()) {
+                halEndpointId = endpoint.id;
+                foundSupportedEchoEndpoint = true;
                 break;
             }
         }
     }
-    if (!foundEchoEndpoint) {
-        GTEST_SKIP() << "Endpoint with echo service not implemented.";
+    if (!foundSupportedEchoEndpoint) {
+        GTEST_SKIP() << "Endpoint supporting data flow with echo service not implemented.";
         return;
     }
 
-    // 1. Allocate shared data region and act as producer.
+    // 1. Allocate shared data region and act as source.
     SharedDataRegionRequirements reqs;
     reqs.sizeBytes = 16384;  // 16KB
     reqs.targetHubIds = {kDefaultHubId, halEndpointId.hubId};
@@ -1327,7 +1339,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
             << "mapHostProducerRegion failed: " << hostProdRegionRes.status().str();
     AllocatorRegion& hostRegion = hostProdRegionRes.value();
 
-    // 3. Create Producer
+    // 3. Create source
     DataNotifier dataNotifier;
     constexpr size_t kQueueBlockCapacity = 1024;
     auto producerRes = Producer<uint8_t>::createRemote(hostRegion, kQueueBlockCapacity,
@@ -1350,7 +1362,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
     dfInfo.region.id = regionId;
     dfInfo.metadataOffsetBytes = queueOffset;
 
-    // 5. Register Producer
+    // 5. Register source
     EndpointId hostEndpoint;
     hostEndpoint.hubId = kDefaultHubId;
     hostEndpoint.id = 0x1234;
@@ -1444,7 +1456,7 @@ TEST_P(ContextHubDataFlowEchoTest, TestDataFlowEchoVerifyContent) {
 
     // Cleanup
     consumerOpt->disable();
-    // Reset the std::optional to explicitly deconstruct consumer and producer.
+    // Reset the std::optional to explicitly deconstruct sink and source.
     // This should happen before the queue deallocation, or else if will have segmentation fault.
     consumerOpt.reset();
     producerOpt.reset();

@@ -1941,6 +1941,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationTags) {
  * Verifies that creation of an attested ECDSA key includes various ID tags in the
  * attestation extension one by one.
  */
+// @VsrTest = GMS-VSR-3.10-024
 TEST_P(NewKeyGenerationTest, EcdsaAttestationIdTags) {
     auto challenge = "hello";
     auto app_id = "foo";
@@ -2018,6 +2019,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationIdTags) {
  * Verifies that creation of an attested ECDSA key includes various ID tags in the
  * attestation extension all together.
  */
+// @VsrTest = GMS-VSR-3.10-024
 TEST_P(NewKeyGenerationTest, EcdsaAttestationIdAllTags) {
     auto challenge = "hello";
     auto app_id = "foo";
@@ -8917,6 +8919,7 @@ using DestroyAttestationIdsTest = KeyMintAidlTestBase;
 // ErrorCode::UNIMPLEMENTED. However, out of an abundance of caution, it is still disabled
 // to avoid damaging test devices (for example, in cases where tests are run before all
 // changes needed to fully implement KeyMint v5 are made).
+// @GmsTest = 9.5-002.001
 TEST_P(DestroyAttestationIdsTest, DISABLED_DestroyTest) {
     auto result = DestroyAttestationIds();
     if (AidlVersion() >= 5) {
@@ -9136,7 +9139,8 @@ TEST_P(VsrRequirementTest, Vsr16Test) {
     EXPECT_GE(AidlVersion(), 4) << "VSR 16+ requires KeyMint version 4 in TEE";
 }
 
-// @VsrTest = GMS-VSR-3.10
+// @VsrTest = GMS-VSR-3.10-023
+// @VsrTest = VSR-3.10-023
 TEST_P(VsrRequirementTest, Vsr17Test) {
     int vendor_api_level = get_vendor_api_level();
     int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);

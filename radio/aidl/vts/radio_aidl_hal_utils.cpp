@@ -20,8 +20,6 @@
 #include "radio_config_utils.h"
 #include "radio_sim_utils.h"
 
-#define WAIT_TIMEOUT_PERIOD 75
-
 sim::CardStatus cardStatus = {};
 config::SimSlotStatus slotStatus = {};
 int serial = 0;
@@ -169,14 +167,14 @@ void RadioServiceTest::notify(int receivedSerial) {
 }
 
 /*
- * Wait till the response message is notified or till WAIT_TIMEOUT_PERIOD.
+ * Wait till the response message is notified or till timeout_seconds.
  */
-std::cv_status RadioServiceTest::wait() {
+std::cv_status RadioServiceTest::wait(int timeout_seconds) {
     std::unique_lock<std::mutex> lock(mtx_);
     std::cv_status status = std::cv_status::no_timeout;
     auto now = std::chrono::system_clock::now();
     while (count_ == 0) {
-        status = cv_.wait_until(lock, now + std::chrono::seconds(WAIT_TIMEOUT_PERIOD));
+        status = cv_.wait_until(lock, now + std::chrono::seconds(timeout_seconds));
         if (status == std::cv_status::timeout) {
             return status;
         }
