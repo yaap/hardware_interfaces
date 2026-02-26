@@ -216,6 +216,11 @@ void HciRouterAsync::Close() {
 void HciRouterAsync::Cleanup() {
     HAL_LOG(INFO) << "Shutting down the HciRouter";
 
+    if (hal_state_ == HalState::kShutdown) {
+      HAL_LOG(WARNING) << "Cleanup was called, when already in kShutdown state";
+      return;
+    }
+
     SetBusy(false);
     std::queue<QueuedHciCommand> empty;
     std::swap(hci_cmd_queue_, empty);
