@@ -658,5 +658,23 @@ TEST_F(HciRouterAsyncTest, ComplexInterceptScenarioB) {
     router_->OnTransportPacketReady(event_B);
 }
 
+TEST_F(HciRouterAsyncTest, CloseMultiple) {
+    EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(1);
+
+    EXPECT_CALL(*mock_hci_router_callback_, OnHalStateChanged(HalState::kShutdown, _))
+            .Times(1);
+
+    EXPECT_CALL(mock_hci_router_client_agent_,
+                NotifyHalStateChange(HalState::kShutdown, _))
+            .Times(1);
+    EXPECT_CALL(mock_transport_factory_, NotifyHalStateChange(HalState::kShutdown)).Times(1);
+
+    router_->Close();
+
+    // Explicit expectation to have CleanupTransport not getting called
+    EXPECT_CALL(mock_transport_factory_, CleanupTransport()).Times(0);
+    router_->Close();
+}
+
 }  // namespace
 }  // namespace bluetooth_hal::hci
