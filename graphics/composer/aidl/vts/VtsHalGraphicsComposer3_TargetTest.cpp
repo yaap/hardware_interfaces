@@ -1501,6 +1501,10 @@ class GraphicsComposerAidlV4Test : public GraphicsComposerAidlTest {
 };
 
 TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
     for (const auto& display : mDisplays) {
         const auto& [connectionTypeStatus, connectionType] =
                 mComposerClient->getDisplayConnectionType(display.getDisplayId());
@@ -1521,6 +1525,10 @@ TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation) {
 }
 
 TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_CallbackReceived) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
     for (const auto& display : mDisplays) {
         const auto& [connectionTypeStatus, connectionType] =
                 mComposerClient->getDisplayConnectionType(display.getDisplayId());
@@ -1543,6 +1551,10 @@ TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_CallbackReceived) {
 }
 
 TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadDisplay) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
     auto displayId = getInvalidDisplayId();
     constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
                                         .maxLevel = HdcpLevel::HDCP_V2_3};
@@ -1565,6 +1577,10 @@ TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadDisplay) {
 }
 
 TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadParameter) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
     for (const auto& display : mDisplays) {
         const auto& [connectionTypeStatus, connectionType] =
                 mComposerClient->getDisplayConnectionType(display.getDisplayId());
