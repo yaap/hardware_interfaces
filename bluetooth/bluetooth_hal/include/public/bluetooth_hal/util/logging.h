@@ -52,6 +52,14 @@ class Logger {
      *
      */
     static std::string GetFileFormatTimestamp();
+
+    /**
+     * @brief Writes a message to the kernel log (/dev/kmsg).
+     *
+     * @param message The message to write.
+     *
+     */
+    static void WriteToKernelLog(const std::string& message);
 };
 
 }  // namespace bluetooth_hal::util

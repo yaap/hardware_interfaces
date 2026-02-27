@@ -662,6 +662,7 @@ cc_test {
     name: "bluetooth_hal_hci_packetizer_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
+        "util/logging.cc",
         "transport/vendor_packet_validator.cc",
         "transport/vendor_packet_validator_interface.cc",
         "transport/hci_packet_rescuer.cc",
@@ -682,6 +683,7 @@ cc_test {
     name: "bluetooth_hal_hci_packet_rescuer_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
+        "util/logging.cc",
         "transport/vendor_packet_validator.cc",
         "transport/vendor_packet_validator_interface.cc",
         "transport/hci_packet_rescuer.cc",
@@ -700,6 +702,7 @@ cc_test {
     name: "bluetooth_hal_transport_factory_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
+        "util/logging.cc",
         "transport/device_control/uart_manager.cc",
         "transport/device_control/power_manager.cc",
         "transport/transport_factory.cc",
@@ -731,6 +734,7 @@ cc_test {
     name: "bluetooth_hal_transport_uart_h4_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
+        "util/logging.cc",
         "config/hal_config_loader.cc",
         "transport/device_control/uart_manager.cc",
         "transport/device_control/power_manager.cc",
@@ -762,6 +766,7 @@ cc_test {
     name: "bluetooth_hal_data_processor_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [
+        "util/logging.cc",
         "transport/vendor_packet_validator.cc",
         "transport/vendor_packet_validator_interface.cc",
         "transport/hci_packet_rescuer.cc",

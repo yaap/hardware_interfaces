@@ -49,27 +49,31 @@
  */
 #define ANCHOR_LOG(type)                                                                \
     ([](auto&& logger) -> auto&& { return logger; })(::bluetooth_hal::debug::LogHelper( \
-            ::bluetooth_hal::debug::type, ::android::base::VERBOSE, LOG_TAG))
+            ::bluetooth_hal::debug::type, ::android::base::VERBOSE, LOG_TAG, false))
 #define ANCHOR_LOG_DEBUG(type)                                                          \
     ([](auto&& logger) -> auto&& { return logger; })(::bluetooth_hal::debug::LogHelper( \
-            ::bluetooth_hal::debug::type, ::android::base::DEBUG, LOG_TAG))
+            ::bluetooth_hal::debug::type, ::android::base::DEBUG, LOG_TAG, false))
 #define ANCHOR_LOG_INFO(type)                                                           \
     ([](auto&& logger) -> auto&& { return logger; })(::bluetooth_hal::debug::LogHelper( \
-            ::bluetooth_hal::debug::type, ::android::base::INFO, LOG_TAG))
+            ::bluetooth_hal::debug::type, ::android::base::INFO, LOG_TAG, false))
 #define ANCHOR_LOG_WARNING(type)                                                        \
     ([](auto&& logger) -> auto&& { return logger; })(::bluetooth_hal::debug::LogHelper( \
-            ::bluetooth_hal::debug::type, ::android::base::WARNING, LOG_TAG))
+            ::bluetooth_hal::debug::type, ::android::base::WARNING, LOG_TAG, false))
 #define ANCHOR_LOG_ERROR(type)                                                          \
     ([](auto&& logger) -> auto&& { return logger; })(::bluetooth_hal::debug::LogHelper( \
-            ::bluetooth_hal::debug::type, ::android::base::ERROR, LOG_TAG))
+            ::bluetooth_hal::debug::type, ::android::base::ERROR, LOG_TAG, false))
 
 /*
- * HAL_LOG pinrts system log, as well as stores it in the DebugCentral for
+ * HAL_LOG prints system log, as well as stores it in the DebugCentral for
  * Dump()
  */
 #define HAL_LOG(severity)                             \
     ([](auto&& logger) -> auto&& { return logger; })( \
-            ::bluetooth_hal::debug::LogHelper(::android::base::severity, LOG_TAG))
+            ::bluetooth_hal::debug::LogHelper(::android::base::severity, LOG_TAG, false))
+
+#define HAL_KLOG(severity)                            \
+    ([](auto&& logger) -> auto&& { return logger; })( \
+            ::bluetooth_hal::debug::LogHelper(::android::base::severity, LOG_TAG, true))
 
 namespace bluetooth_hal::debug {
 
@@ -235,11 +239,15 @@ class DebugCentral {
 
 class LogHelper {
   public:
-    LogHelper(AnchorType type, ::android::base::LogSeverity severity, const char* tag)
-        : type_(type), severity_(severity), tag_(tag) {}
+    LogHelper(AnchorType type, ::android::base::LogSeverity severity, const char* tag,
+              bool write_to_kernel)
+        : type_(type), severity_(severity), tag_(tag), write_to_kernel_(write_to_kernel) {}
 
-    LogHelper(::android::base::LogSeverity severity, const char* tag)
-        : type_(AnchorType::kNone), severity_(severity), tag_(tag) {}
+    LogHelper(::android::base::LogSeverity severity, const char* tag, bool write_to_kernel)
+        : type_(AnchorType::kNone),
+          severity_(severity),
+          tag_(tag),
+          write_to_kernel_(write_to_kernel) {}
 
     template <typename T>
     LogHelper& operator<<(const T& value) {
@@ -257,6 +265,11 @@ class LogHelper {
 #endif
             LOG_WITH_TAG(severity_, tag_) << log_message;
         }
+#ifndef UNIT_TEST
+        if (write_to_kernel_) {
+            util::Logger::WriteToKernelLog(log_message);
+        }
+#endif
     }
 
   private:
@@ -264,6 +277,7 @@ class LogHelper {
     ::android::base::LogSeverity severity_;
     std::ostringstream oss_;
     const char* tag_;
+    bool write_to_kernel_{false};
 };
 
 }  // namespace bluetooth_hal::debug
