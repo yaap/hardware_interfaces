@@ -352,6 +352,31 @@ TEST_P(MlDsaTest, KeyGeneration) {
     }
 }
 
+TEST_P(MlDsaTest, KeyGenerationWithKeySize) {
+    for (MlDsaVariant variant : kVariants) {
+        SCOPED_TRACE(testing::Message() << variant);
+
+        vector<uint8_t> key_blob;
+        vector<KeyCharacteristics> key_characteristics;
+        // Include a KEY_SIZE tag, which KeyMint should drop.
+        ErrorCode result = GenerateKey(KeyParams(variant).Authorization(TAG_KEY_SIZE, 123),
+                                       &key_blob, &key_characteristics);
+        ASSERT_EQ(result, ErrorCode::OK);
+        KeyBlobDeleter deleter(keymint_, key_blob);
+
+        ASSERT_GT(key_blob.size(), 0U);
+
+        CheckBaseParams(key_characteristics);
+        CheckCharacteristics(key_blob, key_characteristics);
+
+        AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics);
+        EXPECT_TRUE(crypto_params.Contains(TAG_ALGORITHM, Algorithm::ML_DSA));
+        EXPECT_TRUE(crypto_params.Contains(TAG_ML_DSA_VARIANT, variant))
+                << "Variant " << variant << " missing";
+        EXPECT_FALSE(crypto_params.Contains(TAG_KEY_SIZE));
+    }
+}
+
 TEST_P(MlDsaTest, GenerateWithAttestation) {
     for (MlDsaVariant variant : kVariants) {
         SCOPED_TRACE(testing::Message() << variant);
@@ -692,6 +717,22 @@ TEST_P(MlDsaTest, ImportPkcs8BothFails) {
     EXPECT_TRUE(result == ErrorCode::UNSUPPORTED_ML_DSA_VARIANT ||
                 result == ErrorCode::INVALID_ARGUMENT)
             << "result=" << result;
+}
+
+TEST_P(MlDsaTest, ImportPkcs8SeedWithKeySize) {
+    for (MlDsaVariant variant : kVariants) {
+        SCOPED_TRACE(testing::Message() << variant);
+
+        string data = kPkcs8SeedData.at(variant);
+        // Include a KEY_SIZE tag, which KeyMint should drop.
+        ErrorCode result = ImportKey(ImportParams().Authorization(TAG_KEY_SIZE, 123),
+                                     KeyFormat::PKCS8, data);
+        ASSERT_EQ(result, ErrorCode::OK);
+        CheckMlDsaKey(variant, KeyOrigin::IMPORTED);
+
+        AuthorizationSet crypto_params = SecLevelAuthorizations(key_characteristics_);
+        EXPECT_FALSE(crypto_params.Contains(TAG_KEY_SIZE));
+    }
 }
 
 TEST_P(MlDsaTest, AttestToEcdsaKey) {
