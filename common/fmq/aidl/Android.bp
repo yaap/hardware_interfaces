@@ -42,6 +42,7 @@ aidl_interface {
             // FMQ is not supported in the rust backend, but we need this AIDL interface for
             // HardwareBuffer.
             enabled: true,
+            min_sdk_version: "35",
         },
     },
     frozen: true,
