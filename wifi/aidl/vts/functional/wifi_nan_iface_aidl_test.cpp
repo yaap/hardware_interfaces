@@ -74,8 +74,7 @@ static bool sWifiFrameworkDisabledByTest = false;
 class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
   public:
     void SetUp() override {
-        if (!::testing::deviceSupportsFeature("android.hardware.wifi.aware"))
-            GTEST_SKIP() << "Skipping this test since NAN is not supported.";
+        ASSERT_TRUE(::testing::deviceSupportsFeature("android.hardware.wifi.aware"));
         stopWifiService(getInstanceName());
 
         wifi_nan_iface_ = getWifiNanIface(getInstanceName());
@@ -654,6 +653,9 @@ TEST_P(WifiNanIfaceAidlTest, NotifyCapabilitiesResponse) {
     EXPECT_GT(capabilities_.maxQueuedTransmitFollowupMsgs, 0);
     EXPECT_GT(capabilities_.maxSubscribeInterfaceAddresses, 0);
     EXPECT_NE(static_cast<int32_t>(capabilities_.supportedCipherSuites), 0);
+    if (interface_version_ >= 5) {
+        EXPECT_TRUE(capabilities_.supportsPairing);
+    }
 }
 
 /*
