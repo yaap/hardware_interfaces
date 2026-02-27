@@ -21,6 +21,7 @@ import android.platform.test.annotations.RequiresDevice;
 import android.platform.test.annotations.RequiresFlagsEnabled;
 import android.platform.test.flag.junit.CheckFlagsRule;
 import android.platform.test.flag.junit.host.HostFlagsValueProvider;
+import com.android.compatibility.common.util.VsrTest;
 import com.android.tests.usbgadget.libusb.ConfigDescriptor;
 import com.android.tests.usbgadget.libusb.DeviceDescriptor;
 import com.android.tests.usbgadget.libusb.IUsbNative;
@@ -59,6 +60,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     public static final String TAG = VtsHalUsbGadgetV2_0HostTest.class.getSimpleName();
     private static final String HAL_SERVICE = "android.hardware.usb.gadget.IUsbGadget/default";
     private static final String FEATURE_AUTOMOTIVE = "android.hardware.type.automotive";
+    private static final String FEATURE_USB_ACCESSORY = "android.hardware.usb.accessory";
     private static final long CONN_TIMEOUT = 5000;
     private static final int UNKNOWN_SPEED = -1;
     // Vendor-specific class (0xFF), subclass (0xFF), and protocol (0x00)
@@ -94,6 +96,22 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
         }
     }
 
+    private void assumeUsbDeviceModeSupported() throws Exception {
+        String controller = mDevice.getProperty("sys.usb.controller");
+        Assume.assumeFalse("Skip test: Device does not support USB device mode (no UDC)",
+                Strings.isNullOrEmpty(controller));
+    }
+
+    private void assumeBoardApiLevelAtLeast(long vsrLevel) throws Exception {
+        long roBoardApiLevel = mDevice.getIntProperty("ro.board.api_level", -1);
+        long roBoardFirstApiLevel = mDevice.getIntProperty("ro.board.first_api_level", -1);
+        long boardApiLevel = (roBoardApiLevel != -1) ? roBoardApiLevel : roBoardFirstApiLevel;
+
+        Assume.assumeTrue(
+                "Skip on devices with board API level " + boardApiLevel + " less than " + vsrLevel,
+                boardApiLevel >= vsrLevel);
+    }
+
     private static boolean checkProtocol(int usbClass, int usbSubClass, int usbProtocol) {
         PointerByReference list = new PointerByReference();
         int count = mUsb.libusb_get_device_list(mContext, list);
@@ -126,6 +144,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     /** Check for ADB */
     @RequiresDevice
     @Test
+    @VsrTest(requirements = {"VSR-5.4-033"})
     public void testAndroidUSB() throws Exception {
         Assume.assumeTrue(
                 String.format("The device doesn't have service %s", HAL_SERVICE), mHasService);
@@ -191,6 +210,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
      */
     @RequiresDevice
     @Test
+    @VsrTest(requirements = {"VSR-5.4-032"})
     public void testAndroidNcm() throws Exception {
         Assume.assumeTrue(
                 String.format("The device doesn't have service %s", HAL_SERVICE), mHasService);
@@ -203,6 +223,20 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
         mDevice.executeShellCommand("svc usb setFunctions ncm");
         RunUtil.getDefault().sleep(CONN_TIMEOUT);
         Assert.assertTrue("NCM not present", checkProtocol(2, 13, 0));
+    }
+
+    /**
+     * Check for Accessory.
+     */
+    @RequiresDevice
+    @Test
+    @VsrTest(requirements = {"VSR-5.4-031"})
+    public void testAccessory() throws Exception {
+        assumeUsbDeviceModeSupported();
+        assumeBoardApiLevelAtLeast(202604);
+
+        Assert.assertTrue("VSR-5.4-031: Devices with a UDC must support FEATURE_USB_ACCESSORY",
+                mDevice.hasFeature(FEATURE_USB_ACCESSORY));
     }
 
     /**
@@ -269,6 +303,26 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
         }
 
         Assert.assertTrue("usb not reconnect", mReconnected);
+    }
+
+    /**
+     * Check for USB UDC state update via SysFS.
+     */
+    @RequiresDevice
+    @Test
+    @VsrTest(requirements = {"VSR-5.4-028"})
+    public void testUdcStateSysfs() throws Exception {
+        assumeUsbDeviceModeSupported();
+        assumeBoardApiLevelAtLeast(202604);
+
+        String controller = mDevice.getProperty("sys.usb.controller");
+        String statePath = "/sys/class/udc/" + controller + "/state";
+        Assert.assertTrue(
+                "VSR-5.4-028: " + statePath + " must exist", mDevice.doesFileExist(statePath));
+
+        String lsZ = mDevice.executeShellCommand("ls -Z " + statePath).trim();
+        Assert.assertTrue("VSR-5.4-028: " + statePath + " must have sysfs_udc label, got: " + lsZ,
+                lsZ.contains("u:object_r:sysfs_udc:s0"));
     }
 
     /**

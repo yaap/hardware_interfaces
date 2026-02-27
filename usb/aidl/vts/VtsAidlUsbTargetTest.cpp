@@ -31,6 +31,7 @@
 #include <aidl/Vintf.h>
 #include <aidl/Gtest.h>
 
+#include <android-base/properties.h>
 #include <android/binder_auto_utils.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
@@ -40,6 +41,7 @@
 #include <stdlib.h>
 #include <chrono>
 #include <condition_variable>
+#include <limits>
 #include <mutex>
 
 #define TIMEOUT_PERIOD 10
@@ -308,6 +310,32 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
 };
 
 /*
+ * Test to verify USB AIDL HAL version requirement.
+ * @VsrTest = VSR-5.4-009|VSR-5.4-016
+ * Devices with Board API level 202604 or higher MUST support AIDL HAL V3 or higher.
+ */
+TEST_P(UsbAidlTest, VerifyHalVersion) {
+    uint64_t boardApiLevel = android::base::GetUintProperty<uint64_t>("ro.board.api_level", 0);
+    uint64_t boardFirstApiLevel =
+            android::base::GetUintProperty<uint64_t>("ro.board.first_api_level", 0);
+    uint64_t effectiveApiLevel = boardApiLevel ? boardApiLevel : boardFirstApiLevel;
+
+    auto retVersion = usb->getInterfaceVersion(&usb_version);
+    ASSERT_TRUE(retVersion.isOk()) << retVersion;
+
+    if (effectiveApiLevel >= 202604) {
+        ASSERT_GE(usb_version, 3) << "VSR-5.4-016: Board API level " << effectiveApiLevel
+                                  << " requires USB AIDL HAL V3 or higher (got V" << usb_version
+                                  << ")";
+    } else if (effectiveApiLevel >= 202504) {
+        // [VSR-5.4-009] requirement for previous year
+        ASSERT_GE(usb_version, 2) << "VSR-5.4-009: Board API level " << effectiveApiLevel
+                                  << " requires USB AIDL HAL V2 or higher (got V" << usb_version
+                                  << ")";
+    }
+}
+
+/*
  * Test to see if setCallback succeeds.
  * Callback object is created and registered.
  */
@@ -401,6 +429,7 @@ TEST_P(UsbAidlTest, switchEmptyPort) {
  * to SOURCE is attempted for the port.
  * The callback parameters are checked to see if the transaction id
  * matches.
+ * @VsrTest = VSR-5.4-015
  */
 TEST_P(UsbAidlTest, switchPowerRole) {
   ALOGI("UsbAidlTest switchPowerRole start");
@@ -440,6 +469,7 @@ TEST_P(UsbAidlTest, switchPowerRole) {
  * to device is attempted for the port.
  * The callback parameters are checked to see if transaction id
  * matches.
+ * @VsrTest = VSR-5.4-015
  */
 TEST_P(UsbAidlTest, switchDataRole) {
   ALOGI("UsbAidlTest switchDataRole start");
@@ -516,6 +546,7 @@ TEST_P(UsbAidlTest, enableContaminantPresenceDetection) {
  * for the port.
  * The callback parameters are checked to see if transaction id
  * matches.
+ * @VsrTest = VSR-5.4-024.001
  */
 TEST_P(UsbAidlTest, enableUsbData) {
   ALOGI("UsbAidlTest enableUsbData start");
@@ -965,6 +996,7 @@ void verifyPortUsbPd5vSupportHelper(std::vector<std::optional<PowerProfile>> pro
 /*
  * Test to verify that the local port supports a 5V fixed USB PD profile when the port supports
  * at least one USB PD profile for both the source and sink power profiles.
+ * @VsrTest = VSR-5.4-014
  */
 TEST_P(UsbAidlTestV4, verifyPortUsbPd5vSupport) {
     ALOGI("UsbAidlTestV4 verifyPortUsbPd5vSupport start");
