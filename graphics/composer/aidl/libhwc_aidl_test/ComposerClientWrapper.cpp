@@ -734,4 +734,17 @@ std::pair<ScopedAStatus, VsyncSample> ComposerClientWrapper::getDisplayKnownVsyn
     return {mComposerClient->getDisplayKnownVsyncSample(display, &outVsyncSample), outVsyncSample};
 }
 
+ScopedAStatus ComposerClientWrapper::startHdcpNegotiation(int64_t display, HdcpLevels levels) {
+    return mComposerClient->startHdcpNegotiation(display, levels);
+}
+
+bool ComposerClientWrapper::waitForHdcpLevelsChanged(int64_t display,
+                                                     std::chrono::milliseconds timeout) {
+    return mComposerCallback->waitForHdcpLevelsChanged(display, timeout);
+}
+
+void ComposerClientWrapper::clearHdcpLevelsChanged() {
+    mComposerCallback->clearHdcpLevelsChanged();
+}
+
 }  // namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test

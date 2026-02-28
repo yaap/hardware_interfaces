@@ -54,6 +54,8 @@ namespace aidl::android::hardware::graphics::composer3::vts {
 using namespace std::chrono_literals;
 using namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test;
 
+using aidl::android::hardware::graphics::composer3::DisplayConnectionType;
+
 using ::android::GraphicBuffer;
 using ::android::sp;
 
@@ -1484,6 +1486,109 @@ TEST_P(GraphicsComposerAidlV3Test, GetDisplayConfigsIsSubsetOfGetDisplayConfigur
                                            legacyDpiYStatus.getServiceSpecificError();
                         }
                     }));
+        }
+    }
+}
+
+class GraphicsComposerAidlV4Test : public GraphicsComposerAidlTest {
+  protected:
+    void SetUp() override {
+        GraphicsComposerAidlTest::SetUp();
+        if (getInterfaceVersion() < 4) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 4";
+        }
+    }
+};
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation) {
+    for (const auto& display : mDisplays) {
+        const auto& [connectionTypeStatus, connectionType] =
+                mComposerClient->getDisplayConnectionType(display.getDisplayId());
+        EXPECT_TRUE(connectionTypeStatus.isOk());
+        if (connectionType == DisplayConnectionType::EXTERNAL) {
+            constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
+                                                .maxLevel = HdcpLevel::HDCP_V2_3};
+            auto displayId = display.getDisplayId();
+            const auto& status = mComposerClient->startHdcpNegotiation(displayId, kHdcpLevels);
+            if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+                status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+                GTEST_FAIL() << "startHdcpNegotiation is not supported: " << displayId;
+                continue;
+            }
+            EXPECT_TRUE(status.isOk());
+        }
+    }
+}
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_CallbackReceived) {
+    for (const auto& display : mDisplays) {
+        const auto& [connectionTypeStatus, connectionType] =
+                mComposerClient->getDisplayConnectionType(display.getDisplayId());
+        EXPECT_TRUE(connectionTypeStatus.isOk());
+        if (connectionType == DisplayConnectionType::EXTERNAL) {
+            mComposerClient->clearHdcpLevelsChanged();
+            constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
+                                                .maxLevel = HdcpLevel::HDCP_V2_3};
+            auto displayId = display.getDisplayId();
+            const auto& status = mComposerClient->startHdcpNegotiation(displayId, kHdcpLevels);
+            if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+                status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+                GTEST_FAIL() << "startHdcpNegotiation is not supported: " << displayId;
+                continue;
+            }
+            ASSERT_TRUE(status.isOk());
+            EXPECT_TRUE(mComposerClient->waitForHdcpLevelsChanged(display.getDisplayId(), 10s));
+        }
+    }
+}
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadDisplay) {
+    auto displayId = getInvalidDisplayId();
+    constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
+                                        .maxLevel = HdcpLevel::HDCP_V2_3};
+    const auto& status = mComposerClient->startHdcpNegotiation(displayId, kHdcpLevels);
+    if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+        status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+        // Gracefully skip instead of failing to accommodate devices without external displays
+        GTEST_SKIP() << "startHdcpNegotiation is not supported";
+        return;
+    }
+
+    if (status.isOk()) {
+        // Async call must report error via the callback
+        EXPECT_TRUE(mComposerClient->waitForHdcpLevelsChanged(displayId, 10s));
+        return;
+    }
+
+    EXPECT_FALSE(status.isOk());
+    EXPECT_NO_FATAL_FAILURE(assertServiceSpecificError(status, IComposerClient::EX_BAD_DISPLAY));
+}
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadParameter) {
+    for (const auto& display : mDisplays) {
+        const auto& [connectionTypeStatus, connectionType] =
+                mComposerClient->getDisplayConnectionType(display.getDisplayId());
+        EXPECT_TRUE(connectionTypeStatus.isOk());
+        if (connectionType == DisplayConnectionType::EXTERNAL) {
+            constexpr HdcpLevels kInvalidHdcpLevels = {
+                    .connectedLevel = static_cast<HdcpLevel>(HdcpLevel::HDCP_UNKNOWN),
+                    .maxLevel = static_cast<HdcpLevel>(HdcpLevel::HDCP_UNKNOWN)};
+            auto displayId = display.getDisplayId();
+            const auto& status =
+                    mComposerClient->startHdcpNegotiation(displayId, kInvalidHdcpLevels);
+            if (status.isOk()) {
+                // Async call must report error via the callback
+                EXPECT_TRUE(mComposerClient->waitForHdcpLevelsChanged(displayId, 10s));
+                continue;
+            }
+            if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+                status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+                GTEST_FAIL() << "startHdcpNegotiation is not supported: " << displayId;
+                continue;
+            }
+            EXPECT_FALSE(status.isOk());
+            EXPECT_NO_FATAL_FAILURE(
+                    assertServiceSpecificError(status, IComposerClient::EX_BAD_PARAMETER));
         }
     }
 }
@@ -3754,6 +3859,11 @@ INSTANTIATE_TEST_SUITE_P(
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV3Test);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlV3Test,
+        testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
+        ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV4Test);
+INSTANTIATE_TEST_SUITE_P(
+        PerInstance, GraphicsComposerAidlV4Test,
         testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
         ::android::PrintInstanceNameToString);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV5Test);
