@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "android-base/logging.h"
@@ -53,7 +54,7 @@ enum class ReadState {
 
 class SocketProcessorImpl : public SocketProcessor {
   public:
-    SocketProcessorImpl(const std::string& socket_path,
+    SocketProcessorImpl(std::string_view socket_path,
                         std::optional<HalPacketCallback> hal_packet_cb);
 
     ~SocketProcessorImpl() override;
@@ -123,7 +124,7 @@ class SocketProcessorImpl : public SocketProcessor {
     std::optional<HalPacketCallback> hal_packet_cb_;
 };
 
-SocketProcessorImpl::SocketProcessorImpl(const std::string& socket_path,
+SocketProcessorImpl::SocketProcessorImpl(std::string_view socket_path,
                                          std::optional<HalPacketCallback> hal_packet_cb)
     : server_socket_(kInvalidFileDescriptor),
       client_socket_(kInvalidFileDescriptor),
@@ -455,7 +456,7 @@ void SocketProcessorImpl::PrintSocketErr(int ret_val, SocketDirection dir) {
     }
 }
 
-void SocketProcessor::Initialize(const std::string& socket_path,
+void SocketProcessor::Initialize(std::string_view socket_path,
                                  std::optional<HalPacketCallback> hal_packet_cb) {
     if (processor_) {
         LOG(WARNING) << __func__ << "Already initialize the socket processor.";

@@ -26,6 +26,7 @@ class MockWakelock : public Wakelock {
   public:
     MOCK_METHOD(void, Acquire, (WakeSource source, ::bluetooth_hal::hci::HciPacketType type),
                 (override));
+    MOCK_METHOD(void, Acquire, (WakeSource source), (override));
     MOCK_METHOD(void, Release, (WakeSource source), (override));
     MOCK_METHOD(bool, IsAcquired, (), (override));
     MOCK_METHOD(bool, IsWakeSourceAcquired, (WakeSource source), (override));

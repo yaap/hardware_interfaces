@@ -56,14 +56,14 @@ class SystemCallWrapper {
      *
      * @param nfds The highest-numbered file descriptor in any of the three sets,
      * plus 1.
-     * @param readfds A pointer to an fd_set structure, or NULL. On return,
+     * @param readfds A pointer to an fd_set structure, or nullptr. On return,
      * readfds contains the file descriptors that are ready for reading.
-     * @param writefds A pointer to an fd_set structure, or NULL. On return,
+     * @param writefds A pointer to an fd_set structure, or nullptr. On return,
      * writefds contains the file descriptors that are ready for writing.
-     * @param errorfds A pointer to an fd_set structure, or NULL. On return,
+     * @param errorfds A pointer to an fd_set structure, or nullptr. On return,
      * errorfds contains the file descriptors that have an error condition.
-     * @param timeout A pointer to a timeval structure, or NULL. If timeout is
-     * NULL, select() blocks indefinitely.
+     * @param timeout A pointer to a timeval structure, or nullptr. If timeout is
+     * nullptr, select() blocks indefinitely.
      *
      * @return On success, select() returns the number of file descriptors
      * contained in the three returned descriptor sets. On error, -1 is returned,

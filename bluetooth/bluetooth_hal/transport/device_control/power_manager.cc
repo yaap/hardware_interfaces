@@ -27,6 +27,7 @@
 #include <thread>
 
 #include "android-base/logging.h"
+#include "android-base/stringprintf.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/debug/debug_central.h"
@@ -35,6 +36,7 @@
 namespace bluetooth_hal::transport {
 namespace {
 
+using ::android::base::StringPrintf;
 using ::android::base::unique_fd;
 using ::bluetooth_hal::bqr::BqrErrorCode;
 using ::bluetooth_hal::config::HalConfigLoader;
@@ -49,8 +51,8 @@ std::string GetRfkillStatePath() {
     constexpr int kMaxRfkillNodes = 256;
 
     for (int i = 0; i < kMaxRfkillNodes; ++i) {
-        const std::string type_path =
-                HalConfigLoader::GetLoader().GetRfkillFolderPrefix() + std::to_string(i) + "/type";
+        const std::string type_path = StringPrintf(
+                "%s%d/type", HalConfigLoader::GetLoader().GetRfkillFolderPrefix().c_str(), i);
         unique_fd fd(SystemCallWrapper::GetWrapper().Open(type_path.c_str(), O_RDONLY));
 
         if (!fd.ok()) {
@@ -76,8 +78,8 @@ std::string GetRfkillStatePath() {
 
         if ((std::string_view(buffer.data()) ==
              HalConfigLoader::GetLoader().GetRfkillTypeBluetooth())) {
-            state_path = HalConfigLoader::GetLoader().GetRfkillFolderPrefix() + std::to_string(i) +
-                         "/state";
+            state_path = StringPrintf(
+                    "%s%d/state", HalConfigLoader::GetLoader().GetRfkillFolderPrefix().c_str(), i);
             LOG(INFO) << __func__ << ": Use rfkill " << state_path << ".";
             break;
         }
