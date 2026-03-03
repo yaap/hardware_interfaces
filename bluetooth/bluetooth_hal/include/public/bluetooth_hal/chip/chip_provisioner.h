@@ -116,7 +116,6 @@ class ChipProvisioner : public ChipProvisionerInterface,
 
     virtual bool WriteFwPatchramPacket();
 
-  private:
     void RunProvisioningSequence();
 
     std::optional<std::function<void(::bluetooth_hal::HalState)>> on_hal_state_update_;
@@ -125,7 +124,10 @@ class ChipProvisioner : public ChipProvisionerInterface,
     std::array<uint8_t, kBluetoothAddressLength> bdaddr_;
 
     std::promise<void> command_promise_;
+    std::mutex command_promise_mutex_;
+    bool is_command_pending_{false};
     bool firmware_command_success_;
+    uint16_t pending_command_opcode_;
     ProvisioningState state_{ProvisioningState::kIdle};
     std::atomic_bool stop_requested_{false};
 };

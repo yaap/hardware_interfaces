@@ -30,6 +30,9 @@ class MockFirmwareConfigLoader : public FirmwareConfigLoader {
   public:
     MOCK_METHOD(bool, LoadConfig, (), (override));
 
+    MOCK_METHOD(bool, SelectFirmwareConfiguration, (::bluetooth_hal::transport::TransportType),
+                (override));
+
     MOCK_METHOD(bool, ResetFirmwareDataLoadingState, (), (override));
 
     MOCK_METHOD(std::optional<DataPacket>, GetNextFirmwareData, (), (override));
