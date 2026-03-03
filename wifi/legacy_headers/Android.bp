@@ -37,4 +37,5 @@ cc_library_shared {
         "-Wall",
         "-Werror",
     ],
+    split_all_variants: true, // TODO(b/448182248): Switch to on-demand variants.
 }
