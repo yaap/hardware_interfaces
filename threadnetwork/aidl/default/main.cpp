@@ -23,6 +23,9 @@
 #include <utils/Log.h>
 #include <cutils/properties.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <ifaddrs.h>
+#include <string.h>
 
 #include "service.hpp"
 #include "thread_chip.hpp"
@@ -33,6 +36,29 @@ using aidl::android::hardware::threadnetwork::ThreadChip;
 #define THREADNETWORK_COPROCESSOR_SIMULATION_PATH "/apex/com.android.hardware.threadnetwork/bin/ot-rcp"
 
 namespace {
+bool hasIpAddress(const char* interface_name) {
+    struct ifaddrs* ifaddr;
+    if (getifaddrs(&ifaddr) == -1) {
+        ALOGE("Failed to get network interfaces: %s", strerror(errno));
+        return false;
+    }
+
+    bool found = false;
+    for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == nullptr || ifa->ifa_name == nullptr) continue;
+        if (strcmp(ifa->ifa_name, interface_name) == 0) {
+            int family = ifa->ifa_addr->sa_family;
+            if (family == AF_INET || family == AF_INET6) {
+                found = true;
+                break;
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return found;
+}
+
 void addThreadChip(int id, const char* url) {
     binder_status_t status;
     const std::string serviceName(std::string() + IThreadChip::descriptor + "/chip" +
@@ -51,8 +77,11 @@ void addThreadChip(int id, const char* url) {
 void addSimulatedThreadChip() {
     char local_interface[PROP_VALUE_MAX];
 
-    CHECK_GT(property_get("persist.vendor.otsim.local_interface",
-                local_interface, "eth1"), 0);
+    property_get("persist.vendor.otsim.local_interface",
+                local_interface, "");
+    if (local_interface[0] == '\0') {
+        strcpy(local_interface, hasIpAddress("eth1") ? "eth1" : "127.0.0.1");
+    }
 
     int node_id = property_get_int32("ro.boot.openthread_node_id", 0);
     CHECK_GT(node_id,0);
