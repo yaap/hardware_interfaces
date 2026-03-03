@@ -831,6 +831,28 @@ cc_test {
 }
 
 cc_test {
+    name: "bluetooth_hal_chip_provisioner_test",
+    defaults: ["bluetooth_hal_test_defaults"],
+    srcs: [
+        "chip/chip_provisioner.cc",
+        "chip/chip_provisioner_test.cc",
+        "hci_router_client.cc",
+        ":test_mock_router_srcs",
+        ":test_mock_util_srcs",
+        ":test_mock_hal_config_srcs",
+        ":test_mock_firmware_config_srcs",
+    ],
+    static_libs: [
+        "libgmock",
+        "hal_proto_lib",
+    ],
+    shared_libs: [
+        "libbase",
+        "libprotobuf-cpp-full",
+    ],
+}
+
+cc_test {
     name: "bluetooth_hal_bluetooth_activities_test",
     defaults: ["bluetooth_hal_test_defaults"],
     srcs: [

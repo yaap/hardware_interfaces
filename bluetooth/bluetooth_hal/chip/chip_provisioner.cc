@@ -18,12 +18,15 @@
 
 #include "bluetooth_hal/chip/chip_provisioner.h"
 
+#include <unistd.h>
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstring>
 #include <fstream>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <sstream>
 #include <string_view>
 #include <thread>
@@ -58,6 +61,7 @@ constexpr char kRandGenBdaddrPath[] = "/mnt/vendor/persist/bluetooth/bdaddr.txt"
 constexpr char kEvbDefaultBdaddrProp[] = "ro.vendor.bluetooth.evb_bdaddr";
 constexpr uint16_t kHciVscWriteBdAddress = 0xfc01;
 constexpr uint16_t kHciVscWriteBdAddressLength = 0x0A;
+constexpr uint16_t kEmptyCommandOpcode = 0xFFFF;
 constexpr int kCommandTimeoutMs = 8000;
 
 std::string_view ProvisioningStateToString(ChipProvisioner::ProvisioningState state) {
@@ -173,18 +177,31 @@ bool ChipProvisioner::ExecuteCurrentSetupStep(SetupCommandType command_type) {
 }
 
 bool ChipProvisioner::SendCommandAndWait(const HalPacket& packet) {
+    std::future<void> future;
+    {
+        std::lock_guard<std::mutex> lock(command_promise_mutex_);
+        command_promise_ = std::promise<void>();
+        future = command_promise_.get_future();
+        is_command_pending_ = true;
+        pending_command_opcode_ = packet.GetCommandOpcode();
+    }
+
     if (!SendCommand(packet)) {
         LOG(ERROR) << __func__ << ": Failed to send next setup command.";
+        std::lock_guard<std::mutex> lock(command_promise_mutex_);
+        pending_command_opcode_ = kEmptyCommandOpcode;
+        is_command_pending_ = false;
         return false;
     }
 
-    std::future_status status =
-            command_promise_.get_future().wait_for(std::chrono::milliseconds(kCommandTimeoutMs));
+    std::future_status status = future.wait_for(std::chrono::milliseconds(kCommandTimeoutMs));
     if (status != std::future_status::ready) {
         LOG(ERROR) << __func__ << ": Command timeout waiting for " << packet.ToString();
+        std::lock_guard<std::mutex> lock(command_promise_mutex_);
+        pending_command_opcode_ = kEmptyCommandOpcode;
+        is_command_pending_ = false;
         return false;
     }
-    command_promise_ = std::promise<void>();
     return firmware_command_success_ && !stop_requested_.load();
 }
 
@@ -194,7 +211,14 @@ void ChipProvisioner::OnCommandCallback(const HalPacket& callback_event) {
     LOG(success ? INFO : WARNING) << __func__ << ": Recv VSE <" << callback_event.ToString() << "> "
                                   << (success ? "[Success]" : "[Failed]");
     firmware_command_success_ = success;
-    command_promise_.set_value();
+
+    std::lock_guard<std::mutex> lock(command_promise_mutex_);
+    if (is_command_pending_ &&
+        callback_event.GetCommandOpcodeFromGeneratedEvent() == pending_command_opcode_) {
+        command_promise_.set_value();
+        is_command_pending_ = false;
+        pending_command_opcode_ = kEmptyCommandOpcode;
+    }
 }
 
 bool ChipProvisioner::ProvisionBluetoothAddress() {
