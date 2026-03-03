@@ -17,6 +17,7 @@
 #include "GraphicsComposerCallback.h"
 #include <log/log_main.h>
 #include <utils/Timers.h>
+#include <algorithm>
 #include <cinttypes>
 
 #pragma push_macro("LOG_TAG")
