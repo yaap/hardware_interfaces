@@ -26,6 +26,7 @@
 #include <fstream>
 #include <functional>
 #include <future>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string_view>
@@ -34,6 +35,7 @@
 #include "android-base/logging.h"
 #include "android-base/properties.h"
 #include "android-base/stringprintf.h"
+#include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/config/firmware_config_loader.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/hal_packet.h"
@@ -51,6 +53,7 @@ using ::bluetooth_hal::config::DataType;
 using ::bluetooth_hal::config::HalConfigLoader;
 using ::bluetooth_hal::config::SetupCommandType;
 using ::bluetooth_hal::config::SetupCommandTypeToString;
+using ::bluetooth_hal::hci::BluetoothAddress;
 using ::bluetooth_hal::hci::EventResultCode;
 using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
@@ -208,8 +211,8 @@ bool ChipProvisioner::SendCommandAndWait(const HalPacket& packet) {
 void ChipProvisioner::OnCommandCallback(const HalPacket& callback_event) {
     bool success = (callback_event.GetCommandCompleteEventResult() ==
                     static_cast<uint8_t>(EventResultCode::kSuccess));
-    LOG(success ? INFO : WARNING) << __func__ << ": Recv VSE <" << callback_event.ToString() << "> "
-                                  << (success ? "[Success]" : "[Failed]");
+    LOG(success ? DEBUG : WARNING) << __func__ << ": Recv VSE <" << callback_event.ToString()
+                                   << "> " << (success ? "[Success]" : "[Failed]");
     firmware_command_success_ = success;
 
     std::lock_guard<std::mutex> lock(command_promise_mutex_);
@@ -221,11 +224,13 @@ void ChipProvisioner::OnCommandCallback(const HalPacket& callback_event) {
     }
 }
 
-bool ChipProvisioner::ProvisionBluetoothAddress() {
+std::optional<BluetoothAddress> ChipProvisioner::ProvisionBluetoothAddress() {
     LOG(INFO) << __func__;
     std::string bdaddr_str;
-    std::fstream devinfo(kDevinfoNodePath, std::ios::in);
-    std::fstream randgen(kRandGenBdaddrPath, std::ios::in);
+    std::ifstream devinfo(kDevinfoNodePath);
+    std::ifstream randgen(kRandGenBdaddrPath);
+    BluetoothAddress bluetooth_address;
+
     if (devinfo.is_open()) {
         std::getline(devinfo, bdaddr_str);
     } else if (randgen.is_open()) {
@@ -236,28 +241,65 @@ bool ChipProvisioner::ProvisionBluetoothAddress() {
 
     if (bdaddr_str.empty()) {
         LOG(ERROR) << __func__ << ": Can't fetch the provisioning BDA (empty string).";
-        return false;
+        return std::nullopt;
     }
 
-    unsigned char trailing_char = '\0';
     auto try_parse = [&](const char* fmt) {
-        return std::sscanf(bdaddr_str.data(), fmt, &bdaddr_[5], &bdaddr_[4], &bdaddr_[3],
-                           &bdaddr_[2], &bdaddr_[1], &bdaddr_[0],
-                           &trailing_char) == kBluetoothAddressLength;
+        int pos = 0;
+        int assigned =
+                std::sscanf(bdaddr_str.data(), fmt, &bluetooth_address[5], &bluetooth_address[4],
+                            &bluetooth_address[3], &bluetooth_address[2], &bluetooth_address[1],
+                            &bluetooth_address[0], &pos);
+
+        return (assigned == static_cast<int>(bluetooth_address.size()) && bdaddr_str[pos] == '\0');
     };
 
-    bool success = try_parse("%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx%c") ||
-                   try_parse("%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%c");
+    bool success = try_parse("%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx%n") ||
+                   try_parse("%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%n");
 
     if (!success) {
         LOG(ERROR) << __func__ << ": Can't fetch the provisioning BDA (invalid format).";
-        return false;
+        return std::nullopt;
     }
 
     LOG(INFO) << __func__ << ": BDADDR <"
-              << StringPrintf("xx:xx:xx:xx:%02x:%02x", bdaddr_[1], bdaddr_[0]) << ">";
+              << StringPrintf("xx:xx:xx:xx:%02x:%02x", bluetooth_address[1], bluetooth_address[0])
+              << ">";
 
-    std::optional<HalPacket> write_bda_packet = PrepareWriteBdAddressPacket();
+    return bluetooth_address;
+}
+
+std::optional<HalPacket> ChipProvisioner::GenerateBluetoothAddressPacket(
+        const BluetoothAddress& bluetooth_address) {
+    HalPacket write_bda_vsc;
+    write_bda_vsc.resize(kHciVscWriteBdAddressLength);
+
+    // Prepare the HalPacket elements for the WriteBdAddress command.
+    write_bda_vsc[0] = static_cast<uint8_t>(HciPacketType::kCommand);
+    write_bda_vsc[1] = kHciVscWriteBdAddress & 0xff;
+    write_bda_vsc[2] = (kHciVscWriteBdAddress >> 8u) & 0xff;
+    write_bda_vsc[3] = ::bluetooth_hal::hci::kBluetoothAddressLength;
+
+    // Use std::copy for safety.
+    std::copy(bluetooth_address.begin(), bluetooth_address.end(), write_bda_vsc.begin() + 4);
+
+    std::stringstream ss;
+    for (uint8_t byte : write_bda_vsc) {
+        ss << StringPrintf("%02x", byte);
+    }
+    LOG(INFO) << __func__ << ": Prepared VSC <" << ss.str() << ">";
+
+    return write_bda_vsc;
+}
+
+bool ChipProvisioner::SendBluetoothAddressPacket() {
+    auto bluetooth_address = ProvisionBluetoothAddress();
+    if (!bluetooth_address.has_value()) {
+        return false;
+    }
+
+    std::optional<HalPacket> write_bda_packet =
+            GenerateBluetoothAddressPacket(bluetooth_address.value());
     if (write_bda_packet.has_value()) {
         if (!SendCommandAndWait(write_bda_packet.value())) {
             LOG(ERROR) << __func__ << ": Failed to send write Bluetooth address command.";
@@ -268,32 +310,6 @@ bool ChipProvisioner::ProvisionBluetoothAddress() {
         LOG(ERROR) << __func__ << ": Failed to prepare write Bluetooth address packet.";
         return false;
     }
-}
-
-std::optional<HalPacket> ChipProvisioner::PrepareWriteBdAddressPacket() {
-    if (bdaddr_.size() != kBluetoothAddressLength) {
-        LOG(ERROR) << __func__ << ": Invalid Bluetooth address length.";
-        return std::nullopt;
-    }
-
-    HalPacket write_bda_vsc;
-    write_bda_vsc.resize(kHciVscWriteBdAddressLength);
-
-    // Prepare the HalPacket elements for the WriteBdAddress command.
-    write_bda_vsc[0] = static_cast<uint8_t>(HciPacketType::kCommand);
-    write_bda_vsc[1] = kHciVscWriteBdAddress & 0xff;
-    write_bda_vsc[2] = (kHciVscWriteBdAddress >> 8u) & 0xff;
-    write_bda_vsc[3] = kBluetoothAddressLength;
-
-    memcpy(write_bda_vsc.data() + 4, bdaddr_.data(), kBluetoothAddressLength);
-
-    std::stringstream ss;
-    for (uint8_t byte : write_bda_vsc) {
-        ss << StringPrintf("%02x", byte);
-    }
-    LOG(INFO) << __func__ << ": Prepared VSC <" << ss.str() << ">";
-
-    return write_bda_vsc;
 }
 
 void ChipProvisioner::UpdateHalState(HalState status) {
@@ -476,7 +492,7 @@ void ChipProvisioner::RunProvisioningSequence() {
 
             case ProvisioningState::kWriteBdAddress:
                 LOG(INFO) << __func__ << ": Writing BDA to controller.";
-                if (!ProvisionBluetoothAddress()) {
+                if (!SendBluetoothAddressPacket()) {
                     LOG(ERROR) << __func__ << ": Failed to provision and write Bluetooth address.";
                     // TODO: b/409658769 - Force to abort hal service and report issue.
                 }

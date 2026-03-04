@@ -24,6 +24,7 @@
 #include <future>
 #include <optional>
 
+#include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/chip/chip_provisioner_interface.h"
 #include "bluetooth_hal/config/firmware_config_loader.h"
 #include "bluetooth_hal/hal_packet.h"
@@ -111,8 +112,10 @@ class ChipProvisioner : public ChipProvisionerInterface,
     bool ExecuteCurrentSetupStep(::bluetooth_hal::config::SetupCommandType next_command_type);
     bool SendCommandNoAck(const ::bluetooth_hal::hci::HalPacket& packet);
     bool SendCommandAndWait(const ::bluetooth_hal::hci::HalPacket& packet);
-    bool ProvisionBluetoothAddress();
-    std::optional<::bluetooth_hal::hci::HalPacket> PrepareWriteBdAddressPacket();
+    std::optional<::bluetooth_hal::hci::BluetoothAddress> ProvisionBluetoothAddress();
+    std::optional<::bluetooth_hal::hci::HalPacket> GenerateBluetoothAddressPacket(
+            const ::bluetooth_hal::hci::BluetoothAddress& bluetooth_address);
+    bool SendBluetoothAddressPacket();
 
     virtual bool WriteFwPatchramPacket();
 
@@ -120,8 +123,6 @@ class ChipProvisioner : public ChipProvisionerInterface,
 
     std::optional<std::function<void(::bluetooth_hal::HalState)>> on_hal_state_update_;
     ::bluetooth_hal::config::FirmwareConfigLoader& config_loader_;
-    static constexpr size_t kBluetoothAddressLength = 6;
-    std::array<uint8_t, kBluetoothAddressLength> bdaddr_;
 
     std::promise<void> command_promise_;
     std::mutex command_promise_mutex_;
