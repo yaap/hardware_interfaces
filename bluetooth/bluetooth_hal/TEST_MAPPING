@@ -68,6 +68,9 @@
     },
     {
       "name": "bluetooth_hal_bluetooth_activities_test"
+    },
+    {
+      "name": "bluetooth_hal_chip_provisioner_test"
     }
   ]
 }

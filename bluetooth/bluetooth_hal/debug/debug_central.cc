@@ -77,8 +77,8 @@ constexpr int kDebugInfoLastBlockOffset = 5;
 constexpr int kHandleDebugInfoCommandMs = 1000;
 constexpr int kRestartHalTimeoutMs = 6000;
 constexpr int kMaxCoredumpFiles = 3;
-const std::string kCoredumpFilePrefix = kCoredumpFilePath + kCoredumpPrefix;
-const std::string kSocdumpFilePrefix = kCoredumpFilePath + "coredump_bt_socdump_";
+const std::string kCoredumpFilePrefix = std::string(kCoredumpFilePath) + kCoredumpPrefix;
+const std::string kSocdumpFilePrefix = std::string(kCoredumpFilePath) + "coredump_bt_socdump_";
 
 const std::string kDebugNodeBtLpm = "dev/logbuffer_btlpm";
 constexpr char kDebugNodeBtUartPrefix[] = "/dev/logbuffer_tty";
@@ -129,9 +129,14 @@ class DebugCentralImpl : public DebugCentral {
     void HandleDebugInfoCommand() override;
 
     void GenerateVendorDumpFile(std::string_view file_path, const std::vector<uint8_t>& data,
-                                uint8_t vendor_error_code = 0) override;
+                                uint8_t vendor_error_code) override;
 
-    void GenerateCoredump(CoredumpErrorCode error_code, uint8_t sub_error_code = 0) override;
+    void GenerateVendorDumpFile(std::string_view file_path,
+                                const std::vector<uint8_t>& data) override;
+
+    void GenerateCoredump(CoredumpErrorCode error_code, uint8_t sub_error_code) override;
+
+    void GenerateCoredump(CoredumpErrorCode error_code) override;
 
     void ResetCoredumpGenerator() override;
 
@@ -305,6 +310,15 @@ void DebugCentralImpl::GenerateVendorDumpFile(std::string_view file_path,
         LOG(ERROR) << "Error writing to dest file: " << ret << " (" << strerror(errno) << ")";
     }
     close(fd);
+}
+
+void DebugCentralImpl::GenerateVendorDumpFile(std::string_view file_path,
+                                              const std::vector<uint8_t>& data) {
+    GenerateVendorDumpFile(file_path, data, 0);
+}
+
+void DebugCentralImpl::GenerateCoredump(CoredumpErrorCode error_code) {
+    GenerateCoredump(error_code, 0);
 }
 
 bool DebugCentralImpl::IsHardwareStageSupported() {

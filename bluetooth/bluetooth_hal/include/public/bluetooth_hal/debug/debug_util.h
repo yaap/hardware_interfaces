@@ -39,8 +39,8 @@
 
 namespace bluetooth_hal::debug {
 
-const std::string kCoredumpFilePath = "/data/vendor/ssrdump/coredump/";
-const std::string kCoredumpPrefix = "coredump_bt_";
+constexpr char kCoredumpFilePath[] = "/data/vendor/ssrdump/coredump/";
+constexpr char kCoredumpPrefix[] = "coredump_bt_";
 const std::regex kTimestampPattern(R"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})");
 
 inline std::string GenerateHalLogString(const std::string& title, const std::string& log,
@@ -166,7 +166,7 @@ inline void DeleteOldestBinFiles(const std::string& directory, const std::string
 }
 
 inline void FlushCoredumpToFd(int fd) {
-    std::unique_ptr<DIR, decltype(&closedir)> dir(opendir(kCoredumpFilePath.c_str()), closedir);
+    std::unique_ptr<DIR, decltype(&closedir)> dir(opendir(kCoredumpFilePath), closedir);
     if (!dir) {
         LOG(WARNING) << __func__ << ": Failed to open directory: " << kCoredumpFilePath;
         return;

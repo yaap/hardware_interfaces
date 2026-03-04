@@ -17,7 +17,7 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 #include <vector>
 
 #include "bluetooth_hal/hal_packet.h"
@@ -59,7 +59,7 @@ class SocketProcessor {
      * to be processed.
      *
      */
-    static void Initialize(const std::string& socket_path,
+    static void Initialize(std::string_view socket_path,
                            std::optional<::bluetooth_hal::hci::HalPacketCallback> hal_packet_cb);
 
     /**

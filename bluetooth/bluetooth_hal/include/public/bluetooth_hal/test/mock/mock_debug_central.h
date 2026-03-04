@@ -40,8 +40,11 @@ class MockDebugCentral : public DebugCentral {
                 (std::string_view file_path, const std::vector<uint8_t>& data,
                  uint8_t vendor_error_code),
                 (override));
+    MOCK_METHOD(void, GenerateVendorDumpFile,
+                (std::string_view file_path, const std::vector<uint8_t>& data), (override));
     MOCK_METHOD(void, GenerateCoredump, (CoredumpErrorCode error_code, uint8_t sub_error_code),
                 (override));
+    MOCK_METHOD(void, GenerateCoredump, (CoredumpErrorCode error_code), (override));
     MOCK_METHOD(void, ResetCoredumpGenerator, (), (override));
     MOCK_METHOD(bool, IsCoredumpGenerated, (), (override));
     MOCK_METHOD(std::string&, GetCoredumpTimestampString, (), (override));

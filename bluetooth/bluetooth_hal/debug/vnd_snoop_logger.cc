@@ -167,9 +167,8 @@ class LoggerTask {
         VndSnoopLogger::Direction direction;
         uint64_t timestamp_us;
 
-        CaptureArgs(const HalPacket& packet, VndSnoopLogger::Direction direction,
-                    uint64_t timestamp_us)
-            : packet(packet), direction(direction), timestamp_us(timestamp_us) {}
+        CaptureArgs(HalPacket packet, VndSnoopLogger::Direction direction, uint64_t timestamp_us)
+            : packet(std::move(packet)), direction(direction), timestamp_us(timestamp_us) {}
     };
 
     static LoggerTask StartNewRecordingTask() {
@@ -178,9 +177,10 @@ class LoggerTask {
 
     static LoggerTask StopRecordingTask() { return LoggerTask{LoggerTaskType::kStopRecording, {}}; }
 
-    static LoggerTask CaptureTask(const HalPacket& packet, VndSnoopLogger::Direction direction,
+    static LoggerTask CaptureTask(HalPacket packet, VndSnoopLogger::Direction direction,
                                   uint64_t timestamp_us) {
-        return LoggerTask{LoggerTaskType::kCapture, CaptureArgs{packet, direction, timestamp_us}};
+        return LoggerTask{LoggerTaskType::kCapture,
+                          CaptureArgs{std::move(packet), direction, timestamp_us}};
     }
     LoggerTaskType type_;
     std::optional<CaptureArgs> args_;

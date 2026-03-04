@@ -25,10 +25,10 @@ namespace bluetooth_hal::debug {
 
 using ::bluetooth_hal::bqr::BqrErrorCode;
 
-typedef struct {
+struct ErrorCodeMap {
     BqrErrorCode error_code;
     void (*func)(std::string_view);
-} ErrorCodeMap;
+};
 
 void UartParsing(std::string_view msg) {
     LOG(FATAL) << msg;

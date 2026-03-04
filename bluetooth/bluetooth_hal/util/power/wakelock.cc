@@ -40,7 +40,8 @@ using ::bluetooth_hal::hci::HciPacketType;
 class WakelockImpl : public Wakelock {
   public:
     WakelockImpl() : wakelock_timeout_(kWakelockTimeMilliseconds) {};
-    void Acquire(WakeSource source, HciPacketType type = HciPacketType::kUnknown) override;
+    void Acquire(WakeSource source, HciPacketType type) override;
+    void Acquire(WakeSource source) override;
     void Release(WakeSource source) override;
     bool IsAcquired() override;
     bool IsWakeSourceAcquired(WakeSource source) override;
@@ -62,8 +63,12 @@ class WakelockImpl : public Wakelock {
     int wakelock_timeout_;
 };
 
+void WakelockImpl::Acquire(WakeSource source) {
+    Acquire(source, HciPacketType::kUnknown);
+}
+
 void WakelockImpl::Acquire(WakeSource source, HciPacketType type) {
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     logger_.RecordActivity(source, type);
     if (acquired_sources_.count(source) > 0) {
         return;
@@ -84,7 +89,7 @@ void WakelockImpl::Acquire(WakeSource source, HciPacketType type) {
 }
 
 void WakelockImpl::Release(WakeSource source) {
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (acquired_sources_.erase(source) == 0) {
         return;
     }
@@ -101,17 +106,17 @@ void WakelockImpl::Release(WakeSource source) {
 }
 
 bool WakelockImpl::IsAcquired() {
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return !acquired_sources_.empty();
 }
 
 bool WakelockImpl::IsWakeSourceAcquired(WakeSource source) {
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return (acquired_sources_.count(source) > 0);
 }
 
 void WakelockImpl::AcquireWakelock() {
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!wakelock_acquired_) {
         HAL_LOG(DEBUG) << "Acuqire system wakelock";
         PowerInterface::GetInterface().AcquireWakelock();
@@ -121,7 +126,7 @@ void WakelockImpl::AcquireWakelock() {
 }
 
 void WakelockImpl::ReleaseWakelock() {
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (wakelock_acquired_) {
         HAL_LOG(DEBUG) << "Release system wakelock";
         PowerInterface::GetInterface().ReleaseWakelock();
