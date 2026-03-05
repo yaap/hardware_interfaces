@@ -30,6 +30,7 @@
 
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
+#include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/transport/hci_packet_rescuer.h"
 
@@ -121,7 +122,7 @@ size_t HciPacketizer::ProcessData(std::span<const uint8_t> data) {
 
             if (!packet_found) {
                 const std::string err_msg = GenerateUnimplementedPacketLog(hci_packet_type, data);
-                LOG(ERROR) << __func__ << ": " << err_msg;
+                HAL_KLOG(ERROR) << __func__ << ": " << err_msg;
             } else {
                 packet_.push_back(data[offset]);
                 state_ = State::kHciPreamble;
