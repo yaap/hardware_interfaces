@@ -55,16 +55,24 @@ class Bump(object):
   def edit_android_bp(self):
     android_bp = self.interfaces_dir / "compatibility_matrices/Android.bp"
 
-    # update the SYSTEM_MATRIX_DEPS variable to unconditionally include the
+    # update the SYSTEM_MATRIX_DEPS_<NEXT> variable to include the
     # latests FCM. This adds the file to `next` configs so releasing devices
     # can use the latest interfaces.
+    # Only add this to the second SYSTEM_MATRIX_DEPS* soong variable which is
+    # the older version used for `next`
     lines = []
+    num_device_modules_seen = 0
     with open(android_bp) as f:
       for line in f:
         if f'    "{self.device_module_name}",\n' in line:
-          lines.append(f'    "{self.current_module_name}",\n')
-
+          if num_device_modules_seen == 1:
+            lines.append(f'    "{self.current_module_name}",\n')
+          num_device_modules_seen += 1
         lines.append(line)
+
+    if num_device_modules_seen < 2:
+      raise ValueError("Unexpected format of SYSTEM_MATRIX_DEPS* modules")
+
 
     with open(android_bp, "w") as f:
       f.write("".join(lines))

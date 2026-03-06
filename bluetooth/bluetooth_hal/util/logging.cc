@@ -16,11 +16,15 @@
 
 #include "bluetooth_hal/util/logging.h"
 
+#include <fcntl.h>
+#include <unistd.h>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <string>
+
+#include "android-base/logging.h"
 
 namespace bluetooth_hal::util {
 namespace {
@@ -70,6 +74,21 @@ std::string Logger::GetFileFormatTimestamp() {
        << FormatTimeComponent(now_tm->tm_sec, 2);
 
     return ss.str();
+}
+
+void Logger::WriteToKernelLog(const std::string& message) {
+    LOG(INFO) << __func__;
+    int kmsg_fd = open("/dev/kmsg", O_WRONLY | O_CLOEXEC);
+    if (kmsg_fd < 0) {
+        LOG(ERROR) << __func__ << ": Failed to open /dev/kmsg";
+        return;
+    }
+
+    const std::string formatted_message = "bluetooth_hal: " + message + "\n";
+    if (write(kmsg_fd, formatted_message.c_str(), formatted_message.length()) < 0) {
+        LOG(ERROR) << __func__ << ": Failed to write to /dev/kmsg";
+    }
+    close(kmsg_fd);
 }
 
 }  // namespace bluetooth_hal::util

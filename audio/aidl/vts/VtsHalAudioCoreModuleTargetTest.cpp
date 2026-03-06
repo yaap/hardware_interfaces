@@ -2022,10 +2022,12 @@ TEST_F(AudioCoreModuleDeviceFormats, CheckDeviceFormatUniquenessAcrossModules) {
             const AudioPortDeviceExt& deviceExt = port.ext.get<AudioPortExt::Tag::device>();
             const AudioDevice& device = deviceExt.device;
 
-            // Skipping the check for IN_HEADSET type device port as its encodings are not specified
-            // because they are derived from corresponding OUT_HEADSET. CheckDevicePorts verifies
-            // that there is actually a matching OUT_HEADSET.
-            if (device.type.type == AudioDeviceType::IN_HEADSET) {
+            // Skipping the check for IN_HEADSET and IN_HEARING_AID type device ports as their
+            // encodings are not specified because they are derived from corresponding
+            // OUT_... device. CheckDevicePorts verifies that there is actually a matching OUT_...
+            // device.
+            if (device.type.type == AudioDeviceType::IN_HEADSET ||
+                device.type.type == AudioDeviceType::IN_HEARING_AID) {
                 continue;
             }
 
@@ -2187,13 +2189,20 @@ TEST_P(AudioCoreModule, CheckDevicePorts) {
         }
     }
 
-    for (const auto& eachInputDevice : inputs) {
-        if (eachInputDevice.type.type == AudioDeviceType::IN_HEADSET) {
-            AudioDevice outputDevice = eachInputDevice;
+    for (const auto& input : inputs) {
+        if (input.type.type == AudioDeviceType::IN_HEADSET) {
+            AudioDevice outputDevice = input;
             outputDevice.type.type = AudioDeviceType::OUT_HEADSET;
             EXPECT_EQ(1UL, outputs.count(outputDevice))
-                    << "For IN_HEADSET device " << eachInputDevice.toString()
+                    << "For IN_HEADSET device " << input.toString()
                     << " a matching OUT_HEADSET device not found.";
+        }
+        if (input.type.type == AudioDeviceType::IN_HEARING_AID) {
+            AudioDevice outputDevice = input;
+            outputDevice.type.type = AudioDeviceType::OUT_HEARING_AID;
+            EXPECT_EQ(1UL, outputs.count(outputDevice))
+                    << "For IN_HEARING_AID device " << input.toString()
+                    << " a matching OUT_HEARING_AID device not found.";
         }
     }
 }

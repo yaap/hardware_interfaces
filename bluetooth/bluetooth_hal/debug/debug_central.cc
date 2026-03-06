@@ -403,9 +403,11 @@ void DebugCentralImpl::HandleRootInflammationEvent(const BqrRootInflammationEven
 
     uint8_t error_code = event.GetErrorCode();
     uint8_t vendor_error_code = event.GetVendorErrorCode();
-    LOG(ERROR) << __func__ << ": Received Root Inflammation event! (0x" << std::hex << std::setw(2)
-               << std::setfill('0') << static_cast<int>(error_code) << std::setw(2)
-               << std::setfill('0') << static_cast<int>(vendor_error_code) << ").";
+    HAL_KLOG(ERROR) << __func__ << ": Received Root Inflammation event! (0x" << std::hex
+                    << std::setw(2) << std::setfill('0') << static_cast<int>(error_code)
+                    << std::setw(2) << std::setfill('0') << static_cast<int>(vendor_error_code)
+                    << ").";
+
     // For some vendor error codes that we do not generate a crash dump.
     if (OkToGenerateCrashDump(vendor_error_code)) {
         GenerateCoredump(CoredumpErrorCode::kControllerRootInflamed, vendor_error_code);
@@ -465,8 +467,8 @@ void DebugCentralImpl::GenerateCoredump(CoredumpErrorCode error_code, uint8_t su
     // before any debug clients are notified.
     GetOrCreateCoredumpTimestampString();
 
-    HAL_LOG(ERROR) << __func__
-                   << ": Reason: " << CoredumpErrorCodeToString(error_code, sub_error_code);
+    HAL_KLOG(ERROR) << __func__
+                    << ": Reason: " << CoredumpErrorCodeToString(error_code, sub_error_code);
 
     // Start a timer to automatically restart Bluetooth HAL after generating
     // coredump. Normally the host stack kills itself after an error and before
