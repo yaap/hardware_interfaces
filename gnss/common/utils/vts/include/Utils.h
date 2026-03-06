@@ -37,12 +37,13 @@ struct Utils {
     static const int64_t kMockTimestamp = 1519930775453L;
 
     template <class T>
-    static void checkLocation(const T& location, bool check_speed, bool check_more_accuracies);
+    static void checkLocation(const T& location, bool check_speed, bool check_more_accuracies,
+                              int aidl_version);
     template <class T>
-    static void checkLocationElapsedRealtime(const T& location);
+    static void checkLocationElapsedRealtime(const T& location, int aidl_version);
 
     static void checkElapsedRealtime(
-            const android::hardware::gnss::ElapsedRealtime& elapsedRealtime);
+            const android::hardware::gnss::ElapsedRealtime& elapsedRealtime, int aidl_version);
     static void checkPositionDebug(android::hardware::gnss::IGnssDebug::DebugData data);
 
     static const android::hardware::gnss::GnssLocation getMockLocation(
@@ -71,7 +72,8 @@ struct Utils {
 };
 
 template <class T>
-void Utils::checkLocation(const T& location, bool check_speed, bool check_more_accuracies) {
+void Utils::checkLocation(const T& location, bool check_speed, bool check_more_accuracies,
+                          int aidl_version) {
     EXPECT_TRUE(location.gnssLocationFlags & V1_0::GnssLocationFlags::HAS_LAT_LONG);
     EXPECT_TRUE(location.gnssLocationFlags & V1_0::GnssLocationFlags::HAS_ALTITUDE);
     if (check_speed) {
@@ -137,7 +139,7 @@ void Utils::checkLocation(const T& location, bool check_speed, bool check_more_a
     // Check timestamp > 1.48e12 (47 years in msec - 1970->2017+)
     EXPECT_GT(getLocationTimestampMillis(location), 1.48e12);
 
-    checkLocationElapsedRealtime(location);
+    checkLocationElapsedRealtime(location, aidl_version);
 }
 
 }  // namespace common
