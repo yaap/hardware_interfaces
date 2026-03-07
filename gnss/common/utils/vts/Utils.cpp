@@ -52,11 +52,12 @@ int64_t Utils::getLocationTimestampMillis(const V1_0::GnssLocation& location) {
 }
 
 template <>
-void Utils::checkLocationElapsedRealtime(const V1_0::GnssLocation&) {}
+void Utils::checkLocationElapsedRealtime(const V1_0::GnssLocation&, int /* aidl_version */) {}
 
 template <>
-void Utils::checkLocationElapsedRealtime(const android::hardware::gnss::GnssLocation& location) {
-    checkElapsedRealtime(location.elapsedRealtime);
+void Utils::checkLocationElapsedRealtime(const android::hardware::gnss::GnssLocation& location,
+                                         int aidl_version) {
+    checkElapsedRealtime(location.elapsedRealtime, aidl_version);
 }
 
 void Utils::checkPositionDebug(android::hardware::gnss::IGnssDebug::DebugData data) {
@@ -84,10 +85,14 @@ void Utils::checkPositionDebug(android::hardware::gnss::IGnssDebug::DebugData da
                 data.time.frequencyUncertaintyNsPerSec <= 2.0e5);  // 200 ppm
 }
 
-void Utils::checkElapsedRealtime(const ElapsedRealtime& elapsedRealtime) {
+void Utils::checkElapsedRealtime(const ElapsedRealtime& elapsedRealtime, int aidl_version) {
     ASSERT_TRUE(elapsedRealtime.flags >= 0 &&
                 elapsedRealtime.flags <= (ElapsedRealtime::HAS_TIMESTAMP_NS |
                                           ElapsedRealtime::HAS_TIME_UNCERTAINTY_NS));
+    // Version 7 corresponds to the 26Q2 release. Starting from 26Q2, timestampNs is mandatory.
+    if (aidl_version >= 7) {
+        ASSERT_TRUE(elapsedRealtime.flags & ElapsedRealtime::HAS_TIMESTAMP_NS);
+    }
     if (elapsedRealtime.flags & ElapsedRealtime::HAS_TIMESTAMP_NS) {
         ASSERT_TRUE(elapsedRealtime.timestampNs > 0);
     }

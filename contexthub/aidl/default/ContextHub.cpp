@@ -50,6 +50,7 @@ using ::android::contexthub::data_flow::NotificationManager;
 using ::android::contexthub::data_flow::Producer;
 using ::android::contexthub::data_flow::queueLayout;
 using ::android::contexthub::data_flow::RegionManager;
+using ::android::contexthub::data_flow::RemoteEndpointId;
 using ::android::contexthub::data_flow::RemoteNotifyArgs;
 using ::android::contexthub::data_flow::UntypedConsumer;
 using ::android::contexthub::data_flow::UntypedProducer;
@@ -889,7 +890,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
 
     pw::Result<std::variant<UntypedConsumer, VariableDataConsumer>> consumerRes =
             createRemoteConsumer(echoRegion, echoMetadataRegion, dataFlow.info.metadataOffsetBytes,
-                                 sinkMetadataOffset, RemoteNotifyArgs{[](pw::ConstByteSpan) {}});
+                                 sinkMetadataOffset,
+                                 RemoteNotifyArgs{[](const RemoteEndpointId&) {}});
     if (!consumerRes.ok()) {
         ALOGE("Echo: createRemoteConsumer failed, status: %s", consumerRes.status().str());
         return;
@@ -950,7 +952,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
                 hostRegion, kQueueBlockCapacity,
                 std::get<UntypedConsumer>(*consumerOpt).getElementSize(),
                 std::get<UntypedConsumer>(*consumerOpt).getElementAlignment(), kMaxBlockCount,
-                kMinBlockCount, dataNotifier, RemoteNotifyArgs{[](pw::ConstByteSpan) {}},
+                kMinBlockCount, dataNotifier, RemoteNotifyArgs{[](const RemoteEndpointId&) {}},
                 /*memAccess=*/nullptr);
         if (!producerRes.ok()) {
             ALOGE("Echo: UntypedProducer::createRemote failed, status: %s",
@@ -961,7 +963,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
     } else {
         pw::Result<VariableDataProducer> producerRes = VariableDataProducer::createRemote(
                 hostRegion, kQueueBlockCapacity, kMaxBlockCount, kMinBlockCount, dataNotifier,
-                RemoteNotifyArgs{[](pw::ConstByteSpan) {}}, /* memAccess= */ nullptr);
+                RemoteNotifyArgs{[](const RemoteEndpointId&) {}}, /* memAccess= */ nullptr);
         if (!producerRes.ok()) {
             ALOGE("Echo: VariableDataProducer::createRemote failed, status: %s",
                   producerRes.status().str());
@@ -1012,17 +1014,17 @@ void ContextHub::HubInterface::createEchoDataFlow(
     ConsumerPolicyBuilder policy;
     policy.setStreaming();
 
-    const char* kConsumerName = "VtsEchoConsumer";
-    pw::ConstByteSpan nameSpan(reinterpret_cast<const std::byte*>(kConsumerName), 15);
+    RemoteEndpointId consumerId = {
+            .aidlId{.hubId = hostSourceId.hubId, .endpointId = hostSourceId.id}};
     pw::Result<uint32_t> consDescOffsetRes;
     if (producerOpt->index() == 0) {
         consDescOffsetRes = std::get<UntypedProducer>(*producerOpt)
                                     .getConsumerManager()
-                                    .addConsumer(nameSpan, policy, &hostRegion);
+                                    .addConsumer(consumerId, policy, &hostRegion);
     } else {
         consDescOffsetRes = std::get<VariableDataProducer>(*producerOpt)
                                     .getConsumerManager()
-                                    .addConsumer(nameSpan, policy, &hostRegion);
+                                    .addConsumer(consumerId, policy, &hostRegion);
     }
     if (!consDescOffsetRes.ok()) {
         ALOGE("Echo: addConsumer failed");

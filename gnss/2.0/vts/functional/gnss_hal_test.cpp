@@ -129,7 +129,7 @@ void GnssHalTest::CheckLocation(const GnssLocation_2_0& location, bool check_spe
     const bool check_more_accuracies =
             (gnss_cb_->info_cbq_.calledCount() > 0 && gnss_cb_->last_info_.yearOfHw >= 2017);
 
-    Utils::checkLocation(location.v1_0, check_speed, check_more_accuracies);
+    Utils::checkLocation(location.v1_0, check_speed, check_more_accuracies, /* aidl_version */ 0);
 }
 
 void GnssHalTest::StartAndCheckLocations(int count) {
