@@ -259,6 +259,15 @@ void HealthLoop::MainLoop(void) {
             break;
         }
 
+        /*
+         * Reset slow timer to avoid excessive wakeup on interrupt
+         * It's assumed periodic_chores_interval_slow means the device being in non-charging state
+         */
+        if (nevents > 0 &&
+            wakealarm_wake_interval_ == healthd_config_.periodic_chores_interval_slow) {
+            WakeAlarmSetInterval(wakealarm_wake_interval_);
+        }
+
         for (int n = 0; n < nevents; ++n) {
             if (events[n].data.ptr) {
                 auto* event_handler = reinterpret_cast<EventHandler*>(events[n].data.ptr);
