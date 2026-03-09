@@ -1604,6 +1604,10 @@ TEST_P(GraphicsMapperStableCTests, Lock_RAW10) {
     EXPECT_EQ(0, planeLayoutComponent.offsetInBits % 8);
     EXPECT_EQ(-1, planeLayoutComponent.sizeInBits);
 
+    EXPECT_EQ(planeLayout.strideInBytes, buffer->stride());
+    EXPECT_GE(buffer->stride(), info.width * 10 / 8);
+    EXPECT_GE(planeLayout.totalSizeInBytes, planeLayout.strideInBytes * info.height);
+
     int releaseFence = -1;
     ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
     if (releaseFence != -1) {
@@ -1653,6 +1657,10 @@ TEST_P(GraphicsMapperStableCTests, Lock_RAW12) {
               static_cast<PlaneLayoutComponentType>(planeLayoutComponent.type.value));
     EXPECT_EQ(0, planeLayoutComponent.offsetInBits % 8);
     EXPECT_EQ(-1, planeLayoutComponent.sizeInBits);
+
+    EXPECT_EQ(planeLayout.strideInBytes, buffer->stride());
+    EXPECT_GE(buffer->stride(), info.width * 12 / 8);
+    EXPECT_GE(planeLayout.totalSizeInBytes, planeLayout.strideInBytes * info.height);
 
     int releaseFence = -1;
     ASSERT_EQ(AIMAPPER_ERROR_NONE, mapper()->v5.unlock(*handle, &releaseFence));
