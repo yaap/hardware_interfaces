@@ -26,4 +26,13 @@ hidl_interface {
         "//apex_available:platform",
         "com.android.wifi",
     ],
+    // Restrict visibility to the Wifi mainline module and related modules
+    visibility: [
+        "//hardware/interfaces/wifi/1.4/vts/functional",
+        "//hardware/interfaces/wifi/hostapd:__subpackages__",
+        "//packages/modules/Wifi:__subpackages__",
+        "//system/tools/hidl/build",
+        // Still used by vendor/qcom/sw5100-lw4/opensource/interfaces/wifi/hostapd/1.1
+        "//vendor:__subpackages__",
+    ],
 }
