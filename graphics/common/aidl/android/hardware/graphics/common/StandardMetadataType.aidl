@@ -379,6 +379,8 @@ enum StandardMetadataType {
      * pixels between two consecutive rows of an allocated buffer, when the concept of consecutive
      * rows is defined. Otherwise, it has no meaning.
      *
+     * Note: For historical reasons, RAW formats instead report the stride in *bytes*.
+     *
      * Must match the value returned in android.hardware.graphics.allocator.AllocationResult#stride
      *
      * This is required metadata in mapper5 and should be read-only.
