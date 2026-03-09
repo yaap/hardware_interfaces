@@ -4094,7 +4094,7 @@ static bool skipStreamIoTestForMixPortConfig(const AudioPortConfig& portConfig,
              (isBitPositionFlagSet(portConfig.flags.value().template get<AudioIoFlags::output>(),
                                    AudioOutputFlags::COMPRESS_OFFLOAD) &&
               portConfig.format.value().type == AudioFormatType::NON_PCM &&
-              (aidlVersion < kAidlVersion4 || getMediaFileInfoForConfig(portConfig).empty()))));
+              (aidlVersion <= kAidlVersion4 || getMediaFileInfoForConfig(portConfig).empty()))));
 }
 
 // Certain types of devices can not be used without special preconditions.
