@@ -28,4 +28,11 @@ hidl_interface {
         "//apex_available:platform",
         "com.android.wifi",
     ],
+    // Restrict visibility to the Wifi mainline module and related modules
+    visibility: [
+        "//hardware/interfaces/wifi/hostapd/aidl/vts/functional",
+        "//hardware/interfaces/wifi/hostapd/1.3",
+        "//packages/modules/Wifi:__subpackages__",
+        "//system/tools/hidl/build",
+    ],
 }
