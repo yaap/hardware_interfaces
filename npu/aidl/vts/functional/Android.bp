@@ -47,5 +47,5 @@ cc_test {
         "general-tests",
         "vts",
     ],
-    require_root: true,
+    test_config: "AndroidTest.xml",
 }
