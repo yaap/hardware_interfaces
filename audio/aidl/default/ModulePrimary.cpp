@@ -122,25 +122,13 @@ ndk::ScopedAStatus ModulePrimary::createOutputStream(
 ndk::ScopedAStatus ModulePrimary::createMmapBuffer(const AudioPortConfig& portConfig,
                                                    int32_t bufferSizeFrames, int32_t frameSizeBytes,
                                                    MmapBufferDescriptor* desc) {
-    const size_t bufferSizeBytes = static_cast<size_t>(bufferSizeFrames) * frameSizeBytes;
     // The actual mmap buffer for I/O is created after the stream exits standby, via
     // 'IStreamCommon.createMmapBuffer'. But we must return a valid file descriptor here because
     // 'MmapBufferDescriptor' can not contain a "null" fd.
     const std::string regionName =
             std::string("mmap-sim-o-") +
             std::to_string(portConfig.ext.get<AudioPortExt::Tag::mix>().handle);
-    int fd = ashmem_create_region(regionName.c_str(), bufferSizeBytes);
-    if (fd < 0) {
-        PLOG(ERROR) << __func__ << ": failed to create shared memory region of " << bufferSizeBytes
-                    << " bytes";
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
-    }
-    desc->sharedMemory.fd = ndk::ScopedFileDescriptor(fd);
-    desc->sharedMemory.size = bufferSizeBytes;
-    desc->burstSizeFrames = bufferSizeFrames / 4;
-    desc->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
-    LOG(DEBUG) << __func__ << ": " << desc->toString();
-    return ndk::ScopedAStatus::ok();
+    return StreamMmapStub::createMmapBuffer(regionName, bufferSizeFrames, frameSizeBytes, desc);
 }
 
 int32_t ModulePrimary::getNominalLatencyMs(const AudioPortConfig& portConfig) {

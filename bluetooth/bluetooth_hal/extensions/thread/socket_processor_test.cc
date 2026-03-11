@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "bluetooth_hal/test/common/test_helper.h"
@@ -655,6 +656,71 @@ TEST_F(SocketProcessorTestStream, RecvPayloadReturnConnectionFail) {
 
     EXPECT_CALL(mock_packet_handler_, HalPacketCallback(_)).Times(0);
     ASSERT_FALSE(SocketProcessor::GetProcessor()->Recv());
+}
+
+// Test fixture for initialization tests.
+// This fixture does not automatically initialize the SocketProcessor singleton,
+// allowing each test to initialize it with different parameters.
+class SocketProcessorInitTest : public Test {
+  protected:
+    void SetUp() override { MockSystemCallWrapper::SetMockWrapper(&mock_system_call_wrapper_); }
+
+    void TearDown() override {
+        // Cleanup is safe to call even if the processor was not initialized.
+        SocketProcessor::Cleanup();
+    }
+
+    MockPacketHandler mock_packet_handler_;
+    MockSystemCallWrapper mock_system_call_wrapper_;
+};
+
+// Verifies that SocketProcessor can be initialized with a string literal.
+TEST_F(SocketProcessorInitTest, InitializeWithStringLiteral) {
+    const char* socket_path = "/tmp/test/socket_literal";
+
+    // Expect Unlink to be called with the correct path during cleanup.
+    EXPECT_CALL(mock_system_call_wrapper_, Unlink(MatcherFactory::CreateStringMatcher(socket_path)))
+            .Times(1);
+
+    SocketProcessor::Initialize(
+            socket_path,
+            std::bind_front(&MockPacketHandler::HalPacketCallback, &mock_packet_handler_));
+
+    ASSERT_NE(SocketProcessor::GetProcessor(), nullptr);
+
+    // Verify the path is used correctly by checking a function that uses it.
+    EXPECT_CALL(mock_system_call_wrapper_,
+                Stat(MatcherFactory::CreateStringMatcher(socket_path), _))
+            .WillOnce(Return(0));
+    EXPECT_CALL(mock_system_call_wrapper_, IsSocketFile(_)).WillOnce(Return(true));
+
+    ASSERT_TRUE(SocketProcessor::GetProcessor()->IsSocketFileExisted());
+}
+
+// Verifies that SocketProcessor can be initialized with a std::string_view
+// representing a substring.
+TEST_F(SocketProcessorInitTest, InitializeWithSubstringView) {
+    std::string long_path = "/tmp/test/socket_substring/extra";
+    std::string_view socket_path_view(long_path.data(), 27);  // "/tmp/test/socket_substring"
+    std::string expected_path(socket_path_view);
+
+    // Expect Unlink to be called with the correct path during cleanup.
+    EXPECT_CALL(mock_system_call_wrapper_, Unlink(MatcherFactory::CreateStringMatcher(expected_path)))
+            .Times(1);
+
+    SocketProcessor::Initialize(
+            socket_path_view,
+            std::bind_front(&MockPacketHandler::HalPacketCallback, &mock_packet_handler_));
+
+    ASSERT_NE(SocketProcessor::GetProcessor(), nullptr);
+
+    // Verify the path is used correctly.
+    EXPECT_CALL(mock_system_call_wrapper_,
+                Stat(MatcherFactory::CreateStringMatcher(expected_path), _))
+            .WillOnce(Return(0));
+    EXPECT_CALL(mock_system_call_wrapper_, IsSocketFile(_)).WillOnce(Return(true));
+
+    ASSERT_TRUE(SocketProcessor::GetProcessor()->IsSocketFileExisted());
 }
 
 }  // namespace

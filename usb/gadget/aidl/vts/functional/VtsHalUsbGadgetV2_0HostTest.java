@@ -60,6 +60,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     public static final String TAG = VtsHalUsbGadgetV2_0HostTest.class.getSimpleName();
     private static final String HAL_SERVICE = "android.hardware.usb.gadget.IUsbGadget/default";
     private static final String FEATURE_AUTOMOTIVE = "android.hardware.type.automotive";
+    private static final String FEATURE_WATCH = "android.hardware.type.watch";
     private static final String FEATURE_USB_ACCESSORY = "android.hardware.usb.accessory";
     private static final long CONN_TIMEOUT = 5000;
     private static final int UNKNOWN_SPEED = -1;
@@ -212,6 +213,8 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     @Test
     @VsrTest(requirements = {"VSR-5.4-032"})
     public void testAndroidNcm() throws Exception {
+        Assume.assumeFalse("Skip test: NCM support is not required for watches",
+                mDevice.hasFeature(FEATURE_WATCH));
         Assume.assumeTrue(
                 String.format("The device doesn't have service %s", HAL_SERVICE), mHasService);
         Assert.assertNotNull("Target device does not exist", mDevice);

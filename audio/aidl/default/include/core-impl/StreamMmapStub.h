@@ -77,7 +77,7 @@ class DriverMmapStubImpl : public DriverStubImpl {
                                                   int32_t* latency) override;
 
   protected:
-    ::android::status_t initSharedMemory(int ashmemFd);
+    ::android::status_t initSharedMemory(int memFd);
 
   private:
     ::android::status_t releaseSharedMemory() REQUIRES(mState.lock);
@@ -100,6 +100,10 @@ class StreamMmapStub : public StreamCommonImpl, public DriverMmapStubImpl {
     ndk::ScopedAStatus setVendorParameters(const std::vector<VendorParameter>& in_parameters,
                                            bool in_async) override;
     ndk::ScopedAStatus createMmapBuffer(MmapBufferDescriptor* _aidl_return) override;
+
+    static ndk::ScopedAStatus createMmapBuffer(const std::string& regionName,
+                                               int32_t bufferSizeFrames, int32_t frameSizeBytes,
+                                               MmapBufferDescriptor* desc);
 
   private:
     ndk::ScopedFileDescriptor mSharedMemoryFd;
