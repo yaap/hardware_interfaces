@@ -28,6 +28,8 @@ parcelable AllocationResult {
     /**
      * The number of pixels between two consecutive rows of an allocated buffer, when the concept
      * of consecutive rows is defined. Otherwise, it has no meaning.
+     *
+     * Note: For historical reasons, RAW formats instead report the stride in *bytes*.
      */
     int stride;
     NativeHandle[] buffers;

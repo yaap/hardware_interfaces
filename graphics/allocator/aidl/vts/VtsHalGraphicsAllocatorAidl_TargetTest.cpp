@@ -404,6 +404,42 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsZeroLayerCount) {
     EXPECT_FALSE(allocate(info, false)) << "allocate succeeded for layerCount=0";
 }
 
+TEST_P(GraphicsAllocatorAidlTests, RAW10Stride) {
+    BufferDescriptorInfo info{
+            .name = {"RAW10"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 1,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RAW10,
+            .usage = BufferUsage::CPU_READ_OFTEN,
+            .reservedSize = 0,
+    };
+    if (!isSupported(info)) {
+        GTEST_SKIP() << "RAW10 not supported";
+    }
+    auto buffer = allocate(info);
+    ASSERT_NE(nullptr, buffer.get());
+    EXPECT_GE(buffer->stride(), info.width * 10 / 8);
+}
+
+TEST_P(GraphicsAllocatorAidlTests, RAW12Stride) {
+    BufferDescriptorInfo info{
+            .name = {"RAW12"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 1,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RAW12,
+            .usage = BufferUsage::CPU_READ_OFTEN,
+            .reservedSize = 0,
+    };
+    if (!isSupported(info)) {
+        GTEST_SKIP() << "RAW12 not supported";
+    }
+    auto buffer = allocate(info);
+    ASSERT_NE(nullptr, buffer.get());
+    EXPECT_GE(buffer->stride(), info.width * 12 / 8);
+}
+
 TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToCpu) {
     BufferDescriptorInfo info{
             .name = {"CPU_8888"},
