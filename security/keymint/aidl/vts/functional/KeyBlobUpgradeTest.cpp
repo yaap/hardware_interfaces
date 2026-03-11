@@ -50,6 +50,10 @@
 //
 //    All tests should pass, and the `UpgradeKeyBlobs` test should have output that matches whether
 //    upgrade was expected or not.
+//
+//    If the upgrade includes a HAL version upgrade, and if the change in HAL version adds support
+//    for a new key type, the additional `--upgraded_from <prev_AIDL-version>` option should be
+//    specified.
 
 #define LOG_TAG "keymint_1_test"
 #include <cutils/log.h>
@@ -210,18 +214,28 @@ std::vector<uint8_t> load_cert(const std::string& subdir, const std::string& nam
 
 class KeyBlobUpgradeTest : public KeyMintAidlTestBase {
   protected:
-    const std::vector<std::string>& keyblob_names() {
+    const std::vector<std::string>& keyblob_names() { return keyblob_names(AidlVersion()); }
+
+    const std::vector<std::string>& keyblob_names(int aidl_version) {
         if (SecLevel() == SecurityLevel::STRONGBOX) {
             return keyblob_names_sb;
-        } else if (!Curve25519Supported()) {
+        } else if (!Curve25519Supported(SecLevel(), aidl_version)) {
             // TEE KeyMint v1 does not support curve 25519 (nor ML-DSA).
             return keyblob_names_tee_no_25519;
-        } else if (!MlDsaSupported()) {
+        } else if (!MlDsaSupported(SecLevel(), aidl_version)) {
             // TEE KeyMint v2-v4 does not support ML-DSA
             return keyblob_names_tee_no_mldsa;
         } else {
             return keyblob_names_tee;
         }
+    }
+
+    // Return the AIDL version associated with the pre-upgrade keyblobs.
+    int32_t previous_aidl_version() {
+        if (upgraded_from_version != 0) {
+            return upgraded_from_version;
+        }
+        return AidlVersion();
     }
 
     void UpgradeKeyBlobs(bool expectUpgrade) {
@@ -230,7 +244,7 @@ class KeyBlobUpgradeTest : public KeyMintAidlTestBase {
             GTEST_SKIP() << "No keyblob directory provided";
         }
 
-        for (std::string name : keyblob_names()) {
+        for (std::string name : keyblob_names(previous_aidl_version())) {
             if (requires_attest_key(name) && shouldSkipAttestKeyTest()) {
                 std::cerr << "Skipping variant '" << name
                           << "' which requires ATTEST_KEY support that has been waivered\n";
@@ -489,7 +503,7 @@ TEST_P(KeyBlobUpgradeTest, UseKeyBlobsBeforeOrAfter) {
                         "/data/local/tmp/keymint-blobs";
     }
 
-    for (std::string name : keyblob_names()) {
+    for (std::string name : keyblob_names(previous_aidl_version())) {
         if (requires_attest_key(name) && shouldSkipAttestKeyTest()) {
             std::cerr << "Skipping variant '" << name
                       << "' which requires ATTEST_KEY support that has been waivered\n";
@@ -635,7 +649,7 @@ TEST_P(KeyBlobUpgradeTest, DeleteRRKeyBlobsAfter) {
                         "/data/local/tmp/keymint-blobs";
     }
 
-    for (std::string name : keyblob_names()) {
+    for (std::string name : keyblob_names(previous_aidl_version())) {
         for (bool with_hidden : {false, true}) {
             auto builder = AuthorizationSetBuilder();
             if (with_hidden) {

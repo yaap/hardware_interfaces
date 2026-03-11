@@ -101,8 +101,11 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     // Directory to store/retrieve keyblobs, using subdirectories named for the
     // KeyMint instance in question (e.g. "./default/", "./strongbox/").
     static std::string keyblob_dir;
-    // To specify if users expect an upgrade on the keyBlobs.
+    // To specify if users expect an upgrade on the keyblobs.
     static std::optional<bool> expect_upgrade;
+    // To specify if the pre-upgrade keyblobs are from an older HAL version.
+    // 0 indicates that the pre-upgrade HAL version is the same as the post-upgrade HAL version.
+    static int upgraded_from_version;
 
     void SetUp() override;
     void TearDown() override {
@@ -125,8 +128,10 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     bool isSecondImeiIdAttestationRequired();
     std::optional<bool> isRkpOnly();
 
-    bool Curve25519Supported();
-    bool MlDsaSupported();
+    bool Curve25519Supported() { return Curve25519Supported(SecLevel(), AidlVersion()); }
+    bool Curve25519Supported(SecurityLevel sec_level, int32_t aidl_version);
+    bool MlDsaSupported() { return MlDsaSupported(SecLevel(), AidlVersion()); }
+    bool MlDsaSupported(SecurityLevel sec_level, int32_t aidl_version);
 
     ErrorCode GenerateKey(const AuthorizationSet& key_desc);
 

@@ -9271,6 +9271,14 @@ int main(int argc, char** argv) {
                 KeyMintAidlTestBase::keyblob_dir = std::string(argv[i + 1]);
                 ++i;
             }
+            if (std::string(argv[i]) == "--upgraded_from") {
+                if (i + 1 >= argc) {
+                    std::cerr << "Missing argument for --upgraded_from\n";
+                    return 1;
+                }
+                KeyMintAidlTestBase::upgraded_from_version = atoi(argv[i + 1]);
+                ++i;
+            }
             if (std::string(argv[i]) == "--expect_upgrade") {
                 if (i + 1 >= argc) {
                     std::cerr << "Missing argument for --expect_upgrade\n";

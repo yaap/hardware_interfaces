@@ -241,6 +241,7 @@ bool KeyMintAidlTestBase::arm_deleteAllKeys = false;
 bool KeyMintAidlTestBase::dump_Attestations = false;
 std::string KeyMintAidlTestBase::keyblob_dir;
 std::optional<bool> KeyMintAidlTestBase::expect_upgrade = std::nullopt;
+int KeyMintAidlTestBase::upgraded_from_version = 0;
 
 KeyBlobDeleter::~KeyBlobDeleter() {
     if (key_blob_.empty()) {
@@ -393,24 +394,24 @@ std::optional<bool> KeyMintAidlTestBase::isRkpOnly() {
     return property_get_bool("remote_provisioning.tee.rkp_only", false);
 }
 
-bool KeyMintAidlTestBase::Curve25519Supported() {
+bool KeyMintAidlTestBase::Curve25519Supported(SecurityLevel sec_level, int32_t aidl_version) {
     // Strongbox never supports curve 25519.
-    if (SecLevel() == SecurityLevel::STRONGBOX) {
+    if (sec_level == SecurityLevel::STRONGBOX) {
         return false;
     }
 
     // Curve 25519 was included in version 2 of the KeyMint interface.
-    return AidlVersion() >= 2;
+    return aidl_version >= 2;
 }
 
-bool KeyMintAidlTestBase::MlDsaSupported() {
+bool KeyMintAidlTestBase::MlDsaSupported(SecurityLevel sec_level, int32_t aidl_version) {
     // Strongbox never supports ML-DSA
-    if (SecLevel() == SecurityLevel::STRONGBOX) {
+    if (sec_level == SecurityLevel::STRONGBOX) {
         return false;
     }
 
     // ML-DSA was included in version 5 of the KeyMint interface.
-    return AidlVersion() >= 5;
+    return aidl_version >= 5;
 }
 
 void KeyMintAidlTestBase::InitializeKeyMint(std::shared_ptr<IKeyMintDevice> keyMint) {
