@@ -21,8 +21,8 @@
     <target_preparer class="com.android.tradefed.targetprep.RootTargetPreparer"/>
 
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
-      <option name="run-command" value="cmd npu disable" />
-      <option name="teardown-command" value="cmd npu enable" />
+      <option name="run-command" value="cmd npu disable || true" />
+      <option name="teardown-command" value="cmd npu enable || true" />
     </target_preparer>
 
     <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
