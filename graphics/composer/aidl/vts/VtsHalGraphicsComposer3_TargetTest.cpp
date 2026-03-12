@@ -3086,8 +3086,22 @@ TEST_P(GraphicsComposerAidlCommandV2Test,
         // Get display configurations and check if there's more than one.
         auto [status, displayConfigs] = mComposerClient->getDisplayConfigs(displayId);
         ASSERT_TRUE(status.isOk());
-        if (displayConfigs.size() <= 1) {
-            // Nothing to test if there aren't multiple configs to switch between.
+
+        // Skip if no physical refresh rate switching is possible.
+        // This avoids toggling the callback on single-config or ARR displays (where
+        // multiple configs share the same vsyncPeriod), preventing a race condition
+        // where an asynchronous refresh rate callback arrives after the test disables it.
+        bool hasDifferentRates = false;
+        for (size_t i = 0; i < displayConfigs.size(); ++i) {
+            for (size_t j = i + 1; j < displayConfigs.size(); ++j) {
+                if (!display.isRateSameBetweenConfigs(displayConfigs[i], displayConfigs[j])) {
+                    hasDifferentRates = true;
+                    break;
+                }
+            }
+            if (hasDifferentRates) break;
+        }
+        if (!hasDifferentRates) {
             continue;
         }
 
