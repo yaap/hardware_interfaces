@@ -404,8 +404,8 @@ TEST(NonParameterizedTests, leafComponentNameInDICEisValidForAvfInstance) {
     }
 
     int vendorApiLevel = get_vendor_api_level();
-    if (vendorApiLevel < __ANDROID_API_V__) {
-        GTEST_SKIP() << "AVF instance is supported only on vendor API level >= 202404. This "
+    if (vendorApiLevel < 202504) {
+        GTEST_SKIP() << "Remote attestation is not mandatory for vendor API level < 202504. This "
                      << "device has vendor API level: " << vendorApiLevel;
     }
 
@@ -517,8 +517,8 @@ TEST(NonParameterizedTests, AvfInstanceHasTrailingRkpVmMarkers) {
     }
 
     int vendorApiLevel = get_vendor_api_level();
-    if (vendorApiLevel < __ANDROID_API_V__) {
-        GTEST_SKIP() << "Applies only to vendor API level >= 202404. This "
+    if (vendorApiLevel < 202504) {
+        GTEST_SKIP() << "Remote attestation is not mandatory for vendor API level < 202504. This "
                      << "device has vendor API level: " << vendorApiLevel;
     }
 
