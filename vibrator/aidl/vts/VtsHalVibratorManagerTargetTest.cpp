@@ -127,7 +127,8 @@ class VibratorManagerAidl : public testing::TestWithParam<std::string> {
         if (capabilities & IVibratorManager::CAP_SYNC) {
             manager->cancelSynced();
         }
-        if (capabilities & IVibratorManager::CAP_START_SESSIONS) {
+        if ((capabilities & IVibratorManager::CAP_START_SESSIONS) ||
+            (capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) {
             manager->clearSessions();
         }
         // Reset all managed vibrators.
@@ -411,7 +412,10 @@ TEST_P(VibratorManagerAidl, VibrationSessionCleared) {
 }
 
 TEST_P(VibratorManagerAidl, VibrationSessionsClearedWithoutSession) {
-    if (!(capabilities & IVibratorManager::CAP_START_SESSIONS)) return;
+    if (!(capabilities & IVibratorManager::CAP_START_SESSIONS) &&
+        !(capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) {
+        return;
+    }
 
     EXPECT_OK(manager->clearSessions());
 }
@@ -634,6 +638,14 @@ TEST_P(VibratorManagerAidl, VibrationSessionsUnsupported) {
     EXPECT_UNKNOWN_OR_UNSUPPORTED(
             manager->startSession(vibratorIds, sessionConfig, nullptr, &session));
     EXPECT_EQ(session, nullptr);
+}
+
+TEST_P(VibratorManagerAidl, VibrationClearSessionsUnsupported) {
+    if ((capabilities & IVibratorManager::CAP_START_SESSIONS) ||
+        (capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) {
+        return;
+    }
+
     EXPECT_UNKNOWN_OR_UNSUPPORTED(manager->clearSessions());
 }
 

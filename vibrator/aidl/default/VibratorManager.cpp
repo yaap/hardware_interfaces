@@ -185,15 +185,28 @@ ndk::ScopedAStatus VibratorManager::startSession(const std::vector<int32_t>& vib
 
 ndk::ScopedAStatus VibratorManager::clearSessions() {
     LOG(VERBOSE) << "Vibrator Manager clear sessions";
-    abortSession();
-
-    // Also clear any active haptic generator sessions
-    std::vector<std::unique_ptr<HapticGeneratorSessionState>> hgSessions;
-    {
-        std::lock_guard lock(mMutex);
-        hgSessions = std::move(mHapticGeneratorSessions);
+    int32_t capabilities = 0;
+    if (!getCapabilities(&capabilities).isOk()) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
-    clearHapticGeneratorSessions(hgSessions);
+    if (!(capabilities & IVibratorManager::CAP_START_SESSIONS) &&
+        !(capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR)) {
+        return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+    }
+
+    if (capabilities & IVibratorManager::CAP_START_SESSIONS) {
+        abortSession();
+    }
+
+    if (capabilities & IVibratorManager::CAP_HAPTIC_GENERATOR) {
+        // Also clear any active haptic generator sessions
+        std::vector<std::unique_ptr<HapticGeneratorSessionState>> hgSessions;
+        {
+            std::lock_guard lock(mMutex);
+            hgSessions = std::move(mHapticGeneratorSessions);
+        }
+        clearHapticGeneratorSessions(hgSessions);
+    }
 
     return ndk::ScopedAStatus::ok();
 }
