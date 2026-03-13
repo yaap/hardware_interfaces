@@ -112,38 +112,33 @@ static float convertSensitivityLevelToAcceleration(int sl, float frequency) {
             pwlev2::convertSensitivityLevelToDecibel(sl, frequency));
 }
 
+static std::vector<FrequencyAccelerationMapEntry> getPwleV2FrequencyMap(
+        const std::shared_ptr<IVibrator>& vibrator) {
+    std::vector<FrequencyAccelerationMapEntry> map;
+    EXPECT_OK(vibrator->getFrequencyToOutputAccelerationMap(&map));
+    std::sort(map.begin(), map.end(),
+              [](const auto& a, const auto& b) { return a.frequencyHz < b.frequencyHz; });
+    return map;
+}
+
 static float getPwleV2FrequencyMinHz(const std::shared_ptr<IVibrator>& vibrator) {
-    std::vector<FrequencyAccelerationMapEntry> frequencyToOutputAccelerationMap;
-    EXPECT_OK(vibrator->getFrequencyToOutputAccelerationMap(&frequencyToOutputAccelerationMap));
-    EXPECT_TRUE(!frequencyToOutputAccelerationMap.empty());
-    // We can't use ASSERT_TRUE() above because this is a non-void function,
-    // but we need to return to assure we don't crash from a null dereference.
-    if (frequencyToOutputAccelerationMap.empty()) {
+    auto map = getPwleV2FrequencyMap(vibrator);
+    EXPECT_FALSE(map.empty());
+    if (map.empty()) {
         return std::numeric_limits<float>::quiet_NaN();
     }
 
-    auto entry = std::min_element(
-            frequencyToOutputAccelerationMap.begin(), frequencyToOutputAccelerationMap.end(),
-            [](const auto& a, const auto& b) { return a.frequencyHz < b.frequencyHz; });
-
-    return entry->frequencyHz;
+    return map.front().frequencyHz;
 }
 
 static float getPwleV2FrequencyMaxHz(const std::shared_ptr<IVibrator>& vibrator) {
-    std::vector<FrequencyAccelerationMapEntry> frequencyToOutputAccelerationMap;
-    EXPECT_OK(vibrator->getFrequencyToOutputAccelerationMap(&frequencyToOutputAccelerationMap));
-    EXPECT_TRUE(!frequencyToOutputAccelerationMap.empty());
-    // We can't use ASSERT_TRUE() above because this is a non-void function,
-    // but we need to return to assure we don't crash from a null dereference.
-    if (frequencyToOutputAccelerationMap.empty()) {
+    auto map = getPwleV2FrequencyMap(vibrator);
+    EXPECT_FALSE(map.empty());
+    if (map.empty()) {
         return std::numeric_limits<float>::quiet_NaN();
     }
 
-    auto entry = std::max_element(
-            frequencyToOutputAccelerationMap.begin(), frequencyToOutputAccelerationMap.end(),
-            [](const auto& a, const auto& b) { return a.frequencyHz < b.frequencyHz; });
-
-    return entry->frequencyHz;
+    return map.back().frequencyHz;
 }
 
 static CompositePwleV2 composeValidPwleV2Effect(const std::shared_ptr<IVibrator>& vibrator) {
@@ -187,32 +182,39 @@ static CompositePwleV2 composePwleV2EffectWithTooManyPoints(
     return composite;
 }
 
-static std::pair<float, float> getPwleV2SharpnessRange(
-        const std::shared_ptr<IVibrator>& vibrator,
-        std::vector<FrequencyAccelerationMapEntry> freqToOutputAccelerationMap) {
+static std::pair<float, float> getPwleV2SharpnessRange(const std::shared_ptr<IVibrator>& vibrator) {
     std::pair<float, float> sharpnessRange = {-1, -1};
 
-    // Sort the entries by frequency in ascending order
-    std::sort(freqToOutputAccelerationMap.begin(), freqToOutputAccelerationMap.end(),
-              [](const auto& a, const auto& b) { return a.frequencyHz < b.frequencyHz; });
-
+    auto freqToOutputAccelerationMap = getPwleV2FrequencyMap(vibrator);
     for (const auto& entry : freqToOutputAccelerationMap) {
         float minAcceptableOutputAcceleration = convertSensitivityLevelToAcceleration(
                 pwlev2::COMPOSE_PWLE_V2_MIN_REQUIRED_SENSITIVITY_DB_SL, entry.frequencyHz);
 
-        if (sharpnessRange.first < 0 &&
-            minAcceptableOutputAcceleration <= entry.maxOutputAccelerationGs) {
+        if (minAcceptableOutputAcceleration <= entry.maxOutputAccelerationGs) {
             sharpnessRange.first = entry.frequencyHz;  // Found the lower bound
-        } else if (sharpnessRange.first >= 0 &&
-                   minAcceptableOutputAcceleration >= entry.maxOutputAccelerationGs) {
-            sharpnessRange.second = entry.frequencyHz;  // Found the upper bound
+            break;
+        }
+    }
+    if (sharpnessRange.first < 0) {
+        // If no lower bound was found, return NaN.
+        return sharpnessRange;
+    }
+
+    // Reversely iterate through the map to find the upper bound.
+    for (auto entry = freqToOutputAccelerationMap.rbegin();
+         entry != freqToOutputAccelerationMap.rend() && entry->frequencyHz > sharpnessRange.first;
+         ++entry) {
+        float minAcceptableOutputAcceleration = convertSensitivityLevelToAcceleration(
+                pwlev2::COMPOSE_PWLE_V2_MIN_REQUIRED_SENSITIVITY_DB_SL, entry->frequencyHz);
+        if (minAcceptableOutputAcceleration >= entry->maxOutputAccelerationGs) {
+            sharpnessRange.second = entry->frequencyHz;  // Found the upper bound
             return sharpnessRange;
         }
     }
 
-    if (sharpnessRange.first >= 0) {
+    if (sharpnessRange.second < 0) {
         // If only the lower bound was found, set the upper bound to the max frequency.
-        sharpnessRange.second = getPwleV2FrequencyMaxHz(vibrator);
+        sharpnessRange.second = freqToOutputAccelerationMap.back().frequencyHz;
     }
 
     return sharpnessRange;
