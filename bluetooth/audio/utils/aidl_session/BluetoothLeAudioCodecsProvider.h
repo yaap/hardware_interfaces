@@ -36,28 +36,28 @@ namespace audio {
 class BluetoothLeAudioCodecsProvider {
   public:
     static std::vector<LeAudioCodecCapabilitiesSetting> GetLeAudioCodecCapabilities();
-    static void ClearLeAudioCodecCapabilities();
+    static void ClearCache();
     static std::unordered_map<SessionType, std::vector<CodecInfo>> GetLeAudioCodecInfo();
     static void SetLeAudioOffloadSettingForTesting(
             std::optional<setting::LeAudioOffloadSetting> setting);
 
   private:
     static inline std::vector<setting::Scenario> supported_scenarios_;
-    static inline std::unordered_map<std::string, setting::Configuration> configuration_map_;
+    static inline std::unordered_map<std::string, setting::Configuration> supported_configuration_;
     static inline std::unordered_map<std::string, setting::CodecConfiguration>
-            codec_configuration_map_;
+            supported_codec_configuration_;
     static inline std::unordered_map<std::string, setting::StrategyConfiguration>
-            strategy_configuration_map_;
-    static inline std::unordered_map<SessionType, std::vector<CodecInfo>> session_codecs_map_;
+            supported_strategy_configuration_;
+    static inline std::unordered_map<SessionType, std::vector<CodecInfo>> session_codecs_info_;
+    static inline std::vector<LeAudioCodecCapabilitiesSetting> codec_capabilities_setting_;
 
-    static std::vector<setting::Scenario> GetScenarios();
-    static void UpdateConfigurationsToMap();
-    static void UpdateCodecConfigurationsToMap();
-    static void UpdateStrategyConfigurationsToMap();
-    static void LoadConfigurationToMap();
+    static bool UpdateScenariosToCache();
+    static bool UpdateConfigurationsToCache();
+    static bool UpdateCodecConfigurationsToCache();
+    static bool UpdateStrategyConfigurationsToCache();
+    static bool ParseCapabilitiesToCache();
 
-    static std::vector<LeAudioCodecCapabilitiesSetting> ComposeLeAudioCodecCapabilities(
-            const std::vector<setting::Scenario>& supported_scenarios);
+    static std::vector<LeAudioCodecCapabilitiesSetting> ComposeLeAudioCodecCapabilities();
 
     static UnicastCapability GetUnicastCapability(const std::string& coding_direction);
     static BroadcastCapability GetBroadcastCapability(const std::string& coding_direction);
@@ -88,11 +88,13 @@ class BluetoothLeAudioCodecsProvider {
     static inline AudioLocation GetAudioLocation(const setting::AudioLocation& audio_location);
     static inline CodecType GetCodecType(const setting::CodecType& codec_type);
 
+    static inline bool IsValidScenario(const setting::Scenario& scenario);
+    static inline bool IsValidConfiguration(const setting::Configuration& configuration);
     static inline bool IsValidCodecConfiguration(
             const setting::CodecConfiguration& codec_configuration);
     static inline bool IsValidStrategyConfiguration(
             const setting::StrategyConfiguration& strategy_configuration);
-    static bool ParseFromLeAudioOffloadSettingFile();
+    static bool LoadCapabilitiesFile();
     static inline std::optional<setting::LeAudioOffloadSetting> le_audio_offload_setting_;
 };
 
