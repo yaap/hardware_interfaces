@@ -224,7 +224,7 @@ class BluetoothLeAudioCodecsProviderTest : public ::testing::TestWithParam<Offlo
     }
 
   protected:
-    void Initialize() { BluetoothLeAudioCodecsProvider::ClearLeAudioCodecCapabilities(); }
+    void Initialize() { BluetoothLeAudioCodecsProvider::ClearCache(); }
 
     std::vector<LeAudioCodecCapabilitiesSetting> RunTestCase() {
         auto& [scenario_lists, configuration_lists, codec_configuration_lists,
@@ -288,7 +288,7 @@ TEST_P(GetScenariosTest, InvalidScenarios) {
     ASSERT_TRUE(le_audio_codec_capabilities.empty());
 }
 
-class UpdateConfigurationsToMapTest : public BluetoothLeAudioCodecsProviderTest {
+class UpdateConfigurationsToCacheTest : public BluetoothLeAudioCodecsProviderTest {
   public:
     static std::vector<ConfigurationList> CreateInvalidConfigurations() {
         std::vector<ConfigurationList> invalid_configuration_test_cases;
@@ -310,13 +310,13 @@ class UpdateConfigurationsToMapTest : public BluetoothLeAudioCodecsProviderTest 
     }
 };
 
-TEST_P(UpdateConfigurationsToMapTest, InvalidConfigurations) {
+TEST_P(UpdateConfigurationsToCacheTest, InvalidConfigurations) {
     Initialize();
     auto le_audio_codec_capabilities = RunTestCase();
     ASSERT_TRUE(le_audio_codec_capabilities.empty());
 }
 
-class UpdateCodecConfigurationsToMapTest : public BluetoothLeAudioCodecsProviderTest {
+class UpdateCodecConfigurationsToCacheTest : public BluetoothLeAudioCodecsProviderTest {
   public:
     static std::vector<CodecConfigurationList> CreateInvalidCodecConfigurations() {
         std::vector<CodecConfigurationList> invalid_codec_configuration_test_cases;
@@ -357,13 +357,13 @@ class UpdateCodecConfigurationsToMapTest : public BluetoothLeAudioCodecsProvider
     }
 };
 
-TEST_P(UpdateCodecConfigurationsToMapTest, InvalidCodecConfigurations) {
+TEST_P(UpdateCodecConfigurationsToCacheTest, InvalidCodecConfigurations) {
     Initialize();
     auto le_audio_codec_capabilities = RunTestCase();
     ASSERT_TRUE(le_audio_codec_capabilities.empty());
 }
 
-class UpdateStrategyConfigurationsToMapTest : public BluetoothLeAudioCodecsProviderTest {
+class UpdateStrategyConfigurationsToCacheTest : public BluetoothLeAudioCodecsProviderTest {
   public:
     static std::vector<StrategyConfigurationList> CreateInvalidStrategyConfigurations() {
         std::vector<StrategyConfigurationList> invalid_strategy_configuration_test_cases = {
@@ -384,7 +384,7 @@ class UpdateStrategyConfigurationsToMapTest : public BluetoothLeAudioCodecsProvi
     }
 };
 
-TEST_P(UpdateStrategyConfigurationsToMapTest, InvalidStrategyConfigurations) {
+TEST_P(UpdateStrategyConfigurationsToCacheTest, InvalidStrategyConfigurations) {
     Initialize();
     auto le_audio_codec_capabilities = RunTestCase();
     ASSERT_TRUE(le_audio_codec_capabilities.empty());
@@ -436,27 +436,27 @@ INSTANTIATE_TEST_SUITE_P(BluetoothLeAudioCodecsProviderTest, GetScenariosTest,
                                  kValidConfigurationList, kValidCodecConfigurationList,
                                  kValidStrategyConfigurationList)));
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpdateConfigurationsToMapTest);
-INSTANTIATE_TEST_SUITE_P(BluetoothLeAudioCodecsProviderTest, UpdateConfigurationsToMapTest,
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpdateConfigurationsToCacheTest);
+INSTANTIATE_TEST_SUITE_P(BluetoothLeAudioCodecsProviderTest, UpdateConfigurationsToCacheTest,
                          ::testing::ValuesIn(BluetoothLeAudioCodecsProviderTest::CreateTestCases(
                                  kValidScenarioList,
-                                 UpdateConfigurationsToMapTest::CreateInvalidConfigurations(),
+                                 UpdateConfigurationsToCacheTest::CreateInvalidConfigurations(),
                                  kValidCodecConfigurationList, kValidStrategyConfigurationList)));
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpdateCodecConfigurationsToMapTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpdateCodecConfigurationsToCacheTest);
 INSTANTIATE_TEST_SUITE_P(
-        BluetoothLeAudioCodecsProviderTest, UpdateCodecConfigurationsToMapTest,
+        BluetoothLeAudioCodecsProviderTest, UpdateCodecConfigurationsToCacheTest,
         ::testing::ValuesIn(BluetoothLeAudioCodecsProviderTest::CreateTestCases(
                 kValidScenarioList, kValidConfigurationList,
-                UpdateCodecConfigurationsToMapTest::CreateInvalidCodecConfigurations(),
+                UpdateCodecConfigurationsToCacheTest::CreateInvalidCodecConfigurations(),
                 kValidStrategyConfigurationList)));
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpdateStrategyConfigurationsToMapTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpdateStrategyConfigurationsToCacheTest);
 INSTANTIATE_TEST_SUITE_P(
-        BluetoothLeAudioCodecsProviderTest, UpdateStrategyConfigurationsToMapTest,
+        BluetoothLeAudioCodecsProviderTest, UpdateStrategyConfigurationsToCacheTest,
         ::testing::ValuesIn(BluetoothLeAudioCodecsProviderTest::CreateTestCases(
                 kValidScenarioList, kValidConfigurationList, kValidCodecConfigurationList,
-                UpdateStrategyConfigurationsToMapTest::CreateInvalidStrategyConfigurations())));
+                UpdateStrategyConfigurationsToCacheTest::CreateInvalidStrategyConfigurations())));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ComposeLeAudioCodecCapabilitiesTest);
 INSTANTIATE_TEST_SUITE_P(BluetoothLeAudioCodecsProviderTest, ComposeLeAudioCodecCapabilitiesTest,

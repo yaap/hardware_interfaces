@@ -84,7 +84,6 @@ class StreamBluetooth : public StreamCommonImpl {
     const bool mIsInput;
     const std::weak_ptr<IBluetoothA2dp> mBluetoothA2dp;
     const std::weak_ptr<IBluetoothLe> mBluetoothLe;
-    const std::weak_ptr<IBluetooth> mBluetoothHfp;
     const size_t mPreferredDataIntervalUs;
     std::shared_ptr<PortCallbacksHandler> mCallbacksHandler;
     std::string mSessionTypeName;

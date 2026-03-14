@@ -99,7 +99,6 @@ const std::vector<CodecCapabilities> kDefaultOffloadA2dpCodecCapabilities = {
         {.codecType = CodecType::OPUS, .capabilities = {}}};
 
 std::vector<LeAudioCodecCapabilitiesSetting> kDefaultOffloadLeAudioCapabilities;
-std::unordered_map<SessionType, std::vector<CodecInfo>> kDefaultOffloadLeAudioCodecInfoMap;
 std::vector<CodecInfo> kDefaultOffloadHfpCodecInfo;
 
 template <class T>
@@ -385,13 +384,11 @@ std::vector<CodecInfo> BluetoothAudioCodecs::GetLeAudioOffloadCodecInfo(
         return std::vector<CodecInfo>();
     }
 
-    if (kDefaultOffloadLeAudioCodecInfoMap.empty()) {
-        kDefaultOffloadLeAudioCodecInfoMap = BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo();
-    }
-    auto codec_info_map_iter = kDefaultOffloadLeAudioCodecInfoMap.find(session_type);
-    if (codec_info_map_iter == kDefaultOffloadLeAudioCodecInfoMap.end())
-        return std::vector<CodecInfo>();
-    return codec_info_map_iter->second;
+    const auto& codec_info = BluetoothLeAudioCodecsProvider::GetLeAudioCodecInfo();
+
+    auto it = codec_info.find(session_type);
+    if (it == codec_info.end()) return std::vector<CodecInfo>();
+    return it->second;
 }
 
 std::vector<CodecInfo> BluetoothAudioCodecs::GetHfpOffloadCodecInfo() {

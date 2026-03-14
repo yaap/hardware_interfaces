@@ -20,7 +20,6 @@
 #include <mutex>
 
 #include <android-base/thread_annotations.h>
-#include <audio_utils/resampler.h>
 
 #include <aidl/android/hardware/bluetooth/audio/BluetoothAudioStatus.h>
 #include <aidl/android/hardware/bluetooth/audio/SessionType.h>
@@ -68,8 +67,6 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
 
     bool isA2dp() const override;
 
-    bool isHfp() const override;
-
     bool isLeAudio() const override;
 
     bool getPreferredDataIntervalUs(size_t& interval_us) const override;
@@ -88,9 +85,6 @@ class BluetoothAudioPortAidl : public BluetoothAudioPort {
     BluetoothStreamState mState GUARDED_BY(mCvMutex);
     // WR to support Mono: True if fetching Stereo and mixing into Mono
     bool mIsStereoToMono = false;
-    uint32_t mResampleRatio = 0;
-    using Resampler = std::unique_ptr<struct resampler_itfe, decltype(&release_resampler)>;
-    Resampler mResampler = {nullptr, nullptr};
     std::shared_ptr<BluetoothAudioPortCallbacks> mCallbacks GUARDED_BY(mCvMutex);
     std::optional<bool> mSupportsLowLatency GUARDED_BY(mCvMutex);
 

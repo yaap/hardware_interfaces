@@ -888,10 +888,13 @@ void ContextHub::HubInterface::createEchoDataFlow(
         return;
     }
 
+    RemoteEndpointId offloadEndpointId = {
+            .aidlId{.hubId = in_sinkId.hubId, .endpointId = in_sinkId.id}};
     pw::Result<std::variant<UntypedConsumer, VariableDataConsumer>> consumerRes =
             createRemoteConsumer(echoRegion, echoMetadataRegion, dataFlow.info.metadataOffsetBytes,
                                  sinkMetadataOffset,
-                                 RemoteNotifyArgs{[](const RemoteEndpointId&) {}});
+                                 RemoteNotifyArgs{.fn = [](const RemoteEndpointId&) {},
+                                                  .id = offloadEndpointId});
     if (!consumerRes.ok()) {
         ALOGE("Echo: createRemoteConsumer failed, status: %s", consumerRes.status().str());
         return;
@@ -952,7 +955,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
                 hostRegion, kQueueBlockCapacity,
                 std::get<UntypedConsumer>(*consumerOpt).getElementSize(),
                 std::get<UntypedConsumer>(*consumerOpt).getElementAlignment(), kMaxBlockCount,
-                kMinBlockCount, dataNotifier, RemoteNotifyArgs{[](const RemoteEndpointId&) {}},
+                kMinBlockCount, dataNotifier,
+                RemoteNotifyArgs{.fn = [](const RemoteEndpointId&) {}, .id = offloadEndpointId},
                 /*memAccess=*/nullptr);
         if (!producerRes.ok()) {
             ALOGE("Echo: UntypedProducer::createRemote failed, status: %s",
@@ -963,7 +967,8 @@ void ContextHub::HubInterface::createEchoDataFlow(
     } else {
         pw::Result<VariableDataProducer> producerRes = VariableDataProducer::createRemote(
                 hostRegion, kQueueBlockCapacity, kMaxBlockCount, kMinBlockCount, dataNotifier,
-                RemoteNotifyArgs{[](const RemoteEndpointId&) {}}, /* memAccess= */ nullptr);
+                RemoteNotifyArgs{.fn = [](const RemoteEndpointId&) {}, .id = offloadEndpointId},
+                /* memAccess= */ nullptr);
         if (!producerRes.ok()) {
             ALOGE("Echo: VariableDataProducer::createRemote failed, status: %s",
                   producerRes.status().str());

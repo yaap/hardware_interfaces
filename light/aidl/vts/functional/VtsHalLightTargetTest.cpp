@@ -83,19 +83,6 @@ class LightsAidl : public testing::TestWithParam<std::string> {
             }
         }
     }
-
-    HwLightEffect buildEffect(int32_t lightId) {
-        HwLightEffect effect;
-        effect.lightId = lightId;
-        effect.frames = {5};
-        effect.colors = {(int32_t)0xFFFFFFFF};
-        effect.iterations = 1;
-        effect.preemptive = false;
-        effect.framePeriodMillis = 33;
-        effect.interpolationType = InterpolationType::LINEAR;
-
-        return effect;
-    }
 };
 
 class LightsAidlV3 : public LightsAidl {
@@ -195,7 +182,7 @@ TEST_P(LightsAidlV3, TestLightEffects) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.framePeriodMillis = 33;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis + 1;
         effect.interpolationType = InterpolationType::LINEAR;
 
         Status status = lights->setLightEffects({effect});
@@ -219,7 +206,7 @@ TEST_P(LightsAidlV3, TestEffectsInfiniteIterations) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 0;
         effect.preemptive = false;
-        effect.framePeriodMillis = 33;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
 
         if (light.minUpdatePeriodMillis > 0) {
@@ -234,8 +221,10 @@ TEST_P(LightsAidlV3, TestEffectsInfiniteIterations) {
  */
 TEST_P(LightsAidlV3, TestEffectsInvalidLightIdUnsupported) {
     int maxId = INT_MIN;
+    int minPeriod = INT_MIN;
     for (const HwLight& light : supportedLights) {
         maxId = std::max(maxId, light.id);
+        minPeriod = std::max(minPeriod, light.minUpdatePeriodMillis);
     }
 
     HwLightEffect effect;
@@ -244,7 +233,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidLightIdUnsupported) {
     effect.colors = {(int32_t)0xFFFFFFFF};
     effect.iterations = 1;
     effect.preemptive = false;
-    effect.framePeriodMillis = 33;
+    effect.framePeriodMillis = minPeriod;
     effect.interpolationType = InterpolationType::LINEAR;
 
     Status status = lights->setLightEffects({effect});
@@ -263,7 +252,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_emptyFrames) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.framePeriodMillis = 33;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
 
         if (light.minUpdatePeriodMillis > 0) {
@@ -284,7 +273,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_emptyColors) {
         effect.colors = {};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.framePeriodMillis = 33;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
 
         if (light.minUpdatePeriodMillis > 0) {
@@ -305,7 +294,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_unevenArrays) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = 1;
         effect.preemptive = false;
-        effect.framePeriodMillis = 33;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
 
         if (light.minUpdatePeriodMillis > 0) {
@@ -326,7 +315,7 @@ TEST_P(LightsAidlV3, TestEffectsInvalidEffect_negativeIterations) {
         effect.colors = {(int32_t)0xFFFFFFFF};
         effect.iterations = -1;
         effect.preemptive = false;
-        effect.framePeriodMillis = 33;
+        effect.framePeriodMillis = light.minUpdatePeriodMillis;
         effect.interpolationType = InterpolationType::LINEAR;
 
         if (light.minUpdatePeriodMillis > 0) {
