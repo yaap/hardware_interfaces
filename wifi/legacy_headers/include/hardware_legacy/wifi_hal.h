@@ -21,6 +21,8 @@
 extern "C"
 {
 #endif
+
+#include <stddef.h>
 #include <stdint.h>
 
 #define IFNAMSIZ 16
