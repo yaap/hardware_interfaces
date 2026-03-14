@@ -735,6 +735,9 @@ TEST_P(WifiNanIfaceAidlTest, NotifyCapabilitiesResponse) {
  * ranging intervals.
  */
 TEST_P(WifiNanIfaceAidlTest, ValidatePeriodicRangingIntervals) {
+    if (interface_version_ < 5) {
+        GTEST_SKIP() << "Skipping test, interface version is less than 5";
+    }
     uint16_t inputCmdId = 10;
     callback_event_bitmap_ = 0;
     EXPECT_TRUE(wifi_nan_iface_->getCapabilitiesRequest(inputCmdId).isOk());

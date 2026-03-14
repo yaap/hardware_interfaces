@@ -453,6 +453,22 @@ typedef struct {
     u32 ranging_event_type;
 } NanRangeInfo;
 
+/*
+ * NAN Periodic Ranging Interval in Time Units.
+ *
+ * For more information, see the Wi-Fi Aware Spec 4.0, Table 97, Bits 3-5. From the 802.11 spec,
+ * one Time Unit (TU) is equal to 1024 microseconds (approx. 1 ms).
+ */
+typedef enum {
+    NAN_PERIODIC_RANGING_INTERVAL_128TU = 1 << 0,
+    NAN_PERIODIC_RANGING_INTERVAL_256TU = 1 << 1,
+    NAN_PERIODIC_RANGING_INTERVAL_512TU = 1 << 2,
+    NAN_PERIODIC_RANGING_INTERVAL_1024TU = 1 << 3,
+    NAN_PERIODIC_RANGING_INTERVAL_2048TU = 1 << 4,
+    NAN_PERIODIC_RANGING_INTERVAL_4096TU = 1 << 5,
+    NAN_PERIODIC_RANGING_INTERVAL_8192TU = 1 << 6,
+} NanPeriodicRangingIntervalMask;
+
 /* Nan/NDP Capabilites info */
 typedef struct {
     u32 max_concurrent_nan_clusters;
@@ -484,6 +500,7 @@ typedef struct {
     bool is_periodic_ranging_supported;
     wifi_rtt_bw supported_bw;
     u8 num_rx_chains_supported;
+    NanPeriodicRangingIntervalMask supported_periodic_ranging_intervals;
 } NanCapabilities;
 
 /*

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+#include <aidl/android/hardware/wifi/NanPeriodicRangingInterval.h>
 #include <android-base/logging.h>
 #include <utils/SystemClock.h>
+#include <iomanip>
 
 #include "aidl_struct_util.h"
 
@@ -2256,6 +2258,56 @@ bool convertLegacyNanResponseHeaderToAidl(const legacy_hal::NanResponseMsg& lega
     return true;
 }
 
+static inline int32_t convertLegacyNanPeriodicRangingIntervalsToAidl(
+        NanPeriodicRangingIntervalMask legacy_intervals) {
+    int32_t aidl_bitmask = 0;
+    int32_t legacy_intervals_int = static_cast<int32_t>(legacy_intervals);
+
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_128TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_128TU);
+    }
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_256TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_256TU);
+    }
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_512TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_512TU);
+    }
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_1024TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_1024TU);
+    }
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_2048TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_2048TU);
+    }
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_4096TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_4096TU);
+    }
+    if (legacy_intervals_int & NAN_PERIODIC_RANGING_INTERVAL_8192TU) {
+        aidl_bitmask |= static_cast<int32_t>(
+                aidl::android::hardware::wifi::NanPeriodicRangingInterval::INTERVAL_8192TU);
+    }
+
+    // Check for any bits set in legacy_intervals that are not part of the known C enum values
+    int32_t all_known_legacy_bits =
+            NAN_PERIODIC_RANGING_INTERVAL_128TU | NAN_PERIODIC_RANGING_INTERVAL_256TU |
+            NAN_PERIODIC_RANGING_INTERVAL_512TU | NAN_PERIODIC_RANGING_INTERVAL_1024TU |
+            NAN_PERIODIC_RANGING_INTERVAL_2048TU | NAN_PERIODIC_RANGING_INTERVAL_4096TU |
+            NAN_PERIODIC_RANGING_INTERVAL_8192TU;
+
+    int32_t unknown_bits = legacy_intervals_int & ~all_known_legacy_bits;
+    if (unknown_bits != 0) {
+        LOG(ERROR) << "Unknown bits set in supportedPeriodicRangingIntervals from HAL: 0x"
+                   << std::hex << unknown_bits;
+    }
+
+    return aidl_bitmask;
+}
+
 bool convertLegacyNanCapabilitiesResponseToAidl(const legacy_hal::NanCapabilities& legacy_response,
                                                 NanCapabilities* aidl_response) {
     if (!aidl_response) {
@@ -2290,6 +2342,9 @@ bool convertLegacyNanCapabilitiesResponseToAidl(const legacy_hal::NanCapabilitie
     aidl_response->supportsPeriodicRanging = legacy_response.is_periodic_ranging_supported;
     aidl_response->maxSupportedBandwidth = convertLegacyRttBwToAidl(legacy_response.supported_bw);
     aidl_response->maxNumRxChainsSupported = legacy_response.num_rx_chains_supported;
+    aidl_response->supportedPeriodicRangingIntervals =
+            convertLegacyNanPeriodicRangingIntervalsToAidl(
+                    legacy_response.supported_periodic_ranging_intervals);
 
     return true;
 }
