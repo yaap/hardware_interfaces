@@ -26,11 +26,12 @@
 #include "keymint_support/keymint_tags.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <android-base/strings.h>
 #include <android/binder_manager.h>
 #include <android/content/pm/IPackageManagerNative.h>
 #include <cppbor_parse.h>
-#include <cutils/properties.h>
+
 #include <gmock/gmock.h>
 #include <openssl/evp.h>
 #include <openssl/mem.h>
@@ -176,8 +177,7 @@ void check_attestation_version(uint32_t attestation_version, int32_t aidl_versio
 }
 
 bool avb_verification_enabled() {
-    char value[PROPERTY_VALUE_MAX];
-    return property_get("ro.boot.vbmeta.device_state", value, "") != 0;
+    return !::android::base::GetProperty("ro.boot.vbmeta.device_state", "").empty();
 }
 
 constexpr char hex_value[256] = {0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
@@ -376,7 +376,8 @@ bool KeyMintAidlTestBase::isDeviceIdAttestationRequired() {
  * which is supported for KeyMint version 3 or first_api_level greater than 33.
  */
 bool KeyMintAidlTestBase::isSecondImeiIdAttestationRequired() {
-    return AidlVersion() >= 3 && property_get_int32("ro.vendor.api_level", 0) > __ANDROID_API_T__;
+    return AidlVersion() >= 3 &&
+           ::android::base::GetIntProperty("ro.vendor.api_level", 0) > __ANDROID_API_T__;
 }
 
 std::optional<bool> KeyMintAidlTestBase::isRkpOnly() {
@@ -389,9 +390,9 @@ std::optional<bool> KeyMintAidlTestBase::isRkpOnly() {
         return std::nullopt;
     }
     if (SecLevel() == SecurityLevel::STRONGBOX) {
-        return property_get_bool("remote_provisioning.strongbox.rkp_only", false);
+        return ::android::base::GetBoolProperty("remote_provisioning.strongbox.rkp_only", false);
     }
-    return property_get_bool("remote_provisioning.tee.rkp_only", false);
+    return ::android::base::GetBoolProperty("remote_provisioning.tee.rkp_only", false);
 }
 
 bool KeyMintAidlTestBase::Curve25519Supported(SecurityLevel sec_level, int32_t aidl_version) {
@@ -1151,7 +1152,7 @@ void KeyMintAidlTestBase::CheckEncryptOneByteAtATime(BlockMode block_mode, const
         // Every input block produces an output block.
         bool compare_output = true;
         string additional_information;
-        int vendor_api_level = property_get_int32("ro.vendor.api_level", 0);
+        int vendor_api_level = ::android::base::GetIntProperty("ro.vendor.api_level", 0);
         if (SecLevel() == SecurityLevel::STRONGBOX) {
             // This is known to be broken on older vendor implementations.
             if (vendor_api_level <= __ANDROID_API_U__) {
@@ -2011,24 +2012,21 @@ bool KeyMintAidlTestBase::is_strongbox_enabled(void) const {
 // Check if chipset has received a waiver allowing it to be launched with Android S or T with
 // Keymaster 4.0 in StrongBox.
 bool KeyMintAidlTestBase::is_chipset_allowed_km4_strongbox(void) const {
-    std::array<char, PROPERTY_VALUE_MAX> buffer;
-
-    const int32_t first_api_level = property_get_int32("ro.board.first_api_level", 0);
+    const int32_t first_api_level = ::android::base::GetIntProperty("ro.board.first_api_level", 0);
     if (first_api_level <= 0 || first_api_level > __ANDROID_API_T__) return false;
 
-    auto res = property_get("ro.vendor.qti.soc_model", buffer.data(), nullptr);
-    if (res <= 0) return false;
+    std::string model = ::android::base::GetProperty("ro.vendor.qti.soc_model", "");
+    if (model.empty()) return false;
 
     const string allowed_soc_models[] = {"SM8450", "SM8475", "SM8550", "SXR2230P",
                                          "SM4450", "SM7450", "SM6450"};
 
-    for (const string& model : allowed_soc_models) {
-        if (model.compare(buffer.data()) == 0) {
-            GTEST_LOG_(INFO) << "QTI SOC Model " + model + " is allowed SB KM 4.0";
+    for (const string& allowed_model : allowed_soc_models) {
+        if (allowed_model == model) {
+            GTEST_LOG_(INFO) << "QTI SOC Model " + allowed_model + " is allowed SB KM 4.0";
             return true;
         }
     }
-
     return false;
 }
 
@@ -2168,16 +2166,18 @@ void verify_subject_and_serial(const Certificate& certificate,  //
 void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_locked,
                           VerifiedBoot verified_boot_state,
                           const vector<uint8_t>& verified_boot_hash) {
-    char property_value[PROPERTY_VALUE_MAX] = {};
+    std::string property_value;
 
     if (avb_verification_enabled()) {
-        EXPECT_NE(property_get("ro.boot.vbmeta.digest", property_value, ""), 0);
-        string prop_string(property_value);
-        EXPECT_EQ(prop_string.size(), 64);
-        EXPECT_EQ(prop_string, bin2hex(verified_boot_hash));
+        property_value = ::android::base::GetProperty("ro.boot.vbmeta.digest", /* default= */ "");
+        EXPECT_NE(property_value, "");
+        EXPECT_EQ(property_value.size(), 64);
+        EXPECT_EQ(property_value, bin2hex(verified_boot_hash));
 
-        EXPECT_NE(property_get("ro.boot.vbmeta.device_state", property_value, ""), 0);
-        if (!strcmp(property_value, "unlocked")) {
+        property_value =
+                ::android::base::GetProperty("ro.boot.vbmeta.device_state", /* default= */ "");
+        EXPECT_NE(property_value, "");
+        if (property_value == "unlocked") {
             EXPECT_FALSE(device_locked);
         } else {
             EXPECT_TRUE(device_locked);
@@ -2186,7 +2186,7 @@ void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_
         // Check that the device is locked if not debuggable, e.g., user build
         // images in CTS. For VTS, debuggable images are used to allow adb root
         // and the device is unlocked.
-        if (!property_get_bool("ro.debuggable", false)) {
+        if (!::android::base::GetBoolProperty("ro.debuggable", false)) {
             EXPECT_TRUE(device_locked);
         } else {
             EXPECT_FALSE(device_locked);
@@ -2216,20 +2216,22 @@ void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_
     std::string empty_boot_key(32, '\0');
     std::string verified_boot_key_str((const char*)verified_boot_key.data(),
                                       verified_boot_key.size());
-    EXPECT_NE(property_get("ro.boot.verifiedbootstate", property_value, ""), 0);
-    if (!strcmp(property_value, "green")) {
+
+    property_value = ::android::base::GetProperty("ro.boot.verifiedbootstate", /* default= */ "");
+    EXPECT_NE(property_value, "");
+    if (property_value == "green") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::VERIFIED);
         EXPECT_NE(0, memcmp(verified_boot_key.data(), empty_boot_key.data(),
                             verified_boot_key.size()));
-    } else if (!strcmp(property_value, "yellow")) {
+    } else if (property_value == "yellow") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::SELF_SIGNED);
         EXPECT_NE(0, memcmp(verified_boot_key.data(), empty_boot_key.data(),
                             verified_boot_key.size()));
-    } else if (!strcmp(property_value, "orange")) {
+    } else if (property_value == "orange") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::UNVERIFIED);
         EXPECT_EQ(0, memcmp(verified_boot_key.data(), empty_boot_key.data(),
                             verified_boot_key.size()));
-    } else if (!strcmp(property_value, "red")) {
+    } else if (property_value == "red") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::FAILED);
     } else {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::UNVERIFIED);
