@@ -124,6 +124,7 @@ class BluetoothAudioPortMock : public BluetoothAudioPort {
 
     bool isA2dp() const override { return false; }
     bool isLeAudio() const override { return false; }
+    bool isHfp() const override { return false; }
 
     bool getPreferredDataIntervalUs(size_t& interval_us) const override {
         interval_us = 10000;  // Default 10ms
