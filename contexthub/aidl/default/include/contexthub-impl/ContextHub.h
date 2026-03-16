@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "data_flow/host/region_manager.h"
+#include "data_flow/queue.h"
 
 namespace aidl {
 namespace android {
@@ -173,6 +174,7 @@ class ContextHub : public BnContextHub {
         std::mutex mEchoDataFlowMutex;
         std::unordered_map<int32_t, EchoDataFlow> mEchoDataFlows;
         std::atomic<int32_t> mNextDataFlowId{1};
+        ::android::contexthub::data_flow::DataNotifier mDataNotifier;
 
         ::android::contexthub::data_flow::RegionManager mRegionManager;
 

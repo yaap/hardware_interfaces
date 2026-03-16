@@ -945,7 +945,6 @@ void ContextHub::HubInterface::createEchoDataFlow(
     AllocatorRegion& hostRegion = hostProdRegionRes.value();
 
     // Create Producer
-    DataNotifier dataNotifier;
     constexpr size_t kQueueBlockCapacity = 1024;
     constexpr size_t kMaxBlockCount = 16;
     constexpr size_t kMinBlockCount = 1;
@@ -955,7 +954,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
                 hostRegion, kQueueBlockCapacity,
                 std::get<UntypedConsumer>(*consumerOpt).getElementSize(),
                 std::get<UntypedConsumer>(*consumerOpt).getElementAlignment(), kMaxBlockCount,
-                kMinBlockCount, dataNotifier,
+                kMinBlockCount, mDataNotifier,
                 RemoteNotifyArgs{.fn = [](const RemoteEndpointId&) {}, .id = offloadEndpointId},
                 /*memAccess=*/nullptr);
         if (!producerRes.ok()) {
@@ -966,7 +965,7 @@ void ContextHub::HubInterface::createEchoDataFlow(
         producerOpt.emplace(std::move(producerRes.value()));
     } else {
         pw::Result<VariableDataProducer> producerRes = VariableDataProducer::createRemote(
-                hostRegion, kQueueBlockCapacity, kMaxBlockCount, kMinBlockCount, dataNotifier,
+                hostRegion, kQueueBlockCapacity, kMaxBlockCount, kMinBlockCount, mDataNotifier,
                 RemoteNotifyArgs{.fn = [](const RemoteEndpointId&) {}, .id = offloadEndpointId},
                 /* memAccess= */ nullptr);
         if (!producerRes.ok()) {
