@@ -556,6 +556,39 @@ BufferPoolStatus ClientManager::postSend(
     return ResultStatus::CRITICAL_ERROR;
 }
 
+BufferPoolStatus ClientManager::enableCaching(
+        const ConnectionId connectionId, const std::string &cacheName,
+        std::shared_ptr<BufferPoolCacheKey> *key) {
+    // TODO
+    (void)connectionId;
+    (void)cacheName;
+    (void)key;
+    return ResultStatus::CRITICAL_ERROR;
+}
+
+
+BufferPoolStatus ClientManager::updateCache(
+        const std::shared_ptr<BufferPoolData> &buffer,
+        const std::shared_ptr<BufferPoolCacheKey> &key,
+        const std::shared_ptr<BufferPoolCachedItem> &item) {
+    // TODO
+    (void)buffer;
+    (void)key;
+    (void)item;
+    return ResultStatus::NOT_FOUND;
+}
+
+BufferPoolStatus ClientManager::getCache(
+        const std::shared_ptr<BufferPoolData> &buffer,
+        const std::shared_ptr<BufferPoolCacheKey> &key,
+        std::shared_ptr<BufferPoolCachedItem> *item) {
+    // TODO
+    (void)buffer;
+    (void)key;
+    (void)item;
+    return ResultStatus::NOT_FOUND;
+}
+
 void ClientManager::cleanUp() {
     if (mImpl) {
         mImpl->cleanUp(true);
