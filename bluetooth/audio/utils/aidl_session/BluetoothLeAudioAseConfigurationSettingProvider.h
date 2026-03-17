@@ -52,11 +52,6 @@ class AudioSetConfigurationProviderJson {
   private:
     static void LoadAudioSetConfigurationProviderJson();
 
-    static const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
-            const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
-                    flat_codec_specific_params,
-            le_audio::CodecSpecificLtvGenericTypes type);
-
     static void PopulateAudioChannelAllocation(
             CodecSpecificConfigurationLtv::AudioChannelAllocation& audio_channel_allocation,
             uint32_t audio_location);
@@ -74,6 +69,8 @@ class AudioSetConfigurationProviderJson {
     static void PopulateAseQosConfiguration(LeAudioAseQosConfiguration& qos,
                                             const le_audio::QosConfiguration* qos_cfg,
                                             LeAudioAseConfiguration& ase, uint8_t ase_channel_cnt);
+
+    static void PopulateVendorCodecConfiguration(LeAudioAseConfiguration& ase);
 
     static AseDirectionConfiguration SetConfigurationFromFlatSubconfig(
             const le_audio::AudioSetSubConfiguration* flat_subconfig,
@@ -93,6 +90,9 @@ class AudioSetConfigurationProviderJson {
             std::vector<std::optional<AseDirectionConfiguration>>& sourceAseConfiguration,
             std::vector<std::optional<AseDirectionConfiguration>>& sinkAseConfiguration,
             ConfigurationFlags& configurationFlags);
+
+    static LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
+                                                         const LeAudioAseConfiguration& ase);
 
     static bool LoadConfigurationsFromFiles(const char* schema_file, const char* content_file,
                                             CodecLocation location);
