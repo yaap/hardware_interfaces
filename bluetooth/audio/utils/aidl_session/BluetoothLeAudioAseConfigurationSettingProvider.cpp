@@ -60,19 +60,14 @@ namespace bluetooth {
 namespace audio {
 
 namespace {
-// Set configuration and scenario files with fallback default
-const std::vector<std::pair<const char* /*schema*/, const char* /*content*/>> kLeAudioSetConfigs = {
-        {"/vendor/etc/aidl/le_audio/"
-         "aidl_audio_set_configurations.bfbs",
-         "/vendor/etc/aidl/le_audio/"
-         "aidl_audio_set_configurations.json"},
+
+const std::vector<ConfigurationSetFile> kLeAudioSetConfigs = {
+        {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.bfbs",
+         .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.json"},
 };
-const std::vector<std::pair<const char* /*schema*/, const char* /*content*/>> kLeAudioSetScenarios =
-        {
-                {"/vendor/etc/aidl/le_audio/"
-                 "aidl_audio_set_scenarios.bfbs",
-                 "/vendor/etc/aidl/le_audio/"
-                 "aidl_audio_set_scenarios.json"},
+const std::vector<ConfigurationSetFile> kLeAudioSetScenarios = {
+        {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.bfbs",
+         .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.json"},
 };
 
 const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
@@ -137,15 +132,25 @@ bool IsAseConfigurationAsymmetrical(AseDirectionConfiguration cfg_a,
     return false;
 }
 
+bool LoadFileAndParse(flatbuffers::Parser& parser, const ConfigurationSetFile& files) {
+    std::string schema_binary, content_binary;
+    if (!flatbuffers::LoadFile(files.schema, true, &schema_binary)) {
+        LOG(ERROR) << __func__ << ": Failed to load schema: " << files.schema;
+        return false;
+    }
+    if (!parser.Deserialize(reinterpret_cast<const uint8_t*>(schema_binary.c_str()),
+                            schema_binary.length())) {
+        LOG(ERROR) << __func__ << ": Failed to deserialize schema: " << files.schema;
+        return false;
+    }
+    if (!flatbuffers::LoadFile(files.content, false, &content_binary)) {
+        LOG(ERROR) << __func__ << ": Failed to load json file: " << files.content;
+        return false;
+    }
+    return parser.Parse(content_binary.c_str());
+}
+
 }  // namespace
-
-/* Internal structure definition */
-std::map<std::string,
-         std::tuple<std::vector<std::optional<AseDirectionConfiguration>>,
-                    std::vector<std::optional<AseDirectionConfiguration>>, ConfigurationFlags>>
-        configurations_;
-
-std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>> ase_configuration_settings_;
 
 /* Implementation */
 
@@ -156,10 +161,11 @@ AudioSetConfigurationProviderJson::GetLeAudioAseConfigurationSettings() {
 }
 
 void AudioSetConfigurationProviderJson::LoadAudioSetConfigurationProviderJson() {
-    if (configurations_.empty() || ase_configuration_settings_.empty()) {
+    if (ase_configs_.empty() || ase_configuration_settings_.empty()) {
         ase_configuration_settings_.clear();
-        configurations_.clear();
-        auto loaded = LoadContent(kLeAudioSetConfigs, kLeAudioSetScenarios, CodecLocation::ADSP);
+        ase_configs_.clear();
+        auto loaded = LoadConfigurationSetFile(kLeAudioSetConfigs, kLeAudioSetScenarios,
+                                               CodecLocation::ADSP);
         if (!loaded) LOG(ERROR) << ": Unable to load le audio set configuration files.";
     } else
         LOG(INFO) << ": Reusing loaded le audio set configuration";
@@ -588,35 +594,13 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
     }
 }
 
-bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(const char* schema_file,
-                                                                    const char* content_file,
-                                                                    CodecLocation location) {
-    flatbuffers::Parser configurations_parser_;
-    std::string configurations_schema_binary_content;
-    bool ok = flatbuffers::LoadFile(schema_file, true, &configurations_schema_binary_content);
-    LOG(INFO) << __func__ << ": Loading file " << schema_file;
-    if (!ok) return ok;
+bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
+        const ConfigurationSetFile& files, CodecLocation location) {
+    flatbuffers::Parser parser;
+    if (!LoadFileAndParse(parser, files)) return false;
 
-    /* Load the binary schema */
-    ok = configurations_parser_.Deserialize((uint8_t*)configurations_schema_binary_content.c_str(),
-                                            configurations_schema_binary_content.length());
-    if (!ok) return ok;
-
-    /* Load the content from JSON */
-    std::string configurations_json_content;
-    LOG(INFO) << __func__ << ": Loading file " << content_file;
-    ok = flatbuffers::LoadFile(content_file, false, &configurations_json_content);
-    if (!ok) return ok;
-
-    /* Parse */
-    LOG(INFO) << __func__ << ": Parse JSON content";
-    ok = configurations_parser_.Parse(configurations_json_content.c_str());
-    if (!ok) return ok;
-
-    /* Import from flatbuffers */
-    LOG(INFO) << __func__ << ": Build flat buffer structure";
     auto configurations_root =
-            le_audio::GetAudioSetConfigurations(configurations_parser_.builder_.GetBufferPointer());
+            le_audio::GetAudioSetConfigurations(parser.builder_.GetBufferPointer());
     if (!configurations_root) return false;
 
     auto flat_qos_configs = configurations_root->qos_configurations();
@@ -650,41 +634,18 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(const char* 
                                          sourceAseConfiguration, sinkAseConfiguration,
                                          configurationFlags);
         if (sourceAseConfiguration.empty() && sinkAseConfiguration.empty()) continue;
-        configurations_[flat_cfg->name()->str()] =
-                std::make_tuple(sourceAseConfiguration, sinkAseConfiguration, configurationFlags);
+        ase_configs_[flat_cfg->name()->str()] = {sourceAseConfiguration, sinkAseConfiguration,
+                                                 configurationFlags};
     }
 
     return true;
 }
 
-bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const char* schema_file,
-                                                               const char* content_file) {
-    flatbuffers::Parser scenarios_parser_;
-    std::string scenarios_schema_binary_content;
-    bool ok = flatbuffers::LoadFile(schema_file, true, &scenarios_schema_binary_content);
-    LOG(INFO) << __func__ << ": Loading file " << schema_file;
-    if (!ok) return ok;
+bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const ConfigurationSetFile& files) {
+    flatbuffers::Parser parser;
+    if (!LoadFileAndParse(parser, files)) return false;
 
-    /* Load the binary schema */
-    ok = scenarios_parser_.Deserialize((uint8_t*)scenarios_schema_binary_content.c_str(),
-                                       scenarios_schema_binary_content.length());
-    if (!ok) return ok;
-
-    /* Load the content from JSON */
-    LOG(INFO) << __func__ << ": Loading file " << content_file;
-    std::string scenarios_json_content;
-    ok = flatbuffers::LoadFile(content_file, false, &scenarios_json_content);
-    if (!ok) return ok;
-
-    /* Parse */
-    LOG(INFO) << __func__ << ": Parse json content";
-    ok = scenarios_parser_.Parse(scenarios_json_content.c_str());
-    if (!ok) return ok;
-
-    /* Import from flatbuffers */
-    LOG(INFO) << __func__ << ": Build flat buffer structure";
-    auto scenarios_root =
-            le_audio::GetAudioSetScenarios(scenarios_parser_.builder_.GetBufferPointer());
+    auto scenarios_root = le_audio::GetAudioSetScenarios(parser.builder_.GetBufferPointer());
     if (!scenarios_root) return false;
 
     auto flat_scenarios = scenarios_root->scenarios();
@@ -731,8 +692,8 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const char* schem
         for (auto it = scenario->configurations()->begin(); it != scenario->configurations()->end();
              ++it) {
             auto config_name = it->str();
-            auto configuration = configurations_.find(config_name);
-            if (configuration == configurations_.end()) continue;
+            auto configuration = ase_configs_.find(config_name);
+            if (configuration == ase_configs_.end()) continue;
             LOG(DEBUG) << "Getting configuration with name: " << config_name;
             auto [source, sink, flags] = configuration->second;
             // Each configuration will create a LeAudioAseConfigurationSetting
@@ -753,26 +714,24 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const char* schem
     return true;
 }
 
-bool AudioSetConfigurationProviderJson::LoadContent(
-        std::vector<std::pair<const char* /*schema*/, const char* /*content*/>> config_files,
-        std::vector<std::pair<const char* /*schema*/, const char* /*content*/>> scenario_files,
-        CodecLocation location) {
-    bool is_loaded_config = false;
-    for (auto [schema, content] : config_files) {
-        if (LoadConfigurationsFromFiles(schema, content, location)) {
-            is_loaded_config = true;
+bool AudioSetConfigurationProviderJson::LoadConfigurationSetFile(
+        const std::vector<ConfigurationSetFile>& config_files,
+        const std::vector<ConfigurationSetFile>& scenario_files, CodecLocation location) {
+    bool is_success = false;
+    for (const auto& file : config_files) {
+        if ((is_success = LoadConfigurationsFromFiles(file, location))) {
             break;
         }
     }
 
-    bool is_loaded_scenario = false;
-    for (auto [schema, content] : scenario_files) {
-        if (LoadScenariosFromFiles(schema, content)) {
-            is_loaded_scenario = true;
-            break;
+    if (!is_success) return false;
+
+    for (const auto& file : scenario_files) {
+        if (LoadScenariosFromFiles(file)) {
+            return true;
         }
     }
-    return is_loaded_config && is_loaded_scenario;
+    return false;
 }
 
 }  // namespace audio

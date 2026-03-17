@@ -22,9 +22,11 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <vector>
 
 #include "audio_set_configurations_generated.h"
 #include "audio_set_scenarios_generated.h"
+#include "flatbuffers/idl.h"
 
 namespace aidl {
 namespace android {
@@ -42,6 +44,17 @@ enum class CodecLocation {
     HOST,
     ADSP,
     CONTROLLER,
+};
+
+struct ConfigurationSetFile {
+    const char* schema;
+    const char* content;
+};
+
+struct AseConfig {
+    std::vector<std::optional<AseDirectionConfiguration>> source;
+    std::vector<std::optional<AseDirectionConfiguration>> sink;
+    ConfigurationFlags flags;
 };
 
 class AudioSetConfigurationProviderJson {
@@ -94,15 +107,18 @@ class AudioSetConfigurationProviderJson {
     static LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
                                                          const LeAudioAseConfiguration& ase);
 
-    static bool LoadConfigurationsFromFiles(const char* schema_file, const char* content_file,
+    static bool LoadConfigurationsFromFiles(const ConfigurationSetFile& files,
                                             CodecLocation location);
 
-    static bool LoadScenariosFromFiles(const char* schema_file, const char* content_file);
+    static bool LoadScenariosFromFiles(const ConfigurationSetFile& files);
 
-    static bool LoadContent(
-            std::vector<std::pair<const char* /*schema*/, const char* /*content*/>> config_files,
-            std::vector<std::pair<const char* /*schema*/, const char* /*content*/>> scenario_files,
-            CodecLocation location);
+    static bool LoadConfigurationSetFile(const std::vector<ConfigurationSetFile>& config_files,
+                                         const std::vector<ConfigurationSetFile>& scenario_files,
+                                         CodecLocation location);
+
+    inline static std::map<std::string, AseConfig, std::less<>> ase_configs_;
+    inline static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
+            ase_configuration_settings_;
 };
 
 }  // namespace audio
