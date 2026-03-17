@@ -74,14 +74,13 @@ class AudioSetConfigurationProviderJson {
             const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
                     flat_codec_specific_params);
 
-    static void PopulateAseConfiguration(LeAudioAseConfiguration& ase,
-                                         const le_audio::AudioSetSubConfiguration* flat_subconfig,
-                                         const le_audio::QosConfiguration* qos_cfg,
-                                         ConfigurationFlags& configurationFlags);
+    static std::optional<LeAudioAseConfiguration> PopulateAseConfiguration(
+            const le_audio::AudioSetSubConfiguration* flat_subconfig,
+            const le_audio::QosConfiguration* qos_cfg);
 
-    static void PopulateAseQosConfiguration(LeAudioAseQosConfiguration& qos,
-                                            const le_audio::QosConfiguration* qos_cfg,
-                                            LeAudioAseConfiguration& ase, uint8_t ase_channel_cnt);
+    static std::optional<LeAudioAseQosConfiguration> PopulateAseQosConfiguration(
+            const le_audio::QosConfiguration* qos_cfg, const LeAudioAseConfiguration& ase,
+            uint8_t ase_channel_cnt);
 
     static std::optional<std::vector<uint8_t>> PopulateVendorCodecConfiguration(
             const LeAudioAseConfiguration& ase);

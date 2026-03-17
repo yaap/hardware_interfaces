@@ -258,107 +258,94 @@ void AudioSetConfigurationProviderJson::PopulateConfigurationData(
     ase.codecConfiguration.push_back(frame_sdu_structure);
 }
 
-void AudioSetConfigurationProviderJson::PopulateAseConfiguration(
-        LeAudioAseConfiguration& ase, const le_audio::AudioSetSubConfiguration* flat_subconfig,
-        const le_audio::QosConfiguration* qos_cfg, ConfigurationFlags& configurationFlags) {
-    // Target latency
-    switch (qos_cfg->target_latency()) {
-        case le_audio::AudioSetConfigurationTargetLatency::
-                AudioSetConfigurationTargetLatency_BALANCED_RELIABILITY:
-            ase.targetLatency =
-                    LeAudioAseConfiguration::TargetLatency::BALANCED_LATENCY_RELIABILITY;
-            break;
-        case le_audio::AudioSetConfigurationTargetLatency::
-                AudioSetConfigurationTargetLatency_HIGH_RELIABILITY:
-            ase.targetLatency = LeAudioAseConfiguration::TargetLatency::HIGHER_RELIABILITY;
-            break;
-        case le_audio::AudioSetConfigurationTargetLatency::AudioSetConfigurationTargetLatency_LOW:
-            ase.targetLatency = LeAudioAseConfiguration::TargetLatency::LOWER;
-            configurationFlags.bitmask |= ConfigurationFlags::LOW_LATENCY;
-            break;
-        default:
-            ase.targetLatency = LeAudioAseConfiguration::TargetLatency::UNDEFINED;
-            break;
-    };
+std::optional<LeAudioAseConfiguration> AudioSetConfigurationProviderJson::PopulateAseConfiguration(
+        const le_audio::AudioSetSubConfiguration* flat_subconfig,
+        const le_audio::QosConfiguration* qos_cfg) {
+    if (flat_subconfig == nullptr || qos_cfg == nullptr) return std::nullopt;
 
+    LeAudioAseConfiguration ase;
+    ase.targetLatency = ToAidlTargetLatency(qos_cfg->target_latency());
     ase.targetPhy = Phy::TWO_M;
+
     // Making CodecId
-    if (flat_subconfig->codec_id()->coding_format() == (uint8_t)CodecId::Core::LC3) {
-        ase.codecId = CodecId::Core::LC3;
-    } else {
-        auto vendorC = CodecId::Vendor();
-        vendorC.codecId = flat_subconfig->codec_id()->vendor_codec_id();
-        vendorC.id = flat_subconfig->codec_id()->vendor_company_id();
-        ase.codecId = vendorC;
+    const auto* codec_id = flat_subconfig->codec_id();
+    if (codec_id != nullptr) {
+        if (codec_id->coding_format() == static_cast<uint8_t>(CodecId::Core::LC3)) {
+            ase.codecId = CodecId::Core::LC3;
+        } else {
+            CodecId::Vendor vendor_codec;
+            vendor_codec.codecId = codec_id->vendor_codec_id();
+            vendor_codec.id = codec_id->vendor_company_id();
+            ase.codecId = vendor_codec;
+        }
     }
+
     // Codec configuration data
     PopulateConfigurationData(ase, flat_subconfig->codec_configuration());
+
+    return ase;
 }
 
-void AudioSetConfigurationProviderJson::PopulateAseQosConfiguration(
-        LeAudioAseQosConfiguration& qos, const le_audio::QosConfiguration* qos_cfg,
-        LeAudioAseConfiguration& ase, uint8_t ase_channel_cnt) {
-    std::optional<CodecSpecificConfigurationLtv::CodecFrameBlocksPerSDU> frameBlock = std::nullopt;
-    std::optional<CodecSpecificConfigurationLtv::FrameDuration> frameDuration = std::nullopt;
-    std::optional<CodecSpecificConfigurationLtv::OctetsPerCodecFrame> octet = std::nullopt;
-
-    // Put back allocation
-    CodecSpecificConfigurationLtv::AudioChannelAllocation allocation =
-            CodecSpecificConfigurationLtv::AudioChannelAllocation();
-    if (ase_channel_cnt == 1) {
-        if (ase.codecId.value().getTag() == CodecId::vendor) {
-            allocation.bitmask = CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT;
-        } else {
-            allocation.bitmask |=
-                    CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_CENTER;
-        }
-    } else {
-        allocation.bitmask |= CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_LEFT |
-                              CodecSpecificConfigurationLtv::AudioChannelAllocation::FRONT_RIGHT;
-    }
-    for (auto& cfg_ltv : ase.codecConfiguration) {
-        auto tag = cfg_ltv.getTag();
-        if (tag == CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU) {
-            frameBlock = cfg_ltv.get<CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU>();
-        } else if (tag == CodecSpecificConfigurationLtv::frameDuration) {
-            frameDuration = cfg_ltv.get<CodecSpecificConfigurationLtv::frameDuration>();
-        } else if (tag == CodecSpecificConfigurationLtv::octetsPerCodecFrame) {
-            octet = cfg_ltv.get<CodecSpecificConfigurationLtv::octetsPerCodecFrame>();
-        } else if (tag == CodecSpecificConfigurationLtv::audioChannelAllocation) {
-            // Change to the old hack allocation
-            cfg_ltv.set<CodecSpecificConfigurationLtv::audioChannelAllocation>(allocation);
-        }
+std::optional<LeAudioAseQosConfiguration>
+AudioSetConfigurationProviderJson::PopulateAseQosConfiguration(
+        const le_audio::QosConfiguration* qos_cfg, const LeAudioAseConfiguration& ase,
+        uint8_t ase_channel_cnt) {
+    if (qos_cfg == nullptr) {
+        LOG(ERROR) << __func__ << ": qos_cfg is null";
+        return std::nullopt;
     }
 
-    int frameBlockValue = 1;
-    if (frameBlock.has_value()) frameBlockValue = frameBlock.value().value;
+    LeAudioAseQosConfiguration qos;
+    using Ltv = CodecSpecificConfigurationLtv;
+
+    int frame_blocks = 1;
+    std::optional<int> octets = std::nullopt;
+    std::optional<int> duration_us = std::nullopt;
+
+    for (const auto& cfg_ltv : ase.codecConfiguration) {
+        switch (cfg_ltv.getTag()) {
+            case Ltv::codecFrameBlocksPerSDU:
+                frame_blocks = cfg_ltv.get<Ltv::codecFrameBlocksPerSDU>().value;
+                break;
+            case Ltv::frameDuration:
+                switch (cfg_ltv.get<Ltv::frameDuration>()) {
+                    case Ltv::FrameDuration::US7500:
+                        duration_us = 7500;
+                        break;
+                    case Ltv::FrameDuration::US10000:
+                        duration_us = 10000;
+                        break;
+                    case Ltv::FrameDuration::US20000:
+                        duration_us = 20000;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case Ltv::octetsPerCodecFrame:
+                octets = cfg_ltv.get<Ltv::octetsPerCodecFrame>().value;
+                break;
+            default:
+                break;
+        }
+    }
 
     // Populate maxSdu
-    if (octet.has_value()) {
-        // Vendor logic: maxSdu = octet.value().value to allow set directly.
-        if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
-            qos.maxSdu = octet.value().value * frameBlockValue;
-        } else {
-            qos.maxSdu = ase_channel_cnt * octet.value().value * frameBlockValue;
-        }
+    if (octets.has_value()) {
+        bool is_vendor = (ase.codecId.has_value() && ase.codecId->getTag() == CodecId::vendor);
+        int multiplier = is_vendor ? 1 : ase_channel_cnt;
+        qos.maxSdu = multiplier * octets.value() * frame_blocks;
     }
+
     // Populate sduIntervalUs
-    if (frameDuration.has_value()) {
-        switch (frameDuration.value()) {
-            case CodecSpecificConfigurationLtv::FrameDuration::US7500:
-                qos.sduIntervalUs = 7500;
-                break;
-            case CodecSpecificConfigurationLtv::FrameDuration::US10000:
-                qos.sduIntervalUs = 10000;
-                break;
-            case CodecSpecificConfigurationLtv::FrameDuration::US20000:
-                qos.sduIntervalUs = 20000;
-                break;
-        }
-        qos.sduIntervalUs *= frameBlockValue;
+    if (duration_us.has_value()) {
+        qos.sduIntervalUs = duration_us.value() * frame_blocks;
     }
+
     qos.maxTransportLatencyMs = qos_cfg->max_transport_latency();
     qos.retransmissionNum = qos_cfg->retransmission_number();
+
+    return qos;
 }
 
 std::optional<std::vector<uint8_t>>
@@ -463,14 +450,19 @@ AseDirectionConfiguration AudioSetConfigurationProviderJson::SetConfigurationFro
         ConfigurationFlags& configurationFlags) {
     AseDirectionConfiguration direction_conf;
 
-    LeAudioAseConfiguration ase;
-    LeAudioAseQosConfiguration qos;
-
     // Translate into LeAudioAseConfiguration
-    PopulateAseConfiguration(ase, flat_subconfig, qos_cfg, configurationFlags);
+    auto ase_opt = PopulateAseConfiguration(flat_subconfig, qos_cfg);
+    if (!ase_opt.has_value()) return direction_conf;
+    auto ase = std::move(ase_opt.value());
+
+    if (ase.targetLatency == LeAudioAseConfiguration::TargetLatency::LOWER) {
+        configurationFlags.bitmask |= ConfigurationFlags::LOW_LATENCY;
+    }
 
     // Translate into LeAudioAseQosConfiguration
-    PopulateAseQosConfiguration(qos, qos_cfg, ase, flat_subconfig->ase_channel_cnt());
+    auto qos_opt = PopulateAseQosConfiguration(qos_cfg, ase, flat_subconfig->ase_channel_cnt());
+    if (!qos_opt.has_value()) return direction_conf;
+    auto qos = std::move(qos_opt.value());
 
     // Populate vendorCodecConfiguration using the correct LTV
     ase.vendorCodecConfiguration = PopulateVendorCodecConfiguration(ase);
