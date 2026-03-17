@@ -486,8 +486,9 @@ void AudioSetConfigurationProviderJson::ProcessSubconfig(
 
 void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
         const le_audio::AudioSetConfiguration* flat_cfg,
-        std::vector<const le_audio::CodecConfiguration*>* codec_cfgs,
-        std::vector<const le_audio::QosConfiguration*>* qos_cfgs, CodecLocation location,
+        const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
+        const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
+        CodecLocation location,
         std::vector<std::optional<AseDirectionConfiguration>>& sourceAseConfiguration,
         std::vector<std::optional<AseDirectionConfiguration>>& sinkAseConfiguration,
         ConfigurationFlags& configurationFlags) {
@@ -495,53 +496,44 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
         LOG(ERROR) << "flat_cfg cannot be null";
         return;
     }
-    std::string codec_config_key = flat_cfg->codec_config_name()->str();
+    std::string_view codec_config_key = flat_cfg->codec_config_name()->string_view();
     auto* qos_config_key_array = flat_cfg->qos_config_name();
 
     constexpr std::string_view default_qos = "QoS_Config_Balanced_Reliability";
 
-    std::string qos_sink_key(default_qos);
-    std::string qos_source_key(default_qos);
+    std::string_view qos_sink_key(default_qos);
+    std::string_view qos_source_key(default_qos);
 
     /* We expect maximum two QoS settings. First for Sink and second for Source
      */
     if (qos_config_key_array->size() > 0) {
-        qos_sink_key = qos_config_key_array->Get(0)->str();
+        qos_sink_key = qos_config_key_array->Get(0)->string_view();
         if (qos_config_key_array->size() > 1) {
-            qos_source_key = qos_config_key_array->Get(1)->str();
+            qos_source_key = qos_config_key_array->Get(1)->string_view();
         } else {
             qos_source_key = qos_sink_key;
         }
     }
 
     LOG(INFO) << "Audio set config " << flat_cfg->name()->c_str() << ": codec config "
-              << codec_config_key.c_str() << ", qos_sink " << qos_sink_key.c_str()
-              << ", qos_source " << qos_source_key.c_str();
+              << codec_config_key << ", qos_sink " << qos_sink_key << ", qos_source "
+              << qos_source_key;
 
     // Find the first qos config that match the name
     const le_audio::QosConfiguration* qos_sink_cfg = nullptr;
-    for (auto i = qos_cfgs->begin(); i != qos_cfgs->end(); ++i) {
-        if ((*i)->name()->str() == qos_sink_key) {
-            qos_sink_cfg = *i;
-            break;
-        }
+    if (auto it = qos_cfgs.find(qos_sink_key); it != qos_cfgs.end()) {
+        qos_sink_cfg = it->second;
     }
 
     const le_audio::QosConfiguration* qos_source_cfg = nullptr;
-    for (auto i = qos_cfgs->begin(); i != qos_cfgs->end(); ++i) {
-        if ((*i)->name()->str() == qos_source_key) {
-            qos_source_cfg = *i;
-            break;
-        }
+    if (auto it = qos_cfgs.find(qos_source_key); it != qos_cfgs.end()) {
+        qos_source_cfg = it->second;
     }
 
     // First codec_cfg with the same name
     const le_audio::CodecConfiguration* codec_cfg = nullptr;
-    for (auto i = codec_cfgs->begin(); i != codec_cfgs->end(); ++i) {
-        if ((*i)->name()->str() == codec_config_key) {
-            codec_cfg = *i;
-            break;
-        }
+    if (auto it = codec_cfgs.find(codec_config_key); it != codec_cfgs.end()) {
+        codec_cfg = it->second;
     }
 
     // Process each subconfig and put it into the correct list
@@ -589,7 +581,7 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
         }
     } else {
         if (codec_cfg == nullptr) {
-            LOG(ERROR) << "No codec config matching key " << codec_config_key.c_str() << " found";
+            LOG(ERROR) << "No codec config matching key " << codec_config_key << " found";
         } else {
             LOG(ERROR) << "Configuration '" << flat_cfg->name()->c_str()
                        << "' has no valid subconfigurations.";
@@ -606,34 +598,31 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
             le_audio::GetAudioSetConfigurations(parser.builder_.GetBufferPointer());
     if (!configurations_root) return false;
 
-    auto flat_qos_configs = configurations_root->qos_configurations();
-    if ((flat_qos_configs == nullptr) || (flat_qos_configs->size() == 0)) return false;
+    auto flat_codec_configs = configurations_root->codec_configurations();
+    if (!flat_codec_configs || flat_codec_configs->size() == 0) return false;
 
-    LOG(DEBUG) << ": Updating " << flat_qos_configs->size() << " qos config entries.";
-    std::vector<const le_audio::QosConfiguration*> qos_cfgs;
-    for (auto const& flat_qos_cfg : *flat_qos_configs) {
-        qos_cfgs.push_back(flat_qos_cfg);
+    std::map<std::string_view, const le_audio::CodecConfiguration*> codec_cfgs;
+    for (auto const& flat_codec_cfg : *flat_codec_configs) {
+        codec_cfgs[flat_codec_cfg->name()->string_view()] = flat_codec_cfg;
     }
 
-    auto flat_codec_configs = configurations_root->codec_configurations();
-    if ((flat_codec_configs == nullptr) || (flat_codec_configs->size() == 0)) return false;
+    auto flat_qos_configs = configurations_root->qos_configurations();
+    if (!flat_qos_configs || flat_qos_configs->size() == 0) return false;
 
-    LOG(DEBUG) << ": Updating " << flat_codec_configs->size() << " codec config entries.";
-    std::vector<const le_audio::CodecConfiguration*> codec_cfgs;
-    for (auto const& flat_codec_cfg : *flat_codec_configs) {
-        codec_cfgs.push_back(flat_codec_cfg);
+    std::map<std::string_view, const le_audio::QosConfiguration*> qos_cfgs;
+    for (auto const& flat_qos_cfg : *flat_qos_configs) {
+        qos_cfgs[flat_qos_cfg->name()->string_view()] = flat_qos_cfg;
     }
 
     auto flat_configs = configurations_root->configurations();
-    if ((flat_configs == nullptr) || (flat_configs->size() == 0)) return false;
+    if (!flat_configs || flat_configs->size() == 0) return false;
 
-    LOG(DEBUG) << ": Updating " << flat_configs->size() << " config entries.";
     for (auto const& flat_cfg : *flat_configs) {
         // Create 3 vector to use
         std::vector<std::optional<AseDirectionConfiguration>> sourceAseConfiguration;
         std::vector<std::optional<AseDirectionConfiguration>> sinkAseConfiguration;
         ConfigurationFlags configurationFlags;
-        PopulateAseConfigurationFromFlat(flat_cfg, &codec_cfgs, &qos_cfgs, location,
+        PopulateAseConfigurationFromFlat(flat_cfg, codec_cfgs, qos_cfgs, location,
                                          sourceAseConfiguration, sinkAseConfiguration,
                                          configurationFlags);
         if (sourceAseConfiguration.empty() && sinkAseConfiguration.empty()) continue;

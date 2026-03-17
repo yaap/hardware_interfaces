@@ -98,8 +98,9 @@ class AudioSetConfigurationProviderJson {
 
     static void PopulateAseConfigurationFromFlat(
             const le_audio::AudioSetConfiguration* flat_cfg,
-            std::vector<const le_audio::CodecConfiguration*>* codec_cfgs,
-            std::vector<const le_audio::QosConfiguration*>* qos_cfgs, CodecLocation location,
+            const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
+            const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
+            CodecLocation location,
             std::vector<std::optional<AseDirectionConfiguration>>& sourceAseConfiguration,
             std::vector<std::optional<AseDirectionConfiguration>>& sinkAseConfiguration,
             ConfigurationFlags& configurationFlags);
