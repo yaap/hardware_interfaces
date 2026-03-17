@@ -71,6 +71,8 @@ const std::vector<ConfigurationSetFile> kLeAudioSetScenarios = {
          .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.json"},
 };
 
+constexpr uint8_t kVendorCodecConfigReservation = 32;
+
 const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
         const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
                 flat_codec_specific_params,
@@ -359,51 +361,63 @@ void AudioSetConfigurationProviderJson::PopulateAseQosConfiguration(
     qos.retransmissionNum = qos_cfg->retransmission_number();
 }
 
-void AudioSetConfigurationProviderJson::PopulateVendorCodecConfiguration(
-        LeAudioAseConfiguration& ase) {
-    if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
-        // Only populate for vendor codec.
-        std::vector<uint8_t> codec_config;
-        for (auto ltv : ase.codecConfiguration) {
-            if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
-                auto p = sampling_rate_ltv_to_codec_cfg_map.find(
-                        ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>());
-                if (p != sampling_rate_ltv_to_codec_cfg_map.end()) {
-                    codec_config.push_back(kCodecConfigOpcode);
-                    codec_config.push_back(kSamplingFrequencySubOpcode);
-                    codec_config.push_back(p->second);
-                }
-            } else if (ltv.getTag() == CodecSpecificConfigurationLtv::frameDuration) {
-                auto p = frame_duration_ltv_to_codec_cfg_map.find(
-                        ltv.get<CodecSpecificConfigurationLtv::frameDuration>());
-                if (p != frame_duration_ltv_to_codec_cfg_map.end()) {
-                    codec_config.push_back(kCodecConfigOpcode);
-                    codec_config.push_back(kFrameDurationSubOpcode);
-                    codec_config.push_back(p->second);
-                }
-            } else if (ltv.getTag() == CodecSpecificConfigurationLtv::audioChannelAllocation) {
-                auto allocation = ltv.get<CodecSpecificConfigurationLtv::audioChannelAllocation>();
-                codec_config.push_back(kAudioChannelAllocationOpcode);
-                codec_config.push_back(kAudioChannelAllocationSubOpcode);
-                for (int b = 0; b < 4; ++b) {
-                    codec_config.push_back((allocation.bitmask >> (b * 8)) & 0xff);
-                }
-            } else if (ltv.getTag() == CodecSpecificConfigurationLtv::octetsPerCodecFrame) {
-                auto octet = ltv.get<CodecSpecificConfigurationLtv::octetsPerCodecFrame>();
-                codec_config.push_back(kOctetsPerCodecFrameOpcode);
-                codec_config.push_back(kOctetsPerCodecFrameSubOpcode);
-                for (int b = 0; b < 2; ++b) {
-                    codec_config.push_back((octet.value >> (b * 8)) & 0xff);
-                }
-            } else if (ltv.getTag() == CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU) {
-                auto frame_block = ltv.get<CodecSpecificConfigurationLtv::codecFrameBlocksPerSDU>();
+std::optional<std::vector<uint8_t>>
+AudioSetConfigurationProviderJson::PopulateVendorCodecConfiguration(
+        const LeAudioAseConfiguration& ase) {
+    if (!ase.codecId.has_value() || ase.codecId->getTag() != CodecId::vendor) {
+        return std::nullopt;
+    }
+
+    std::vector<uint8_t> codec_config;
+    codec_config.reserve(kVendorCodecConfigReservation);
+
+    // Helper lambda to handle mapped types
+    auto push_mapped = [&](uint8_t sub_opcode, const auto& map, const auto& key) {
+        if (auto it = map.find(key); it != map.end()) {
+            codec_config.push_back(kCodecConfigOpcode);
+            codec_config.push_back(sub_opcode);
+            codec_config.push_back(it->second);
+        }
+    };
+
+    // Helper lambda to handle multi-byte values
+    auto push_bytes = [&](uint8_t opcode, uint8_t sub_opcode, uint32_t val, int len) {
+        codec_config.push_back(opcode);
+        codec_config.push_back(sub_opcode);
+        for (int i = 0; i < len; ++i) {
+            codec_config.push_back((val >> (i * 8)) & 0xff);
+        }
+    };
+
+    using Ltv = CodecSpecificConfigurationLtv;
+    for (const auto& ltv : ase.codecConfiguration) {
+        switch (ltv.getTag()) {
+            case Ltv::samplingFrequency:
+                push_mapped(kSamplingFrequencySubOpcode, sampling_rate_ltv_to_codec_cfg_map,
+                            ltv.get<Ltv::samplingFrequency>());
+                break;
+            case Ltv::frameDuration:
+                push_mapped(kFrameDurationSubOpcode, frame_duration_ltv_to_codec_cfg_map,
+                            ltv.get<Ltv::frameDuration>());
+                break;
+            case Ltv::audioChannelAllocation:
+                push_bytes(kAudioChannelAllocationOpcode, kAudioChannelAllocationSubOpcode,
+                           ltv.get<Ltv::audioChannelAllocation>().bitmask, 4);
+                break;
+            case Ltv::octetsPerCodecFrame:
+                push_bytes(kOctetsPerCodecFrameOpcode, kOctetsPerCodecFrameSubOpcode,
+                           ltv.get<Ltv::octetsPerCodecFrame>().value, 2);
+                break;
+            case Ltv::codecFrameBlocksPerSDU:
                 codec_config.push_back(kCodecConfigOpcode);
                 codec_config.push_back(kFrameBlocksPerSDUSubOpcode);
-                codec_config.push_back(frame_block.value);
-            }
+                codec_config.push_back(ltv.get<Ltv::codecFrameBlocksPerSDU>().value);
+                break;
+            default:
+                break;
         }
-        ase.vendorCodecConfiguration = codec_config;
     }
+    return codec_config;
 }
 
 LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath(
@@ -459,7 +473,7 @@ AseDirectionConfiguration AudioSetConfigurationProviderJson::SetConfigurationFro
     PopulateAseQosConfiguration(qos, qos_cfg, ase, flat_subconfig->ase_channel_cnt());
 
     // Populate vendorCodecConfiguration using the correct LTV
-    PopulateVendorCodecConfiguration(ase);
+    ase.vendorCodecConfiguration = PopulateVendorCodecConfiguration(ase);
 
     direction_conf.aseConfiguration = ase;
     direction_conf.qosConfiguration = qos;

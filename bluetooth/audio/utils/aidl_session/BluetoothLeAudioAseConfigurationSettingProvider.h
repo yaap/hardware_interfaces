@@ -83,7 +83,8 @@ class AudioSetConfigurationProviderJson {
                                             const le_audio::QosConfiguration* qos_cfg,
                                             LeAudioAseConfiguration& ase, uint8_t ase_channel_cnt);
 
-    static void PopulateVendorCodecConfiguration(LeAudioAseConfiguration& ase);
+    static std::optional<std::vector<uint8_t>> PopulateVendorCodecConfiguration(
+            const LeAudioAseConfiguration& ase);
 
     static AseDirectionConfiguration SetConfigurationFromFlatSubconfig(
             const le_audio::AudioSetSubConfiguration* flat_subconfig,
