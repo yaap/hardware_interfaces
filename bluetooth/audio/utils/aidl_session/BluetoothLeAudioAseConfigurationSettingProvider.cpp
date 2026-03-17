@@ -604,7 +604,7 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     if (!flat_codec_configs || flat_codec_configs->size() == 0) return false;
 
     std::map<std::string_view, const le_audio::CodecConfiguration*> codec_cfgs;
-    for (auto const& flat_codec_cfg : *flat_codec_configs) {
+    for (const auto& flat_codec_cfg : *flat_codec_configs) {
         codec_cfgs[flat_codec_cfg->name()->string_view()] = flat_codec_cfg;
     }
 
@@ -612,14 +612,14 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     if (!flat_qos_configs || flat_qos_configs->size() == 0) return false;
 
     std::map<std::string_view, const le_audio::QosConfiguration*> qos_cfgs;
-    for (auto const& flat_qos_cfg : *flat_qos_configs) {
+    for (const auto& flat_qos_cfg : *flat_qos_configs) {
         qos_cfgs[flat_qos_cfg->name()->string_view()] = flat_qos_cfg;
     }
 
     auto flat_configs = configurations_root->configurations();
     if (!flat_configs || flat_configs->size() == 0) return false;
 
-    for (auto const& flat_cfg : *flat_configs) {
+    for (const auto& flat_cfg : *flat_configs) {
         if (flat_cfg->name() == nullptr) continue;
         auto config_data = PopulateAseConfigsFromFlat(flat_cfg, codec_cfgs, qos_cfgs, location);
         if (config_data.has_value()) {
@@ -638,65 +638,50 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
     if (!scenarios_root) return false;
 
     auto flat_scenarios = scenarios_root->scenarios();
-    if ((flat_scenarios == nullptr) || (flat_scenarios->size() == 0)) return false;
+    if (!flat_scenarios || flat_scenarios->size() == 0) return false;
 
-    LOG(INFO) << __func__ << ": Turn flat buffer into structure";
-    AudioContext media_context = AudioContext();
-    media_context.bitmask =
-            (AudioContext::ALERTS | AudioContext::INSTRUCTIONAL | AudioContext::NOTIFICATIONS |
-             AudioContext::EMERGENCY_ALARM | AudioContext::UNSPECIFIED | AudioContext::MEDIA |
-             AudioContext::SOUND_EFFECTS);
+    // Define contexts
+    static const AudioContext media_context = {
+            .bitmask = (AudioContext::ALERTS | AudioContext::INSTRUCTIONAL |
+                        AudioContext::NOTIFICATIONS | AudioContext::EMERGENCY_ALARM |
+                        AudioContext::UNSPECIFIED | AudioContext::MEDIA |
+                        AudioContext::SOUND_EFFECTS)};
+    static const AudioContext conversational_context = {
+            .bitmask = (AudioContext::RINGTONE_ALERTS | AudioContext::CONVERSATIONAL)};
+    static const AudioContext live_context = {.bitmask = AudioContext::LIVE_AUDIO};
+    static const AudioContext game_context = {.bitmask = AudioContext::GAME};
+    static const AudioContext voice_assistants_context = {.bitmask =
+                                                                  AudioContext::VOICE_ASSISTANTS};
 
-    AudioContext conversational_context = AudioContext();
-    conversational_context.bitmask = (AudioContext::RINGTONE_ALERTS | AudioContext::CONVERSATIONAL);
+    static const std::map<std::string_view, AudioContext> scenario_to_context = {
+            {"Media", media_context},
+            {"Conversational", conversational_context},
+            {"Live", live_context},
+            {"Game", game_context},
+            {"VoiceAssistants", voice_assistants_context},
+    };
 
-    AudioContext live_context = AudioContext();
-    live_context.bitmask = AudioContext::LIVE_AUDIO;
+    for (const auto& scenario : *flat_scenarios) {
+        if (!scenario->configurations() || !scenario->name()) continue;
 
-    AudioContext game_context = AudioContext();
-    game_context.bitmask = AudioContext::GAME;
+        std::string_view scenario_name = scenario->name()->string_view();
+        auto context_it = scenario_to_context.find(scenario_name);
+        AudioContext context =
+                (context_it != scenario_to_context.end()) ? context_it->second : AudioContext{};
 
-    AudioContext voice_assistants_context = AudioContext();
-    voice_assistants_context.bitmask = AudioContext::VOICE_ASSISTANTS;
+        for (const auto& config_name_fb : *scenario->configurations()) {
+            std::string_view config_name = config_name_fb->string_view();
+            auto configuration_it = ase_configs_.find(config_name);
+            if (configuration_it == ase_configs_.end()) continue;
 
-    LOG(DEBUG) << "Updating " << flat_scenarios->size() << " scenarios.";
-    for (auto const& scenario : *flat_scenarios) {
-        if (!scenario->configurations()) continue;
-        std::string scenario_name = scenario->name()->c_str();
-        AudioContext context;
-        if (scenario_name == "Media")
-            context = AudioContext(media_context);
-        else if (scenario_name == "Conversational")
-            context = AudioContext(conversational_context);
-        else if (scenario_name == "Live")
-            context = AudioContext(live_context);
-        else if (scenario_name == "Game")
-            context = AudioContext(game_context);
-        else if (scenario_name == "VoiceAssistants")
-            context = AudioContext(voice_assistants_context);
-        LOG(DEBUG) << "Scenario " << scenario->name()->c_str()
-                   << " configs: " << scenario->configurations()->size()
-                   << " context: " << context.toString();
-
-        for (auto it = scenario->configurations()->begin(); it != scenario->configurations()->end();
-             ++it) {
-            auto config_name = it->str();
-            auto configuration = ase_configs_.find(config_name);
-            if (configuration == ase_configs_.end()) continue;
-            LOG(DEBUG) << "Getting configuration with name: " << config_name;
-            auto [source, sink, flags] = configuration->second;
-            // Each configuration will create a LeAudioAseConfigurationSetting
-            // with the same {context, packing}
-            // and different data
-            LeAudioAseConfigurationSetting setting;
-            setting.audioContext = context;
-            // TODO: Packing
-            setting.sourceAseConfiguration = source;
-            setting.sinkAseConfiguration = sink;
-            setting.flags = flags;
-            // Add to list of setting
-            LOG(DEBUG) << "Pushing configuration to list: " << config_name;
-            ase_configuration_settings_.push_back({config_name, setting});
+            const auto& configuration = configuration_it->second;
+            LeAudioAseConfigurationSetting setting = {
+                    .audioContext = context,
+                    .sinkAseConfiguration = configuration.sink,
+                    .sourceAseConfiguration = configuration.source,
+                    .flags = configuration.flags,
+            };
+            ase_configuration_settings_.emplace_back(std::string(config_name), std::move(setting));
         }
     }
 
