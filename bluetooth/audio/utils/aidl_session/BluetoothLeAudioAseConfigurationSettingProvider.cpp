@@ -119,7 +119,7 @@ AudioSetConfigurationProviderJson::LookupCodecSpecificParam(
     return (it != flat_codec_specific_params->cend()) ? *it : nullptr;
 }
 
-void AudioSetConfigurationProviderJson::populateAudioChannelAllocation(
+void AudioSetConfigurationProviderJson::PopulateAudioChannelAllocation(
         CodecSpecificConfigurationLtv::AudioChannelAllocation& audio_channel_allocation,
         uint32_t audio_location) {
     audio_channel_allocation.bitmask = 0;
@@ -128,7 +128,7 @@ void AudioSetConfigurationProviderJson::populateAudioChannelAllocation(
     }
 }
 
-void AudioSetConfigurationProviderJson::populateConfigurationData(
+void AudioSetConfigurationProviderJson::PopulateConfigurationData(
         LeAudioAseConfiguration& ase,
         const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
                 flat_codec_specific_params) {
@@ -189,7 +189,7 @@ void AudioSetConfigurationProviderJson::populateConfigurationData(
         ase.codecConfiguration.push_back(frame_duration_it->second);
 
     CodecSpecificConfigurationLtv::AudioChannelAllocation channel_allocation;
-    populateAudioChannelAllocation(channel_allocation, audio_channel_allocation);
+    PopulateAudioChannelAllocation(channel_allocation, audio_channel_allocation);
     ase.codecConfiguration.push_back(channel_allocation);
 
     auto octet_structure = CodecSpecificConfigurationLtv::OctetsPerCodecFrame();
@@ -201,7 +201,7 @@ void AudioSetConfigurationProviderJson::populateConfigurationData(
     ase.codecConfiguration.push_back(frame_sdu_structure);
 }
 
-void AudioSetConfigurationProviderJson::populateAseConfiguration(
+void AudioSetConfigurationProviderJson::PopulateAseConfiguration(
         LeAudioAseConfiguration& ase, const le_audio::AudioSetSubConfiguration* flat_subconfig,
         const le_audio::QosConfiguration* qos_cfg, ConfigurationFlags& configurationFlags) {
     // Target latency
@@ -235,10 +235,10 @@ void AudioSetConfigurationProviderJson::populateAseConfiguration(
         ase.codecId = vendorC;
     }
     // Codec configuration data
-    populateConfigurationData(ase, flat_subconfig->codec_configuration());
+    PopulateConfigurationData(ase, flat_subconfig->codec_configuration());
 }
 
-void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
+void AudioSetConfigurationProviderJson::PopulateAseQosConfiguration(
         LeAudioAseQosConfiguration& qos, const le_audio::QosConfiguration* qos_cfg,
         LeAudioAseConfiguration& ase, uint8_t ase_channel_cnt) {
     std::optional<CodecSpecificConfigurationLtv::CodecFrameBlocksPerSDU> frameBlock = std::nullopt;
@@ -304,7 +304,7 @@ void AudioSetConfigurationProviderJson::populateAseQosConfiguration(
     qos.retransmissionNum = qos_cfg->retransmission_number();
 }
 
-void populateVendorCodecConfiguration(LeAudioAseConfiguration& ase) {
+void PopulateVendorCodecConfiguration(LeAudioAseConfiguration& ase) {
     if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
         // Only populate for vendor codec.
         std::vector<uint8_t> codec_config;
@@ -350,7 +350,7 @@ void populateVendorCodecConfiguration(LeAudioAseConfiguration& ase) {
     }
 }
 
-bool isOpusHiResCodec(const LeAudioAseConfiguration& ase) {
+bool IsOpusHiResCodec(const LeAudioAseConfiguration& ase) {
     if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
         auto cid = ase.codecId.value().get<CodecId::vendor>();
         if (cid == opus_codec) {
@@ -368,7 +368,7 @@ bool isOpusHiResCodec(const LeAudioAseConfiguration& ase) {
     return false;
 }
 
-bool isDsaHeadTrackingCodec(const LeAudioAseConfiguration& ase) {
+bool IsDsaHeadTrackingCodec(const LeAudioAseConfiguration& ase) {
     if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
         auto cid = ase.codecId.value().get<CodecId::vendor>();
         if (cid == dsa_headtracker_codec) {
@@ -378,20 +378,20 @@ bool isDsaHeadTrackingCodec(const LeAudioAseConfiguration& ase) {
     return false;
 }
 
-LeAudioDataPathConfiguration populateDatapath(const CodecLocation& location,
+LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
                                               const LeAudioAseConfiguration& ase) {
     LeAudioDataPathConfiguration path;
     // Move codecId to iso data path
     path.isoDataPathConfiguration.codecId = ase.codecId.value();
     // Specific vendor datapath logic
-    if (isOpusHiResCodec(ase)) {
+    if (IsOpusHiResCodec(ase)) {
         path.isoDataPathConfiguration.isTransparent = true;
         path.dataPathId = kIsoDataPathHciLinkFeedback;
         return path;
     }
 
     // DSA 2.0 DSA_SW data path logic
-    if (isDsaHeadTrackingCodec(ase)) {
+    if (IsDsaHeadTrackingCodec(ase)) {
         path.dataPathId = kIsoDataPathHci;
         return path;
     }
@@ -425,25 +425,25 @@ AseDirectionConfiguration AudioSetConfigurationProviderJson::SetConfigurationFro
     LeAudioAseQosConfiguration qos;
 
     // Translate into LeAudioAseConfiguration
-    populateAseConfiguration(ase, flat_subconfig, qos_cfg, configurationFlags);
+    PopulateAseConfiguration(ase, flat_subconfig, qos_cfg, configurationFlags);
 
     // Translate into LeAudioAseQosConfiguration
-    populateAseQosConfiguration(qos, qos_cfg, ase, flat_subconfig->ase_channel_cnt());
+    PopulateAseQosConfiguration(qos, qos_cfg, ase, flat_subconfig->ase_channel_cnt());
 
     // Populate vendorCodecConfiguration using the correct LTV
-    populateVendorCodecConfiguration(ase);
+    PopulateVendorCodecConfiguration(ase);
 
     direction_conf.aseConfiguration = ase;
     direction_conf.qosConfiguration = qos;
     // Populate the correct datapath.
-    direction_conf.dataPathConfiguration = populateDatapath(location, ase);
+    direction_conf.dataPathConfiguration = PopulateDatapath(location, ase);
 
     return direction_conf;
 }
 
 // Parse into AseDirectionConfiguration and the ConfigurationFlags
 // and put them in the given list.
-void AudioSetConfigurationProviderJson::processSubconfig(
+void AudioSetConfigurationProviderJson::ProcessSubconfig(
         const le_audio::AudioSetSubConfiguration* subconfig,
         const le_audio::QosConfiguration* qos_cfg,
         std::vector<std::optional<AseDirectionConfiguration>>& directionAseConfiguration,
@@ -457,7 +457,7 @@ void AudioSetConfigurationProviderJson::processSubconfig(
 }
 
 // Comparing if 2 AseDirectionConfiguration is asymmetrical.
-bool isAseConfigurationAsymmetrical(AseDirectionConfiguration cfg_a,
+bool IsAseConfigurationAsymmetrical(AseDirectionConfiguration cfg_a,
                                     AseDirectionConfiguration cfg_b) {
     // Comparing samplingFrequency of these 2 config.
     std::optional<CodecSpecificConfigurationLtv> cfg_a_fr = std::nullopt;
@@ -545,10 +545,10 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
         /* Load subconfigurations */
         for (auto subconfig : *codec_cfg->subconfigurations()) {
             if (subconfig->direction() == kLeAudioDirectionSink) {
-                processSubconfig(subconfig, qos_sink_cfg, sinkAseConfiguration, location,
+                ProcessSubconfig(subconfig, qos_sink_cfg, sinkAseConfiguration, location,
                                  configurationFlags);
             } else {
-                processSubconfig(subconfig, qos_source_cfg, sourceAseConfiguration, location,
+                ProcessSubconfig(subconfig, qos_source_cfg, sourceAseConfiguration, location,
                                  configurationFlags);
             }
         }
@@ -561,7 +561,7 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
                 if (sourceAseConfiguration.size() <= i) break;
                 if (sinkAseConfiguration[i].has_value() && sourceAseConfiguration[i].has_value()) {
                     // Has both direction, comparing inner fields:
-                    if (isAseConfigurationAsymmetrical(sinkAseConfiguration[i].value(),
+                    if (IsAseConfigurationAsymmetrical(sinkAseConfiguration[i].value(),
                                                        sourceAseConfiguration[i].value())) {
                         configurationFlags.bitmask |=
                                 ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
@@ -576,7 +576,7 @@ void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
         // and set the SPATIAL_AUDIO flag
         for (auto& aseDirectionConfiguration : sourceAseConfiguration) {
             if (aseDirectionConfiguration.has_value()) {
-                if (isDsaHeadTrackingCodec(aseDirectionConfiguration.value().aseConfiguration)) {
+                if (IsDsaHeadTrackingCodec(aseDirectionConfiguration.value().aseConfiguration)) {
                     LOG(INFO) << "Found DSA 2.0 config " << flat_cfg->name()->c_str();
                     configurationFlags.bitmask |= ConfigurationFlags::SPATIAL_AUDIO;
                     break;
