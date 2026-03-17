@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 #define STREAM_TO_UINT8(u8, p)  \
@@ -80,56 +81,58 @@ const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
     return (it != flat_codec_specific_params->cend()) ? *it : nullptr;
 }
 
-bool IsOpusHiResCodec(const LeAudioAseConfiguration& ase) {
-    if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
-        auto cid = ase.codecId.value().get<CodecId::vendor>();
-        if (cid == opus_codec) {
-            // Based on the sampling freq
-            for (auto ltv : ase.codecConfiguration) {
-                if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
-                    if (ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>() ==
-                        CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000) {
-                        return true;
-                    }
-                }
-            }
-        }
+LeAudioAseConfiguration::TargetLatency ToAidlTargetLatency(
+        le_audio::AudioSetConfigurationTargetLatency latency) {
+    switch (latency) {
+        case le_audio::AudioSetConfigurationTargetLatency::
+                AudioSetConfigurationTargetLatency_BALANCED_RELIABILITY:
+            return LeAudioAseConfiguration::TargetLatency::BALANCED_LATENCY_RELIABILITY;
+        case le_audio::AudioSetConfigurationTargetLatency::
+                AudioSetConfigurationTargetLatency_HIGH_RELIABILITY:
+            return LeAudioAseConfiguration::TargetLatency::HIGHER_RELIABILITY;
+        case le_audio::AudioSetConfigurationTargetLatency::AudioSetConfigurationTargetLatency_LOW:
+            return LeAudioAseConfiguration::TargetLatency::LOWER;
+        default:
+            return LeAudioAseConfiguration::TargetLatency::UNDEFINED;
     }
-    return false;
+}
+
+bool IsOpusHiResCodec(const LeAudioAseConfiguration& ase) {
+    if (!ase.codecId.has_value() || ase.codecId->getTag() != CodecId::vendor ||
+        ase.codecId->get<CodecId::vendor>() != opus_codec) {
+        return false;
+    }
+
+    return std::any_of(
+            ase.codecConfiguration.begin(), ase.codecConfiguration.end(), [](const auto& ltv) {
+                return ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency &&
+                       ltv.template get<CodecSpecificConfigurationLtv::samplingFrequency>() ==
+                               CodecSpecificConfigurationLtv::SamplingFrequency::HZ96000;
+            });
 }
 
 bool IsDsaHeadTrackingCodec(const LeAudioAseConfiguration& ase) {
-    if (ase.codecId.has_value() && ase.codecId.value().getTag() == CodecId::vendor) {
-        auto cid = ase.codecId.value().get<CodecId::vendor>();
-        if (cid == dsa_headtracker_codec) {
-            return true;
-        }
-    }
-    return false;
+    return ase.codecId.has_value() && ase.codecId->getTag() == CodecId::vendor &&
+           ase.codecId->get<CodecId::vendor>() == dsa_headtracker_codec;
+}
+
+bool IsLowLatencyConfiguration(const AseDirectionConfiguration& cfg) {
+    return cfg.aseConfiguration.targetLatency == LeAudioAseConfiguration::TargetLatency::LOWER;
 }
 
 // Comparing if 2 AseDirectionConfiguration is asymmetrical.
-bool IsAseConfigurationAsymmetrical(AseDirectionConfiguration cfg_a,
-                                    AseDirectionConfiguration cfg_b) {
-    // Comparing samplingFrequency of these 2 config.
-    std::optional<CodecSpecificConfigurationLtv> cfg_a_fr = std::nullopt;
-    std::optional<CodecSpecificConfigurationLtv> cfg_b_fr = std::nullopt;
-    for (auto ltv : cfg_a.aseConfiguration.codecConfiguration) {
-        if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
-            cfg_a_fr = ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>();
-            break;
+bool IsAseConfigurationAsymmetrical(const AseDirectionConfiguration& cfg_a,
+                                    const AseDirectionConfiguration& cfg_b) {
+    auto get_sampling_frequency = [](const AseDirectionConfiguration& cfg) {
+        for (const auto& ltv : cfg.aseConfiguration.codecConfiguration) {
+            if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
+                return ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>();
+            }
         }
-    }
-    for (auto ltv : cfg_b.aseConfiguration.codecConfiguration) {
-        if (ltv.getTag() == CodecSpecificConfigurationLtv::samplingFrequency) {
-            cfg_b_fr = ltv.get<CodecSpecificConfigurationLtv::samplingFrequency>();
-            break;
-        }
-    }
-    if (cfg_a_fr.has_value() && cfg_b_fr.has_value()) {
-        return cfg_a_fr.value() != cfg_b_fr.value();
-    }
-    return false;
+        return CodecSpecificConfigurationLtv::SamplingFrequency::HZ8000;  // Default
+    };
+
+    return get_sampling_frequency(cfg_a) != get_sampling_frequency(cfg_b);
 }
 
 bool LoadFileAndParse(flatbuffers::Parser& parser, const ConfigurationSetFile& files) {
