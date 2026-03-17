@@ -65,14 +65,10 @@ class AudioSetConfigurationProviderJson {
   private:
     static void LoadAudioSetConfigurationProviderJson();
 
-    static void PopulateAudioChannelAllocation(
-            CodecSpecificConfigurationLtv::AudioChannelAllocation& audio_channel_allocation,
-            uint32_t audio_location);
-
-    static void PopulateConfigurationData(
-            LeAudioAseConfiguration& ase,
+    static std::vector<CodecSpecificConfigurationLtv> PopulateCodecConfiguration(
             const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
-                    flat_codec_specific_params);
+                    flat_codec_specific_params,
+            uint8_t ase_channel_cnt, std::optional<CodecId> codec_id);
 
     static std::optional<LeAudioAseConfiguration> PopulateAseConfiguration(
             const le_audio::AudioSetSubConfiguration* flat_subconfig,

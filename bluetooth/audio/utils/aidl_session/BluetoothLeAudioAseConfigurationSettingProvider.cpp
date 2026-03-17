@@ -226,92 +226,100 @@ void AudioSetConfigurationProviderJson::LoadAudioSetConfigurationProviderJson() 
         LOG(INFO) << ": Reusing loaded le audio set configuration";
 }
 
-void AudioSetConfigurationProviderJson::PopulateAudioChannelAllocation(
-        CodecSpecificConfigurationLtv::AudioChannelAllocation& audio_channel_allocation,
-        uint32_t audio_location) {
-    audio_channel_allocation.bitmask = 0;
-    for (auto [allocation, bitmask] : audio_channel_allocation_map) {
-        if (audio_location & allocation) audio_channel_allocation.bitmask |= bitmask;
-    }
-}
-
-void AudioSetConfigurationProviderJson::PopulateConfigurationData(
-        LeAudioAseConfiguration& ase,
+std::vector<CodecSpecificConfigurationLtv>
+AudioSetConfigurationProviderJson::PopulateCodecConfiguration(
         const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
-                flat_codec_specific_params) {
+                flat_codec_specific_params,
+        uint8_t ase_channel_cnt, std::optional<CodecId> codec_id) {
+    std::vector<CodecSpecificConfigurationLtv> codec_configs;
+    if (flat_codec_specific_params == nullptr) return codec_configs;
+
+    // Helper lambda to extract value from Flatbuffers
+    auto extract_val = [&](le_audio::CodecSpecificLtvGenericTypes type, auto& out_val) {
+        auto param = LookupCodecSpecificParam(flat_codec_specific_params, type);
+        if (param == nullptr || param->compound_value() == nullptr ||
+            param->compound_value()->value() == nullptr) {
+            return false;
+        }
+
+        auto* value_vec = param->compound_value()->value();
+        constexpr size_t val_size = sizeof(out_val);
+
+        if (value_vec->size() < val_size) {
+            return false;
+        }
+
+        const uint8_t* ptr = value_vec->data();
+        if constexpr (val_size == 1) {
+            STREAM_TO_UINT8(out_val, ptr);
+        } else if constexpr (val_size == 2) {
+            STREAM_TO_UINT16(out_val, ptr);
+        } else if constexpr (val_size == 4) {
+            STREAM_TO_UINT32(out_val, ptr);
+        } else {
+            static_assert(val_size == 1 || val_size == 2 || val_size == 4,
+                          "Unsupported output size");
+        }
+        return true;
+    };
+
     uint8_t sampling_frequency = 0;
+    extract_val(le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_SAMPLING_FREQUENCY,
+                sampling_frequency);
+
     uint8_t frame_duration = 0;
+    extract_val(le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_FRAME_DURATION, frame_duration);
+
     uint32_t audio_channel_allocation = 0;
+    extract_val(le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_AUDIO_CHANNEL_ALLOCATION,
+                audio_channel_allocation);
+
     uint16_t octets_per_codec_frame = 0;
+    extract_val(le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_OCTETS_PER_CODEC_FRAME,
+                octets_per_codec_frame);
+
     uint8_t codec_frames_blocks_per_sdu = 0;
+    extract_val(le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_CODEC_FRAME_BLOCKS_PER_SDU,
+                codec_frames_blocks_per_sdu);
 
-    auto param = LookupCodecSpecificParam(
-            flat_codec_specific_params,
-            le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_SAMPLING_FREQUENCY);
-    if (param) {
-        auto ptr = param->compound_value()->value()->data();
-        STREAM_TO_UINT8(sampling_frequency, ptr);
+    if (auto it = sampling_freq_map.find(sampling_frequency); it != sampling_freq_map.end()) {
+        codec_configs.push_back(it->second);
+    }
+    if (auto it = frame_duration_map.find(frame_duration); it != frame_duration_map.end()) {
+        codec_configs.push_back(it->second);
     }
 
-    param = LookupCodecSpecificParam(
-            flat_codec_specific_params,
-            le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_FRAME_DURATION);
-    if (param) {
-        auto ptr = param->compound_value()->value()->data();
-        STREAM_TO_UINT8(frame_duration, ptr);
+    // Audio Channel Allocation (including hack logic)
+    using Allocation = CodecSpecificConfigurationLtv::AudioChannelAllocation;
+    uint32_t bitmask;
+    if (ase_channel_cnt == 1) {
+        auto tag = codec_id.value_or(CodecId::Core::LC3).getTag();
+        bitmask = (tag == CodecId::vendor) ? Allocation::FRONT_LEFT : Allocation::FRONT_CENTER;
+    } else {
+        bitmask = Allocation::FRONT_LEFT | Allocation::FRONT_RIGHT;
     }
-
-    param = LookupCodecSpecificParam(
-            flat_codec_specific_params,
-            le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_AUDIO_CHANNEL_ALLOCATION);
-    if (param) {
-        auto ptr = param->compound_value()->value()->data();
-        STREAM_TO_UINT32(audio_channel_allocation, ptr);
-    }
-
-    param = LookupCodecSpecificParam(
-            flat_codec_specific_params,
-            le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_OCTETS_PER_CODEC_FRAME);
-    if (param) {
-        auto ptr = param->compound_value()->value()->data();
-        STREAM_TO_UINT16(octets_per_codec_frame, ptr);
-    }
-
-    param = LookupCodecSpecificParam(
-            flat_codec_specific_params,
-            le_audio::CodecSpecificLtvGenericTypes_SUPPORTED_CODEC_FRAME_BLOCKS_PER_SDU);
-    if (param) {
-        auto ptr = param->compound_value()->value()->data();
-        STREAM_TO_UINT8(codec_frames_blocks_per_sdu, ptr);
-    }
-
-    // Make the correct value
-    ase.codecConfiguration = std::vector<CodecSpecificConfigurationLtv>();
-
-    auto sampling_freq_it = sampling_freq_map.find(sampling_frequency);
-    if (sampling_freq_it != sampling_freq_map.end())
-        ase.codecConfiguration.push_back(sampling_freq_it->second);
-    auto frame_duration_it = frame_duration_map.find(frame_duration);
-    if (frame_duration_it != frame_duration_map.end())
-        ase.codecConfiguration.push_back(frame_duration_it->second);
-
-    CodecSpecificConfigurationLtv::AudioChannelAllocation channel_allocation;
-    PopulateAudioChannelAllocation(channel_allocation, audio_channel_allocation);
-    ase.codecConfiguration.push_back(channel_allocation);
+    Allocation allocation;
+    allocation.bitmask = bitmask;
+    codec_configs.push_back(allocation);
 
     auto octet_structure = CodecSpecificConfigurationLtv::OctetsPerCodecFrame();
     octet_structure.value = octets_per_codec_frame;
-    ase.codecConfiguration.push_back(octet_structure);
+    codec_configs.push_back(octet_structure);
 
     auto frame_sdu_structure = CodecSpecificConfigurationLtv::CodecFrameBlocksPerSDU();
     frame_sdu_structure.value = codec_frames_blocks_per_sdu;
-    ase.codecConfiguration.push_back(frame_sdu_structure);
+    codec_configs.push_back(frame_sdu_structure);
+
+    return codec_configs;
 }
 
 std::optional<LeAudioAseConfiguration> AudioSetConfigurationProviderJson::PopulateAseConfiguration(
         const le_audio::AudioSetSubConfiguration* flat_subconfig,
         const le_audio::QosConfiguration* qos_cfg) {
-    if (flat_subconfig == nullptr || qos_cfg == nullptr) return std::nullopt;
+    if (flat_subconfig == nullptr || qos_cfg == nullptr) {
+        LOG(ERROR) << __func__ << ": flat_subconfig or qos_cfg is null";
+        return std::nullopt;
+    }
 
     LeAudioAseConfiguration ase;
     ase.targetLatency = ToAidlTargetLatency(qos_cfg->target_latency());
@@ -331,7 +339,11 @@ std::optional<LeAudioAseConfiguration> AudioSetConfigurationProviderJson::Popula
     }
 
     // Codec configuration data
-    PopulateConfigurationData(ase, flat_subconfig->codec_configuration());
+    ase.codecConfiguration = PopulateCodecConfiguration(
+            flat_subconfig->codec_configuration(), flat_subconfig->ase_channel_cnt(), ase.codecId);
+
+    // Populate vendorCodecConfiguration using the correct LTV
+    ase.vendorCodecConfiguration = PopulateVendorCodecConfiguration(ase);
 
     return ase;
 }
@@ -533,10 +545,6 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
 
         // Populate the correct datapath.
         config.dataPathConfiguration = PopulateDatapath(location, config.aseConfiguration);
-
-        // Populate vendorCodecConfiguration using the correct LTV
-        config.aseConfiguration.vendorCodecConfiguration =
-                PopulateVendorCodecConfiguration(config.aseConfiguration);
 
         auto& directionAseConfiguration =
                 (subconfig->direction() == kLeAudioDirectionSink) ? result.sink : result.source;
