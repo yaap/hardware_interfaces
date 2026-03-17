@@ -78,7 +78,9 @@ const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
         const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
                 flat_codec_specific_params,
         le_audio::CodecSpecificLtvGenericTypes type) {
-    if (flat_codec_specific_params == nullptr) return nullptr;
+    if (flat_codec_specific_params == nullptr) {
+        return nullptr;
+    }
     auto it = std::find_if(flat_codec_specific_params->cbegin(), flat_codec_specific_params->cend(),
                            [&type](const auto& csc) { return (csc->type() == type); });
     return (it != flat_codec_specific_params->cend()) ? *it : nullptr;
@@ -196,11 +198,15 @@ GetQosConfig(const le_audio::AudioSetConfiguration* flat_cfg,
     };
 
     const auto* qos_sink_cfg = get_qos_cfg(qos_sink_key, "sink");
-    if (qos_sink_cfg == nullptr) return std::nullopt;
+    if (qos_sink_cfg == nullptr) {
+        return std::nullopt;
+    }
 
     const auto* qos_source_cfg =
             (qos_source_key == qos_sink_key) ? qos_sink_cfg : get_qos_cfg(qos_source_key, "source");
-    if (qos_source_cfg == nullptr) return std::nullopt;
+    if (qos_source_cfg == nullptr) {
+        return std::nullopt;
+    }
 
     return std::make_pair(qos_sink_cfg, qos_source_cfg);
 }
@@ -221,9 +227,12 @@ void AudioSetConfigurationProviderJson::LoadAudioSetConfigurationProviderJson() 
         ase_configs_.clear();
         auto loaded = LoadConfigurationSetFile(kLeAudioSetConfigs, kLeAudioSetScenarios,
                                                CodecLocation::ADSP);
-        if (!loaded) LOG(ERROR) << ": Unable to load le audio set configuration files.";
-    } else
+        if (!loaded) {
+            LOG(ERROR) << ": Unable to load le audio set configuration files.";
+        }
+    } else {
         LOG(INFO) << ": Reusing loaded le audio set configuration";
+    }
 }
 
 std::vector<CodecSpecificConfigurationLtv>
@@ -232,7 +241,9 @@ AudioSetConfigurationProviderJson::PopulateCodecConfiguration(
                 flat_codec_specific_params,
         uint8_t ase_channel_cnt, std::optional<CodecId> codec_id) {
     std::vector<CodecSpecificConfigurationLtv> codec_configs;
-    if (flat_codec_specific_params == nullptr) return codec_configs;
+    if (flat_codec_specific_params == nullptr) {
+        return codec_configs;
+    }
 
     // Helper lambda to extract value from Flatbuffers
     auto extract_val = [&](le_audio::CodecSpecificLtvGenericTypes type, auto& out_val) {
@@ -524,10 +535,14 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
     }
 
     const auto* codec_cfg = GetCodecConfig(flat_cfg, codec_cfgs);
-    if (codec_cfg == nullptr) return std::nullopt;
+    if (codec_cfg == nullptr) {
+        return std::nullopt;
+    }
 
     auto qos_cfg_pair = GetQosConfig(flat_cfg, qos_cfgs);
-    if (!qos_cfg_pair.has_value()) return std::nullopt;
+    if (!qos_cfg_pair.has_value()) {
+        return std::nullopt;
+    }
 
     const auto* qos_sink_cfg = qos_cfg_pair->first;
     const auto* qos_source_cfg = qos_cfg_pair->second;
@@ -542,13 +557,17 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
 
         // Translate into LeAudioAseConfiguration directly into config member
         auto ase_cfg = PopulateAseConfiguration(subconfig, qos_cfg);
-        if (!ase_cfg.has_value()) continue;
+        if (!ase_cfg.has_value()) {
+            continue;
+        }
         config.aseConfiguration = std::move(ase_cfg.value());
 
         // Translate into LeAudioAseQosConfiguration directly into config member
         auto qos_cfg_aidl = PopulateAseQosConfiguration(qos_cfg, config.aseConfiguration,
                                                         subconfig->ase_channel_cnt());
-        if (!qos_cfg_aidl.has_value()) continue;
+        if (!qos_cfg_aidl.has_value()) {
+            continue;
+        }
         config.qosConfiguration = std::move(qos_cfg_aidl.value());
 
         // Populate the correct datapath.
@@ -610,14 +629,20 @@ void AudioSetConfigurationProviderJson::UpdateConfigurationFlags(AseConfig& resu
 bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
         const ConfigurationSetFile& files, CodecLocation location) {
     flatbuffers::Parser parser;
-    if (!LoadFileAndParse(parser, files)) return false;
+    if (!LoadFileAndParse(parser, files)) {
+        return false;
+    }
 
     auto configurations_root =
             le_audio::GetAudioSetConfigurations(parser.builder_.GetBufferPointer());
-    if (!configurations_root) return false;
+    if (!configurations_root) {
+        return false;
+    }
 
     auto flat_codec_configs = configurations_root->codec_configurations();
-    if (!flat_codec_configs || flat_codec_configs->size() == 0) return false;
+    if (!flat_codec_configs || flat_codec_configs->size() == 0) {
+        return false;
+    }
 
     std::map<std::string_view, const le_audio::CodecConfiguration*> codec_cfgs;
     for (const auto& flat_codec_cfg : *flat_codec_configs) {
@@ -625,7 +650,9 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     }
 
     auto flat_qos_configs = configurations_root->qos_configurations();
-    if (!flat_qos_configs || flat_qos_configs->size() == 0) return false;
+    if (!flat_qos_configs || flat_qos_configs->size() == 0) {
+        return false;
+    }
 
     std::map<std::string_view, const le_audio::QosConfiguration*> qos_cfgs;
     for (const auto& flat_qos_cfg : *flat_qos_configs) {
@@ -633,10 +660,14 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     }
 
     auto flat_configs = configurations_root->configurations();
-    if (!flat_configs || flat_configs->size() == 0) return false;
+    if (!flat_configs || flat_configs->size() == 0) {
+        return false;
+    }
 
     for (const auto& flat_cfg : *flat_configs) {
-        if (flat_cfg->name() == nullptr) continue;
+        if (flat_cfg->name() == nullptr) {
+            continue;
+        }
         auto config_data = PopulateAseConfigsFromFlat(flat_cfg, codec_cfgs, qos_cfgs, location);
         if (config_data.has_value()) {
             ase_configs_.insert_or_assign(flat_cfg->name()->str(), std::move(config_data.value()));
@@ -648,13 +679,19 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
 
 bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const ConfigurationSetFile& files) {
     flatbuffers::Parser parser;
-    if (!LoadFileAndParse(parser, files)) return false;
+    if (!LoadFileAndParse(parser, files)) {
+        return false;
+    }
 
     auto scenarios_root = le_audio::GetAudioSetScenarios(parser.builder_.GetBufferPointer());
-    if (!scenarios_root) return false;
+    if (!scenarios_root) {
+        return false;
+    }
 
     auto flat_scenarios = scenarios_root->scenarios();
-    if (!flat_scenarios || flat_scenarios->size() == 0) return false;
+    if (!flat_scenarios || flat_scenarios->size() == 0) {
+        return false;
+    }
 
     // Define contexts
     static const AudioContext media_context = {
@@ -678,7 +715,9 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
     };
 
     for (const auto& scenario : *flat_scenarios) {
-        if (!scenario->configurations() || !scenario->name()) continue;
+        if (!scenario->configurations() || !scenario->name()) {
+            continue;
+        }
 
         std::string_view scenario_name = scenario->name()->string_view();
         auto context_it = scenario_to_context.find(scenario_name);
@@ -688,7 +727,9 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
         for (const auto& config_name_fb : *scenario->configurations()) {
             std::string_view config_name = config_name_fb->string_view();
             auto configuration_it = ase_configs_.find(config_name);
-            if (configuration_it == ase_configs_.end()) continue;
+            if (configuration_it == ase_configs_.end()) {
+                continue;
+            }
 
             const auto& configuration = configuration_it->second;
             LeAudioAseConfigurationSetting setting = {
@@ -714,7 +755,9 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationSetFile(
         }
     }
 
-    if (!is_success) return false;
+    if (!is_success) {
+        return false;
+    }
 
     for (const auto& file : scenario_files) {
         if (LoadScenariosFromFiles(file)) {
