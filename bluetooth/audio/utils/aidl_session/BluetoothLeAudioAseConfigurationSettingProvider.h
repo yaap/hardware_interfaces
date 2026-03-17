@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include <aidl/android/hardware/bluetooth/audio/IBluetoothAudioProvider.h>
-
 #include <map>
 #include <mutex>
 #include <optional>
@@ -23,6 +21,8 @@
 #include <string_view>
 #include <tuple>
 #include <vector>
+
+#include <aidl/android/hardware/bluetooth/audio/IBluetoothAudioProvider.h>
 
 #include "audio_set_configurations_generated.h"
 #include "audio_set_scenarios_generated.h"
@@ -34,9 +34,9 @@ namespace hardware {
 namespace bluetooth {
 namespace audio {
 
-using LeAudioAseConfigurationSetting = IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
 using AseDirectionConfiguration =
         IBluetoothAudioProvider::LeAudioAseConfigurationSetting::AseDirectionConfiguration;
+using LeAudioAseConfigurationSetting = IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
 using LeAudioAseQosConfiguration = IBluetoothAudioProvider::LeAudioAseQosConfiguration;
 using LeAudioDataPathConfiguration = IBluetoothAudioProvider::LeAudioDataPathConfiguration;
 
@@ -87,10 +87,10 @@ class AudioSetConfigurationProviderJson {
             const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
             CodecLocation location);
 
-    static void UpdateConfigurationFlags(AseConfig& result);
-
     static LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
                                                          const LeAudioAseConfiguration& ase);
+
+    static void UpdateConfigurationFlags(AseConfig& result);
 
     static bool LoadConfigurationsFromFiles(const ConfigurationSetFile& files,
                                             CodecLocation location);

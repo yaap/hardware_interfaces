@@ -14,9 +14,30 @@
  * limitations under the License.
  */
 
+#include "BluetoothLeAudioAseConfigurationSettingProvider.h"
+
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <vector>
+
+#include <aidl/android/hardware/bluetooth/audio/AudioConfiguration.h>
+#include <aidl/android/hardware/bluetooth/audio/AudioContext.h>
+#include <aidl/android/hardware/bluetooth/audio/BluetoothAudioStatus.h>
+#include <aidl/android/hardware/bluetooth/audio/CodecId.h>
+#include <aidl/android/hardware/bluetooth/audio/CodecSpecificCapabilitiesLtv.h>
+#include <aidl/android/hardware/bluetooth/audio/CodecSpecificConfigurationLtv.h>
+#include <aidl/android/hardware/bluetooth/audio/ConfigurationFlags.h>
+#include <aidl/android/hardware/bluetooth/audio/LeAudioAseConfiguration.h>
+#include <aidl/android/hardware/bluetooth/audio/Phy.h>
+#include <android-base/logging.h>
+
+#include "BluetoothAudioType.h"
+#include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
+
+#define LOG_TAG "BTAudioAseConfigAidl"
+
 #define STREAM_TO_UINT8(u8, p)  \
     {                           \
         (u8) = (uint8_t)(*(p)); \
@@ -33,26 +54,6 @@
                  ((((uint32_t)(*((p) + 2)))) << 16) + ((((uint32_t)(*((p) + 3)))) << 24)); \
         (p) += 4;                                                                          \
     }
-
-#define LOG_TAG "BTAudioAseConfigAidl"
-
-#include <aidl/android/hardware/bluetooth/audio/AudioConfiguration.h>
-#include <aidl/android/hardware/bluetooth/audio/AudioContext.h>
-#include <aidl/android/hardware/bluetooth/audio/BluetoothAudioStatus.h>
-#include <aidl/android/hardware/bluetooth/audio/CodecId.h>
-#include <aidl/android/hardware/bluetooth/audio/CodecSpecificCapabilitiesLtv.h>
-#include <aidl/android/hardware/bluetooth/audio/CodecSpecificConfigurationLtv.h>
-#include <aidl/android/hardware/bluetooth/audio/ConfigurationFlags.h>
-#include <aidl/android/hardware/bluetooth/audio/LeAudioAseConfiguration.h>
-#include <aidl/android/hardware/bluetooth/audio/Phy.h>
-#include <android-base/logging.h>
-
-#include <optional>
-
-#include "BluetoothAudioType.h"
-#include "BluetoothLeAudioAseConfigurationSettingProvider.h"
-#include "flatbuffers/idl.h"
-#include "flatbuffers/util.h"
 
 namespace aidl {
 namespace android {
@@ -480,50 +481,6 @@ AudioSetConfigurationProviderJson::PopulateVendorCodecConfiguration(
     return codec_config;
 }
 
-LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath(
-        const CodecLocation& location, const LeAudioAseConfiguration& ase) {
-    LeAudioDataPathConfiguration path;
-    // Move codecId to iso data path
-    if (ase.codecId.has_value()) {
-        path.isoDataPathConfiguration.codecId = ase.codecId.value();
-    }
-
-    // Specific vendor datapath logic
-    if (IsOpusHiResCodec(ase)) {
-        path.isoDataPathConfiguration.isTransparent = true;
-        path.dataPathId = kIsoDataPathHciLinkFeedback;
-        return path;
-    }
-
-    // DSA 2.0 DSA_SW data path logic
-    if (IsDsaHeadTrackingCodec(ase)) {
-        path.isoDataPathConfiguration.isTransparent = true;
-        path.dataPathId = kIsoDataPathHci;
-        return path;
-    }
-
-    // Translate location to data path id
-    switch (location) {
-        case CodecLocation::ADSP:
-            path.isoDataPathConfiguration.isTransparent = true;
-            path.dataPathId = kIsoDataPathPlatformDefault;
-            break;
-        case CodecLocation::HOST:
-            path.isoDataPathConfiguration.isTransparent = true;
-            path.dataPathId = kIsoDataPathHci;
-            break;
-        case CodecLocation::CONTROLLER:
-            path.isoDataPathConfiguration.isTransparent = false;
-            path.dataPathId = kIsoDataPathPlatformDefault;
-            break;
-        default:
-            path.isoDataPathConfiguration.isTransparent = true;
-            path.dataPathId = kIsoDataPathHci;
-            break;
-    }
-    return path;
-}
-
 std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFromFlat(
         const le_audio::AudioSetConfiguration* flat_cfg,
         const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
@@ -591,6 +548,50 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
     }
 
     return result;
+}
+
+LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath(
+        const CodecLocation& location, const LeAudioAseConfiguration& ase) {
+    LeAudioDataPathConfiguration path;
+    // Move codecId to iso data path
+    if (ase.codecId.has_value()) {
+        path.isoDataPathConfiguration.codecId = ase.codecId.value();
+    }
+
+    // Specific vendor datapath logic
+    if (IsOpusHiResCodec(ase)) {
+        path.isoDataPathConfiguration.isTransparent = true;
+        path.dataPathId = kIsoDataPathHciLinkFeedback;
+        return path;
+    }
+
+    // DSA 2.0 DSA_SW data path logic
+    if (IsDsaHeadTrackingCodec(ase)) {
+        path.isoDataPathConfiguration.isTransparent = true;
+        path.dataPathId = kIsoDataPathHci;
+        return path;
+    }
+
+    // Translate location to data path id
+    switch (location) {
+        case CodecLocation::ADSP:
+            path.isoDataPathConfiguration.isTransparent = true;
+            path.dataPathId = kIsoDataPathPlatformDefault;
+            break;
+        case CodecLocation::HOST:
+            path.isoDataPathConfiguration.isTransparent = true;
+            path.dataPathId = kIsoDataPathHci;
+            break;
+        case CodecLocation::CONTROLLER:
+            path.isoDataPathConfiguration.isTransparent = false;
+            path.dataPathId = kIsoDataPathPlatformDefault;
+            break;
+        default:
+            path.isoDataPathConfiguration.isTransparent = true;
+            path.dataPathId = kIsoDataPathHci;
+            break;
+    }
+    return path;
 }
 
 void AudioSetConfigurationProviderJson::UpdateConfigurationFlags(AseConfig& result) {
