@@ -72,6 +72,7 @@ const std::vector<ConfigurationSetFile> kLeAudioSetScenarios = {
 };
 
 constexpr uint8_t kVendorCodecConfigReservation = 32;
+constexpr std::string_view kDefaultQos = "QoS_Config_Balanced_Reliability";
 
 const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
         const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
@@ -153,6 +154,55 @@ bool LoadFileAndParse(flatbuffers::Parser& parser, const ConfigurationSetFile& f
         return false;
     }
     return parser.Parse(content_binary.c_str());
+}
+
+const le_audio::CodecConfiguration* GetCodecConfig(
+        const le_audio::AudioSetConfiguration* flat_cfg,
+        const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs) {
+    if (flat_cfg->codec_config_name() == nullptr) {
+        LOG(ERROR) << "codec_config_name cannot be null";
+        return nullptr;
+    }
+
+    auto it = codec_cfgs.find(flat_cfg->codec_config_name()->string_view());
+    if (it == codec_cfgs.end() || it->second->subconfigurations() == nullptr) {
+        LOG(ERROR) << "No codec config matching key "
+                   << flat_cfg->codec_config_name()->string_view() << " found";
+        return nullptr;
+    }
+    return it->second;
+}
+
+std::optional<std::pair<const le_audio::QosConfiguration*, const le_audio::QosConfiguration*>>
+GetQosConfig(const le_audio::AudioSetConfiguration* flat_cfg,
+             const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs) {
+    const auto* qos_names = flat_cfg->qos_config_name();
+    const std::string_view qos_sink_key = (qos_names != nullptr && qos_names->size() > 0)
+                                                  ? qos_names->Get(0)->string_view()
+                                                  : kDefaultQos;
+    const std::string_view qos_source_key = (qos_names != nullptr && qos_names->size() > 1)
+                                                    ? qos_names->Get(1)->string_view()
+                                                    : qos_sink_key;
+
+    auto get_qos_cfg = [&](std::string_view key,
+                           const char* type) -> const le_audio::QosConfiguration* {
+        auto it = qos_cfgs.find(key);
+        if (it == qos_cfgs.end()) {
+            LOG(ERROR) << "No valid " << type << " qos config matching key " << std::string(key)
+                       << " found";
+            return nullptr;
+        }
+        return it->second;
+    };
+
+    const auto* qos_sink_cfg = get_qos_cfg(qos_sink_key, "sink");
+    if (qos_sink_cfg == nullptr) return std::nullopt;
+
+    const auto* qos_source_cfg =
+            (qos_source_key == qos_sink_key) ? qos_sink_cfg : get_qos_cfg(qos_source_key, "source");
+    if (qos_source_cfg == nullptr) return std::nullopt;
+
+    return std::make_pair(qos_sink_cfg, qos_source_cfg);
 }
 
 }  // namespace
@@ -443,155 +493,101 @@ LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath
     return path;
 }
 
-// Parse into AseDirectionConfiguration
-AseDirectionConfiguration AudioSetConfigurationProviderJson::SetConfigurationFromFlatSubconfig(
-        const le_audio::AudioSetSubConfiguration* flat_subconfig,
-        const le_audio::QosConfiguration* qos_cfg, CodecLocation location,
-        ConfigurationFlags& configurationFlags) {
-    AseDirectionConfiguration direction_conf;
-
-    // Translate into LeAudioAseConfiguration
-    auto ase_opt = PopulateAseConfiguration(flat_subconfig, qos_cfg);
-    if (!ase_opt.has_value()) return direction_conf;
-    auto ase = std::move(ase_opt.value());
-
-    if (ase.targetLatency == LeAudioAseConfiguration::TargetLatency::LOWER) {
-        configurationFlags.bitmask |= ConfigurationFlags::LOW_LATENCY;
-    }
-
-    // Translate into LeAudioAseQosConfiguration
-    auto qos_opt = PopulateAseQosConfiguration(qos_cfg, ase, flat_subconfig->ase_channel_cnt());
-    if (!qos_opt.has_value()) return direction_conf;
-    auto qos = std::move(qos_opt.value());
-
-    // Populate vendorCodecConfiguration using the correct LTV
-    ase.vendorCodecConfiguration = PopulateVendorCodecConfiguration(ase);
-
-    direction_conf.aseConfiguration = ase;
-    direction_conf.qosConfiguration = qos;
-    // Populate the correct datapath.
-    direction_conf.dataPathConfiguration = PopulateDatapath(location, ase);
-
-    return direction_conf;
-}
-
-// Parse into AseDirectionConfiguration and the ConfigurationFlags
-// and put them in the given list.
-void AudioSetConfigurationProviderJson::ProcessSubconfig(
-        const le_audio::AudioSetSubConfiguration* subconfig,
-        const le_audio::QosConfiguration* qos_cfg,
-        std::vector<std::optional<AseDirectionConfiguration>>& directionAseConfiguration,
-        CodecLocation location, ConfigurationFlags& configurationFlags) {
-    auto ase_cnt = subconfig->ase_cnt();
-    auto config =
-            SetConfigurationFromFlatSubconfig(subconfig, qos_cfg, location, configurationFlags);
-    directionAseConfiguration.push_back(config);
-    // Put the same setting again.
-    if (ase_cnt == 2) directionAseConfiguration.push_back(config);
-}
-
-void AudioSetConfigurationProviderJson::PopulateAseConfigurationFromFlat(
+std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFromFlat(
         const le_audio::AudioSetConfiguration* flat_cfg,
         const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
         const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
-        CodecLocation location,
-        std::vector<std::optional<AseDirectionConfiguration>>& sourceAseConfiguration,
-        std::vector<std::optional<AseDirectionConfiguration>>& sinkAseConfiguration,
-        ConfigurationFlags& configurationFlags) {
+        CodecLocation location) {
     if (flat_cfg == nullptr) {
         LOG(ERROR) << "flat_cfg cannot be null";
-        return;
+        return std::nullopt;
     }
-    std::string_view codec_config_key = flat_cfg->codec_config_name()->string_view();
-    auto* qos_config_key_array = flat_cfg->qos_config_name();
 
-    constexpr std::string_view default_qos = "QoS_Config_Balanced_Reliability";
+    const auto* codec_cfg = GetCodecConfig(flat_cfg, codec_cfgs);
+    if (codec_cfg == nullptr) return std::nullopt;
 
-    std::string_view qos_sink_key(default_qos);
-    std::string_view qos_source_key(default_qos);
+    auto qos_cfg_pair = GetQosConfig(flat_cfg, qos_cfgs);
+    if (!qos_cfg_pair.has_value()) return std::nullopt;
 
-    /* We expect maximum two QoS settings. First for Sink and second for Source
-     */
-    if (qos_config_key_array->size() > 0) {
-        qos_sink_key = qos_config_key_array->Get(0)->string_view();
-        if (qos_config_key_array->size() > 1) {
-            qos_source_key = qos_config_key_array->Get(1)->string_view();
-        } else {
-            qos_source_key = qos_sink_key;
+    const auto* qos_sink_cfg = qos_cfg_pair->first;
+    const auto* qos_source_cfg = qos_cfg_pair->second;
+
+    AseConfig result;
+    /* Load subconfigurations */
+    for (auto subconfig : *codec_cfg->subconfigurations()) {
+        const auto* qos_cfg =
+                (subconfig->direction() == kLeAudioDirectionSink) ? qos_sink_cfg : qos_source_cfg;
+
+        AseDirectionConfiguration config;
+
+        // Translate into LeAudioAseConfiguration directly into config member
+        auto ase_cfg = PopulateAseConfiguration(subconfig, qos_cfg);
+        if (!ase_cfg.has_value()) continue;
+        config.aseConfiguration = std::move(ase_cfg.value());
+
+        // Translate into LeAudioAseQosConfiguration directly into config member
+        auto qos_cfg_aidl = PopulateAseQosConfiguration(qos_cfg, config.aseConfiguration,
+                                                        subconfig->ase_channel_cnt());
+        if (!qos_cfg_aidl.has_value()) continue;
+        config.qosConfiguration = std::move(qos_cfg_aidl.value());
+
+        // Populate the correct datapath.
+        config.dataPathConfiguration = PopulateDatapath(location, config.aseConfiguration);
+
+        // Populate vendorCodecConfiguration using the correct LTV
+        config.aseConfiguration.vendorCodecConfiguration =
+                PopulateVendorCodecConfiguration(config.aseConfiguration);
+
+        auto& directionAseConfiguration =
+                (subconfig->direction() == kLeAudioDirectionSink) ? result.sink : result.source;
+
+        // Put the same setting again.
+        auto ase_cnt = subconfig->ase_cnt();
+        if (ase_cnt == 2) {
+            directionAseConfiguration.push_back(config);
         }
+        directionAseConfiguration.emplace_back(std::move(config));
     }
 
-    LOG(INFO) << "Audio set config " << flat_cfg->name()->c_str() << ": codec config "
-              << codec_config_key << ", qos_sink " << qos_sink_key << ", qos_source "
-              << qos_source_key;
+    UpdateConfigurationFlags(result);
 
-    // Find the first qos config that match the name
-    const le_audio::QosConfiguration* qos_sink_cfg = nullptr;
-    if (auto it = qos_cfgs.find(qos_sink_key); it != qos_cfgs.end()) {
-        qos_sink_cfg = it->second;
+    if (result.source.empty() && result.sink.empty()) {
+        return std::nullopt;
     }
 
-    const le_audio::QosConfiguration* qos_source_cfg = nullptr;
-    if (auto it = qos_cfgs.find(qos_source_key); it != qos_cfgs.end()) {
-        qos_source_cfg = it->second;
+    return result;
+}
+
+void AudioSetConfigurationProviderJson::UpdateConfigurationFlags(AseConfig& result) {
+    auto any_match = [](const std::vector<std::optional<AseDirectionConfiguration>>& configs,
+                        auto predicate) {
+        return std::any_of(configs.begin(), configs.end(),
+                           [&](const auto& cfg) { return cfg.has_value() && predicate(*cfg); });
+    };
+
+    if (any_match(result.sink, IsLowLatencyConfiguration) ||
+        any_match(result.source, IsLowLatencyConfiguration)) {
+        result.flags.bitmask |= ConfigurationFlags::LOW_LATENCY;
     }
 
-    // First codec_cfg with the same name
-    const le_audio::CodecConfiguration* codec_cfg = nullptr;
-    if (auto it = codec_cfgs.find(codec_config_key); it != codec_cfgs.end()) {
-        codec_cfg = it->second;
-    }
+    // Check if it's an asymmetric configuration
+    const size_t check_count = std::min(result.sink.size(), result.source.size());
+    for (size_t i = 0; i < check_count; ++i) {
+        const auto& sink_cfg = result.sink[i];
+        const auto& src_cfg = result.source[i];
 
-    // Process each subconfig and put it into the correct list
-    if (codec_cfg != nullptr && codec_cfg->subconfigurations()) {
-        /* Load subconfigurations */
-        for (auto subconfig : *codec_cfg->subconfigurations()) {
-            if (subconfig->direction() == kLeAudioDirectionSink) {
-                ProcessSubconfig(subconfig, qos_sink_cfg, sinkAseConfiguration, location,
-                                 configurationFlags);
-            } else {
-                ProcessSubconfig(subconfig, qos_source_cfg, sourceAseConfiguration, location,
-                                 configurationFlags);
+        if (sink_cfg.has_value() && src_cfg.has_value()) {
+            if (IsAseConfigurationAsymmetrical(*sink_cfg, *src_cfg)) {
+                result.flags.bitmask |= ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
+                break;
             }
         }
+    }
 
-        // After putting all subconfig, check if it's an asymmetric configuration
-        // and populate information for ConfigurationFlags
-        if (!sinkAseConfiguration.empty() && !sourceAseConfiguration.empty()) {
-            for (int i = 0; i < sinkAseConfiguration.size(); ++i) {
-                // Only check for comparable source and sink configuration.
-                if (sourceAseConfiguration.size() <= i) break;
-                if (sinkAseConfiguration[i].has_value() && sourceAseConfiguration[i].has_value()) {
-                    // Has both direction, comparing inner fields:
-                    if (IsAseConfigurationAsymmetrical(sinkAseConfiguration[i].value(),
-                                                       sourceAseConfiguration[i].value())) {
-                        configurationFlags.bitmask |=
-                                ConfigurationFlags::ALLOW_ASYMMETRIC_CONFIGURATIONS;
-                        // Already detect asymmetrical config.
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Check all the source configuration for DSA 2.0 headtracking codec
-        // and set the SPATIAL_AUDIO flag
-        for (auto& aseDirectionConfiguration : sourceAseConfiguration) {
-            if (aseDirectionConfiguration.has_value()) {
-                if (IsDsaHeadTrackingCodec(aseDirectionConfiguration.value().aseConfiguration)) {
-                    LOG(INFO) << "Found DSA 2.0 config " << flat_cfg->name()->c_str();
-                    configurationFlags.bitmask |= ConfigurationFlags::SPATIAL_AUDIO;
-                    break;
-                }
-            }
-        }
-    } else {
-        if (codec_cfg == nullptr) {
-            LOG(ERROR) << "No codec config matching key " << codec_config_key << " found";
-        } else {
-            LOG(ERROR) << "Configuration '" << flat_cfg->name()->c_str()
-                       << "' has no valid subconfigurations.";
-        }
+    // Check all the source configuration for DSA 2.0 headtracking codec
+    if (any_match(result.source,
+                  [](const auto& cfg) { return IsDsaHeadTrackingCodec(cfg.aseConfiguration); })) {
+        result.flags.bitmask |= ConfigurationFlags::SPATIAL_AUDIO;
     }
 }
 
@@ -624,16 +620,11 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     if (!flat_configs || flat_configs->size() == 0) return false;
 
     for (auto const& flat_cfg : *flat_configs) {
-        // Create 3 vector to use
-        std::vector<std::optional<AseDirectionConfiguration>> sourceAseConfiguration;
-        std::vector<std::optional<AseDirectionConfiguration>> sinkAseConfiguration;
-        ConfigurationFlags configurationFlags;
-        PopulateAseConfigurationFromFlat(flat_cfg, codec_cfgs, qos_cfgs, location,
-                                         sourceAseConfiguration, sinkAseConfiguration,
-                                         configurationFlags);
-        if (sourceAseConfiguration.empty() && sinkAseConfiguration.empty()) continue;
-        ase_configs_[flat_cfg->name()->str()] = {sourceAseConfiguration, sinkAseConfiguration,
-                                                 configurationFlags};
+        if (flat_cfg->name() == nullptr) continue;
+        auto config_data = PopulateAseConfigsFromFlat(flat_cfg, codec_cfgs, qos_cfgs, location);
+        if (config_data.has_value()) {
+            ase_configs_.insert_or_assign(flat_cfg->name()->str(), std::move(config_data.value()));
+        }
     }
 
     return true;

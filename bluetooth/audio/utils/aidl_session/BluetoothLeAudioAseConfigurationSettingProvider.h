@@ -85,25 +85,13 @@ class AudioSetConfigurationProviderJson {
     static std::optional<std::vector<uint8_t>> PopulateVendorCodecConfiguration(
             const LeAudioAseConfiguration& ase);
 
-    static AseDirectionConfiguration SetConfigurationFromFlatSubconfig(
-            const le_audio::AudioSetSubConfiguration* flat_subconfig,
-            const le_audio::QosConfiguration* qos_cfg, CodecLocation location,
-            ConfigurationFlags& configurationFlags);
-
-    static void ProcessSubconfig(
-            const le_audio::AudioSetSubConfiguration* subconfig,
-            const le_audio::QosConfiguration* qos_cfg,
-            std::vector<std::optional<AseDirectionConfiguration>>& directionAseConfiguration,
-            CodecLocation location, ConfigurationFlags& configurationFlags);
-
-    static void PopulateAseConfigurationFromFlat(
+    static std::optional<AseConfig> PopulateAseConfigsFromFlat(
             const le_audio::AudioSetConfiguration* flat_cfg,
             const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
             const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
-            CodecLocation location,
-            std::vector<std::optional<AseDirectionConfiguration>>& sourceAseConfiguration,
-            std::vector<std::optional<AseDirectionConfiguration>>& sinkAseConfiguration,
-            ConfigurationFlags& configurationFlags);
+            CodecLocation location);
+
+    static void UpdateConfigurationFlags(AseConfig& result);
 
     static LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
                                                          const LeAudioAseConfiguration& ase);
