@@ -473,7 +473,10 @@ LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath
         const CodecLocation& location, const LeAudioAseConfiguration& ase) {
     LeAudioDataPathConfiguration path;
     // Move codecId to iso data path
-    path.isoDataPathConfiguration.codecId = ase.codecId.value();
+    if (ase.codecId.has_value()) {
+        path.isoDataPathConfiguration.codecId = ase.codecId.value();
+    }
+
     // Specific vendor datapath logic
     if (IsOpusHiResCodec(ase)) {
         path.isoDataPathConfiguration.isTransparent = true;
@@ -483,6 +486,7 @@ LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath
 
     // DSA 2.0 DSA_SW data path logic
     if (IsDsaHeadTrackingCodec(ase)) {
+        path.isoDataPathConfiguration.isTransparent = true;
         path.dataPathId = kIsoDataPathHci;
         return path;
     }
@@ -500,6 +504,10 @@ LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath
         case CodecLocation::CONTROLLER:
             path.isoDataPathConfiguration.isTransparent = false;
             path.dataPathId = kIsoDataPathPlatformDefault;
+            break;
+        default:
+            path.isoDataPathConfiguration.isTransparent = true;
+            path.dataPathId = kIsoDataPathHci;
             break;
     }
     return path;
