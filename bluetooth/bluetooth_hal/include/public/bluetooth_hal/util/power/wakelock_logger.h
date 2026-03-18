@@ -32,7 +32,9 @@
 namespace bluetooth_hal::util::power {
 
 enum class TimeUnit : uint8_t {
-    kOneSec = 0,
+    kTwoFiftyMs = 0,
+    kFiveHundredMs,
+    kOneSec,
     kTwoSec,
     kFourSec,
     kEightSec,
