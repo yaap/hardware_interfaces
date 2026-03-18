@@ -92,7 +92,8 @@ enum UwbVendorSessionAppConfigTlvTypes {
      * 1 byte data
      * 0x0: Omni mode - the ranging antenna is used for both Tx and Rx.
      * 0x1: Directional mode - the patch antenna is used for both Tx and Rx.
-     * 0x2 - 0xFF: RFU
+     * 0x2 - 0xFE: RFU
+     * 0xFF: Not set.
      */
     ANTENNA_MODE = 0xEA,
 }
