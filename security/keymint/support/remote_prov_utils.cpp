@@ -230,7 +230,7 @@ ErrMsgOr<cppbor::Array> constructCoseSign1(int32_t supportedEekCurve, const byte
     if (supportedEekCurve == RpcHardwareInfo::CURVE_P256) {
         return constructECDSACoseSign1(key, {} /* protectedParams */, payload, aad);
     } else {
-        return cppcose::constructCoseSign1(key, payload, aad);
+        return cppcose::constructEdDsaCoseSign1(key, {} /* protectedParams */, payload, aad);
     }
 }
 
