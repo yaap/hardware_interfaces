@@ -35,7 +35,6 @@
 #include <chrono>
 #include <cinttypes>
 #include <condition_variable>
-#include <thread>
 
 using ::aidl::android::hardware::bluetooth::lmp_event::AddressType;
 using ::aidl::android::hardware::bluetooth::lmp_event::BnBluetoothLmpEventCallback;
@@ -154,9 +153,8 @@ TEST_P(BluetoothLmpEventTest, RegisterAndReceive) {
     wait(true);
     EXPECT_EQ(true, status_recv);
 
-    /* Wait for event generated here */
-    wait(false);
-    EXPECT_EQ(true, event_recv);
+    // The two events CONNECT_IND and LL_PHY_UPDATE_IND depend on the availability of
+    // a connected device. The test cannot validate the reception of these events.
 
     ibt_lmp_event_->unregisterLmpEvents(address_type, address);
 }

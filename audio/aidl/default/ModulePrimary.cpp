@@ -95,6 +95,12 @@ ndk::ScopedAStatus ModulePrimary::createOutputStream(
         // "Stub" is used because there is no actual decoder. The stream just
         // extracts the clip duration from the media file header and simulates
         // playback over time.
+        if (context.getSampleRate() <= 0) {
+            LOG(ERROR) << __func__
+                       << ": Invalid sample rate for offload stream: " << context.getSampleRate();
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+
         return createStreamInstance<StreamOutOffloadStub>(result, std::move(context),
                                                           sourceMetadata, offloadInfo);
     }
@@ -122,13 +128,25 @@ ndk::ScopedAStatus ModulePrimary::createOutputStream(
 ndk::ScopedAStatus ModulePrimary::createMmapBuffer(const AudioPortConfig& portConfig,
                                                    int32_t bufferSizeFrames, int32_t frameSizeBytes,
                                                    MmapBufferDescriptor* desc) {
+    const size_t bufferSizeBytes = static_cast<size_t>(bufferSizeFrames) * frameSizeBytes;
     // The actual mmap buffer for I/O is created after the stream exits standby, via
     // 'IStreamCommon.createMmapBuffer'. But we must return a valid file descriptor here because
     // 'MmapBufferDescriptor' can not contain a "null" fd.
     const std::string regionName =
             std::string("mmap-sim-o-") +
             std::to_string(portConfig.ext.get<AudioPortExt::Tag::mix>().handle);
-    return StreamMmapStub::createMmapBuffer(regionName, bufferSizeFrames, frameSizeBytes, desc);
+    int fd = ashmem_create_region(regionName.c_str(), bufferSizeBytes);
+    if (fd < 0) {
+        PLOG(ERROR) << __func__ << ": failed to create shared memory region of " << bufferSizeBytes
+                    << " bytes";
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    desc->sharedMemory.fd = ndk::ScopedFileDescriptor(fd);
+    desc->sharedMemory.size = bufferSizeBytes;
+    desc->burstSizeFrames = bufferSizeFrames / 4;
+    desc->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
+    LOG(DEBUG) << __func__ << ": " << desc->toString();
+    return ndk::ScopedAStatus::ok();
 }
 
 int32_t ModulePrimary::getNominalLatencyMs(const AudioPortConfig& portConfig) {
