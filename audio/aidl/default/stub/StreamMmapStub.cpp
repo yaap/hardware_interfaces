@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <sys/mman.h>
 #include <unistd.h>
 #include <cstdlib>
 
@@ -160,19 +159,19 @@ void DriverMmapStubImpl::shutdown() {
     DriverStubImpl::shutdown();
 }
 
-::android::status_t DriverMmapStubImpl::initSharedMemory(int memFd) {
+::android::status_t DriverMmapStubImpl::initSharedMemory(int ashmemFd) {
     {
         std::lock_guard l(mState.lock);
-        if (memFd == -1) {
+        if (ashmemFd == -1) {
             mState.sharedMemory = nullptr;
             return ::android::BAD_VALUE;
         }
         RETURN_STATUS_IF_ERROR(releaseSharedMemory());
     }
-    uint8_t* sharedMemory = static_cast<uint8_t*>(
-            ::mmap(nullptr, mState.bufferSizeBytes, PROT_READ | PROT_WRITE, MAP_SHARED, memFd, 0));
+    uint8_t* sharedMemory = static_cast<uint8_t*>(::mmap(
+            nullptr, mState.bufferSizeBytes, PROT_READ | PROT_WRITE, MAP_SHARED, ashmemFd, 0));
     if (sharedMemory == reinterpret_cast<uint8_t*>(MAP_FAILED) || sharedMemory == nullptr) {
-        PLOG(ERROR) << "mmap failed for size " << mState.bufferSizeBytes << ", fd " << memFd;
+        PLOG(ERROR) << "mmap failed for size " << mState.bufferSizeBytes << ", fd " << ashmemFd;
         return ::android::NO_INIT;
     }
     std::lock_guard l(mState.lock);
@@ -283,39 +282,25 @@ ndk::ScopedAStatus StreamMmapStub::createMmapBuffer(MmapBufferDescriptor* _aidl_
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
 
+    const size_t bufferSizeFrames = mContext.getBufferSizeInFrames();
+    const size_t bufferSizeBytes = static_cast<size_t>(bufferSizeFrames) * mContext.getFrameSize();
     const std::string regionName =
             std::string("mmap-sim-") + std::to_string(mContext.getMixPortHandle());
-    RETURN_STATUS_IF_ERROR(createMmapBuffer(regionName, mContext.getBufferSizeInFrames(),
-                                            mContext.getFrameSize(), _aidl_return));
-    mSharedMemoryFd = _aidl_return->sharedMemory.fd.dup();
+    int fd = ashmem_create_region(regionName.c_str(), bufferSizeBytes);
+    if (fd < 0) {
+        PLOG(ERROR) << __func__ << ": failed to create shared memory region of " << bufferSizeBytes
+                    << " bytes";
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
+    mSharedMemoryFd = ndk::ScopedFileDescriptor(fd);
     if (initSharedMemory(mSharedMemoryFd.get()) != ::android::OK) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
-    return ndk::ScopedAStatus::ok();
-}
-
-// static
-ndk::ScopedAStatus StreamMmapStub::createMmapBuffer(const std::string& regionName,
-                                                    int32_t bufferSizeFrames,
-                                                    int32_t frameSizeBytes,
-                                                    MmapBufferDescriptor* desc) {
-    int fd = memfd_create(regionName.c_str(), MFD_CLOEXEC);
-    if (fd < 0) {
-        PLOG(ERROR) << __func__ << ": failed to call memdf_create";
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
-    }
-    const size_t bufferSizeBytes = static_cast<size_t>(bufferSizeFrames) * frameSizeBytes;
-    if (ftruncate(fd, bufferSizeBytes) < 0) {
-        PLOG(ERROR) << __func__ << ": failed to set size of memfd region to " << bufferSizeBytes
-                    << " bytes";
-        ::close(fd);
-        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
-    }
-    desc->sharedMemory.fd = ndk::ScopedFileDescriptor(fd);
-    desc->sharedMemory.size = bufferSizeBytes;
-    desc->burstSizeFrames = bufferSizeFrames / 4;
-    desc->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
-    LOG(DEBUG) << __func__ << ": " << desc->toString();
+    _aidl_return->sharedMemory.fd = mSharedMemoryFd.dup();
+    _aidl_return->sharedMemory.size = bufferSizeBytes;
+    _aidl_return->burstSizeFrames = bufferSizeFrames / 4;
+    _aidl_return->flags = 1 << MmapBufferDescriptor::FLAG_INDEX_APPLICATION_SHAREABLE;
+    LOG(DEBUG) << __func__ << ": " << _aidl_return->toString();
     return ndk::ScopedAStatus::ok();
 }
 
