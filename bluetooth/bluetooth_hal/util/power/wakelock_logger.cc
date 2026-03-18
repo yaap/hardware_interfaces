@@ -38,12 +38,14 @@ using ::bluetooth_hal::hci::HciPacketType;
 
 static constexpr struct {
     TimeUnit unit;
-    int seconds;
+    int ms;
 } kTimeUnitThresholds[] = {
-        {TimeUnit::kOneSec, 1},       {TimeUnit::kTwoSec, 2},      {TimeUnit::kFourSec, 4},
-        {TimeUnit::kEightSec, 8},     {TimeUnit::kSixteenSec, 16}, {TimeUnit::kThirtySec, 30},
-        {TimeUnit::kOneMin, 60},      {TimeUnit::kFiveMin, 300},   {TimeUnit::kTenMin, 600},
-        {TimeUnit::kTwentyMin, 1200},
+        {TimeUnit::kTwoFiftyMs, 250},   {TimeUnit::kFiveHundredMs, 500},
+        {TimeUnit::kOneSec, 1000},      {TimeUnit::kTwoSec, 2000},
+        {TimeUnit::kFourSec, 4000},     {TimeUnit::kEightSec, 8000},
+        {TimeUnit::kSixteenSec, 16000}, {TimeUnit::kThirtySec, 30000},
+        {TimeUnit::kOneMin, 60000},     {TimeUnit::kFiveMin, 300000},
+        {TimeUnit::kTenMin, 600000},    {TimeUnit::kTwentyMin, 1200000},
 };
 
 static constexpr int kDefaultWeight = 1;
@@ -59,17 +61,17 @@ std::vector<Coredump> WakelockLogger::Dump() {
     for (const auto& slot : history_) {
         if (first) {
             ss << "╔═══════════════════════════════════════════════════════════════════════════════"
-                  "═══════════════════════\n";
+                  "══════════════════════════════════\n";
             first = false;
         } else {
             ss << "╠═══════════════════════════════════════════════════════════════════════════════"
-                  "═══════════════════════\n";
+                  "══════════════════════════════════\n";
         }
         ss << "║ Timeslot: " << slot.TimePeriodToString() << "\n";
         ss << "╠═══════════════════════════════════════════════════════════════════════════════════"
-              "═══════════════════\n";
+              "══════════════════════════════\n";
         ss << "║ " << std::left << std::setw(11) << " "
-           << "\t1s\t2s\t4s\t8s\t16s\t30s\t1m\t5m\t10m\t20m\t20m+\n";
+           << "\t250ms\t500ms\t1s\t2s\t4s\t8s\t16s\t30s\t1m\t5m\t10m\t20m\t20m+\n";
 
         auto print_row =
                 [&](const std::string& name,
@@ -89,7 +91,7 @@ std::vector<Coredump> WakelockLogger::Dump() {
     }
     if (!history_.empty()) {
         ss << "╚═══════════════════════════════════════════════════════════════════════════════════"
-              "═══════════════════\n";
+              "══════════════════════════════\n";
     }
 
     return {{.title = "Wakelock Logger", .coredump = ss.str(), .position = CoredumpPosition::kEnd}};
@@ -135,12 +137,12 @@ void WakelockLogger::EndSession() {
     }
 
     auto now = std::chrono::system_clock::now();
-    auto delta =
-            std::chrono::duration_cast<std::chrono::seconds>(now - session_start_time_).count();
+    auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - session_start_time_)
+                         .count();
 
     TimeUnit unit = TimeUnit::kTwentyMinPlus;
     for (const auto& threshold : kTimeUnitThresholds) {
-        if (delta <= threshold.seconds) {
+        if (delta <= threshold.ms) {
             unit = threshold.unit;
             break;
         }
