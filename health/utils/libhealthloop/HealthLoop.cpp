@@ -162,8 +162,7 @@ void HealthLoop::UeventEvent(uint32_t /*epevents*/) {
 }
 
 // Attach a BPF filter to the @uevent_fd file descriptor. This fails in recovery mode because BPF is
-// not supported in recovery mode. This fails for kernel versions 5.4 and before because the BPF
-// program is rejected by the BPF verifier of older kernels.
+// not supported in recovery mode.
 Result<void> HealthLoop::AttachFilter(int uevent_fd) {
     static const char prg[] =
             "/sys/fs/bpf/vendor/prog_filterPowerSupplyEvents_skfilter_power_supply";
@@ -192,8 +191,7 @@ void HealthLoop::UeventInit(void) {
     Result<void> attach_result = AttachFilter(uevent_fd_);
     if (!attach_result.ok()) {
         std::string error_msg = attach_result.error().message();
-        error_msg +=
-                ". This is expected in recovery mode and also for kernel versions before 5.10.";
+        error_msg += ". This is expected in recovery mode.";
         KLOG_WARNING(LOG_TAG, "%s\n", error_msg.c_str());
     } else {
         KLOG_INFO(LOG_TAG, "Successfully attached the BPF filter to the uevent socket\n");
