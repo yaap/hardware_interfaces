@@ -55,6 +55,23 @@ enum AudioSetConfigurationTargetLatency : byte {
     BALANCED_RELIABILITY = 0x02,
     HIGH_RELIABILITY = 0x03,
 }
+enum ConfigChangeConditionFlags : uint {
+    WITH_TRANSPORT_LATENCY_CHANGE = 0x0001,
+    WITH_CONFIG_PARAMETERS_CHANGE = 0x0002,
+    WITH_CODEC_TYPE_CHANGE = 0x0004,
+    WITH_CIS_DIRECTIONS_CHANGE = 0x0008,
+    WITH_PHY_CHANGE = 0x0010,
+}
+table SuggestedLatencyRule {
+    suggested_latency_ms: int;
+    /// Bitmask of `ConfigChangeConditionFlags`
+    config_change_condition_bitmask: uint;
+}
+table LeAudioUpdateLatencySetting {
+    name: string (key, required);
+    default_suggested_latency_ms: int;
+    suggested_latency_rules: [SuggestedLatencyRule];
+}
 table AudioSetSubConfiguration {
     ase_channel_cnt: ubyte;
     ase_cnt: ubyte;
@@ -80,11 +97,18 @@ table AudioSetConfiguration {
     name: string (key, required);
     codec_config_name: string (required);
     qos_config_name: [string] (required);
+    latency_setting_name: string;
 }
 table AudioSetConfigurations {
     _comments_: [string];
     configurations: [AudioSetConfiguration] (required);
     codec_configurations: [CodecConfiguration] (required);
     qos_configurations: [QosConfiguration] (required);
+    /// Predefined latency settings:
+    ///   Latency_One_TwoChan,
+    ///   Latency_One_OneChan,
+    ///   Latency_Two_OneChan,
+    ///   Latency_Two_TwoChan
+    latency_settings: [LeAudioUpdateLatencySetting];
 }
 root_type AudioSetConfigurations;

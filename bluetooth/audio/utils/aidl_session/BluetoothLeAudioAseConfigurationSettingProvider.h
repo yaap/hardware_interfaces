@@ -39,6 +39,8 @@ using AseDirectionConfiguration =
 using LeAudioAseConfigurationSetting = IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
 using LeAudioAseQosConfiguration = IBluetoothAudioProvider::LeAudioAseQosConfiguration;
 using LeAudioDataPathConfiguration = IBluetoothAudioProvider::LeAudioDataPathConfiguration;
+using LeAudioUpdateLatencySetting =
+        aidl::android::hardware::bluetooth::audio::LeAudioUpdateLatencySetting;
 
 enum class CodecLocation {
     HOST,
@@ -55,6 +57,7 @@ struct AseConfig {
     std::vector<std::optional<AseDirectionConfiguration>> source;
     std::vector<std::optional<AseDirectionConfiguration>> sink;
     ConfigurationFlags flags;
+    std::optional<LeAudioUpdateLatencySetting> latency_setting;
 };
 
 class AudioSetConfigurationProviderJson {
@@ -85,7 +88,12 @@ class AudioSetConfigurationProviderJson {
             const le_audio::AudioSetConfiguration* flat_cfg,
             const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
             const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
+            const std::map<std::string_view, const le_audio::LeAudioUpdateLatencySetting*>&
+                    latency_cfgs,
             CodecLocation location);
+
+    static std::optional<LeAudioUpdateLatencySetting> PopulateLatencySetting(
+            const le_audio::LeAudioUpdateLatencySetting* flat_latency_cfg);
 
     static LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
                                                          const LeAudioAseConfiguration& ase);
