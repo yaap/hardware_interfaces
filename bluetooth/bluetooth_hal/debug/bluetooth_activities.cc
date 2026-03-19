@@ -329,10 +329,6 @@ void BluetoothActivitiesImpl::UpdateConnectionHistory(const ConnectionActivity& 
 
 #ifndef UNIT_TEST
 std::vector<Coredump> BluetoothActivitiesImpl::Dump() {
-    if (!hal_flags::coredump_bt_activities()) {
-        return std::vector<Coredump>();
-    }
-
     std::string connection_history_dump_;
     for (const ConnectionActivity& activity : connection_history_) {
         connection_history_dump_ += activity.timestamp + ": " + activity.event +

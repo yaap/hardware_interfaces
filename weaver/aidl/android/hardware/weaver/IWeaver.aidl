@@ -45,7 +45,14 @@ interface IWeaver {
     WeaverConfig getConfig();
 
     /**
-     * Read binder calls may return a ServiceSpecificException with the following error codes.
+     * Don't use these constants. Use the WeaverReadStatus enum values instead.
+     *
+     * Background: in Weaver AIDL v1, read() was intended to report these
+     * statuses via the Binder exception code. However, that design was broken
+     * because it didn't allow returning the timeout along with the error.
+     * Weaver AIDL v2 fixed this by adding the WeaverReadStatus enum to
+     * WeaverReadResponse. So, the enum should be used now, and this separate
+     * set of definitions remains only for AIDL backwards compatibility.
      */
     const int STATUS_FAILED = 1;
     const int STATUS_INCORRECT_KEY = 2;
@@ -54,24 +61,50 @@ interface IWeaver {
     /**
      * Attempts to retrieve the value stored in the identified slot.
      *
-     * The value is only returned if the provided key matches the key stored in
-     * the slot. The value is never returned if the wrong key is provided.
-     *
      * Throttling must be used to limit the frequency of failed read attempts.
-     * The value is only returned when throttling is not active, even if the
-     * correct key is provided. If called when throttling is active, the time
-     * until the next attempt can be made is returned. Throttling must be
-     * applied on a per-slot basis so that a successful read from one slot does
-     * not reset the throttling state of any other slot.
+     * Throttling must be applied on a per-slot basis, so that a successful read
+     * from one slot doesn't reset the throttling state of any other slot. The
+     * recommended throttling policy, which is a map from failure count to
+     * starting timeout, can be found in the reference code.
      *
-     * Service status return:
+     * Each slot's failure count must be stored persistently, so that a reboot
+     * doesn't bypass the throttling policy. If an implementation has a secure
+     * timer that runs while the device is powered off, then it may preserve the
+     * elapsed time across reboots as well. If an implementation doesn't do
+     * that, then after reboot it must instead implicitly reset every slot's
+     * timeout to the starting timeout for its current failure count.
      *
-     * OK if the value was successfully read from slot.
-     * INCORRECT_KEY if the key does not match the key in the slot.
-     * THROTTLE if throttling is active.
-     * STATUS_FAILED if the read was unsuccessful for another reason.
+     * If read() is called on a slot that has a remaining timeout, then it must
+     * return a WeaverReadResponse containing WeaverReadStatus.THROTTLE, an
+     * empty value, and the remaining timeout. It MUST NOT reveal the actual
+     * value, reveal any information about whether the key is correct, or modify
+     * the slot's failure count.
      *
-     * @param slotId of the slot to read from, this must be positive to be valid.
+     * If read() is called on a slot that has no timeout remaining (i.e., either
+     * the slot's timeout has expired or it has never had a timeout), then it
+     * first increments and persists the failure count for that slot. If it is
+     * unable to persist the incremented failure count, then read() returns a
+     * WeaverReadResponse containing WeaverReadStatus.FAILED, an empty value,
+     * and a zero timeout. Otherwise:
+     *
+     *    - If the key is correct, read() resets the slot's failure count to
+     *      zero and returns a WeaverReadResponse containing
+     *      WeaverReadStatus.OK, the slot's value, and a zero timeout. This is
+     *      the only case in which the slot's value is returned.
+     *
+     *    - If the key is incorrect, read() returns a WeaverReadResponse
+     *      containing WeaverReadStatus.INCORRECT_KEY, an empty value, and the
+     *      next timeout. Note that the next timeout depends on the throttling
+     *      policy and may be either zero or a positive value.
+     *
+     * To mitigate timing attacks, key comparison must be done in constant time.
+     *
+     * Implementations MUST NOT consolidate the two updates of the failure
+     * counter in the OK case into one. Doing so would require that the key be
+     * checked before updating the failure count, opening a race condition that
+     * allows a key to be tested without the attempt being counted.
+     *
+     * @param slotId of the slot to read from.
      * @param key that is stored in the slot.
      * @return The WeaverReadResponse for this read request. If the status is OK,
      * value is set to the value in the slot and timeout is 0. Otherwise, value is

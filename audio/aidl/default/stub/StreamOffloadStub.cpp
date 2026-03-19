@@ -36,7 +36,6 @@ namespace aidl::android::hardware::audio::core {
 namespace offload {
 
 static constexpr int32_t SAFE_FLUSH_FROM_MARGIN_IN_MS = 100;
-static constexpr int32_t SAFE_DRAIN_METADATA_MARGIN_IN_MS = 10;
 
 std::string DspSimulatorLogic::init() {
     return "";
@@ -51,37 +50,17 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
     usleep(1000);
     const int64_t clipFramesPlayed =
             (::android::uptimeNanos() - timeBeginNs) * mSharedState.sampleRate / NANOS_PER_SECOND;
-
-    int64_t bufferFramesConsumed = 0, bufferFramesLeft = 0,
-            bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
-    bool isEmpty = false;
+    const int64_t bufferFramesConsumed =
+            mSharedState.format.type == AudioFormatType::PCM
+                    ? clipFramesPlayed       // For PCM data, the data is not compressed
+                    : clipFramesPlayed / 2;  // assume 1:2 compression ratio
+    int64_t bufferFramesLeft = 0, bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     {
         std::lock_guard l(mSharedState.lock);
-        int64_t bytesPerSecond = 0;
-
-        if (mSharedState.format.type == AudioFormatType::PCM) {
-            bytesPerSecond = mSharedState.sampleRate;
-        } else {
-            bytesPerSecond = mSharedState.bitRatePerSecond / 8;
-
-            if (bytesPerSecond <= 0) {
-                bytesPerSecond = mSharedState.fallbackBitRatePerSecond / 8;
-            }
-            if (bytesPerSecond <= 0) {
-                // Fallback to a 1:2 compression ratio
-                bytesPerSecond = mSharedState.sampleRate / 2LL;
-            }
-        }
-
-        bufferFramesConsumed = clipFramesPlayed * bytesPerSecond / mSharedState.sampleRate;
-
         if (mSharedState.clips.empty()) {
-            isEmpty = true;
             emptyDrainNotify = mSharedState.draining;
-            if (mSharedState.draining != DrainMode::DRAIN_EARLY_NOTIFY) {
-                mSharedState.draining = DrainMode::DRAIN_UNSPECIFIED;
-            }
         }
+        mSharedState.draining = DrainMode::DRAIN_UNSPECIFIED;
         mSharedState.bufferFramesLeft =
                 mSharedState.bufferFramesLeft > bufferFramesConsumed
                         ? mSharedState.bufferFramesLeft - bufferFramesConsumed
@@ -95,7 +74,6 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
                 mSharedState.mTotalFramesPlayed += framesPlayed;
                 framesPlayed = 0;
                 if (auto clipFramesLeft = mSharedState.clips.currentFrames();
-                    mSharedState.draining == DrainMode::DRAIN_EARLY_NOTIFY &&
                     clipFramesLeft <= mSharedState.earlyNotifyFrames) {
                     clipNotifies.emplace_back(clipFramesLeft, hasNextClip);
                 }
@@ -110,6 +88,11 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
                 } else {
                     clipNotifies.emplace_back(0 /*clipFramesLeft*/, hasNextClip);
                     framesPlayed -= mSharedState.clips.removeCurrent();
+                }
+                if (!hasNextClip) {
+                    // Since it's a simulation, the buffer consumption rate it not real,
+                    // thus 'bufferFramesLeft' might still have something, need to erase it.
+                    mSharedState.bufferFramesLeft = 0;
                 }
             }
         }
@@ -131,24 +114,12 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
             mSharedState.callback->onClipStateChange(notify.first, notify.second);
         }
     } else if (emptyDrainNotify != DrainMode::DRAIN_UNSPECIFIED) {
-        bool alreadySent;
-        {
-            std::lock_guard l(mSharedState.lock);
-            alreadySent = mSharedState.isDrainCompleteClipStateChangeSent;
-            if (!alreadySent) mSharedState.isDrainCompleteClipStateChangeSent = true;
+        LOG(DEBUG) << __func__ << ": sending onClipStateChange with no clips for "
+                   << toString(emptyDrainNotify);
+        if (emptyDrainNotify == DrainMode::DRAIN_EARLY_NOTIFY) {
+            mSharedState.callback->onClipStateChange(1 /*clipFramesLeft*/, false /*hasNextClip*/);
         }
-        if (!alreadySent) {
-            LOG(DEBUG) << __func__ << ": sending onClipStateChange with no clips for "
-                       << toString(emptyDrainNotify);
-            // Regardless of the drain mode, the buffer is now empty, so we signal completion (0
-            // frames).
-            mSharedState.callback->onClipStateChange(0 /*clipFramesLeft*/, false /*hasNextClip*/);
-            std::lock_guard l(mSharedState.lock);
-            mSharedState.draining = DrainMode::DRAIN_UNSPECIFIED;
-        }
-    } else if (isEmpty) {
-        // Sleep when idle to avoid busy-waiting and reduce CPU usage.
-        usleep(10000);
+        mSharedState.callback->onClipStateChange(0 /*clipFramesLeft*/, false /*hasNextClip*/);
     }
     return Status::CONTINUE;
 }
@@ -157,17 +128,13 @@ DspSimulatorLogic::Status DspSimulatorLogic::cycle() {
 
 using offload::DspSimulatorState;
 
-DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
-                                             const std::optional<AudioOffloadInfo>& offloadInfo)
+DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context)
     : DriverStubImpl(context, 0 /*asyncSleepTimeUs*/),
       mBufferNotifyFrames(static_cast<int64_t>(context.getBufferSizeInFrames()) / 2),
       mSafeMarginForFlushFromFrames(offload::SAFE_FLUSH_FROM_MARGIN_IN_MS *
                                     context.getSampleRate() / MILLIS_PER_SECOND),
-      mSafeMarginForDrainMetadataFrames(offload::SAFE_DRAIN_METADATA_MARGIN_IN_MS *
-                                        context.getSampleRate() / MILLIS_PER_SECOND),
       mState{context.getFormat(), context.getSampleRate(),
-             250 /*earlyNotifyMs*/ * context.getSampleRate() / MILLIS_PER_SECOND,
-             offloadInfo.has_value() ? offloadInfo->bitRatePerSecond : 0},
+             250 /*earlyNotifyMs*/ * context.getSampleRate() / MILLIS_PER_SECOND},
       mDspWorker(mState) {
     LOG_IF(FATAL, !mIsAsynchronous) << "The steam must be used in asynchronous mode";
 
@@ -206,7 +173,6 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
     }
     mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
     mState.draining = drainMode;
-    mState.isDrainCompleteClipStateChangeSent = false;
     return ::android::OK;
 }
 
@@ -218,8 +184,6 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
         mState.clips.erase();
         mState.bufferFramesLeft = 0;
         mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
-        mState.draining = StreamDescriptor::DrainMode::DRAIN_UNSPECIFIED;
-        mState.isDrainCompleteClipStateChangeSent = false;
     }
     return ::android::OK;
 }
@@ -237,20 +201,14 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
 ::android::status_t DriverOffloadStubImpl::start() {
     RETURN_STATUS_IF_ERROR(DriverStubImpl::start());
     RETURN_STATUS_IF_ERROR(startWorkerIfNeeded());
-    bool shouldResume;
+    bool hasClips;  // Can be start after paused draining.
     {
         std::lock_guard l(mState.lock);
-        bool hasClips = !mState.clips.empty();
-        bool isDraining = mState.draining != StreamDescriptor::DrainMode::DRAIN_UNSPECIFIED;
-        // Allow notifications if resuming into a drain with an empty buffer.
-        if (isDraining && !hasClips) {
-            mState.isDrainCompleteClipStateChangeSent = false;
-        }
+        hasClips = !mState.clips.empty();
         LOG(DEBUG) << __func__ << ": " << mState.clips.log();
         mState.bufferNotifyFrames = DspSimulatorState::kSkipBufferNotifyFrames;
-        shouldResume = hasClips || isDraining;
     }
-    if (shouldResume) {
+    if (hasClips) {
         mDspWorker.resume();
     }
     return ::android::OK;
@@ -275,7 +233,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
 
     {
         std::lock_guard l(mState.lock);
-        mState.bufferFramesLeft += *actualFrameCount;
+        mState.bufferFramesLeft = *actualFrameCount;
         mState.bufferNotifyFrames = mBufferNotifyFrames;
     }
     mDspWorker.resume();
@@ -295,7 +253,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
                    << ", suggestedPosition is null:" << (flushFromPosition == nullptr);
         return ::android::BAD_VALUE;
     }
-    if (mState.format.type != AudioFormatType::PCM) {
+    if (mState.format.type != media::audio::common::AudioFormatType::PCM) {
         // Currently only support flushFromFrame for PCM offload.
         LOG(ERROR) << __func__ << ": invalid as format is " << mState.format.toString();
         return ::android::INVALID_OPERATION;
@@ -318,12 +276,14 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
                 mState.clips.trimCurrentFrames(requestedPosition - mState.mTotalFramesPlayed);
             }
         } else {  // accuracy == FlushFromFrameAccuracy::EXACT
-            if (requestedPosition < safeFlushedPosition || requestedPosition > totalWrittenFrames) {
+            if (requestedPosition < safeFlushedPosition ||
+                requestedPosition > mState.mTotalFramesPlayed + mState.clips.currentFrames()) {
                 *flushFromPosition = safeFlushedPosition - mState.mLastReportedFrames;
                 return ::android::BAD_VALUE;
             } else {
+                const int64_t positionToTrim = requestedPosition - mState.mTotalFramesPlayed;
                 *flushFromPosition = requestedPosition - mState.mLastReportedFrames;
-                mState.clips.trimCurrentFrames(requestedPosition - mState.mTotalFramesPlayed);
+                mState.clips.trimCurrentFrames(positionToTrim);
             }
         }
     }
@@ -375,40 +335,22 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
     const uint8_t* currentPtr = static_cast<const uint8_t*>(buffer);
     const uint8_t* const endPtr = currentPtr + bufferSizeBytes;
     const uint8_t* const beginPtr = currentPtr;
-
-    // Track total audio payload bytes to distinguish from metadata.
-    size_t totalAudioBytes = 0;
-
     if (mMpegFrameState.bytesPending > 0) {
         size_t processBytes =
                 std::min(mMpegFrameState.bytesPending, static_cast<size_t>(endPtr - currentPtr));
         currentPtr += processBytes;
         mMpegFrameState.bytesPending -= processBytes;
-        if (mMpegFrameState.isAudioFrame) {
-            totalAudioBytes += processBytes;
-            // Incremental Timing: Update duration based on ratio of bytes processed to fix time
-            // jump.
-            if (mMpegFrameState.totalFrameLengthBytes > 0) {
-                std::lock_guard l(mState.lock);
-                const int64_t processedFrames = mMpegFrameState.frameSize * (int64_t)processBytes /
-                                                mMpegFrameState.totalFrameLengthBytes;
-                mState.clips.updateLastFrames(processedFrames);
-                LOG(DEBUG) << __func__ << ": added samples=" << processedFrames;
-            }
-        }
     }
     while (currentPtr < endPtr) {
         const uint8_t* const frameBeginning = currentPtr;
         std::optional<MpegFrame> frameOpt = findMpegFrame(&currentPtr, endPtr);
         if (!frameOpt.has_value()) {
             // Could not find a header in the input buffer.
-            mMpegFrameState.bytesPending = 0;
             break;
         }
 
         const MpegFrame& frame = frameOpt.value();
         LOG(DEBUG) << __func__ << ": Found at offset " << frameBeginning - beginPtr << " " << frame;
-        mMpegFrameState.isAudioFrame = !(frame.isID3v2 || frame.isID3v1);
         if (frame.isID3v1) {
             mMpegFrameState.clipEnded = true;
         } else {
@@ -417,15 +359,7 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
                            << " does not match stream sample rate " << mState.sampleRate;
                 return ::android::BAD_VALUE;
             }
-
-            // Calculate physical bytes consumed in this iteration
-            size_t bytesInThisBuffer = currentPtr - frameBeginning;
-            if (mMpegFrameState.isAudioFrame) {
-                totalAudioBytes += bytesInThisBuffer;
-            }
-
             std::lock_guard l(mState.lock);
-            if (frame.bitRate > 0) mState.bitRatePerSecond = frame.bitRate;
             if (frame.isID3v2 || mState.clips.empty() || mMpegFrameState.clipEnded) {
                 if (!mState.clips.add(0)) {
                     LOG(ERROR) << __func__
@@ -434,51 +368,14 @@ DriverOffloadStubImpl::DriverOffloadStubImpl(const StreamContext& context,
                 }
                 mMpegFrameState.clipEnded = false;
             }
-            // Proportional timing fix: satisfy PauseAsync by adding time for bytes delivered only.
-            if (mMpegFrameState.isAudioFrame && frame.frameLengthBytes > 0) {
-                const int64_t processedFrames =
-                        frame.frameSize * (int64_t)bytesInThisBuffer / frame.frameLengthBytes;
-                mState.clips.updateLastFrames(processedFrames);
-                LOG(DEBUG) << __func__ << ": added samples=" << processedFrames;
-            }
+            mState.clips.updateLastFrames(frame.frameSize);
         }
         if (currentPtr == endPtr) {
             mMpegFrameState.bytesPending = frame.bytesPending;
-            mMpegFrameState.frameSize = frame.frameSize;
-            mMpegFrameState.totalFrameLengthBytes = frame.frameLengthBytes;
             break;
         }
     }
     *actualFrameCount = static_cast<size_t>(currentPtr - beginPtr) / mFrameSizeBytes;
-
-    // If totalAudioBytes > 0, we have mixed content, so we subtract metadata bytes.
-    // If totalAudioBytes == 0 (Header Only), we SKIP subtraction to keep buffer non-empty.
-    // The fallback bitrate in cycle() ensures it eventually drains.
-    if (*actualFrameCount > totalAudioBytes) {
-        size_t nonAudioBytes = *actualFrameCount - totalAudioBytes;
-        if (totalAudioBytes > 0) {
-            std::lock_guard l(mState.lock);
-
-            // Calculate the anticipated buffer size once the caller adds the frames.
-            int64_t projectedBufferLevel = mState.bufferFramesLeft + totalAudioBytes;
-
-            // Ensure the buffer level does not dip below mBufferNotifyFrames after subtraction.
-            // An instant drop triggers the worker thread to fire onTransferReady prematurely...
-            const int64_t safeThreshold = mBufferNotifyFrames + mSafeMarginForDrainMetadataFrames;
-
-            if (projectedBufferLevel < safeThreshold) {
-                // Subtract only enough to perfectly land on the safeThreshold
-                int64_t allowedSubtract =
-                        (mState.bufferFramesLeft + *actualFrameCount) - safeThreshold;
-                if (allowedSubtract > 0) {
-                    mState.bufferFramesLeft -= allowedSubtract;
-                }
-            } else {
-                // Safe to subtract all nonAudioBytes without triggering the race condition
-                mState.bufferFramesLeft -= nonAudioBytes;
-            }
-        }
-    }
     return ::android::OK;
 }
 
@@ -508,6 +405,9 @@ void DriverOffloadStubImpl::shutdown() {
 }
 
 ::android::status_t DriverOffloadStubImpl::refinePosition(StreamDescriptor::Position* position) {
+    if (mState.format.type != AudioFormatType::PCM) {
+        return DriverStubImpl::refinePosition(position);
+    }
     std::lock_guard l(mState.lock);
     position->frames = mState.mTotalFramesPlayed;
     return ::android::OK;
@@ -522,9 +422,8 @@ const std::set<std::string>& StreamOffloadStub::getSupportedEncodings() {
     return kSupportedEncodings;
 }
 
-StreamOffloadStub::StreamOffloadStub(StreamContext* context, const Metadata& metadata,
-                                     const AudioOffloadInfo& offloadInfo)
-    : StreamCommonImpl(context, metadata), DriverOffloadStubImpl(getContext(), offloadInfo) {}
+StreamOffloadStub::StreamOffloadStub(StreamContext* context, const Metadata& metadata)
+    : StreamCommonImpl(context, metadata), DriverOffloadStubImpl(getContext()) {}
 
 StreamOffloadStub::~StreamOffloadStub() {
     cleanupWorker();
@@ -534,6 +433,6 @@ StreamOutOffloadStub::StreamOutOffloadStub(StreamContext&& context,
                                            const SourceMetadata& sourceMetadata,
                                            const std::optional<AudioOffloadInfo>& offloadInfo)
     : StreamOut(std::move(context), offloadInfo),
-      StreamOffloadStub(&mContextInstance, sourceMetadata, offloadInfo.value()) {}
+      StreamOffloadStub(&mContextInstance, sourceMetadata) {}
 
 }  // namespace aidl::android::hardware::audio::core

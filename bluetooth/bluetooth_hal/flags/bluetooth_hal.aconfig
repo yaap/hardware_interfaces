@@ -9,20 +9,6 @@ flag {
 }
 
 flag {
-    name: "coredump_when_receiving_unimplemented_packet_type"
-    namespace: "pixel_bluetooth"
-    description: "Flag for the unimplemented packet type coredump fix"
-    bug: "440031741"
-}
-
-flag {
-    name: "coredump_bt_activities"
-    namespace: "pixel_bluetooth"
-    description: "Flag for adopting debug client to dump bt activities"
-    bug: "432614127"
-}
-
-flag {
     name: "handle_recursive_packets_from_router_clients"
     namespace: "pixel_bluetooth"
     description: "Flag for the HCI router to handle recursive packets from clients"
