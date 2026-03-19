@@ -21,6 +21,8 @@
 #include <optional>
 #include <vector>
 
+#define LOG_TAG "BTAudioAseConfigAidl"
+
 #include <aidl/android/hardware/bluetooth/audio/AudioConfiguration.h>
 #include <aidl/android/hardware/bluetooth/audio/AudioContext.h>
 #include <aidl/android/hardware/bluetooth/audio/BluetoothAudioStatus.h>
@@ -35,8 +37,6 @@
 #include "BluetoothAudioType.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
-
-#define LOG_TAG "BTAudioAseConfigAidl"
 
 #define STREAM_TO_UINT8(u8, p)  \
     {                           \
@@ -160,6 +160,7 @@ bool LoadFileAndParse(flatbuffers::Parser& parser, const ConfigurationSetFile& f
         LOG(ERROR) << __func__ << ": Failed to load json file: " << files.content;
         return false;
     }
+    LOG(INFO) << __func__ << ": Loaded json file: " << files.content;
     return parser.Parse(content_binary.c_str());
 }
 
@@ -551,6 +552,11 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
         return std::nullopt;
     }
 
+    LOG(INFO) << __func__ << ": Audio set config - " << flat_cfg->name()->c_str()
+              << ": codec config: " << flat_cfg->codec_config_name()->c_str()
+              << ", qos_sink: " << qos_sink_cfg->name()->c_str()
+              << ", qos_source: " << qos_source_cfg->name()->c_str();
+
     return result;
 }
 
@@ -653,6 +659,7 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     for (const auto& flat_codec_cfg : *flat_codec_configs) {
         codec_cfgs[flat_codec_cfg->name()->string_view()] = flat_codec_cfg;
     }
+    LOG(INFO) << __func__ << ": Loaded " << codec_cfgs.size() << " codec configurations";
 
     auto flat_qos_configs = configurations_root->qos_configurations();
     if (!flat_qos_configs || flat_qos_configs->size() == 0) {
@@ -663,12 +670,14 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     for (const auto& flat_qos_cfg : *flat_qos_configs) {
         qos_cfgs[flat_qos_cfg->name()->string_view()] = flat_qos_cfg;
     }
+    LOG(INFO) << __func__ << ": Loaded " << qos_cfgs.size() << " qos configurations";
 
     auto flat_configs = configurations_root->configurations();
     if (!flat_configs || flat_configs->size() == 0) {
         return false;
     }
 
+    LOG(INFO) << __func__ << ": Loaded " << flat_configs->size() << " configurations";
     for (const auto& flat_cfg : *flat_configs) {
         if (flat_cfg->name() == nullptr) {
             continue;
@@ -698,6 +707,7 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
         return false;
     }
 
+    LOG(INFO) << __func__ << ": Loaded " << flat_scenarios->size() << " scenarios";
     // Define contexts
     static const AudioContext media_context = {
             .bitmask = (AudioContext::ALERTS | AudioContext::INSTRUCTIONAL |
@@ -724,12 +734,14 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
             continue;
         }
 
+        LOG(INFO) << "  " << scenario->name()->c_str();
         std::string_view scenario_name = scenario->name()->string_view();
         auto context_it = scenario_to_context.find(scenario_name);
         AudioContext context =
                 (context_it != scenario_to_context.end()) ? context_it->second : AudioContext{};
 
         for (const auto& config_name_fb : *scenario->configurations()) {
+            LOG(INFO) << "    - " << config_name_fb->c_str();
             std::string_view config_name = config_name_fb->string_view();
             auto configuration_it = ase_configs_.find(config_name);
             if (configuration_it == ase_configs_.end()) {
