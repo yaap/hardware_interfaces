@@ -20,6 +20,11 @@
 
 #include "bluetooth_hal/util/provider_factory.h"
 
+namespace aidl::android::hardware::bluetooth::ranging {
+class Config;
+class ProcedureEnableConfig;
+}  // namespace aidl::android::hardware::bluetooth::ranging
+
 namespace bluetooth_hal::extensions::cs {
 
 class ChannelSoundingDistanceEstimator;
@@ -73,11 +78,34 @@ class ChannelSoundingDistanceEstimatorInterface
     virtual double GetConfidenceLevel() = 0;
 
     /**
+     * @brief Gets the velocity of the last estimation.
+     *
+     * @return The velocity.
+     */
+    virtual double GetVelocity() = 0;
+
+    /**
      * @brief Enable Inline PCT.
      *
      * @param is_enabled True to enable Inline PCT, false otherwise.
      */
     virtual void SetInlinePCT(bool is_enabled) = 0;
+
+    /**
+     * @brief Updates the CS configuration.
+     *
+     * @param config The CS configuration.
+     */
+    virtual void UpdateChannelSoundingConfig(
+            const ::aidl::android::hardware::bluetooth::ranging::Config& config) = 0;
+
+    /**
+     * @brief Updates the procedure enable configuration.
+     *
+     * @param config The procedure enable configuration.
+     */
+    virtual void UpdateProcedureEnableConfig(
+            const ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig& config) = 0;
 
   protected:
     virtual double EstimateDistanceImpl(const std::any& data) = 0;
