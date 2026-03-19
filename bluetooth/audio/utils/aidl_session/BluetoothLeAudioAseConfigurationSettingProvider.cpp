@@ -66,10 +66,14 @@ namespace {
 const std::vector<ConfigurationSetFile> kLeAudioSetConfigs = {
         {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.bfbs",
          .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.json"},
+        {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.bfbs",
+         .content = "/vendor/etc/aidl/le_audio/aidl_default_audio_set_configurations.json"},
 };
 const std::vector<ConfigurationSetFile> kLeAudioSetScenarios = {
         {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.bfbs",
          .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.json"},
+        {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.bfbs",
+         .content = "/vendor/etc/aidl/le_audio/aidl_default_audio_set_scenarios.json"},
 };
 
 constexpr uint8_t kVendorCodecConfigReservation = 32;
