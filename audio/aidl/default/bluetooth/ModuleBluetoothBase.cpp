@@ -89,6 +89,27 @@ ndk::ScopedAStatus ModuleBluetoothBase::getBluetoothLe(
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus ModuleBluetoothBase::getBluetooth(std::shared_ptr<IBluetooth>* _aidl_return) {
+    // Only provided when Bluetooth port is present.
+    const auto& ports = getConfig().ports;
+    bool hasSco = false;
+    for (const auto& port : ports) {
+        if (port.ext.getTag() == AudioPortExt::device &&
+            port.ext.get<AudioPortExt::device>().device.type.connection ==
+                    AudioDeviceDescription::CONNECTION_BT_SCO) {
+            hasSco = true;
+            break;
+        }
+    }
+    if (hasSco) {
+        *_aidl_return = getBt().getInstance();
+    } else {
+        *_aidl_return = nullptr;
+    }
+    LOG(DEBUG) << __func__ << ": returning instance of IBluetooth: " << _aidl_return->get();
+    return ndk::ScopedAStatus::ok();
+}
+
 ChildInterface<BluetoothA2dp>& ModuleBluetoothBase::getBtA2dp() {
     if (!mBluetoothA2dp) {
         auto handle = ndk::SharedRefBase::make<BluetoothA2dp>();
@@ -107,8 +128,17 @@ ChildInterface<BluetoothLe>& ModuleBluetoothBase::getBtLe() {
     return mBluetoothLe;
 }
 
+ChildInterface<Bluetooth>& ModuleBluetoothBase::getBt() {
+    if (!mBluetooth) {
+        auto handle = ndk::SharedRefBase::make<Bluetooth>();
+        handle->registerHandler(std::bind(&ModuleBluetoothBase::bluetoothParametersUpdated, this));
+        mBluetooth = handle;
+    }
+    return mBluetooth;
+}
+
 ModuleBluetoothBase::BtProfileHandles ModuleBluetoothBase::getBtProfileManagerHandles() {
-    return std::make_tuple(std::weak_ptr<IBluetooth>(), getBtA2dp().getPtr(), getBtLe().getPtr());
+    return std::make_tuple(getBt().getPtr(), getBtA2dp().getPtr(), getBtLe().getPtr());
 }
 
 ndk::ScopedAStatus ModuleBluetoothBase::getMicMute(bool* _aidl_return __unused) {
@@ -242,6 +272,7 @@ ndk::ScopedAStatus ModuleBluetoothBase::populateConnectedDevicePort(AudioPort* a
     // to attempt connecting to the BT stack rather than judge by the A2DP/LE status.
     if (description.connection != AudioDeviceDescription::CONNECTION_BT_A2DP &&
         description.connection != AudioDeviceDescription::CONNECTION_BT_LE &&
+        description.connection != AudioDeviceDescription::CONNECTION_BT_SCO &&
         !(description.connection == AudioDeviceDescription::CONNECTION_WIRELESS &&
           description.type == AudioDeviceType::OUT_HEARING_AID)) {
         LOG(ERROR) << __func__ << ": unsupported device type: " << audioPort->toString();
@@ -252,14 +283,13 @@ ndk::ScopedAStatus ModuleBluetoothBase::populateConnectedDevicePort(AudioPort* a
     // If the device is actually connected, it is configured by the BT stack.
     // Provide the current configuration instead of all possible profiles.
     const auto& pcmConfig = proxy.pcmConfig;
-    audioPort->profiles.clear();
-    audioPort->profiles.push_back(
-            AudioProfile{.format = AudioFormatDescription{.type = AudioFormatType::PCM,
-                                                          .pcm = pcmTypeFromBitsPerSample(
-                                                                  pcmConfig.bitsPerSample)},
-                         .channelMasks = std::vector<AudioChannelLayout>(
-                                 {channelLayoutFromChannelMode(pcmConfig.channelMode)}),
-                         .sampleRates = std::vector<int>({pcmConfig.sampleRateHz})});
+    audioPort->profiles.assign(
+            {AudioProfile{.format = AudioFormatDescription{.type = AudioFormatType::PCM,
+                                                           .pcm = pcmTypeFromBitsPerSample(
+                                                                   pcmConfig.bitsPerSample)},
+                          .channelMasks = std::vector<AudioChannelLayout>(
+                                  {channelLayoutFromChannelMode(pcmConfig.channelMode)}),
+                          .sampleRates = std::vector<int>({pcmConfig.sampleRateHz})}});
     LOG(DEBUG) << __func__ << ": " << audioPort->toString();
     return ndk::ScopedAStatus::ok();
 }
