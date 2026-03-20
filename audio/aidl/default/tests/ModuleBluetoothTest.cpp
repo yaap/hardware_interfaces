@@ -63,6 +63,8 @@ namespace android::bluetooth::audio::aidl {
 
 class BluetoothAudioPortMock : public BluetoothAudioPort {
   public:
+    static std::atomic<bool> sSuspendCalled;
+
     BluetoothAudioPortMock() = default;
     virtual ~BluetoothAudioPortMock() { unregisterPort(); }
 
@@ -93,8 +95,11 @@ class BluetoothAudioPortMock : public BluetoothAudioPort {
 
     bool standby() override { return true; }
     bool start() override { return true; }
-    bool suspend() override { return true; }
     void stop() override {}
+    bool suspend() override {
+        sSuspendCalled = true;
+        return true;
+    }
 
     BluetoothStreamState getState() const override { return mState; }
 
@@ -147,6 +152,7 @@ class BluetoothAudioPortMock : public BluetoothAudioPort {
 };
 
 std::set<AudioDeviceDescription> BluetoothAudioPortMock::mInstances;
+std::atomic<bool> BluetoothAudioPortMock::sSuspendCalled = false;
 
 }  // namespace android::bluetooth::audio::aidl
 
@@ -350,6 +356,66 @@ TEST_F(ModuleBluetoothTest, ReproduceConfigReuseIssue) {
     // getRecommendedLatencyModes checks for the proxy and returns EX_ILLEGAL_STATE if missing.
     std::vector<AudioLatencyMode> modes;
     ASSERT_IS_OK(ret2.stream->getRecommendedLatencyModes(&modes));
+}
+
+TEST_F(ModuleBluetoothTest, SuspendOnPatchReset) {
+    // 1. Find a Bluetooth Output Device Port
+    auto ports = moduleConfig->getExternalDevicePorts();
+    auto portIt = std::find_if(ports.begin(), ports.end(), [](const auto& p) {
+        return p.ext.template get<AudioPortExt::Tag::device>().device.type.type ==
+               AudioDeviceType::OUT_HEADSET;
+    });
+    ASSERT_NE(portIt, ports.end()) << "No OUT_HEADSET port found";
+
+    // 2. Connect External Device
+    AudioPort connectedPort;
+    ASSERT_NO_FATAL_FAILURE(connectExternalDevice(*portIt, &connectedPort));
+
+    // 3. Configure Device Port
+    auto devicePortConfig = moduleConfig->getSingleConfigForDevicePort(connectedPort);
+    AudioPortConfig appliedDeviceConfig;
+    bool applied = false;
+    ASSERT_IS_OK(module->setAudioPortConfig(devicePortConfig, &appliedDeviceConfig, &applied));
+    ASSERT_TRUE(applied);
+
+    // 4. Configure Mix Port
+    auto mixPorts = moduleConfig->getRoutableMixPortsForDevicePort(connectedPort, true);
+    ASSERT_FALSE(mixPorts.empty());
+    auto mixPort = mixPorts[0];
+    auto mixPortConfig = moduleConfig->getSingleConfigForMixPort(false, mixPort);
+    ASSERT_TRUE(mixPortConfig.has_value());
+    mixPortConfig->ext.get<AudioPortExt::mix>().handle = 42;
+    AudioPortConfig appliedMixConfig;
+    ASSERT_IS_OK(module->setAudioPortConfig(*mixPortConfig, &appliedMixConfig, &applied));
+    ASSERT_TRUE(applied);
+
+    // 5. Create Patch
+    AudioPatch patch;
+    patch.sourcePortConfigIds = {appliedMixConfig.id};
+    patch.sinkPortConfigIds = {appliedDeviceConfig.id};
+    AudioPatch appliedPatch;
+    ASSERT_IS_OK(module->setAudioPatch(patch, &appliedPatch));
+
+    // 6. Open Stream
+    OpenOutputStreamArguments args;
+    args.portConfigId = appliedMixConfig.id;
+    args.bufferSizeFrames = 1024;
+    OpenOutputStreamReturn ret;
+    ASSERT_IS_OK(module->openOutputStream(args, &ret));
+    ASSERT_NE(nullptr, ret.stream);
+
+    // Clear the tracking flag before the critical operation
+    BluetoothAudioPortMock::sSuspendCalled = false;
+
+    // 7. Reset Patch (Stream is disconnected from device)
+    ASSERT_IS_OK(module->resetAudioPatch(appliedPatch.id));
+
+    // 8. Verify suspend was called
+    EXPECT_TRUE(BluetoothAudioPortMock::sSuspendCalled)
+            << "StreamBluetooth did not call BluetoothAudioPort::suspend upon patch reset.";
+
+    // Cleanup
+    closeStream(ret.stream);
 }
 
 int main(int argc, char** argv) {
