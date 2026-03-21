@@ -1,9 +1,21 @@
 per-file *.hal,*.aidl,OWNERS = set noparent
-per-file *.hal,*.aidl,OWNERS = devinmoore@google.com,elsk@google.com,smoreland@google.com
+per-file *.hal,*.aidl,OWNERS = devinmoore@google.com,elsk@google.com
 
 # Android Native API Council
 devinmoore@google.com
 elsk@google.com
-smoreland@google.com
+
+# To create a new HAL, please follow (internal only) go/hal-checklist.
+#
+# To apply to join ANAPIC itself - please contact devinmoore@ -
+# (internal only) go/anapic-shadow.
+#
+# NOTE - the path is long and winding, the code is deep and tangled, the
+# world is vast and unforgiving, and the complexity is forever. However,
+# to stare the future of Android's native APIs in the face, you must
+# walk this path, and you must prevail. Travel and see the world through
+# the lens and hardware of a billion devices, find the unknown, question
+# everything, bring a magnifying glass to bear, and create stability.
+# From nothing, build everything. Godspeed. -smoreland@
 
 maco@google.com #{LAST_RESORT_SUGGESTION}

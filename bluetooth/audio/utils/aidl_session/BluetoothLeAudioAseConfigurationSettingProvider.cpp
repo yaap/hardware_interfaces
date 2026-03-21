@@ -21,6 +21,8 @@
 #include <optional>
 #include <vector>
 
+#define LOG_TAG "BTAudioAseConfigAidl"
+
 #include <aidl/android/hardware/bluetooth/audio/AudioConfiguration.h>
 #include <aidl/android/hardware/bluetooth/audio/AudioContext.h>
 #include <aidl/android/hardware/bluetooth/audio/BluetoothAudioStatus.h>
@@ -31,12 +33,11 @@
 #include <aidl/android/hardware/bluetooth/audio/LeAudioAseConfiguration.h>
 #include <aidl/android/hardware/bluetooth/audio/Phy.h>
 #include <android-base/logging.h>
+#include <com_android_btaudio_hal_flags.h>
 
 #include "BluetoothAudioType.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
-
-#define LOG_TAG "BTAudioAseConfigAidl"
 
 #define STREAM_TO_UINT8(u8, p)  \
     {                           \
@@ -66,10 +67,14 @@ namespace {
 const std::vector<ConfigurationSetFile> kLeAudioSetConfigs = {
         {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.bfbs",
          .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.json"},
+        {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_configurations.bfbs",
+         .content = "/vendor/etc/aidl/le_audio/aidl_default_audio_set_configurations.json"},
 };
 const std::vector<ConfigurationSetFile> kLeAudioSetScenarios = {
         {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.bfbs",
          .content = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.json"},
+        {.schema = "/vendor/etc/aidl/le_audio/aidl_audio_set_scenarios.bfbs",
+         .content = "/vendor/etc/aidl/le_audio/aidl_default_audio_set_scenarios.json"},
 };
 
 constexpr uint8_t kVendorCodecConfigReservation = 32;
@@ -156,6 +161,7 @@ bool LoadFileAndParse(flatbuffers::Parser& parser, const ConfigurationSetFile& f
         LOG(ERROR) << __func__ << ": Failed to load json file: " << files.content;
         return false;
     }
+    LOG(INFO) << __func__ << ": Loaded json file: " << files.content;
     return parser.Parse(content_binary.c_str());
 }
 
@@ -210,6 +216,24 @@ GetQosConfig(const le_audio::AudioSetConfiguration* flat_cfg,
     }
 
     return std::make_pair(qos_sink_cfg, qos_source_cfg);
+}
+
+const le_audio::LeAudioUpdateLatencySetting* GetLatencyConfig(
+        const le_audio::AudioSetConfiguration* flat_cfg,
+        const std::map<std::string_view, const le_audio::LeAudioUpdateLatencySetting*>&
+                latency_cfgs) {
+    if (flat_cfg->latency_setting_name() == nullptr) {
+        return nullptr;
+    }
+
+    auto it = latency_cfgs.find(flat_cfg->latency_setting_name()->string_view());
+    if (it == latency_cfgs.end()) {
+        LOG(ERROR) << __func__ << ": No latency setting matching key "
+                   << flat_cfg->latency_setting_name()->string_view() << " found for configuration "
+                   << flat_cfg->name()->c_str();
+        return nullptr;
+    }
+    return it->second;
 }
 
 }  // namespace
@@ -485,6 +509,8 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
         const le_audio::AudioSetConfiguration* flat_cfg,
         const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
         const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
+        const std::map<std::string_view, const le_audio::LeAudioUpdateLatencySetting*>&
+                latency_cfgs,
         CodecLocation location) {
     if (flat_cfg == nullptr) {
         LOG(ERROR) << "flat_cfg cannot be null";
@@ -541,13 +567,50 @@ std::optional<AseConfig> AudioSetConfigurationProviderJson::PopulateAseConfigsFr
         directionAseConfiguration.emplace_back(std::move(config));
     }
 
+    if (com::android::btaudio::hal::flags::leaudio_iso_parameter_update()) {
+        const auto* flat_latency_cfg = GetLatencyConfig(flat_cfg, latency_cfgs);
+        result.latency_setting = PopulateLatencySetting(flat_latency_cfg);
+    }
+
     UpdateConfigurationFlags(result);
 
     if (result.source.empty() && result.sink.empty()) {
         return std::nullopt;
     }
 
+    LOG(INFO) << __func__ << ": Audio set config - " << flat_cfg->name()->c_str()
+              << ": codec config: " << flat_cfg->codec_config_name()->c_str()
+              << ", qos_sink: " << qos_sink_cfg->name()->c_str()
+              << ", qos_source: " << qos_source_cfg->name()->c_str() << ", latency_setting: "
+              << (flat_cfg->latency_setting_name() != nullptr
+                          ? flat_cfg->latency_setting_name()->c_str()
+                          : "None");
+
     return result;
+}
+
+std::optional<LeAudioUpdateLatencySetting>
+AudioSetConfigurationProviderJson::PopulateLatencySetting(
+        const le_audio::LeAudioUpdateLatencySetting* flat_latency_cfg) {
+    if (flat_latency_cfg == nullptr) {
+        return std::nullopt;
+    }
+
+    LeAudioUpdateLatencySetting latency_setting;
+    latency_setting.defaultSuggestedLatencyMs = flat_latency_cfg->default_suggested_latency_ms();
+
+    const auto* flat_rules = flat_latency_cfg->suggested_latency_rules();
+    if (flat_rules != nullptr) {
+        latency_setting.suggestedLatencyRules.emplace();
+        for (const auto* rule : *flat_rules) {
+            LeAudioUpdateLatencySetting::SuggestedLatencyRule aidl_rule;
+            aidl_rule.suggestedLatencyMs = rule->suggested_latency_ms();
+            aidl_rule.configChangeConditionFlags.bitmask = rule->config_change_condition_bitmask();
+            latency_setting.suggestedLatencyRules->push_back(std::move(aidl_rule));
+        }
+    }
+
+    return latency_setting;
 }
 
 LeAudioDataPathConfiguration AudioSetConfigurationProviderJson::PopulateDatapath(
@@ -625,6 +688,10 @@ void AudioSetConfigurationProviderJson::UpdateConfigurationFlags(AseConfig& resu
                   [](const auto& cfg) { return IsDsaHeadTrackingCodec(cfg.aseConfiguration); })) {
         result.flags.bitmask |= ConfigurationFlags::SPATIAL_AUDIO;
     }
+
+    if (result.latency_setting.has_value()) {
+        result.flags.bitmask |= ConfigurationFlags::ISO_PARAMETER_UPDATE;
+    }
 }
 
 bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
@@ -649,6 +716,7 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     for (const auto& flat_codec_cfg : *flat_codec_configs) {
         codec_cfgs[flat_codec_cfg->name()->string_view()] = flat_codec_cfg;
     }
+    LOG(INFO) << __func__ << ": Loaded " << codec_cfgs.size() << " codec configurations";
 
     auto flat_qos_configs = configurations_root->qos_configurations();
     if (!flat_qos_configs || flat_qos_configs->size() == 0) {
@@ -659,17 +727,30 @@ bool AudioSetConfigurationProviderJson::LoadConfigurationsFromFiles(
     for (const auto& flat_qos_cfg : *flat_qos_configs) {
         qos_cfgs[flat_qos_cfg->name()->string_view()] = flat_qos_cfg;
     }
+    LOG(INFO) << __func__ << ": Loaded " << qos_cfgs.size() << " qos configurations";
+
+    auto flat_latency_configs = configurations_root->latency_settings();
+    std::map<std::string_view, const le_audio::LeAudioUpdateLatencySetting*> latency_cfgs;
+    if (flat_latency_configs != nullptr) {
+        for (const auto& flat_latency_cfg : *flat_latency_configs) {
+            latency_cfgs[flat_latency_cfg->name()->string_view()] = flat_latency_cfg;
+        }
+    }
+    LOG(INFO) << __func__ << ": Loaded " << latency_cfgs.size() << " latency settings";
 
     auto flat_configs = configurations_root->configurations();
     if (!flat_configs || flat_configs->size() == 0) {
         return false;
     }
 
+    LOG(INFO) << __func__ << ": Loaded " << flat_configs->size() << " configurations";
     for (const auto& flat_cfg : *flat_configs) {
         if (flat_cfg->name() == nullptr) {
             continue;
         }
-        auto config_data = PopulateAseConfigsFromFlat(flat_cfg, codec_cfgs, qos_cfgs, location);
+
+        auto config_data =
+                PopulateAseConfigsFromFlat(flat_cfg, codec_cfgs, qos_cfgs, latency_cfgs, location);
         if (config_data.has_value()) {
             ase_configs_.insert_or_assign(flat_cfg->name()->str(), std::move(config_data.value()));
         }
@@ -694,6 +775,7 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
         return false;
     }
 
+    LOG(INFO) << __func__ << ": Loaded " << flat_scenarios->size() << " scenarios";
     // Define contexts
     static const AudioContext media_context = {
             .bitmask = (AudioContext::ALERTS | AudioContext::INSTRUCTIONAL |
@@ -720,12 +802,14 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
             continue;
         }
 
+        LOG(INFO) << "  " << scenario->name()->c_str();
         std::string_view scenario_name = scenario->name()->string_view();
         auto context_it = scenario_to_context.find(scenario_name);
         AudioContext context =
                 (context_it != scenario_to_context.end()) ? context_it->second : AudioContext{};
 
         for (const auto& config_name_fb : *scenario->configurations()) {
+            LOG(INFO) << "    - " << config_name_fb->c_str();
             std::string_view config_name = config_name_fb->string_view();
             auto configuration_it = ase_configs_.find(config_name);
             if (configuration_it == ase_configs_.end()) {
@@ -738,6 +822,7 @@ bool AudioSetConfigurationProviderJson::LoadScenariosFromFiles(const Configurati
                     .sinkAseConfiguration = configuration.sink,
                     .sourceAseConfiguration = configuration.source,
                     .flags = configuration.flags,
+                    .latencySetting = configuration.latency_setting,
             };
             ase_configuration_settings_.emplace_back(std::string(config_name), std::move(setting));
         }
