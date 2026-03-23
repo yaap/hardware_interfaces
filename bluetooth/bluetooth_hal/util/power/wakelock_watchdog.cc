@@ -82,7 +82,7 @@ const std::unordered_map<WakeSource, int> WakelockWatchdogImpl::kWatchdogMs = {
         {WakeSource::kTx, 5000},           //  5 seconds for TX timeout.
         {WakeSource::kRx, 5000},           //  5 seconds for RX timeout.
         {WakeSource::kHciBusy, 10000},     // 10 seconds for HCI timeout.
-        {WakeSource::kRouterTask, 5000},   // 5 seconds for Router Task timeout.
+        {WakeSource::kRouterTask, 10000},  // 10 seconds for Router Task timeout.
         {WakeSource::kTransport, 20000},   // 20 seconds for Transport timeout.
         {WakeSource::kInitialize, 20000},  // 20 seconds for HAL Initialization.
         {WakeSource::kClose, 20000},       // 20 seconds for HAL Closing.

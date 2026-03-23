@@ -56,4 +56,19 @@ class WakelockWatchdog {
     virtual ~WakelockWatchdog() = default;
 };
 
+class WakelockWatchdogPauser {
+  public:
+    WakelockWatchdogPauser() { WakelockWatchdog::GetWatchdog().Pause(); }
+    ~WakelockWatchdogPauser() { WakelockWatchdog::GetWatchdog().Resume(); }
+
+  private:
+    // Non-copyable to ensure strict RAII behavior and prevent double-resuming.
+    WakelockWatchdogPauser(const WakelockWatchdogPauser&) = delete;
+    WakelockWatchdogPauser& operator=(const WakelockWatchdogPauser&) = delete;
+};
+
+#define TEMPORARY_PAUSE_WATCHDOG()               \
+    [[maybe_unused]] auto pauser_##__COUNTER__ = \
+            ::bluetooth_hal::util::power::WakelockWatchdogPauser();
+
 }  // namespace bluetooth_hal::util::power
