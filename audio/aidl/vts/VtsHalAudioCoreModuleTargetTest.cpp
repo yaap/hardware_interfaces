@@ -1681,9 +1681,10 @@ class WithStream : public StreamWorkerMethods {
         std::shared_ptr<IStreamCommon> common;
         ndk::ScopedAStatus status = stream->getStreamCommon(&common);
         if (!status.isOk()) return status;
-        status = common->prepareToClose();
+        status = common->prepareToClose();  // An error here should not prevent calling 'close'.
+        ndk::ScopedAStatus closeStatus = common->close();
         if (!status.isOk()) return status;
-        return common->close();
+        return closeStatus;
     }
 
     WithStream() = default;
