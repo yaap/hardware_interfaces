@@ -1,4 +1,6 @@
-// Signature format: 2.0
+// Signature format: 6.0
+// - style=java
+// - strip-java-lang-prefix=legacy
 package android.media.tuner.testing.configuration.V1_0 {
 
   public class AtscFrontendSettings {
