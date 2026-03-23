@@ -273,24 +273,36 @@ TEST(NonParameterizedTests, eachRpcHasAUniqueId) {
 }
 
 /**
- * Verify that the default implementation supports DICE if the device supports protected VMs.
+ * Verify that the default implementation supports DICE according to the conditions specified in the
+ * Vendor Software Requirements.
  */
 // @VsrTest = 3.10-015
 // @VsrTest = 3.10-018.001
-TEST(NonParameterizedTests, requireDiceOnDefaultInstanceIfProtectedVmSupported) {
+TEST(NonParameterizedTests, verifyDiceIsImplementedWhenRequired) {
     int first_vendor_api_level = AVendorSupport_getFirstVendorApiLevel();
     if (first_vendor_api_level < 202504) {
         GTEST_SKIP() << "Applies only to devices that shipped with vendor API level >= 202504, but "
                      << "this device shipped with: " << first_vendor_api_level;
     }
 
-    if (!::android::base::GetBoolProperty("ro.boot.hypervisor.protected_vm.supported", false)) {
-        GTEST_SKIP() << "DICE is only required when protected VMs are supported";
+    // Until 202504, DICE requirement was tied to protected VM support.
+    if (first_vendor_api_level == 202504 && !::android::base::GetBoolProperty("ro.boot.hypervisor.protected_vm.supported", false)) {
+        GTEST_SKIP() << "DICE is only required when protected VMs are supported (on API level == 202504)";
+    }
+
+    // From 202604, DICE is required on all non-essential tier chipsets.
+    if (first_vendor_api_level >= 202604 && ::android::base::GetBoolProperty("ro.soc.et", false)) {
+        GTEST_SKIP() << "DICE not required on essential tier chipsets.";
+    }
+
+    // DICE doesn't have value on emulators, so do not require it.
+    if (::android::base::GetBoolProperty("ro.hardware.virtual_device", false)) {
+        GTEST_SKIP() << "DICE not required on emulators.";
     }
 
     // Skip on auto due to GAS requirement G-SH-917.
     if (check_feature(FEATURE_AUTOMOTIVE)) {
-        GTEST_SKIP() << "This is an automotive device.";
+        GTEST_SKIP() << "DICE is not required on automotive devices.";
     }
 
     auto rpc = getHandle<IRemotelyProvisionedComponent>(DEFAULT_INSTANCE_NAME);
