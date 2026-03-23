@@ -1,6 +1,5 @@
 // Signature format: 6.0
 // - style=java
-// - strip-java-lang-prefix=legacy
 package android.audio.policy.engine.configuration {
 
   public class AttributesGroup {
@@ -307,7 +306,7 @@ package android.audio.policy.engine.configuration {
   public class Volume {
     ctor public Volume();
     method @Nullable public android.audio.policy.engine.configuration.DeviceCategory getDeviceCategory();
-    method @Nullable public java.util.List<java.lang.String> getPoint();
+    method @Nullable public java.util.List<String> getPoint();
     method @Nullable public String getRef();
     method public void setDeviceCategory(@Nullable android.audio.policy.engine.configuration.DeviceCategory);
     method public void setRef(@Nullable String);
@@ -332,7 +331,7 @@ package android.audio.policy.engine.configuration {
   public class VolumeRef {
     ctor public VolumeRef();
     method @Nullable public String getName();
-    method @Nullable public java.util.List<java.lang.String> getPoint();
+    method @Nullable public java.util.List<String> getPoint();
     method public void setName(@Nullable String);
   }
 
