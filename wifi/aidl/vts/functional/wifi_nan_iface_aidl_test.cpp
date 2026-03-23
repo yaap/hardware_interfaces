@@ -78,9 +78,10 @@ class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
         bool is_emulator = isEmulator();
         is_vsr_required_ = get_vsr_api_level() >= 202604;
         bool is_tv_device = isTvDevice();
+        bool is_wearable_device = isWearableDevice();
         bool is_aware_supported =
             testing::deviceSupportsFeature("android.hardware.wifi.aware");
-        if (is_emulator || is_tv_device || !is_vsr_required_) {
+        if (is_emulator || is_tv_device || is_wearable_device || !is_vsr_required_) {
             if (!is_aware_supported) {
                 GTEST_SKIP() << "Skipping test because device does not support Aware.";
             }
@@ -119,6 +120,10 @@ class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
     bool isTvDevice() {
         return testing::deviceSupportsFeature("android.software.leanback") ||
                testing::deviceSupportsFeature("android.hardware.type.television");
+    }
+
+    bool isWearableDevice() {
+        return testing::deviceSupportsFeature("android.hardware.type.watch");
     }
 
     bool isEmulator() {
