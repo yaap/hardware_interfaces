@@ -1,9 +1,10 @@
-// Signature format: 2.0
+// Signature format: 6.0
+// - style=java
 package android.audio.policy.configuration {
 
   public class AttachedDevices {
     ctor public AttachedDevices();
-    method @Nullable public java.util.List<java.lang.String> getItem();
+    method @Nullable public java.util.List<String> getItem();
   }
 
   public enum AudioChannelMask {
@@ -408,7 +409,7 @@ package android.audio.policy.configuration {
   public static class DevicePorts.DevicePort {
     ctor public DevicePorts.DevicePort();
     method @Nullable public String getAddress();
-    method @Nullable public java.util.List<java.lang.String> getEncodedFormats();
+    method @Nullable public java.util.List<String> getEncodedFormats();
     method @Nullable public android.audio.policy.configuration.Gains getGains();
     method @Nullable public java.util.List<android.audio.policy.configuration.Profile> getProfile();
     method @Nullable public android.audio.policy.configuration.Role getRole();
@@ -416,7 +417,7 @@ package android.audio.policy.configuration {
     method @Nullable public String getType();
     method @Nullable public boolean get_default();
     method public void setAddress(@Nullable String);
-    method public void setEncodedFormats(@Nullable java.util.List<java.lang.String>);
+    method public void setEncodedFormats(@Nullable java.util.List<String>);
     method public void setGains(@Nullable android.audio.policy.configuration.Gains);
     method public void setRole(@Nullable android.audio.policy.configuration.Role);
     method public void setTagName(@Nullable String);
@@ -539,7 +540,7 @@ package android.audio.policy.configuration {
   public class Reference {
     ctor public Reference();
     method @Nullable public String getName();
-    method @Nullable public java.util.List<java.lang.String> getPoint();
+    method @Nullable public java.util.List<String> getPoint();
     method public void setName(@Nullable String);
   }
 
@@ -572,9 +573,9 @@ package android.audio.policy.configuration {
   public static class SurroundFormats.Format {
     ctor public SurroundFormats.Format();
     method @Nullable public String getName();
-    method @Nullable public java.util.List<java.lang.String> getSubformats();
+    method @Nullable public java.util.List<String> getSubformats();
     method public void setName(@Nullable String);
-    method public void setSubformats(@Nullable java.util.List<java.lang.String>);
+    method public void setSubformats(@Nullable java.util.List<String>);
   }
 
   public class SurroundSound {
@@ -592,7 +593,7 @@ package android.audio.policy.configuration {
   public class Volume {
     ctor public Volume();
     method @Nullable public android.audio.policy.configuration.DeviceCategory getDeviceCategory();
-    method @Nullable public java.util.List<java.lang.String> getPoint();
+    method @Nullable public java.util.List<String> getPoint();
     method @Nullable public String getRef();
     method @Nullable public android.audio.policy.configuration.AudioStreamType getStream();
     method public void setDeviceCategory(@Nullable android.audio.policy.configuration.DeviceCategory);
