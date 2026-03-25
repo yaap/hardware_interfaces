@@ -176,22 +176,6 @@ class TxHandler {
                             const std::shared_ptr<HalPacketCallback> callback) {
         bool is_queue_busy = !hci_cmd_queue_.empty();
 
-#ifndef UNIT_TEST
-        // TODO: b/446698573 - A workaround for loopback mode test. Should be
-        // replaced with a router client that handles loopback mode.
-        if (!hal_flags::handle_recursive_packets_from_router_clients() &&
-            packet.GetCommandOpcode() == static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
-            if (packet.At(kLoopbackModeEnableOffset) == kLoopbackModeEnableByte) {
-                HAL_LOG(WARNING) << "Loopback mode is enabled, disabling HCI flow "
-                                    "control in the HAL.";
-                loopback_mode_enabled_ = true;
-            } else {
-                HAL_LOG(WARNING) << "Loopback mode is disabled";
-                loopback_mode_enabled_ = false;
-            }
-        }
-#endif
-
         if (!loopback_mode_enabled_) {
             hci_cmd_queue_.emplace(QueuedHciCommand(packet, callback));
 
@@ -249,14 +233,6 @@ class TxHandler {
         if (!TransportFactory::GetTransport().IsTransportActive()) {
             HAL_LOG(ERROR) << "Transport not active! packet: " << packet.ToString();
             return false;
-        }
-        if (!hal_flags::handle_recursive_packets_from_router_clients() &&
-            HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-                    MonitorMode::kIntercept) {
-            // TODO: b/417582927 - Should force the client to provide an event if a
-            // command is intercepted.
-            HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
-            return true;
         }
         VndSnoopLogger::GetLogger().Capture(packet, VndSnoopLogger::Direction::kOutgoing);
 
@@ -502,9 +478,8 @@ bool HciRouterImpl::Send(const HalPacket& packet) {
                            std::bind_front(&HciRouterCallback::OnCommandCallback, hci_callback_));
     }
 
-    if (hal_flags::handle_recursive_packets_from_router_clients() &&
-        HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-                MonitorMode::kIntercept) {
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+        MonitorMode::kIntercept) {
         HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
         return true;
     }
@@ -522,9 +497,8 @@ bool HciRouterImpl::SendCommand(const HalPacket& packet, const HalPacketCallback
         return SendCommandNoAck(packet);
     }
 
-    if (hal_flags::handle_recursive_packets_from_router_clients() &&
-        HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-                MonitorMode::kIntercept) {
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+        MonitorMode::kIntercept) {
         HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
         return true;
     }
@@ -537,9 +511,8 @@ bool HciRouterImpl::SendCommand(const HalPacket& packet, const HalPacketCallback
 
 bool HciRouterImpl::SendCommandNoAck(const HalPacket& packet) {
     packet.SetDestination(PacketDestination::kController);
-    if (hal_flags::handle_recursive_packets_from_router_clients() &&
-        HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
-                MonitorMode::kIntercept) {
+    if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(packet) ==
+        MonitorMode::kIntercept) {
         HAL_LOG(DEBUG) << __func__ << ": packet intercepted by a client, " << packet.ToString();
         return true;
     }
@@ -654,7 +627,6 @@ void HciRouterImpl::HandleReceivedPacket(const HalPacket& packet) {
 void HciRouterImpl::HandleCommandCompleteOrCommandStatusEvent(const HalPacket& event) {
     std::scoped_lock<std::recursive_mutex> lock(mutex_);
 
-    if (hal_flags::handle_recursive_packets_from_router_clients()) {
         auto state = HciRouterClientAgent::GetAgent().DispatchPacketToClients(event);
         switch (state) {
             case MonitorMode::kNone:
@@ -683,25 +655,6 @@ void HciRouterImpl::HandleCommandCompleteOrCommandStatusEvent(const HalPacket& e
                 }
                 return;
         }
-    } else {
-        std::promise<std::shared_ptr<HalPacketCallback>> promise;
-        std::future<std::shared_ptr<HalPacketCallback>> future = promise.get_future();
-        tx_handler_->Post(TxTask::GetCommandCallback(event, std::move(promise)));
-
-        std::shared_ptr<HalPacketCallback> callback = future.get();
-        if (callback == nullptr || (*callback) == nullptr) {
-            LOG(ERROR) << "Command callback is null!";
-            if (hci_callback_ != nullptr) {
-                hci_callback_->OnPacketCallback(event);
-            }
-            return;
-        }
-
-        if (HciRouterClientAgent::GetAgent().DispatchPacketToClients(event) !=
-            MonitorMode::kIntercept) {
-            (*callback)(event);
-        }
-    }
 
     tx_handler_->Post(TxTask::OnCommandCallbackCompleted());
 }

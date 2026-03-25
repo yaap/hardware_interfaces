@@ -69,8 +69,7 @@ DebugMonitor::DebugMonitor()
 MonitorMode DebugMonitor::OnPacketCallback(const HalPacket& packet) {
     auto monitor_mode = HciRouterClient::OnPacketCallback(packet);
 
-    if (hal_flags::handle_recursive_packets_from_router_clients() &&
-        monitor_mode == MonitorMode::kNone && loopback_mode_enabled_ &&
+    if (monitor_mode == MonitorMode::kNone && loopback_mode_enabled_ &&
         packet.GetType() == HciPacketType::kCommand && packet.GetSource() == PacketSource::kStack) {
         // When loopback mode is enabled, intercept command packets from the stack
         // and send them to the controller as non-ack commands.
@@ -87,8 +86,7 @@ void DebugMonitor::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
         DebugCentral::Get().HandleDebugInfoCommand();
         return;
     }
-    if (hal_flags::handle_recursive_packets_from_router_clients() &&
-        packet.GetCommandOpcode() == static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
+    if (packet.GetCommandOpcode() == static_cast<uint16_t>(CommandOpCode::kLoopbackMode)) {
         if (packet.At(kLoopbackModeEnabledOffset) == kLoopbackModeByteEnabled) {
             LOG(WARNING) << "Loopback mode is enabled, disabling HCI flow control in the HAL.";
             loopback_mode_enabled_ = true;

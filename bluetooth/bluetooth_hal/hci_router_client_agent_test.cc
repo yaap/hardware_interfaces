@@ -19,7 +19,6 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client_callback.h"
-#include "com_android_bluetooth_bluetooth_hal_flags.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -45,8 +44,6 @@ class HciRouterClientAgentTest : public Test {
     static void SetUpTestSuite() {}
 
     void SetUp() override {
-        set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
-                false);
         agent_ = &HciRouterClientAgent::GetAgent();
         ShutdownBluetooth();
         EXPECT_FALSE(agent_->IsBluetoothEnabled());
@@ -311,8 +308,6 @@ TEST_F(HciRouterClientAgentTest, HandleNotifyHalStateChangeWithMultipleClients) 
 }
 
 TEST_F(HciRouterClientAgentTest, HandleDispatchPacketFromClient) {
-    set_com_android_bluetooth_bluetooth_hal_flags_handle_recursive_packets_from_router_clients(
-            true);
     HalPacket packet({0x01, 0x02, 0x03, 0x04});
     packet.SetSource(PacketSource::kClient);
     MockHciRouterClient mock_router_client;
