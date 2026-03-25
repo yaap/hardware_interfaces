@@ -31,6 +31,7 @@
 #include <healthd/healthd.h>
 
 #include <BpfSyscallWrappers.h>
+#include <bpf/WaitForProgsLoaded.h>
 #include <health/utils.h>
 
 using android::base::ErrnoError;
@@ -188,11 +189,18 @@ void HealthLoop::UeventInit(void) {
 
     fcntl(uevent_fd_, F_SETFL, O_NONBLOCK);
 
+#ifndef __ANDROID_RECOVERY__
+    bpf::waitForProgsLoaded();
+#endif
+
     Result<void> attach_result = AttachFilter(uevent_fd_);
     if (!attach_result.ok()) {
-        std::string error_msg = attach_result.error().message();
-        error_msg += ". This is expected in recovery mode.";
-        KLOG_WARNING(LOG_TAG, "%s\n", error_msg.c_str());
+        const std::string& msg = attach_result.error().message();
+#ifdef __ANDROID_RECOVERY__
+        KLOG_INFO(LOG_TAG, "%s (expected - recovery mode).\n", msg.c_str());
+#else
+        KLOG_WARNING(LOG_TAG, "%s.\n", msg.c_str());
+#endif
     } else {
         KLOG_INFO(LOG_TAG, "Successfully attached the BPF filter to the uevent socket\n");
     }
