@@ -103,14 +103,12 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
                 Strings.isNullOrEmpty(controller));
     }
 
-    private void assumeBoardApiLevelAtLeast(long vsrLevel) throws Exception {
-        long roBoardApiLevel = mDevice.getIntProperty("ro.board.api_level", -1);
-        long roBoardFirstApiLevel = mDevice.getIntProperty("ro.board.first_api_level", -1);
-        long boardApiLevel = (roBoardApiLevel != -1) ? roBoardApiLevel : roBoardFirstApiLevel;
+    private void assumeVendorApiLevelAtLeast(long vsrLevel) throws Exception {
+        long vendorApiLevel = mDevice.getIntProperty("ro.vendor.api_level", 0);
 
-        Assume.assumeTrue(
-                "Skip on devices with board API level " + boardApiLevel + " less than " + vsrLevel,
-                boardApiLevel >= vsrLevel);
+        Assume.assumeTrue("Skip on devices with vendor API level " + vendorApiLevel + " less than "
+                        + vsrLevel,
+                vendorApiLevel >= vsrLevel);
     }
 
     private static boolean checkProtocol(int usbClass, int usbSubClass, int usbProtocol) {
@@ -236,7 +234,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     @VsrTest(requirements = {"VSR-5.4-031"})
     public void testAccessory() throws Exception {
         assumeUsbDeviceModeSupported();
-        assumeBoardApiLevelAtLeast(202604);
+        assumeVendorApiLevelAtLeast(202604);
 
         Assert.assertTrue("VSR-5.4-031: Devices with a UDC must support FEATURE_USB_ACCESSORY",
                 mDevice.hasFeature(FEATURE_USB_ACCESSORY));
@@ -316,7 +314,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     @VsrTest(requirements = {"VSR-5.4-028"})
     public void testUdcStateSysfs() throws Exception {
         assumeUsbDeviceModeSupported();
-        assumeBoardApiLevelAtLeast(202604);
+        assumeVendorApiLevelAtLeast(202604);
 
         String controller = mDevice.getProperty("sys.usb.controller");
         String statePath = "/sys/class/udc/" + controller + "/state";
