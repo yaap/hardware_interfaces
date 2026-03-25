@@ -1146,13 +1146,7 @@ TEST_P(VibratorAidl, FrequencyToOutputAccelerationMapHasValidFrequencyRange) {
         return;
     }
 
-    std::vector<FrequencyAccelerationMapEntry> frequencyToOutputAccelerationMap;
-    ndk::ScopedAStatus status =
-            vibrator->getFrequencyToOutputAccelerationMap(&frequencyToOutputAccelerationMap);
-    EXPECT_OK(std::move(status));
-    ASSERT_FALSE(frequencyToOutputAccelerationMap.empty());
-    auto sharpnessRange =
-            pwle_v2_utils::getPwleV2SharpnessRange(vibrator, frequencyToOutputAccelerationMap);
+    auto sharpnessRange = pwle_v2_utils::getPwleV2SharpnessRange(vibrator);
     // Validate the curve provides a usable sharpness range, which is a range of frequencies
     // that are supported by the device.
     ASSERT_TRUE(sharpnessRange.first >= 0);
@@ -1217,6 +1211,33 @@ TEST_P(VibratorAidl, ValidatePwleV2DependencyOnFrequencyControl) {
     // Check if frequency control is supported
     bool hasFrequencyControl = (capabilities & IVibrator::CAP_FREQUENCY_CONTROL) != 0;
     ASSERT_TRUE(hasFrequencyControl) << "Frequency control MUST be supported when PWLE V2 is.";
+}
+
+TEST_P(VibratorAidl, ValidatePwleDependencyOnResonantFrequency) {
+    if (!(capabilities & IVibrator::CAP_COMPOSE_PWLE_EFFECTS_V2)) {
+        GTEST_SKIP() << "PWLE V2 not supported, skipping test";
+        return;
+    }
+
+    // Check if resonant frequency is supported
+    bool hasResonantFrequency = (capabilities & IVibrator::CAP_GET_RESONANT_FREQUENCY) != 0;
+    ASSERT_TRUE(hasResonantFrequency) << "Resonant frequency MUST be supported when PWLE V2 is.";
+}
+
+TEST_P(VibratorAidl, ValidateResonantFrequencyWithinPwleRange) {
+    if (!(capabilities & IVibrator::CAP_GET_RESONANT_FREQUENCY) ||
+        !(capabilities & IVibrator::CAP_COMPOSE_PWLE_EFFECTS_V2)) {
+        GTEST_SKIP() << "Resonant frequency or PWLE V2 not supported, skipping test";
+        return;
+    }
+
+    float resonantFrequencyHz = getResonantFrequencyHz(vibrator, capabilities);
+    const auto [minFrequencyHz, maxFrequencyHz] = pwle_v2_utils::getPwleV2SharpnessRange(vibrator);
+
+    if (minFrequencyHz > 0 && maxFrequencyHz > 0) {
+        EXPECT_GE(resonantFrequencyHz, minFrequencyHz);
+        EXPECT_LE(resonantFrequencyHz, maxFrequencyHz);
+    }
 }
 
 TEST_P(VibratorAidl, ComposeValidPwleV2Effect) {
