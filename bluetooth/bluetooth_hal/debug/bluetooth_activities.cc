@@ -149,6 +149,8 @@ BluetoothActivitiesImpl::BluetoothActivitiesImpl()
     SetClientLogTag(kBluetoothActivitiesDebuggingTitle.data());
 
     RegisterMonitor(ble_connection_complete_event_monitor_, MonitorMode::kMonitor);
+    RegisterMonitor(ble_enhanced_connection_complete_v1_event_monitor_, MonitorMode::kMonitor);
+    RegisterMonitor(ble_enhanced_connection_complete_v2_event_monitor_, MonitorMode::kMonitor);
     RegisterMonitor(connection_complete_event_monitor_, MonitorMode::kMonitor);
     RegisterMonitor(disconnection_complete_event_monitor_, MonitorMode::kMonitor);
 }

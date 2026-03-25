@@ -1,9 +1,10 @@
-// Signature format: 2.0
+// Signature format: 6.0
+// - style=java
 package audio.policy.configuration.V4_0 {
 
   public class AttachedDevices {
     ctor public AttachedDevices();
-    method public java.util.List<java.lang.String> getItem();
+    method public java.util.List<String> getItem();
   }
 
   public enum AudioDevice {
@@ -311,7 +312,7 @@ package audio.policy.configuration.V4_0 {
   public class Reference {
     ctor public Reference();
     method public String getName();
-    method public java.util.List<java.lang.String> getPoint();
+    method public java.util.List<String> getPoint();
     method public void setName(String);
   }
 
@@ -361,7 +362,7 @@ package audio.policy.configuration.V4_0 {
   public class Volume {
     ctor public Volume();
     method public audio.policy.configuration.V4_0.DeviceCategory getDeviceCategory();
-    method public java.util.List<java.lang.String> getPoint();
+    method public java.util.List<String> getPoint();
     method public String getRef();
     method public audio.policy.configuration.V4_0.Stream getStream();
     method public void setDeviceCategory(audio.policy.configuration.V4_0.DeviceCategory);
