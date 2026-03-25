@@ -314,24 +314,21 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
 /*
  * Test to verify USB AIDL HAL version requirement.
  * @VsrTest = VSR-5.4-009|VSR-5.4-016
- * Devices with Board API level 202604 or higher MUST support AIDL HAL V3 or higher.
+ * Devices with Vendor API level 202604 or higher MUST support AIDL HAL V3 or higher.
  */
 TEST_P(UsbAidlTest, VerifyHalVersion) {
-    uint64_t boardApiLevel = android::base::GetUintProperty<uint64_t>("ro.board.api_level", 0);
-    uint64_t boardFirstApiLevel =
-            android::base::GetUintProperty<uint64_t>("ro.board.first_api_level", 0);
-    uint64_t effectiveApiLevel = boardApiLevel ? boardApiLevel : boardFirstApiLevel;
+    uint64_t vendorApiLevel = android::base::GetUintProperty<uint64_t>("ro.vendor.api_level", 0);
 
     auto retVersion = usb->getInterfaceVersion(&usb_version);
     ASSERT_TRUE(retVersion.isOk()) << retVersion;
 
-    if (effectiveApiLevel >= 202604) {
-        ASSERT_GE(usb_version, 3) << "VSR-5.4-016: Board API level " << effectiveApiLevel
+    if (vendorApiLevel >= 202604) {
+        ASSERT_GE(usb_version, 3) << "VSR-5.4-016: Vendor API level " << vendorApiLevel
                                   << " requires USB AIDL HAL V3 or higher (got V" << usb_version
                                   << ")";
-    } else if (effectiveApiLevel >= 202504) {
+    } else if (vendorApiLevel >= 202504) {
         // [VSR-5.4-009] requirement for previous year
-        ASSERT_GE(usb_version, 2) << "VSR-5.4-009: Board API level " << effectiveApiLevel
+        ASSERT_GE(usb_version, 2) << "VSR-5.4-009: Vendor API level " << vendorApiLevel
                                   << " requires USB AIDL HAL V2 or higher (got V" << usb_version
                                   << ")";
     }

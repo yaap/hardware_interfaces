@@ -232,6 +232,14 @@ ndk::ScopedAStatus StreamBluetooth::prepareToClose() {
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus StreamBluetooth::setConnectedDevices(const std::vector<AudioDevice>& devices) {
+    RETURN_STATUS_IF_ERROR(StreamCommonImpl::setConnectedDevices(devices));
+    if (devices.empty()) {
+        return ndk::ScopedAStatus::fromStatus(standby());
+    }
+    return ndk::ScopedAStatus::ok();
+}
+
 ::android::status_t StreamBluetooth::standby() {
     std::lock_guard guard(mLock);
     if (mBtDeviceProxy != nullptr) mBtDeviceProxy->suspend();
