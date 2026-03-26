@@ -86,8 +86,7 @@ MonitorMode HciRouterClientAgentImpl::DispatchPacketToClients(const HalPacket& p
         HandleBluetoothEnable(packet);
     }
 
-    if (hal_flags::handle_recursive_packets_from_router_clients() &&
-        packet.GetSource() == PacketSource::kClient) {
+    if (packet.GetSource() == PacketSource::kClient) {
         // Ignore packets generated from a router client to prevent duplicated
         // callbacks.
         return MonitorMode::kBypass;

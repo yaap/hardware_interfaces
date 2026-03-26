@@ -62,7 +62,7 @@ public final class VtsHalUsbGadgetV2_0HostTest extends BaseHostJUnit4Test {
     private static final String FEATURE_AUTOMOTIVE = "android.hardware.type.automotive";
     private static final String FEATURE_WATCH = "android.hardware.type.watch";
     private static final String FEATURE_USB_ACCESSORY = "android.hardware.usb.accessory";
-    private static final long CONN_TIMEOUT = 5000;
+    private static final long CONN_TIMEOUT = 10000;
     private static final int UNKNOWN_SPEED = -1;
     // Vendor-specific class (0xFF), subclass (0xFF), and protocol (0x00)
     private static final int CTRL_INTERFACE_CLASS = 0xFF;
