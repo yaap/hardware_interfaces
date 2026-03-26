@@ -69,6 +69,7 @@ ScopedAStatus DescramblerImpl::requiresSecureDecoderComponent(const string& in_m
     shared_ptr<DescramblerPlugin> holder = atomic_load(&mPluginHolder);
     if (holder.get() == nullptr) {
         *_aidl_return = false;
+        return ScopedAStatus::ok();
     }
 
     *_aidl_return = holder->requiresSecureDecoderComponent(in_mime.c_str());
