@@ -495,6 +495,9 @@ TEST_P(GraphicsComposerAidlTest, GetDisplayAttribute) {
                         display.getDisplayId(), config, attribute);
                 EXPECT_TRUE(attribStatus.isOk());
                 EXPECT_NE(-1, value);
+                if (attribute == DisplayAttribute::VSYNC_PERIOD) {
+                    EXPECT_GT(value, 0);
+                }
             }
 
             const std::array<DisplayAttribute, 2> optionalAttributes = {{
@@ -1359,7 +1362,7 @@ TEST_P(GraphicsComposerAidlV3Test, GetDisplayConfigurations) {
         for (const auto& displayConfig : displayConfigurations) {
             EXPECT_NE(-1, displayConfig.width);
             EXPECT_NE(-1, displayConfig.height);
-            EXPECT_NE(-1, displayConfig.vsyncPeriod);
+            EXPECT_GT(displayConfig.vsyncPeriod, 0);
             EXPECT_NE(-1, displayConfig.configGroup);
             if (displayConfig.dpi) {
                 EXPECT_NE(-1.f, displayConfig.dpi->x);
