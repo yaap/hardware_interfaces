@@ -190,7 +190,9 @@ void HealthLoop::UeventInit(void) {
     fcntl(uevent_fd_, F_SETFL, O_NONBLOCK);
 
 #ifndef __ANDROID_RECOVERY__
-    bpf::waitForProgsLoaded();
+    bool charger = base::GetProperty("ro.bootmode", "") == "charger";
+
+    if (!charger) bpf::waitForProgsLoaded();
 #endif
 
     Result<void> attach_result = AttachFilter(uevent_fd_);
@@ -199,7 +201,7 @@ void HealthLoop::UeventInit(void) {
 #ifdef __ANDROID_RECOVERY__
         KLOG_INFO(LOG_TAG, "%s (expected - recovery mode).\n", msg.c_str());
 #else
-        KLOG_WARNING(LOG_TAG, "%s.\n", msg.c_str());
+        KLOG_WARNING(LOG_TAG, "%s (charger:%d).\n", msg.c_str(), charger);
 #endif
     } else {
         KLOG_INFO(LOG_TAG, "Successfully attached the BPF filter to the uevent socket\n");
