@@ -43,18 +43,6 @@ bpf {
     vendor: true,
 }
 
-libbpf_prog {
-    name: "filterPowerSupplyEvents.bpf",
-    srcs: ["filterPowerSupplyEvents.c"],
-    header_libs: [
-        "android_bpf_defs",
-    ],
-
-    // "vendor: true" because all binaries that use this BPF filter are vendor
-    // binaries.
-    vendor: true,
-}
-
 // Since "required" sections are ignored in static library definitions,
 // filterPowerSupplyEvents.o has been added in
 // build/make/target/product/base_vendor.mk.
