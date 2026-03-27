@@ -506,6 +506,7 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::writeProcedureData(
     distance_estimator_->ResetVariables();
     ranging_result.resultMeters = distance_estimator_->EstimateDistance(in_procedureData);
     ranging_result.confidenceLevel = distance_estimator_->GetConfidenceLevel() * 100;
+    ranging_result.velocityMetersPerSecond = distance_estimator_->GetVelocity();
 
     if (!in_procedureData.initiatorSubeventResultData.empty()) {
         ranging_result.timestampNanos =
@@ -540,12 +541,14 @@ ScopedAStatus BluetoothChannelSoundingSessionV2::close(Reason in_reason) {
 ScopedAStatus BluetoothChannelSoundingSessionV2::updateChannelSoundingConfig(
         const Config& in_config) {
     CsWriteLog("Config", ToJson(in_config));
+    distance_estimator_->UpdateChannelSoundingConfig(in_config);
     return ScopedAStatus::ok();
 };
 
 ScopedAStatus BluetoothChannelSoundingSessionV2::updateProcedureEnableConfig(
         const ProcedureEnableConfig& in_procedureEnableConfig) {
     CsWriteLog("ProcedureEnableConfig", ToJson(in_procedureEnableConfig));
+    distance_estimator_->UpdateProcedureEnableConfig(in_procedureEnableConfig);
     return ScopedAStatus::ok();
 };
 

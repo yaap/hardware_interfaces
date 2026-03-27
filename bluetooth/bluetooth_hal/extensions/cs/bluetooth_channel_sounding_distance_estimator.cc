@@ -23,6 +23,8 @@
 namespace bluetooth_hal::extensions::cs {
 
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
+using ::aidl::android::hardware::bluetooth::ranging::Config;
+using ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig;
 
 void ChannelSoundingDistanceEstimator::ResetVariables() {};
 
@@ -37,6 +39,15 @@ double ChannelSoundingDistanceEstimator::GetConfidenceLevel() {
     return 0;
 }
 
+double ChannelSoundingDistanceEstimator::GetVelocity() {
+    return 0;
+}
+
 void ChannelSoundingDistanceEstimator::SetInlinePCT(bool /*is_enabled*/) {}
+
+void ChannelSoundingDistanceEstimator::UpdateChannelSoundingConfig(const Config& /*config*/) {}
+
+void ChannelSoundingDistanceEstimator::UpdateProcedureEnableConfig(
+        const ProcedureEnableConfig& /*config*/) {}
 
 }  // namespace bluetooth_hal::extensions::cs
