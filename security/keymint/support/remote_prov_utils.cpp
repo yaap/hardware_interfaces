@@ -1003,7 +1003,7 @@ ErrMsgOr<int> countTrailingRkpVmMarkersInCsr(const std::vector<uint8_t>& encoded
         return diceChain.error().message();
     }
 
-    auto result = diceChain->countTrailingRkpVmMarkers(instanceName);
+    auto result = diceChain->countTrailingRkpVmMarkers(deviceSuffix(instanceName));
     if (!result.ok()) {
         return result.error().message();
     }
