@@ -35,7 +35,7 @@ cc_library_shared {
 
 cc_library_shared {
     name: "libbluetooth_audio_session_aidl",
-    vendor: true,
+    vendor_available: true,
     host_supported: true,
     srcs: [
         "aidl_session/a2dp/A2dpOffloadCodecAac.cpp",
@@ -52,6 +52,7 @@ cc_library_shared {
     header_libs: [
         "libhardware_headers",
         "libxsdc-utils",
+        "libbluetooth_offload_a2dp_headers",
         "libbluetooth_offload_leaudio_headers",
     ],
     defaults: [
@@ -73,7 +74,9 @@ cc_library_shared {
     ],
     static_libs: [
         "btaudiohal_flags_c_lib",
+        "libbluetooth_offload_a2dp_audio",
         "libbluetooth_offload_leaudio_audio",
+        "libbt-sbc-encoder",
         "liblc3",
         "libopus-experimental",
     ],

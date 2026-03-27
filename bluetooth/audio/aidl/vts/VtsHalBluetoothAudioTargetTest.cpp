@@ -18,6 +18,7 @@
 #include <aidl/android/hardware/bluetooth/audio/BnBluetoothAudioPort.h>
 #include <aidl/android/hardware/bluetooth/audio/IBluetoothAudioPort.h>
 #include <aidl/android/hardware/bluetooth/audio/IBluetoothAudioProviderFactory.h>
+#include <android-base/properties.h>
 #include <android/binder_auto_utils.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
@@ -150,6 +151,9 @@ static constexpr int8_t hfp_bits_per_samples_[] = {16};
 static constexpr ChannelMode hfp_channel_modes_[] = {ChannelMode::MONO};
 static constexpr int32_t hfp_data_interval_us_[] = {7500};
 
+static constexpr char kEnableA2dpCodecExtensibility[] =
+        "persist.vendor.audio.a2dp_codec_extensibility";
+
 // Helpers
 
 template <typename T>
@@ -250,6 +254,12 @@ class BluetoothAudioProviderFactoryAidl : public testing::TestWithParam<std::str
     }
 
     void GetProviderCapabilitiesHelper(const SessionType& session_type) {
+        if ((session_type == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
+             session_type == SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH) &&
+            ::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility, false)) {
+            // Codec extensibility does not support getProviderCapabilities
+            return;
+        }
         temp_provider_capabilities_.clear();
         auto aidl_retval = provider_factory_->getProviderCapabilities(session_type,
                                                                       &temp_provider_capabilities_);

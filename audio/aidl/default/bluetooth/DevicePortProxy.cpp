@@ -196,6 +196,7 @@ bool BluetoothAudioPortAidl::initSession(const AudioDeviceDescription& descripti
                      << ": device=AUDIO_DEVICE_OUT_BLUETOOTH_A2DP (HEADPHONES/SPEAKER) ("
                      << description.toString() << ")";
         sessionType = SessionType::A2DP_SOFTWARE_ENCODING_DATAPATH;
+        fallbackSessionType = SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH;
     } else if (description.connection == AudioDeviceDescription::CONNECTION_WIRELESS &&
                description.type == AudioDeviceType::OUT_HEARING_AID) {
         LOG(VERBOSE) << __func__ << ": device=AUDIO_DEVICE_OUT_HEARING_AID (MEDIA/VOICE) ("

@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <swoff/swoff_a2dp.h>
 #include <swoff/swoff_lea.h>
 
 namespace aidl::android::hardware::bluetooth::audio {
@@ -31,6 +32,21 @@ class LeAudioSwOffloadInstance {
   public:
     static std::shared_ptr<LeAudioSwOffloadCallbacks> sw_offload_cbacks_;
     static std::shared_ptr<swoff::LeAudioStream> sw_offload_streams_;
+    static std::atomic<bool> is_using_swoffload_;
+    static std::atomic<bool> is_swoff_stream_running_;
+    static void releaseSwOffload();
+};
+
+class A2dpSwOffloadCallbacks : public swoff::a2dp::A2dpAudio::Callbacks {
+  public:
+    A2dpSwOffloadCallbacks();
+    void on_start() override;
+    void on_stop() override;
+};
+
+class A2dpSwOffloadInstance {
+  public:
+    static std::shared_ptr<A2dpSwOffloadCallbacks> sw_offload_cbacks_;
     static std::atomic<bool> is_using_swoffload_;
     static std::atomic<bool> is_swoff_stream_running_;
     static void releaseSwOffload();
