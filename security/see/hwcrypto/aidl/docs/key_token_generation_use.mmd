@@ -1,0 +1,45 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#111827',
+    'primaryBorderColor': '#374151',
+    'lineColor': '#4b5563',
+    'secondaryColor': '#f9fafb',
+    'tertiaryColor': '#f3f4f6',
+    'fontSize': '14px',
+    'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+  }
+}}%%
+sequenceDiagram
+
+    participant ko as Key Owner
+    participant kr as Key Receiver
+    participant hc as HwCrypto
+
+    kr->>hc: IHwCryptoKey::getCurrentDicePolicy()
+    activate hc
+    hc->>hc: EncryptionToken = <br/> Encrypt(KeyReceiverCurrentDicePolicy,<br/> HwCryptoKey)
+    hc-->>kr: Ok(EncryptionToken)
+    deactivate hc
+
+    kr-->>ko: send(EncryptionToken)
+    note over ko: Key Owner generated KeyHandle K_A <br/>previously
+
+    ko->>hc: K_A.getShareableToken(EncryptionToken)
+    activate hc
+    hc->>hc: DicePolicy = Decrypt(EncryptionToken)
+    hc->>hc: EncKey1 = GenerateDiceBoundKey(DicePolicy)
+    hc->>hc: OpaqueKeyToken = <br/> Encrypt(Encrypt(Serialized_K_A,<br/> EncKey1), hwCryptoKey)
+    hc-->>ko: Ok(OpaqueKeyToken)
+    deactivate hc
+
+    ko-->>kr: send(OpaqueKeyToken)
+    kr->>hc: IHwCryptoKey::keyTokenImport(OpaqueKeyToken, EncryptionToken)
+    activate hc
+    hc->>hc: DicePolicy = Decrypt(EncryptionToken)
+    hc->>hc: CheckDicePolicy(DicePolicy)
+    hc->>hc: EncKey1 = GenerateDiceBoundKey(DicePolicy)
+    hc->>hc: K_A' = Decrypt(Decrypt(OpaqueKeyToken,<br/>HwCryptoKey), EncKEy1)
+    hc-->>kr: Ok(K_A')
+    deactivate hc
