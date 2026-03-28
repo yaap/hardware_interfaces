@@ -125,6 +125,12 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderCapabilities(
         const SessionType session_type, std::vector<AudioCapabilities>* _aidl_return) {
     if (session_type == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
         session_type == SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
+        if (::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility, false)) {
+            LOG(WARNING) << __func__ << " - SessionType=" << toString(session_type)
+                         << " Can not use legacy getProviderCapabilities method. Use "
+                            "getProviderInfo instead.";
+            return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_TRANSACTION);
+        }
         auto codec_capabilities =
                 BluetoothAudioCodecs::GetA2dpOffloadCodecCapabilities(session_type);
         _aidl_return->resize(codec_capabilities.size());
@@ -169,8 +175,7 @@ ndk::ScopedAStatus BluetoothAudioProviderFactory::getProviderInfo(
 
     LOG(INFO) << __func__ << " - SessionType=" << toString(session_type);
 
-    if (session_type == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH ||
-        session_type == SessionType::A2DP_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
+    if (session_type == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
         if (!::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility, false)) {
             // Implementing getProviderInfo equates supporting
             // A2dp codec extensibility.

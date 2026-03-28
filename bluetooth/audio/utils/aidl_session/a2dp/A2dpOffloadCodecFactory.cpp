@@ -29,7 +29,7 @@ namespace aidl::android::hardware::bluetooth::audio {
  */
 
 enum : bool {
-    kEnableAac = true,
+    kEnableAac = false,
     kEnableSbc = true,
 };
 

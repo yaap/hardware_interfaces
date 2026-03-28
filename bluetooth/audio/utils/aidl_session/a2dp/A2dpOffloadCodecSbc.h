@@ -40,6 +40,9 @@ class A2dpOffloadCodecSbc : public A2dpOffloadCodec {
   public:
     A2dpOffloadCodecSbc();
 
+    static A2dpStatus ParseConfiguration(const std::vector<uint8_t>& configuration,
+                                         SbcParameters* sbc_parameters);
+
     A2dpStatus SelectA2dpConfiguration(const std::vector<uint8_t>& configuration,
                                        CodecParameters* codec_parameters) const override {
         return SelectA2dpConfiguration(configuration, codec_parameters, nullptr);

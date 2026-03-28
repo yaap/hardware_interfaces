@@ -36,6 +36,7 @@
 #include "BluetoothAudioSession.h"
 #include "BluetoothAudioSwOffload.h"
 #include "BluetoothAudioType.h"
+#include "a2dp/A2dpOffloadCodecSbc.h"
 
 namespace aidl {
 namespace android {
@@ -49,8 +50,10 @@ static constexpr int kWritePollMs = 1;             // polled non-blocking interv
 static constexpr int kReadPollMs = 1;              // polled non-blocking interval
 static constexpr int kWritePollExtendedMs = 5;     // polled non-blocking interval
 static constexpr int kReadPollExtendedMs = 5;      // polled non-blocking interval
+static constexpr int kFrameDurationUs = 20000;     // A2DP frame duration
 
 constexpr char kPropertyLeaSwOffload[] = "persist.vendor.audio.leaudio_sw_offload";
+constexpr char kEnableA2dpCodecExtensibility[] = "persist.vendor.audio.a2dp_codec_extensibility";
 
 static std::string toString(const std::vector<LatencyMode>& latencies) {
     std::stringstream latencyModesStr;
@@ -105,6 +108,9 @@ void BluetoothAudioSession::OnSessionEnded() {
         ::android::base::GetBoolProperty(kPropertyLeaSwOffload, false)) {
         if (session_type_ == SessionType::LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
             LeAudioSwOffloadInstance::releaseSwOffload();
+        }
+        if (session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+            A2dpSwOffloadInstance::releaseSwOffload();
         }
     }
     if (toggled) {
@@ -185,6 +191,12 @@ OpusConfiguration getOpusConfigFromCodecConfig(
     }
     opus_config.channelMode = ChannelMode::STEREO;
     return opus_config;
+}
+
+bool isA2dpSwOffloadAvailable() {
+    return com::android::btaudio::hal::flags::leaudio_sw_offload() &&
+           ::android::base::GetBoolProperty(kEnableA2dpCodecExtensibility, false) &&
+           ::android::base::GetBoolProperty(kPropertyLeaSwOffload, false);
 }
 
 std::optional<AudioConfiguration> convertToOpusAudioConfiguration(
@@ -269,6 +281,66 @@ std::optional<AudioConfiguration> convertToOpusAudioConfiguration(
     return std::nullopt;
 }
 
+size_t HandleSoftwareOffloadA2dpOutData(const void* buffer, size_t bytes) {
+    if (!A2dpSwOffloadInstance::is_using_swoffload_ ||
+        !A2dpSwOffloadInstance::is_swoff_stream_running_) {
+        return 0;
+    }
+
+    size_t total_written = swoff::a2dp::A2dpAudio::write(buffer, bytes);
+
+    if (total_written != bytes) {
+        LOG(WARNING) << " Software offload write not complete.";
+    }
+    return total_written;
+}
+
+std::optional<PcmConfiguration> SetSoftwareOffloaderConfiguration(
+        const AudioConfiguration& audio_config) {
+    PcmConfiguration pcm_config;
+
+    if (audio_config.getTag() == AudioConfiguration::a2dp) {
+        auto a2dp_audio_config = audio_config.get<AudioConfiguration::a2dp>();
+        swoff::a2dp::AudioConfig sw_config = {};
+
+        if (a2dp_audio_config.codecId == CodecId::A2dp::SBC) {
+            SbcParameters sbc_params = {};
+            A2dpOffloadCodecSbc::ParseConfiguration(a2dp_audio_config.configuration, &sbc_params);
+            pcm_config = {.channelMode = sbc_params.channelMode,
+                          .dataIntervalUs = kFrameDurationUs,
+                          .sampleRateHz = sbc_params.samplingFrequencyHz,
+                          .bitsPerSample = static_cast<int8_t>(sbc_params.bitdepth)};
+            sw_config.channel_mode = static_cast<int>(sbc_params.channelMode);
+            sw_config.bitdepth = sbc_params.bitdepth;
+            sw_config.sample_rate = sbc_params.samplingFrequencyHz;
+            sw_config.frame_duration_us = kFrameDurationUs;
+            sw_config.codec_type = swoff::a2dp::CodecType::SBC;
+            sw_config.codec_config.sbc.allocation_method =
+                    sbc_params.allocation_method == SbcParameters::AllocationMethod::SNR
+                            ? swoff::a2dp::SbcConfig::AllocationMethod::SNR
+                            : swoff::a2dp::SbcConfig::AllocationMethod::LOUDNESS;
+            sw_config.codec_config.sbc.block_length = sbc_params.block_length;
+            sw_config.codec_config.sbc.max_bitpool = sbc_params.max_bitpool;
+            sw_config.codec_config.sbc.min_bitpool = sbc_params.min_bitpool;
+            sw_config.codec_config.sbc.subbands = sbc_params.subbands;
+        } else {
+            LOG(ERROR) << __func__ << ": codec not supported";
+            return std::nullopt;
+        }
+
+        A2dpSwOffloadInstance::sw_offload_cbacks_ = std::make_shared<A2dpSwOffloadCallbacks>();
+
+        bool status =
+                swoff::a2dp::A2dpAudio::setup(sw_config, A2dpSwOffloadInstance::sw_offload_cbacks_);
+
+        A2dpSwOffloadInstance::is_using_swoffload_ = true;
+        return std::make_optional<PcmConfiguration>(pcm_config);
+    } else {
+        LOG(ERROR) << ": TAG not supported";
+        return std::nullopt;
+    }
+}
+
 const AudioConfiguration BluetoothAudioSession::GetAudioConfig() {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     if (!IsSessionReadyInternal()) {
@@ -324,6 +396,13 @@ void BluetoothAudioSession::ReportAudioConfigChanged(const AudioConfiguration& a
                        << " invalid audio config type for SessionType =" << toString(session_type_);
             return;
         }
+    } else if (isA2dpSwOffloadAvailable() &&
+               session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+        if (audio_config.getTag() != AudioConfiguration::a2dp) {
+            LOG(ERROR) << __func__
+                       << " invalid audio config type for SessionType =" << toString(session_type_);
+            return;
+        }
     } else {
         LOG(ERROR) << __func__ << " invalid SessionType =" << toString(session_type_);
         return;
@@ -335,6 +414,11 @@ void BluetoothAudioSession::ReportAudioConfigChanged(const AudioConfiguration& a
         LeAudioSwOffloadInstance::releaseSwOffload();
     }
 
+    if (A2dpSwOffloadInstance::is_using_swoffload_ &&
+        session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+        A2dpSwOffloadInstance::releaseSwOffload();
+    }
+
     audio_config_ = std::make_unique<AudioConfiguration>(audio_config);
 
     std::optional<bool> is_stream_active;
@@ -342,6 +426,16 @@ void BluetoothAudioSession::ReportAudioConfigChanged(const AudioConfiguration& a
 
     if (opus_audio_config.has_value()) {
         audio_config_ = std::make_unique<AudioConfiguration>(opus_audio_config.value());
+    } else if (isA2dpSwOffloadAvailable() &&
+               session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+        std::optional<PcmConfiguration> pcm_config =
+                SetSoftwareOffloaderConfiguration(audio_config);
+        if (pcm_config.has_value()) {
+            audio_config_ = std::make_unique<AudioConfiguration>(pcm_config.value());
+            LOG(DEBUG) << __func__ << " successfully configured Software Offloader";
+        } else {
+            LOG(WARNING) << __func__ << " failed to setup software Software Offloader";
+        }
     }
 
     if (is_stream_active.has_value() && !is_stream_active.value()) {
@@ -387,6 +481,12 @@ bool BluetoothAudioSession::IsSessionReady(bool is_primary_hal) {
             session_type_ == SessionType::LE_AUDIO_PERIPHERAL_OFFLOAD_ENCODING_DATAPATH) {
             if (!is_primary_hal) {
                 is_mq_valid &= LeAudioSwOffloadInstance::is_using_swoffload_.load();
+            }
+        } else if (session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+            if (!is_primary_hal) {
+                LOG(DEBUG) << __func__ << ": is_mq_valid: " << is_mq_valid
+                           << ", load(): " << A2dpSwOffloadInstance::is_using_swoffload_.load();
+                is_mq_valid &= A2dpSwOffloadInstance::is_using_swoffload_.load();
             }
         }
     }
@@ -567,12 +667,29 @@ bool BluetoothAudioSession::UpdateAudioConfig(const AudioConfiguration& audio_co
         LeAudioSwOffloadInstance::releaseSwOffload();
     }
 
+    if (A2dpSwOffloadInstance::is_using_swoffload_ &&
+        session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+        A2dpSwOffloadInstance::releaseSwOffload();
+    }
+
     audio_config_ = std::make_unique<AudioConfiguration>(audio_config);
 
     std::optional<bool> is_stream_active;
     auto opus_audio_config = convertToOpusAudioConfiguration(audio_config, is_stream_active);
     if (opus_audio_config.has_value()) {
         audio_config_ = std::make_unique<AudioConfiguration>(opus_audio_config.value());
+    } else if (isA2dpSwOffloadAvailable() &&
+               session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+        /* Prepare PCM config for possible data processing for Software Offloading
+         */
+        std::optional<PcmConfiguration> pcm_config =
+                SetSoftwareOffloaderConfiguration(audio_config);
+        if (pcm_config.has_value()) {
+            audio_config_ = std::make_unique<AudioConfiguration>(pcm_config.value());
+            LOG(DEBUG) << __func__ << " successfully configured Software Offloader";
+        } else {
+            LOG(WARNING) << __func__ << " failed to setup software Software Offloader";
+        }
     }
     return true;
 }
@@ -621,6 +738,9 @@ size_t BluetoothAudioSession::OutWritePcmData(const void* buffer, size_t bytes) 
         } else {
             return 0;
         }
+    } else if (session_type_ == SessionType::A2DP_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+        std::unique_lock<std::recursive_mutex> lock(mutex_);
+        return HandleSoftwareOffloadA2dpOutData(buffer, bytes);
     } else {
         size_t total_written = 0;
         int timeout_ms = kFmqSendTimeoutMs;
@@ -974,6 +1094,35 @@ void LeAudioSwOffloadCallbacks::start() {
 void LeAudioSwOffloadCallbacks::stop() {
     LOG(INFO) << __func__ << "Stream stopped";
     LeAudioSwOffloadInstance::is_swoff_stream_running_ = false;
+}
+
+/***
+ *
+ * A2dpSwOffload
+ *
+ ***/
+std::shared_ptr<A2dpSwOffloadCallbacks> A2dpSwOffloadInstance::sw_offload_cbacks_;
+std::atomic<bool> A2dpSwOffloadInstance::is_swoff_stream_running_ = false;
+std::atomic<bool> A2dpSwOffloadInstance::is_using_swoffload_ = false;
+
+void A2dpSwOffloadInstance::releaseSwOffload() {
+    if (isA2dpSwOffloadAvailable()) {
+        swoff::a2dp::A2dpAudio::teardown();
+        A2dpSwOffloadInstance::is_using_swoffload_ = false;
+        A2dpSwOffloadInstance::is_swoff_stream_running_ = false;
+        A2dpSwOffloadInstance::sw_offload_cbacks_ = nullptr;
+    }
+}
+
+A2dpSwOffloadCallbacks::A2dpSwOffloadCallbacks() = default;
+
+void A2dpSwOffloadCallbacks::on_start() {
+    LOG(INFO) << __func__ << ": Stream started";
+    A2dpSwOffloadInstance::is_swoff_stream_running_ = true;
+}
+void A2dpSwOffloadCallbacks::on_stop() {
+    LOG(INFO) << __func__ << ": Stream stopped";
+    A2dpSwOffloadInstance::is_swoff_stream_running_ = false;
 }
 
 }  // namespace audio
