@@ -1,0 +1,25 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#111827',
+    'primaryBorderColor': '#374151',
+    'lineColor': '#4b5563',
+    'secondaryColor': '#f9fafb',
+    'tertiaryColor': '#f3f4f6',
+    'fontSize': '14px',
+    'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+  }
+}}%%
+sequenceDiagram
+Title: Re-derivation of Key with a DICE policy
+participant c as Client
+participant hwc as HwCrypto
+
+Note over c,hwc: client uses stored generated_policy_1 to re-derive clear_aKey_ver_1
+
+c->>+hwc: deriveDicePolicyBoundKey(derivationKey=DEVICE_BOUND_KEY, policy=generated_policy_1)
+hwc-->>-c: (opaqueDerivationKey1, policyCurrent=True)
+
+c->>+hwc: deriveKey(derivationKey=opaqueDerivationKey1, keyParameters=keySize, context="aKey")
+hwc-->>-c: (clear_aKey_ver_1)

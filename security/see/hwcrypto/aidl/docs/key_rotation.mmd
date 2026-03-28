@@ -1,0 +1,33 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#111827',
+    'primaryBorderColor': '#374151',
+    'lineColor': '#4b5563',
+    'secondaryColor': '#f9fafb',
+    'tertiaryColor': '#f3f4f6',
+    'fontSize': '14px',
+    'fontFamily': 'ui-sans-serif, system-ui, sans-serif'
+  }
+}}%%
+sequenceDiagram
+Title: Derivation of Keys after upgrade
+
+participant c as Client_v2
+participant hwc as HwCrypto
+
+Note over c,hwc: client uses stored generated_policy_1 to re-derive clear_aKey_ver_1
+
+c->>+hwc: deriveDicePolicyBoundKey(derivationKey=DEVICE_BOUND_KEY, policy=generated_policy_1)
+hwc-->>-c: (opaqueDerivationKey1, policyCurrent=False)
+
+c->>+hwc: deriveKey(derivationKey=opaqueDerivationKey1, keyParameters=keySize, context="aKey")
+hwc-->>-c: (clear_aKey_ver_1)
+
+Note over c,hwc: policyCurrent=FALSE: client is expected to rotate its secrets: <br/>generating a new root key (aKey_ver_2) to reencrypt its secrets
+c->>+hwc: deriveCurrentDicePolicyBoundKey(derivationKey=DEVICE_BOUND_KEY)
+hwc-->>-c: (opaqueDerivationKey2, generated_policy_2)
+
+c->>+hwc: deriveKey(derivationKey=opaqueDerivationKey2, keyParameters=keySize, context="aKey")
+hwc-->>-c: (clear_aKey_ver_2)
