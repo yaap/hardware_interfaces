@@ -6670,30 +6670,41 @@ static const NamedCommandSequence kDrainInSeq =
         std::make_tuple(std::string("Drain"), kAidlVersion1, "", 0, StreamTypeFilter::ANY,
                         makeAsyncDrainCommands(true), false /*validatePositionIncrease*/);
 
-std::shared_ptr<StateSequence> makeDrainOutCommands(bool isSync) {
+std::shared_ptr<StateSequence> makeSyncDrainOutCommands() {
     using State = StreamDescriptor::State;
     auto d = std::make_unique<StateDag>();
-    StateDag::Node last = d->makeFinalNode(State::IDLE);
-    StateDag::Node active = d->makeNodes(
-            {std::make_pair(State::ACTIVE, kDrainOutAllCommand),
-             std::make_pair(State::DRAINING, isSync ? TransitionTrigger(kGetStatusCommand)
-                                                    : TransitionTrigger(kDrainReadyEvent))},
-            last);
-    StateDag::Node idle = d->makeNode(State::IDLE, kBurstCommand, active);
-    if (!isSync) {
-        idle.children().push_back(d->makeNode(State::TRANSFERRING, kTransferReadyEvent, active));
-    } else {
-        active.children().push_back(last);
-    }
-    d->makeNode(State::STANDBY, kStartCommand, idle);
+    StateDag::Node lastIdle = d->makeFinalNode(State::IDLE);
+    // In a synchronous drain, polling with getStatus might catch the HAL
+    // mid-drain (DRAINING) or after completion (IDLE).
+    StateDag::Node draining = d->makeNode(State::DRAINING, kGetStatusCommand, lastIdle,
+                                          d->makeFinalNode(State::DRAINING));
+    // From ACTIVE, drainOutAll might synchronously complete immediately (IDLE),
+    // or return that it has started draining (DRAINING).
+    StateDag::Node active = d->makeNode(State::ACTIVE, kDrainOutAllCommand, draining, lastIdle);
+    d->makeNodes({std::make_pair(State::STANDBY, kStartCommand),
+                  std::make_pair(State::IDLE, kBurstCommand)},
+                 active);
     return std::make_shared<StateSequenceFollower>(std::move(d));
 }
 static const NamedCommandSequence kDrainOutSyncSeq =
         std::make_tuple(std::string("Drain"), kAidlVersion1, "", 0, StreamTypeFilter::SYNC,
-                        makeDrainOutCommands(true), false /*validatePositionIncrease*/);
+                        makeSyncDrainOutCommands(), false /*validatePositionIncrease*/);
+
+std::shared_ptr<StateSequence> makeAsyncDrainOutCommands() {
+    using State = StreamDescriptor::State;
+    auto d = std::make_unique<StateDag>();
+    StateDag::Node active = d->makeNodes({std::make_pair(State::ACTIVE, kDrainOutAllCommand),
+                                          std::make_pair(State::DRAINING, kDrainReadyEvent)},
+                                         State::IDLE);
+    StateDag::Node idle = d->makeNode(State::IDLE, kBurstCommand, active);
+    // Async bursts might route through the TRANSFERRING state.
+    idle.children().push_back(d->makeNode(State::TRANSFERRING, kTransferReadyEvent, active));
+    d->makeNode(State::STANDBY, kStartCommand, idle);
+    return std::make_shared<StateSequenceFollower>(std::move(d));
+}
 static const NamedCommandSequence kDrainOutAsyncSeq =
         std::make_tuple(std::string("Drain"), kAidlVersion3, "", 0, StreamTypeFilter::ASYNC,
-                        makeDrainOutCommands(false), false /*validatePositionIncrease*/);
+                        makeAsyncDrainOutCommands(), false /*validatePositionIncrease*/);
 
 std::shared_ptr<StateSequence> makeDrainEarlyOutCommands() {
     using State = StreamDescriptor::State;
