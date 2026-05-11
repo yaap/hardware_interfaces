@@ -32,6 +32,10 @@ vintf_fragment {
 // A real device is required to run the TA code in a secure environment, as
 // per CDD 9.11 [C-1-1]: "MUST back up the keystore implementation with an
 // isolated execution environment."
+//
+// This C++ reference implementation will not be updated to support versions
+// of the KeyMint HAL beyond version 4. Use the Rust reference implementation
+// for versions 5 and later.
 cc_binary {
     name: "android.hardware.security.keymint-service",
     relative_install_path: "hw",
@@ -62,7 +66,7 @@ cc_binary {
         "service.cpp",
     ],
     required: [
-        "android.hardware.hardware_keystore.xml",
+        "android.hardware.hardware_keystore_V4.xml",
     ],
     vintf_fragment_modules: [
         "android.hardware.security.keymint-service.xml",
