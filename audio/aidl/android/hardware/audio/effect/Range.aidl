@@ -24,6 +24,7 @@ import android.hardware.audio.effect.Downmix;
 import android.hardware.audio.effect.DynamicsProcessing;
 import android.hardware.audio.effect.EnvironmentalReverb;
 import android.hardware.audio.effect.Equalizer;
+import android.hardware.audio.effect.Eraser;
 import android.hardware.audio.effect.HapticGenerator;
 import android.hardware.audio.effect.LoudnessEnhancer;
 import android.hardware.audio.effect.NoiseSuppression;
@@ -146,6 +147,12 @@ union Range {
     }
 
     @VintfStability
+    parcelable EraserRange {
+        Eraser min;
+        Eraser max;
+    }
+
+    @VintfStability
     parcelable HapticGeneratorRange {
         HapticGenerator min;
         HapticGenerator max;
@@ -225,4 +232,5 @@ union Range {
     VisualizerRange[] visualizer;
     VolumeRange[] volume;
     SpatializerRange[] spatializer;
+    EraserRange[] eraser;
 }

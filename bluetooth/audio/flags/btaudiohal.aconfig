@@ -1,9 +1,30 @@
 package: "com.android.btaudio.hal.flags"
-container: "system"
+container: "vendor"
 
 flag {
     name: "leaudio_sw_offload"
     namespace: "pixel_bluetooth"
     description: "Flag for using sw offload path to send premium audio"
     bug: "398885696"
+}
+
+flag {
+    name: "leaudio_broadcast_sink_btaudiohal"
+    namespace: "bluetooth"
+    description: "Flag for LE Audio broadcast sink feature related Bluetooth Audio HAL changes"
+    bug: "456349066"
+}
+
+flag {
+    name: "leaudio_iso_parameter_update"
+    namespace: "bluetooth"
+    description: "Flag for iso parameter update"
+    bug: "442860011"
+}
+
+flag {
+    name: "extend_thread_poll_time"
+    namespace: "bluetooth"
+    description: "Flag to extend the thread poll time for FMQ reading and writing"
+    bug: "374355215"
 }

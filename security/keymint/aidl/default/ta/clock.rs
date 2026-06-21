@@ -17,7 +17,12 @@
 
 use kmr_common::crypto;
 
-/// Monotonic clock.
+/// Monotonic clock implementation based on the system clock.
+///
+/// This implementation may not be suitable for use on a real device, depending on the local `libc`
+/// implementation.  In particular, the underlying clock should not be modifiable by
+/// Android/userspace.
+#[derive(Default)]
 pub struct StdClock;
 
 impl StdClock {
@@ -39,6 +44,7 @@ impl crypto::MonotonicClock for StdClock {
             log::warn!("failed to get time!");
             return crypto::MillisecondsSinceEpoch(0);
         }
+        #[allow(clippy::useless_conversion)]
         crypto::MillisecondsSinceEpoch(((time.tv_sec * 1000) + (time.tv_nsec / 1000 / 1000)).into())
     }
 }

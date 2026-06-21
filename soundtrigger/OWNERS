@@ -2,5 +2,4 @@
 
 include platform/frameworks/base:/media/aidl/android/media/soundtrigger_middleware/OWNERS
 
-mdooley@google.com
 mnaganov@google.com

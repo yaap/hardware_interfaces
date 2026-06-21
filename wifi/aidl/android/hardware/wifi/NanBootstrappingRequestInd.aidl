@@ -51,4 +51,12 @@ parcelable NanBootstrappingRequestInd {
      * One of |NanBootstrappingMethod| indicating the bootstrapping method in the incoming request.
      */
     NanBootstrappingMethod requestBootstrappingMethod;
+
+    /**
+     * Arbitrary information communicated to the peer. There is no semantic meaning to these
+     * bytes. They are passed-through from sender to receiver as-is with no parsing.
+     * Max length: |NanCapabilities.maxExtendedServiceSpecificInfoLen|.
+     * NAN Spec: Service Descriptor Extension attribute (SDEA) / Service Info
+     */
+    @nullable byte[] serviceSpecificInfo;
 }

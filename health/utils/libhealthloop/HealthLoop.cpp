@@ -31,6 +31,7 @@
 #include <healthd/healthd.h>
 
 #include <BpfSyscallWrappers.h>
+#include <bpf/WaitForProgsLoaded.h>
 #include <health/utils.h>
 
 using android::base::ErrnoError;
@@ -162,8 +163,7 @@ void HealthLoop::UeventEvent(uint32_t /*epevents*/) {
 }
 
 // Attach a BPF filter to the @uevent_fd file descriptor. This fails in recovery mode because BPF is
-// not supported in recovery mode. This fails for kernel versions 5.4 and before because the BPF
-// program is rejected by the BPF verifier of older kernels.
+// not supported in recovery mode.
 Result<void> HealthLoop::AttachFilter(int uevent_fd) {
     static const char prg[] =
             "/sys/fs/bpf/vendor/prog_filterPowerSupplyEvents_skfilter_power_supply";
@@ -189,12 +189,20 @@ void HealthLoop::UeventInit(void) {
 
     fcntl(uevent_fd_, F_SETFL, O_NONBLOCK);
 
+#ifndef __ANDROID_RECOVERY__
+    bool charger = base::GetProperty("ro.bootmode", "") == "charger";
+
+    if (!charger) bpf::waitForProgsLoaded();
+#endif
+
     Result<void> attach_result = AttachFilter(uevent_fd_);
     if (!attach_result.ok()) {
-        std::string error_msg = attach_result.error().message();
-        error_msg +=
-                ". This is expected in recovery mode and also for kernel versions before 5.10.";
-        KLOG_WARNING(LOG_TAG, "%s\n", error_msg.c_str());
+        const std::string& msg = attach_result.error().message();
+#ifdef __ANDROID_RECOVERY__
+        KLOG_INFO(LOG_TAG, "%s (expected - recovery mode).\n", msg.c_str());
+#else
+        KLOG_WARNING(LOG_TAG, "%s (charger:%d).\n", msg.c_str(), charger);
+#endif
     } else {
         KLOG_INFO(LOG_TAG, "Successfully attached the BPF filter to the uevent socket\n");
     }
@@ -257,6 +265,15 @@ void HealthLoop::MainLoop(void) {
             if (errno == EINTR) continue;
             KLOG_ERROR(LOG_TAG, "healthd_mainloop: epoll_wait failed\n");
             break;
+        }
+
+        /*
+         * Reset slow timer to avoid excessive wakeup on interrupt
+         * It's assumed periodic_chores_interval_slow means the device being in non-charging state
+         */
+        if (nevents > 0 &&
+            wakealarm_wake_interval_ == healthd_config_.periodic_chores_interval_slow) {
+            WakeAlarmSetInterval(wakealarm_wake_interval_);
         }
 
         for (int n = 0; n < nevents; ++n) {

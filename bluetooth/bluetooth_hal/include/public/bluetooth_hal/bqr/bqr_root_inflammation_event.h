@@ -23,27 +23,24 @@
 #include "bluetooth_hal/bqr/bqr_event.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 class BqrRootInflammationEvent : public BqrEvent {
- public:
-  explicit BqrRootInflammationEvent(
-      const ::bluetooth_hal::hci::HalPacket& packet);
-  ~BqrRootInflammationEvent() = default;
+  public:
+    explicit BqrRootInflammationEvent(const ::bluetooth_hal::hci::HalPacket& packet);
+    ~BqrRootInflammationEvent() = default;
 
-  bool IsValid() const override;
-  uint8_t GetErrorCode() const;
-  uint8_t GetVendorErrorCode() const;
-  std::vector<uint8_t> GetVendorParameter() const;
-  std::string ToString() const;
+    bool IsValid() const override;
+    uint8_t GetErrorCode() const;
+    uint8_t GetVendorErrorCode() const;
+    std::vector<uint8_t> GetVendorParameter() const;
+    std::string ToString() const;
 
- protected:
-  std::string ToBqrString() const;
-  bool is_valid_;
-  uint8_t error_code_;
-  uint8_t vendor_error_code_;
+  protected:
+    std::string ToBqrString() const;
+    bool is_valid_;
+    uint8_t error_code_;
+    uint8_t vendor_error_code_;
 };
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

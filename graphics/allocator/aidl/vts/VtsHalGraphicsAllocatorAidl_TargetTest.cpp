@@ -24,6 +24,7 @@
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
 #include <aidl/android/hardware/graphics/common/PixelFormat.h>
 #include <aidlcommonsupport/NativeHandle.h>
+#include <android-base/properties.h>
 #include <android/binder_manager.h>
 #include <android/dlext.h>
 #include <android/hardware/graphics/mapper/4.0/IMapper.h>
@@ -314,7 +315,7 @@ TEST_P(GraphicsAllocatorAidlTests, CanAllocate) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_WRITE_OFTEN | BufferUsage::CPU_READ_OFTEN,
             .reservedSize = 0,
     });
@@ -329,12 +330,19 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownUsages) {
     }
 
     constexpr auto FirstInvalidV2Usage = static_cast<BufferUsage>(1LL << 33);
+    constexpr auto FirstInvalidV3Usage = static_cast<BufferUsage>(1LL << 34);
 
     BufferUsage invalidUsage;
-    if (allocatorVersion() == 2) {
-        invalidUsage = FirstInvalidV2Usage;
-    } else {
-        GTEST_FAIL() << "Unknown version " << allocatorVersion();
+    switch (allocatorVersion()) {
+        case 3:
+            invalidUsage = FirstInvalidV3Usage;
+            break;
+        case 2:
+            invalidUsage = FirstInvalidV2Usage;
+            break;
+        default:
+            GTEST_FAIL() << "Unknown version " << allocatorVersion();
+            return;
     }
 
     BufferDescriptorInfo info{
@@ -342,7 +350,7 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownUsages) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
             .reservedSize = 0,
     };
@@ -368,7 +376,7 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownOptions) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
             .reservedSize = 0,
     };
@@ -378,13 +386,67 @@ TEST_P(GraphicsAllocatorAidlTests, RejectsUnknownOptions) {
     EXPECT_FALSE(allocate(info, false)) << "allocate succeeded for unknown-to-HAL option";
 }
 
+TEST_P(GraphicsAllocatorAidlTests, RejectsZeroLayerCount) {
+    if (base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "layerCount = 0 behavior wasn't previously enforced, skipping for old HALs";
+    }
+    BufferDescriptorInfo info{
+            .name = {"CPU_8888"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 0,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
+            .usage = BufferUsage::CPU_READ_OFTEN | BufferUsage::CPU_WRITE_OFTEN,
+            .reservedSize = 0,
+    };
+
+    EXPECT_FALSE(isSupported(info)) << "isSupported() returned true for layerCount=0";
+    EXPECT_FALSE(allocate(info, false)) << "allocate succeeded for layerCount=0";
+}
+
+TEST_P(GraphicsAllocatorAidlTests, RAW10Stride) {
+    BufferDescriptorInfo info{
+            .name = {"RAW10"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 1,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RAW10,
+            .usage = BufferUsage::CPU_READ_OFTEN,
+            .reservedSize = 0,
+    };
+    if (!isSupported(info)) {
+        GTEST_SKIP() << "RAW10 not supported";
+    }
+    auto buffer = allocate(info);
+    ASSERT_NE(nullptr, buffer.get());
+    EXPECT_GE(buffer->stride(), info.width * 10 / 8);
+}
+
+TEST_P(GraphicsAllocatorAidlTests, RAW12Stride) {
+    BufferDescriptorInfo info{
+            .name = {"RAW12"},
+            .width = 64,
+            .height = 64,
+            .layerCount = 1,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RAW12,
+            .usage = BufferUsage::CPU_READ_OFTEN,
+            .reservedSize = 0,
+    };
+    if (!isSupported(info)) {
+        GTEST_SKIP() << "RAW12 not supported";
+    }
+    auto buffer = allocate(info);
+    ASSERT_NE(nullptr, buffer.get());
+    EXPECT_GE(buffer->stride(), info.width * 12 / 8);
+}
+
 TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToCpu) {
     BufferDescriptorInfo info{
             .name = {"CPU_8888"},
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::GPU_RENDER_TARGET | BufferUsage::CPU_READ_OFTEN |
                      BufferUsage::FRONT_BUFFER,
             .reservedSize = 0,
@@ -426,7 +488,7 @@ TEST_P(GraphicsFrontBufferTests, FrontBufferGpuToGpu) {
             .width = 64,
             .height = 64,
             .layerCount = 1,
-            .format = PixelFormat::RGBA_8888,
+            .format = ::aidl::android::hardware::graphics::common::PixelFormat::RGBA_8888,
             .usage = BufferUsage::GPU_RENDER_TARGET | BufferUsage::GPU_TEXTURE |
                      BufferUsage::FRONT_BUFFER,
             .reservedSize = 0,

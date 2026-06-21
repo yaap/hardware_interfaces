@@ -24,24 +24,26 @@
 #include "bluetooth_hal/hal_types.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class MockBluetoothActivities : public BluetoothActivities {
- public:
-  MOCK_METHOD(bool, HasConnectedDevice, (), (const));
-  MOCK_METHOD(bool, IsConnected, (uint16_t connection_handle), (const));
-  MOCK_METHOD(size_t, GetConnectionHandleCount, (), (const));
-  MOCK_METHOD(void, OnMonitorPacketCallback,
-              (::bluetooth_hal::hci::MonitorMode mode,
-               const ::bluetooth_hal::hci::HalPacket& packet),
-              ());
-  MOCK_METHOD(void, OnBluetoothChipClosed, (), ());
+  public:
+    MOCK_METHOD(bool, HasConnectedDevice, (), (const));
+    MOCK_METHOD(bool, IsConnected, (uint16_t connection_handle), (const));
+    MOCK_METHOD(size_t, GetConnectionHandleCount, (), (const));
+    MOCK_METHOD(void, OnMonitorPacketCallback,
+                (::bluetooth_hal::hci::MonitorMode mode,
+                 const ::bluetooth_hal::hci::HalPacket& packet),
+                ());
+    using ConnectionCountChangedCallback = BluetoothActivities::ConnectionCountChangedCallback;
+    using ConnectionCallbackSubscription = BluetoothActivities::ConnectionCallbackSubscription;
+    MOCK_METHOD(ConnectionCallbackSubscription, RegisterConnectionCountChangedCallback,
+                (ConnectionCountChangedCallback callback), (override));
+    MOCK_METHOD(void, OnBluetoothChipClosed, (), ());
 
-  static void SetMockBluetoothActivities(MockBluetoothActivities* mock);
+    static void SetMockBluetoothActivities(MockBluetoothActivities* mock);
 
-  static inline MockBluetoothActivities* mock_bluetooth_activities_{nullptr};
+    static inline MockBluetoothActivities* mock_bluetooth_activities_{nullptr};
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

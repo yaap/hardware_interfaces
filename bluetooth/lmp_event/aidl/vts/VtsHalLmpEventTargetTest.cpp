@@ -19,10 +19,10 @@
 #include <aidl/Gtest.h>
 #include <aidl/Vintf.h>
 
+#include <aidl/android/hardware/bluetooth/lmp_event/AddressType.h>
 #include <aidl/android/hardware/bluetooth/lmp_event/BnBluetoothLmpEvent.h>
 #include <aidl/android/hardware/bluetooth/lmp_event/BnBluetoothLmpEventCallback.h>
 #include <aidl/android/hardware/bluetooth/lmp_event/Direction.h>
-#include <aidl/android/hardware/bluetooth/lmp_event/AddressType.h>
 #include <aidl/android/hardware/bluetooth/lmp_event/LmpEventId.h>
 #include <aidl/android/hardware/bluetooth/lmp_event/Timestamp.h>
 
@@ -33,15 +33,14 @@
 #include <log/log.h>
 
 #include <chrono>
-#include <condition_variable>
 #include <cinttypes>
-#include <thread>
+#include <condition_variable>
 
+using ::aidl::android::hardware::bluetooth::lmp_event::AddressType;
 using ::aidl::android::hardware::bluetooth::lmp_event::BnBluetoothLmpEventCallback;
+using ::aidl::android::hardware::bluetooth::lmp_event::Direction;
 using ::aidl::android::hardware::bluetooth::lmp_event::IBluetoothLmpEvent;
 using ::aidl::android::hardware::bluetooth::lmp_event::IBluetoothLmpEventCallback;
-using ::aidl::android::hardware::bluetooth::lmp_event::Direction;
-using ::aidl::android::hardware::bluetooth::lmp_event::AddressType;
 using ::aidl::android::hardware::bluetooth::lmp_event::LmpEventId;
 using ::aidl::android::hardware::bluetooth::lmp_event::Timestamp;
 
@@ -49,7 +48,7 @@ using ::android::ProcessState;
 using ::ndk::SpAIBinder;
 
 namespace {
-    static constexpr std::chrono::milliseconds kEventTimeoutMs(10000);
+static constexpr std::chrono::milliseconds kEventTimeoutMs(10000);
 }
 
 class BluetoothLmpEventTest : public testing::TestWithParam<std::string> {
@@ -57,7 +56,8 @@ class BluetoothLmpEventTest : public testing::TestWithParam<std::string> {
     virtual void SetUp() override {
         ALOGI("%s", __func__);
 
-        ibt_lmp_event_ = IBluetoothLmpEvent::fromBinder(SpAIBinder(AServiceManager_waitForService(GetParam().c_str())));
+        ibt_lmp_event_ = IBluetoothLmpEvent::fromBinder(
+                SpAIBinder(AServiceManager_waitForService(GetParam().c_str())));
         ASSERT_NE(ibt_lmp_event_, nullptr);
 
         ibt_lmp_event_cb_ = ndk::SharedRefBase::make<BluetoothLmpEventCallback>(*this);
@@ -72,47 +72,48 @@ class BluetoothLmpEventTest : public testing::TestWithParam<std::string> {
     }
 
     class BluetoothLmpEventCallback : public BnBluetoothLmpEventCallback {
-        public:
-            BluetoothLmpEventTest& parent_;
-            BluetoothLmpEventCallback(BluetoothLmpEventTest& parent)
-                : parent_(parent) {}
-            ~BluetoothLmpEventCallback() = default;
+      public:
+        BluetoothLmpEventTest& parent_;
+        BluetoothLmpEventCallback(BluetoothLmpEventTest& parent) : parent_(parent) {}
+        ~BluetoothLmpEventCallback() = default;
 
-            ::ndk::ScopedAStatus onEventGenerated(const Timestamp& timestamp, AddressType address_type,
-                    const std::array<uint8_t, 6>& address, Direction direction,
-                    LmpEventId lmp_event_id, char16_t conn_event_counter) override {
-                for (auto t: address) {
-                    ALOGD("%s: 0x%02x", __func__, t);
-                }
-                if (direction == Direction::TX) {
-                    ALOGD("%s: Transmitting", __func__);
-                } else if (direction == Direction::RX) {
-                    ALOGD("%s: Receiving", __func__);
-                }
-                if (address_type == AddressType::PUBLIC) {
-                    ALOGD("%s: Public address", __func__);
-                } else if (address_type == AddressType::RANDOM) {
-                    ALOGD("%s: Random address", __func__);
-                }
-                if (lmp_event_id == LmpEventId::CONNECT_IND) {
-                    ALOGD("%s: initiating connection", __func__);
-                } else if (lmp_event_id == LmpEventId::LL_PHY_UPDATE_IND) {
-                    ALOGD("%s: PHY update indication", __func__);
-                }
-
-                ALOGD("%s: time: %" PRId64 "counter value: %x", __func__, timestamp.bluetoothTimeUs, conn_event_counter);
-
-                parent_.event_recv = true;
-                parent_.notify();
-
-                return ::ndk::ScopedAStatus::ok();
+        ::ndk::ScopedAStatus onEventGenerated(const Timestamp& timestamp, AddressType address_type,
+                                              const std::array<uint8_t, 6>& address,
+                                              Direction direction, LmpEventId lmp_event_id,
+                                              char16_t conn_event_counter) override {
+            for (auto t : address) {
+                ALOGD("%s: 0x%02x", __func__, t);
             }
-            ::ndk::ScopedAStatus onRegistered(bool status) override {
-                ALOGD("%s: status: %d", __func__, status);
-                parent_.status_recv = status;
-                parent_.notify();
-                return ::ndk::ScopedAStatus::ok();
+            if (direction == Direction::TX) {
+                ALOGD("%s: Transmitting", __func__);
+            } else if (direction == Direction::RX) {
+                ALOGD("%s: Receiving", __func__);
             }
+            if (address_type == AddressType::PUBLIC) {
+                ALOGD("%s: Public address", __func__);
+            } else if (address_type == AddressType::RANDOM) {
+                ALOGD("%s: Random address", __func__);
+            }
+            if (lmp_event_id == LmpEventId::CONNECT_IND) {
+                ALOGD("%s: initiating connection", __func__);
+            } else if (lmp_event_id == LmpEventId::LL_PHY_UPDATE_IND) {
+                ALOGD("%s: PHY update indication", __func__);
+            }
+
+            ALOGD("%s: time: %" PRId64 "counter value: %x", __func__, timestamp.bluetoothTimeUs,
+                  conn_event_counter);
+
+            parent_.event_recv = true;
+            parent_.notify();
+
+            return ::ndk::ScopedAStatus::ok();
+        }
+        ::ndk::ScopedAStatus onRegistered(bool status) override {
+            ALOGD("%s: status: %d", __func__, status);
+            parent_.status_recv = status;
+            parent_.notify();
+            return ::ndk::ScopedAStatus::ok();
+        }
     };
 
     inline void notify() {
@@ -123,14 +124,11 @@ class BluetoothLmpEventTest : public testing::TestWithParam<std::string> {
     inline void wait(bool is_register_event) {
         std::unique_lock<std::mutex> lock(lmp_event_mtx);
 
-
         if (is_register_event) {
             lmp_event_cv.wait(lock, [&]() { return status_recv == true; });
         } else {
-            lmp_event_cv.wait_for(lock, kEventTimeoutMs,
-                    [&](){ return event_recv == true; });
+            lmp_event_cv.wait_for(lock, kEventTimeoutMs, [&]() { return event_recv == true; });
         }
-
     }
 
     std::shared_ptr<IBluetoothLmpEvent> ibt_lmp_event_;
@@ -155,17 +153,17 @@ TEST_P(BluetoothLmpEventTest, RegisterAndReceive) {
     wait(true);
     EXPECT_EQ(true, status_recv);
 
-    /* Wait for event generated here */
-    wait(false);
-    EXPECT_EQ(true, event_recv);
+    // The two events CONNECT_IND and LL_PHY_UPDATE_IND depend on the availability of
+    // a connected device. The test cannot validate the reception of these events.
 
     ibt_lmp_event_->unregisterLmpEvents(address_type, address);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(BluetoothLmpEventTest);
-INSTANTIATE_TEST_SUITE_P(BluetoothLmpEvent, BluetoothLmpEventTest,
-                         testing::ValuesIn(android::getAidlHalInstanceNames(IBluetoothLmpEvent::descriptor)),
-                         android::PrintInstanceNameToString);
+INSTANTIATE_TEST_SUITE_P(
+        BluetoothLmpEvent, BluetoothLmpEventTest,
+        testing::ValuesIn(android::getAidlHalInstanceNames(IBluetoothLmpEvent::descriptor)),
+        android::PrintInstanceNameToString);
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
@@ -173,4 +171,3 @@ int main(int argc, char** argv) {
     ProcessState::self()->startThreadPool();
     return RUN_ALL_TESTS();
 }
-

@@ -16,6 +16,7 @@
 
 package android.hardware.gnss;
 
+import android.hardware.gnss.ElapsedRealtime;
 import android.hardware.gnss.GnssConstellationType;
 import android.hardware.gnss.GnssLocation;
 import android.hardware.gnss.GnssSignalType;
@@ -92,6 +93,13 @@ interface IGnssCallback {
     const int CAPABILITY_ACCUMULATED_DELTA_RANGE = 1 << 15;
 
     /**
+     * Capability bit mask indicating that the GNSS engine will restart if the
+     * user requests a power mode change (e.g., changing from duty cycling mode
+     * to full tracking mode)
+     */
+    const int CAPABILITY_ENGINE_RESTART_AFTER_POWER_MODE_CHANGE = 1 << 16;
+
+    /**
      * Callback to inform framework of the GNSS HAL implementation's capabilities.
      *
      * @param capabilities Capability parameter is a bit field of the Capability bit masks.
@@ -141,7 +149,7 @@ interface IGnssCallback {
          *            + 100
          *            i.e. report an FCN of -7 as 93, FCN of 0 as 100, and FCN of +6
          *            as 106.
-         * - QZSS:    183-206
+         * - QZSS:    183-212
          * - Galileo: 1-36
          * - Beidou:  1-63
          * - IRNSS:   1-14
@@ -150,6 +158,8 @@ interface IGnssCallback {
 
         /**
          * Defines the constellation of the given SV.
+         *
+         * @deprecated use signalType
          */
         GnssConstellationType constellation;
 
@@ -197,11 +207,31 @@ interface IGnssCallback {
          * L5 must be filled.
          *
          * If the data is available, svFlag must contain HAS_CARRIER_FREQUENCY.
+         *
+         * @deprecated use signalType
          */
         long carrierFrequencyHz;
 
         /** A bit field of the GnssSvFlags. */
         int svFlag;
+
+        /**
+         * Defines the signal type of the given SV.
+         *
+         * If the data is available, svFlag must contain HAS_CARRIER_FREQUENCY.
+         */
+        @nullable GnssSignalType signalType;
+
+        /**
+         * Timing information of the GnssSvInfo with SystemClock.elapsedRealtimeNanos()
+         * clock.
+         *
+         * This clock information can be obtained from SystemClock.elapsedRealtimeNanos(), when the
+         * GNSS is attached straight to the AP/SOC. When it is attached to a separate module the
+         * timestamp needs to be estimated by syncing the notion of time via PTP or some other
+         * mechanism.
+         */
+        @nullable ElapsedRealtime elapsedRealtime;
     }
 
     /**

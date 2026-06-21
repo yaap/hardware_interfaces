@@ -53,10 +53,13 @@ using testing::Eq;
 using testing::ExplainMatchResult;
 using testing::Ge;
 using testing::Gt;
+using testing::IsNull;
 using testing::Le;
 using testing::Lt;
 using testing::Matcher;
 using testing::Not;
+using testing::Optional;
+using testing::SizeIs;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
@@ -94,6 +97,19 @@ MATCHER(IsValidSerialNumber, "") {
     }
     for (const auto& c : *arg) {
         if (!isalnum(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+MATCHER(IsPrintableString, "") {
+    if (!arg) {
+        return true;
+    }
+    for (const auto& c : *arg) {
+        if (!isprint(c)) {
+            *result_listener << "contains non-printable character: " << testing::PrintToString(c);
             return false;
         }
     }
@@ -259,22 +275,49 @@ TEST_P(HealthAidl, getChargingPolicy) {
 }
 
 /*
- * Tests that setChargingPolicy() writes the value and compared the returned
+ * Tests that setChargingPolicy() writes LONG_LIFE and compared the returned
  * value by getChargingPolicy() from interface IHealth.
  */
-TEST_P(HealthAidl, setChargingPolicy) {
+TEST_P(HealthAidl, setChargingPolicyLongLife) {
     int32_t version = 0;
     auto status = health->getInterfaceVersion(&version);
     ASSERT_TRUE(status.isOk()) << status;
     if (version < 2) {
         GTEST_SKIP() << "Support in health hal v2 for EU Ecodesign";
     }
-
     BatteryChargingPolicy value;
 
-    /* set ChargingPolicy*/
+    /* set ChargingPolicy LONG_LIFE */
     status = health->setChargingPolicy(BatteryChargingPolicy::LONG_LIFE);
     ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    status = health->getChargingPolicy(&value);
+    ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    ASSERT_EQ(value, BatteryChargingPolicy::LONG_LIFE);
+}
+
+/*
+ * Tests that setChargingPolicy() writes FORCE_FULL_CHARGE and compared the returned
+ * value by getChargingPolicy() from interface IHealth.
+ */
+TEST_P(HealthAidl, setChargingPolicyForceFullCharge) {
+    int32_t version = 0;
+    auto status = health->getInterfaceVersion(&version);
+    ASSERT_TRUE(status.isOk()) << status;
+    if (version < 5) {
+        GTEST_SKIP() << "Support in health hal v5";
+    }
+    BatteryChargingPolicy value;
+
+    /* set ChargingPolicy FORCE_FULL_CHARGE */
+    status = health->setChargingPolicy(BatteryChargingPolicy::FORCE_FULL_CHARGE);
+    ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    status = health->getChargingPolicy(&value);
+    ASSERT_THAT(status, AnyOf(IsOk(), ExceptionIs(EX_UNSUPPORTED_OPERATION)));
+    if (!status.isOk()) return;
+    ASSERT_EQ(value, BatteryChargingPolicy::FORCE_FULL_CHARGE);
 }
 
 MATCHER_P(IsValidHealthData, version, "") {
@@ -298,6 +341,24 @@ MATCHER_P(IsValidHealthData, version, "") {
     if (!ExplainMatchResult(IsValidEnum<BatteryPartStatus>(), arg.batteryPartStatus,
                             result_listener)) {
         *result_listener << " for batteryPartStatus.";
+        return false;
+    }
+    if (!ExplainMatchResult(
+                AnyOf(Eq(std::nullopt), AllOf(Optional(SizeIs(Ge(2))), IsPrintableString())),
+                arg.batteryManufacturer, result_listener)) {
+        *result_listener << " for batteryManufacturer.";
+        return false;
+    }
+
+    if (!ExplainMatchResult(
+                AnyOf(Eq(std::nullopt), AllOf(Optional(SizeIs(Ge(2))), IsPrintableString())),
+                arg.batteryModelName, result_listener)) {
+        *result_listener << " for batteryModelName.";
+        return false;
+    }
+    if (!ExplainMatchResult(AnyOf(Eq(0), Ge(2000000)), arg.batteryVoltageMinDesignUv,
+                            result_listener)) {
+        *result_listener << " for batteryVoltageMinDesignUv";
         return false;
     }
 

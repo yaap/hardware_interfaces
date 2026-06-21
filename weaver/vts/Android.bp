@@ -36,11 +36,26 @@ cc_test {
         "libbase",
     ],
     static_libs: [
-        "android.hardware.weaver-V2-ndk",
+        "android.hardware.weaver-V3-ndk",
         "android.hardware.weaver@1.0",
     ],
     test_suites: [
         "general-tests",
         "vts",
+        "dts",
     ],
+    test_options: {
+        test_runner_options: [
+            {
+                // In the worst case,
+                // TimeoutIsAtLeastOneMinuteAfterAtMostFiveAttempts() could take
+                // almost 5 minutes. (That's the worst case. With a "normal"
+                // Weaver implementation, it should take about 1 minute.) The
+                // other test cases are much faster. A 6 minute test timeout
+                // should be plenty to avoid flakes even in the worst case.
+                name: "native-test-timeout",
+                value: "360000",
+            },
+        ],
+    },
 }

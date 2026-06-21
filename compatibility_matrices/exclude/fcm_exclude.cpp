@@ -73,7 +73,6 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.audio@4.0",
             "android.hardware.bluetooth.a2dp@1.0",
             "android.hardware.cas@1.0",
-            "android.hardware.configstore@1.0",
             "android.hardware.gnss@1.0",
             "android.hardware.gnss@1.1",
             "android.hardware.graphics.mapper@2.0",
@@ -90,7 +89,6 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.audio.effect@5.0",
             "android.hardware.audio@5.0",
             "android.hardware.boot@1.0",
-            "android.hardware.configstore@1.1",
             "android.hardware.drm@1.0",
             "android.hardware.drm@1.1",
             "android.hardware.drm@1.2",
@@ -107,7 +105,6 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.contexthub@1.0",
             "android.hardware.contexthub@1.1",
             "android.hardware.health.storage@1.0",
-            "android.hardware.memtrack@1.0",
             "android.hardware.power.stats@1.0",
             "android.hardware.radio@1.4",
             "android.hardware.radio@1.5",
@@ -122,20 +119,14 @@ bool ShouldCheckMissingHidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.wifi@1.2",
 
             // b/400531264 for HIDL HALs deprecated in S
-            "android.hardware.automotive.sv@1.0",
             "android.hardware.bluetooth.audio@2.0",
             "android.hardware.bluetooth.audio@2.1",
             "android.hardware.contexthub@1.2",
             "android.hardware.dumpstate@1.1",
             "android.hardware.health@2.1",
-            "android.hardware.input.classifier@1.0",
-            "android.hardware.ir@1.0",
-            // TODO(b/410953636) these android.hardware.radio HALs
-            // are left in temporarily due to build failures. Uncomment when the
-            // bug is fixed.
-            //"android.hardware.radio.config@1.1",
-            //"android.hardware.radio.config@1.3",
-            //"android.hardware.radio@1.6",
+            "android.hardware.radio.config@1.1",
+            "android.hardware.radio.config@1.3",
+            "android.hardware.radio@1.6",
             "android.hardware.wifi.hostapd@1.0",
             "android.hardware.wifi.hostapd@1.1",
             "android.hardware.wifi.hostapd@1.2",
@@ -174,6 +165,7 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             // Packages without top level interfaces (including types-only packages) are exempted.
             "android.hardware.audio.common@",
             "android.hardware.biometrics.common@",
+            "android.hardware.biometrics.fingerprint.location@",
             "android.hardware.camera.metadata@",
             "android.hardware.camera.device@",
             "android.hardware.camera.common@",
@@ -190,6 +182,7 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.uwb.fira_android@",
             "android.hardware.wifi.common@",
             "android.hardware.biometrics.fingerprint.virtualhal@",
+            "android.hardware.security.see.hwcrypto.types",
 
             // Test packages are exempted.
             "android.hardware.tests.",
@@ -197,8 +190,6 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             // Fastboot HAL is only used by recovery. Recovery is owned by OEM. Framework
             // does not depend on this HAL, hence it is not declared in any manifests or matrices.
             "android.hardware.fastboot@",
-            "android.hardware.security.see.hwcrypto.types",
-            "android.hardware.security.see.storage",
     };
 
     static std::vector<std::string> excluded_exact{
@@ -208,11 +199,13 @@ bool ShouldCheckMissingAidlHalsInFcm(const std::string& packageAndVersion) {
             "android.hardware.audio.core.sounddose@1",
             "android.hardware.audio.core.sounddose@2",
             "android.hardware.audio.core.sounddose@3",
+            "android.hardware.audio.core.sounddose@4",
             // This is only used by a trusty VM
             "android.hardware.security.see.authmgr@1",
             "android.hardware.security.see.hdcp@1",
 
             // Deprecated HALs.
+            "android.hardware.audio.sounddose@4",
             "android.hardware.audio.sounddose@3",
             "android.hardware.bluetooth.audio@1",
 

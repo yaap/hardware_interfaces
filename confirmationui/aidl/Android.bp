@@ -38,7 +38,7 @@ aidl_interface {
     versions_with_info: [
         {
             version: "1",
-            imports: ["android.hardware.security.keymint-V4"],
+            imports: ["android.hardware.security.keymint-V5"],
         },
     ],
     frozen: true,

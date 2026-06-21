@@ -16,6 +16,7 @@
 
 package android.hardware.biometrics.fingerprint;
 
+import android.hardware.biometrics.fingerprint.SensorLocationData;
 import android.hardware.biometrics.fingerprint.SensorShape;
 
 /**
@@ -29,23 +30,20 @@ parcelable SensorLocation {
     int displayId;
 
     /**
-     * The location of the center of the sensor if applicable. For example, sensors of
-     * FingerprintSensorType::UNDER_DISPLAY_* would report this value as the distance in pixels,
-     * measured from the left edge of the screen.
+     * @deprecated use sensorLocationData with a specific struct (e.g., UnderDisplayLocation)
+     *         instead. This value will be ignored if sensorLocationData is set.
      */
     int sensorLocationX;
 
     /**
-     * The location of the center of the sensor if applicable. For example, sensors of
-     * FingerprintSensorType::UNDER_DISPLAY_* would report this value as the distance in pixels,
-     * measured from the top edge of the screen.
+     * @deprecated use sensorLocationData with a specific struct (e.g., UnderDisplayLocation)
+     *         instead. This value will be ignored if sensorLocationData is set.
      */
     int sensorLocationY;
 
     /**
-     * The radius of the sensor if applicable. For example, sensors of
-     * FingerprintSensorType::UNDER_DISPLAY_* would report this value as the radius of the sensor,
-     * in pixels.
+     * @deprecated use sensorLocationData with a specific struct (e.g., UnderDisplayLocation)
+     *         instead. This value will be ignored if sensorLocationData is set.
      */
     int sensorRadius;
 
@@ -68,4 +66,10 @@ parcelable SensorLocation {
      * SensorType::UNDER_DISPLAY_*.
      */
     SensorShape sensorShape = SensorShape.CIRCLE;
+
+    /**
+     * The location of the sensor, specified by one of the
+     * mutually exclusive location types.
+     */
+    @nullable SensorLocationData sensorLocationData;
 }

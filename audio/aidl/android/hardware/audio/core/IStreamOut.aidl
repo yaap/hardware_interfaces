@@ -234,11 +234,19 @@ interface IStreamOut {
      * The client must obtain valid presentation and program IDs from the media
      * stream on its own.
      *
-     * @param presentationId Selected audio presentation.
-     * @param programId Refinement for the presentation.
+     * @param presentationId Selected audio presentation. Values less than -1
+     *                       are invalid (per the standard). A value of -1 may be
+     *                       used by some decoders to deselect presentation
+     *                       selection and revert to default decoding and thus
+     *                       is not considered as invalid.
+     * @param programId Refinement for the presentation. The value is limited to
+     *                  unsigned 16-bit range (per the standard). A value of -1
+     *                  is acceptable, may be used by some decoders to match
+     *                  presentation without "short program ID" matching.
      * @throws EX_ILLEGAL_ARGUMENT If the HAL module is unable to locate
      *                             the specified presentation or program in
-     *                             the media stream.
+     *                             the media stream, or if the provided IDs
+     *                             are invalid.
      * @throws EX_ILLEGAL_STATE If the stream is closed.
      * @throws EX_UNSUPPORTED_OPERATION If presentation selection is not supported.
      */

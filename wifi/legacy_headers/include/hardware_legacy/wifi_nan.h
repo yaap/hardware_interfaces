@@ -358,6 +358,8 @@ typedef struct {
 #define NAN_CIPHER_SUITE_SHARED_KEY_256_MASK           0x02
 #define NAN_CIPHER_SUITE_PUBLIC_KEY_2WDH_128_MASK      0x04
 #define NAN_CIPHER_SUITE_PUBLIC_KEY_2WDH_256_MASK      0x08
+#define NAN_CIPHER_SUITE_GROUP_KEY_CCMP_128_MASK       0x10
+#define NAN_CIPHER_SUITE_GROUP_KEY_GCMP_256_MASK       0x20
 #define NAN_CIPHER_SUITE_PUBLIC_KEY_PASN_128_MASK      0x40
 #define NAN_CIPHER_SUITE_PUBLIC_KEY_PASN_256_MASK      0x80
 
@@ -451,6 +453,22 @@ typedef struct {
     u32 ranging_event_type;
 } NanRangeInfo;
 
+/*
+ * NAN Periodic Ranging Interval in Time Units.
+ *
+ * For more information, see the Wi-Fi Aware Spec 4.0, Table 97, Bits 3-5. From the 802.11 spec,
+ * one Time Unit (TU) is equal to 1024 microseconds (approx. 1 ms).
+ */
+typedef enum {
+    NAN_PERIODIC_RANGING_INTERVAL_128TU = 1 << 0,
+    NAN_PERIODIC_RANGING_INTERVAL_256TU = 1 << 1,
+    NAN_PERIODIC_RANGING_INTERVAL_512TU = 1 << 2,
+    NAN_PERIODIC_RANGING_INTERVAL_1024TU = 1 << 3,
+    NAN_PERIODIC_RANGING_INTERVAL_2048TU = 1 << 4,
+    NAN_PERIODIC_RANGING_INTERVAL_4096TU = 1 << 5,
+    NAN_PERIODIC_RANGING_INTERVAL_8192TU = 1 << 6,
+} NanPeriodicRangingIntervalMask;
+
 /* Nan/NDP Capabilites info */
 typedef struct {
     u32 max_concurrent_nan_clusters;
@@ -482,6 +500,7 @@ typedef struct {
     bool is_periodic_ranging_supported;
     wifi_rtt_bw supported_bw;
     u8 num_rx_chains_supported;
+    NanPeriodicRangingIntervalMask supported_periodic_ranging_intervals;
 } NanCapabilities;
 
 /*
@@ -3052,6 +3071,13 @@ typedef struct {
     /* Proposed bootstrapping method from peer*/
     u16 request_bootstrapping_method;
 
+    /*
+      Sequence of values indicating the service specific info in SDEA
+      Used for service managed bootstrapping method
+    */
+    u16 sdea_service_specific_info_len;
+    u8 sdea_service_specific_info[NAN_MAX_SDEA_SERVICE_SPECIFIC_INFO_LEN];
+
 } NanBootstrappingRequestInd;
 
 /*
@@ -3514,6 +3540,26 @@ wifi_error nan_bootstrapping_request(transaction_id id, wifi_interface_handle if
  */
 wifi_error nan_bootstrapping_indication_response(transaction_id id, wifi_interface_handle iface,
                                                  NanBootstrappingIndicationResponse* msg);
+
+/**@brief nan_suspend_request
+ * Request that the specified NAN session be suspended.
+ * @param transaction_id: NAN transaction id
+ * @param wifi_interface_handle
+ * @param NanSuspendRequest request message
+ * @return Synchronous wifi_error
+ */
+wifi_error nan_suspend_request(transaction_id id, wifi_interface_handle iface,
+                               NanSuspendRequest *msg);
+
+/**@brief nan_resume_request
+ * Request that the specified NAN session be resumed.
+ * @param transaction_id: NAN transaction id
+ * @param wifi_interface_handle
+ * @param NanResumeRequest request message
+ * @return Synchronous wifi_error
+ */
+wifi_error nan_resume_request(transaction_id id, wifi_interface_handle iface,
+                              NanResumeRequest *msg);
 
 #ifdef __cplusplus
 }

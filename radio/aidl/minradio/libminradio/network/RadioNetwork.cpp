@@ -85,6 +85,8 @@ ScopedAStatus RadioNetwork::getImsRegistrationState(int32_t serial) {
     LOG_AND_RETURN_DEPRECATED();
 }
 
+// Starting with HALs certified after 2025-04, this method must be overridden or the device
+// will fail CTS. Non-VTS devices certified for SDK levels > 36 must do the same.
 ScopedAStatus RadioNetwork::getNetworkSelectionMode(int32_t serial) {
     LOG_CALL;
     respond()->getNetworkSelectionModeResponse(noError(serial), /*manual*/ false);
@@ -172,7 +174,7 @@ ScopedAStatus RadioNetwork::setIndicationFilter(int32_t serial, int32_t indFilte
     return ok();
 }
 
-ScopedAStatus RadioNetwork::setLinkCapacityReportingCriteria(  //
+ScopedAStatus RadioNetwork::setLinkCapacityReportingCriteria(
         int32_t serial, int32_t hysteresisMs, int32_t hysteresisDlKbps, int32_t hysteresisUlKbps,
         const std::vector<int32_t>& thrDownlinkKbps, const std::vector<int32_t>& thrUplinkKbps,
         AccessNetwork accessNetwork) {
@@ -186,14 +188,19 @@ ScopedAStatus RadioNetwork::setLocationUpdates(int32_t serial, bool) {
     LOG_AND_RETURN_DEPRECATED();
 }
 
+// Starting with HALs certified after 2025-04, this method must be overridden or the device
+// will fail CTS. Non-VTS devices certified for SDK levels > 36 must do the same.
 ScopedAStatus RadioNetwork::setNetworkSelectionModeAutomatic(int32_t serial) {
     LOG_NOT_SUPPORTED;
     respond()->setNetworkSelectionModeAutomaticResponse(notSupported(serial));
     return ok();
 }
 
-ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(  //
-        int32_t serial, const std::string& opNumeric, AccessNetwork ran) {
+// Starting with HALs certified after 2025-04, this method must be overridden or the device
+// will fail CTS. Non-VTS devices certified for SDK levels > 36 must do the same.
+ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(int32_t serial,
+                                                          const std::string& opNumeric,
+                                                          AccessNetwork ran) {
     LOG_NOT_SUPPORTED << opNumeric << ' ' << ran;
     respond()->setNetworkSelectionModeManualResponse(notSupported(serial));
     return ok();

@@ -79,9 +79,6 @@ namespace {
 // Maximum supported Ed25519 message size.
 const size_t MAX_ED25519_MSG_SIZE = 16 * 1024;
 
-// Whether to check that BOOT_PATCHLEVEL is populated.
-bool check_boot_pl = true;
-
 // The maximum number of times we'll attempt to verify that corruption
 // of an encrypted blob results in an error. Retries are necessary as there
 // is a small (roughly 1/256) chance that corrupting ciphertext still results
@@ -105,33 +102,6 @@ bool contains(const vector<KeyParameter>& set, TypedTag<tag_type, tag>) {
     auto it = std::find_if(set.begin(), set.end(),
                            [&](const KeyParameter& param) { return param.tag == tag; });
     return (it != set.end());
-}
-
-constexpr char hex_value[256] = {0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 1,  2,  3,  4,  5,  6,  7, 8, 9, 0, 0, 0, 0, 0, 0,  // '0'..'9'
-                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'A'..'F'
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'a'..'f'
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
-                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-string hex2str(string a) {
-    string b;
-    size_t num = a.size() / 2;
-    b.resize(num);
-    for (size_t i = 0; i < num; i++) {
-        b[i] = (hex_value[a[i * 2] & 0xFF] << 4) + (hex_value[a[i * 2 + 1] & 0xFF]);
-    }
-    return b;
 }
 
 string rsa_key = hex2str(
@@ -614,67 +584,7 @@ std::shared_ptr<IRemotelyProvisionedComponent> matching_rp_instance(const std::s
 
 }  // namespace
 
-class NewKeyGenerationTest : public KeyMintAidlTestBase {
-  protected:
-    void CheckBaseParams(const vector<KeyCharacteristics>& keyCharacteristics) {
-        AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
-        EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
-
-        // Check that some unexpected tags/values are NOT present.
-        EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
-        EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
-    }
-
-    void CheckSymmetricParams(const vector<KeyCharacteristics>& keyCharacteristics) {
-        AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
-        EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
-        EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
-
-        EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
-    }
-
-    AuthorizationSet CheckCommonParams(const vector<KeyCharacteristics>& keyCharacteristics,
-                                       const KeyOrigin expectedKeyOrigin) {
-        // TODO(swillden): Distinguish which params should be in which auth list.
-        AuthorizationSet auths;
-        for (auto& entry : keyCharacteristics) {
-            auths.push_back(AuthorizationSet(entry.authorizations));
-        }
-        EXPECT_TRUE(auths.Contains(TAG_ORIGIN, expectedKeyOrigin));
-
-        // Verify that App data, ROT and auth timeout are NOT included.
-        EXPECT_FALSE(auths.Contains(TAG_ROOT_OF_TRUST));
-        EXPECT_FALSE(auths.Contains(TAG_APPLICATION_DATA));
-        EXPECT_FALSE(auths.Contains(TAG_MODULE_HASH));
-        EXPECT_FALSE(auths.Contains(TAG_AUTH_TIMEOUT, 301U));
-
-        // None of the tests specify CREATION_DATETIME so check that the KeyMint implementation
-        // never adds it.
-        EXPECT_FALSE(auths.Contains(TAG_CREATION_DATETIME));
-
-        // Check OS details match the original hardware info.
-        auto os_ver = auths.GetTagValue(TAG_OS_VERSION);
-        EXPECT_TRUE(os_ver);
-        EXPECT_EQ(*os_ver, os_version());
-        auto os_pl = auths.GetTagValue(TAG_OS_PATCHLEVEL);
-        EXPECT_TRUE(os_pl);
-        EXPECT_EQ(*os_pl, os_patch_level());
-
-        // Should include vendor patchlevel.
-        auto vendor_pl = auths.GetTagValue(TAG_VENDOR_PATCHLEVEL);
-        EXPECT_TRUE(vendor_pl);
-        EXPECT_EQ(*vendor_pl, vendor_patch_level());
-
-        // Should include boot patchlevel (but there are some test scenarios where this is not
-        // possible).
-        if (check_boot_pl) {
-            auto boot_pl = auths.GetTagValue(TAG_BOOT_PATCHLEVEL);
-            EXPECT_TRUE(boot_pl);
-        }
-
-        return auths;
-    }
-};
+typedef KeyMintAidlTestBase NewKeyGenerationTest;
 
 /*
  * NewKeyGenerationTest.Aes
@@ -2031,6 +1941,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationTags) {
  * Verifies that creation of an attested ECDSA key includes various ID tags in the
  * attestation extension one by one.
  */
+// @VsrTest = GMS-VSR-3.10-024
 TEST_P(NewKeyGenerationTest, EcdsaAttestationIdTags) {
     auto challenge = "hello";
     auto app_id = "foo";
@@ -2108,6 +2019,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationIdTags) {
  * Verifies that creation of an attested ECDSA key includes various ID tags in the
  * attestation extension all together.
  */
+// @VsrTest = GMS-VSR-3.10-024
 TEST_P(NewKeyGenerationTest, EcdsaAttestationIdAllTags) {
     auto challenge = "hello";
     auto app_id = "foo";
@@ -2180,61 +2092,125 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationIdAllTags) {
 }
 
 /*
+ * NewKeyGenerationTest.DeviceIdAttestationDisabled
+ *
+ * Verifies that ID attestation attempts return an error when the device ID attestation feature
+ * is disabled.
+ */
+TEST_P(NewKeyGenerationTest, DeviceIdAttestationDisabled) {
+    if (check_feature(FEATURE_DEVICE_ID_ATTESTATION)) {
+        GTEST_SKIP() << "Device ID attestation is enabled";
+    }
+
+    const AuthorizationSetBuilder base_builder = AuthorizationSetBuilder()
+                                                         .Authorization(TAG_NO_AUTH_REQUIRED)
+                                                         .EcdsaSigningKey(EcCurve::P_256)
+                                                         .Digest(Digest::NONE)
+                                                         .AttestationChallenge("hello")
+                                                         .AttestationApplicationId("foo")
+                                                         .SetDefaultValidity();
+
+    // Various ATTESTATION_ID_* tags with real values from the system properties.
+    auto id_tags = AuthorizationSetBuilder();
+    add_attestation_id(&id_tags, TAG_ATTESTATION_ID_BRAND, "brand");
+    add_attestation_id(&id_tags, TAG_ATTESTATION_ID_DEVICE, "device");
+    add_attestation_id(&id_tags, TAG_ATTESTATION_ID_PRODUCT, "name");
+    add_attestation_id(&id_tags, TAG_ATTESTATION_ID_MANUFACTURER, "manufacturer");
+    add_attestation_id(&id_tags, TAG_ATTESTATION_ID_MODEL, "model");
+    add_tag_from_prop(&id_tags, TAG_ATTESTATION_ID_SERIAL, "ro.serialno");
+
+    string imei = get_imei(0);
+    if (!imei.empty()) {
+        id_tags.Authorization(TAG_ATTESTATION_ID_IMEI, imei.data(), imei.size());
+    }
+    string second_imei = get_imei(1);
+    if (!second_imei.empty() && isSecondImeiIdAttestationRequired()) {
+        id_tags.Authorization(TAG_ATTESTATION_ID_SECOND_IMEI, second_imei.data(),
+                              second_imei.size());
+    }
+
+    for (const auto& tag_param : id_tags) {
+        SCOPED_TRACE(testing::Message() << "tag-" << tag_param.tag);
+        vector<uint8_t> key_blob;
+        vector<KeyCharacteristics> key_characteristics;
+        AuthorizationSetBuilder builder = base_builder;
+        builder.push_back(tag_param);
+        auto result = GenerateKey(builder, &key_blob, &key_characteristics);
+
+        // If the feature is disabled, the HAL MUST return CANNOT_ATTEST_IDS
+        // or ATTESTATION_IDS_NOT_PROVISIONED, even if the ID is correct.
+        EXPECT_TRUE(result == ErrorCode::CANNOT_ATTEST_IDS ||
+                    result == ErrorCode::ATTESTATION_IDS_NOT_PROVISIONED)
+                << "Expected failure for tag " << tag_param.tag
+                << " when feature is disabled, but got " << result;
+    }
+}
+
+/*
+ * NewKeyGenerationTest.EcdsaAttestationUniqueIdLargeDates
+ *
+ * This test ensures that distinct unique IDs are generated for different creation timestamps. It
+ * specifically uses unusual year values to validate the underlying implementation's ability to
+ * handle a wide range of dates.
+ */
+TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueIdLargeDates) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__);
+    if (SecLevel() == SecurityLevel::STRONGBOX && vendor_api_level <= last_unsupported_api_level) {
+        // Some Strongbox implementations fail to correctly generate unique IDs for large creation
+        // timestamps, leading to ID collisions or integer overflow.
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+
+    vector<uint64_t> test_vector_creation_data_time = {
+            26223868799000,  /* 2800-12-31T23:59:59Z */
+            43106803199000,  /* 3335-12-31T23:59:59Z */
+            45157996799000,  /* 3400-12-31T23:59:59Z */
+            60719587199000,  /* 3894-02-15T23:59:59Z */
+            95302051199000,  /* 4989-12-31T23:59:59Z */
+            86182012799000,  /* 4700-12-31T23:59:59Z */
+            111427574399000, /* 5500-12-31T23:59:59Z */
+            136988668799000, /* 6310-12-31T23:59:59Z */
+            139828895999000, /* 6400-12-31T23:59:59Z */
+            169839503999000, /* 7351-12-31T23:59:59Z */
+            171385804799000, /* 7400-12-31T23:59:59Z */
+            190320019199000, /* 8000-12-31T23:59:59Z */
+            193475692799000, /* 8100-12-31T23:59:59Z */
+            242515209599000, /* 9654-12-31T23:59:59Z */
+            250219065599000, /* 9899-02-15T23:59:59Z */
+    };
+
+    std::set<vector<uint8_t>> unique_ids;
+    for (auto cdt : test_vector_creation_data_time) {
+        auto app_id = "foo";
+        vector<uint8_t> unique_id;
+        GetUniqueId(app_id, cdt, &unique_id);
+
+        SCOPED_TRACE(testing::Message() << "CREATION_DATETIME" << cdt);
+
+        bool inserted = unique_ids.insert(std::move(unique_id)).second;
+
+        EXPECT_TRUE(inserted) << "Unique IDs created more than 30 days apart must not match.";
+    }
+}
+
+/*
  * NewKeyGenerationTest.EcdsaAttestationUniqueId
  *
  * Verifies that creation of an attested ECDSA key with a UNIQUE_ID included.
  */
 TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
-    auto get_unique_id = [this](const std::string& app_id, uint64_t datetime,
-                                vector<uint8_t>* unique_id, bool reset = false) {
-        auto challenge = "hello";
-        auto subject = "cert subj 2";
-        vector<uint8_t> subject_der(make_name_from_str(subject));
-        uint64_t serial_int = 0x1010;
-        vector<uint8_t> serial_blob(build_serial_blob(serial_int));
-        AuthorizationSetBuilder builder =
-                AuthorizationSetBuilder()
-                        .Authorization(TAG_NO_AUTH_REQUIRED)
-                        .Authorization(TAG_INCLUDE_UNIQUE_ID)
-                        .EcdsaSigningKey(EcCurve::P_256)
-                        .Digest(Digest::NONE)
-                        .AttestationChallenge(challenge)
-                        .Authorization(TAG_CERTIFICATE_SERIAL, serial_blob)
-                        .Authorization(TAG_CERTIFICATE_SUBJECT, subject_der)
-                        .AttestationApplicationId(app_id)
-                        .Authorization(TAG_CREATION_DATETIME, datetime)
-                        .SetDefaultValidity();
-        if (reset) {
-            builder.Authorization(TAG_RESET_SINCE_ID_ROTATION);
-        }
-        auto result = GenerateKey(builder);
-        ASSERT_EQ(ErrorCode::OK, result);
-        ASSERT_GT(key_blob_.size(), 0U);
-
-        EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
-        ASSERT_GT(cert_chain_.size(), 0);
-        verify_subject_and_serial(cert_chain_[0], serial_int, subject, /* self_signed = */ false);
-
-        AuthorizationSet hw_enforced = HwEnforcedAuthorizations(key_characteristics_);
-        AuthorizationSet sw_enforced = SwEnforcedAuthorizations(key_characteristics_);
-
-        // Check that the unique ID field in the extension is non-empty.
-        EXPECT_TRUE(verify_attestation_record(AidlVersion(), challenge, app_id, sw_enforced,
-                                              hw_enforced, SecLevel(),
-                                              cert_chain_[0].encodedCertificate, unique_id));
-        EXPECT_GT(unique_id->size(), 0);
-        CheckedDeleteKey();
-    };
-
     // Generate unique ID
     auto app_id = "foo";
     uint64_t cert_date = 1619621648000;  // Wed Apr 28 14:54:08 2021 in ms since epoch
     vector<uint8_t> unique_id;
-    get_unique_id(app_id, cert_date, &unique_id);
+    GetUniqueId(app_id, cert_date, &unique_id);
 
     // Generating a new key with the same parameters should give the same unique ID.
     vector<uint8_t> unique_id2;
-    get_unique_id(app_id, cert_date, &unique_id2);
+    GetUniqueId(app_id, cert_date, &unique_id2);
     EXPECT_EQ(unique_id, unique_id2);
 
     // Generating a new key with a slightly different date should give the same unique ID.
@@ -2243,30 +2219,30 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
     uint64_t max_date = ((rounded_date + 1) * 2592000000LLU) - 1;
 
     vector<uint8_t> unique_id3;
-    get_unique_id(app_id, min_date, &unique_id3);
+    GetUniqueId(app_id, min_date, &unique_id3);
     EXPECT_EQ(unique_id, unique_id3);
 
     vector<uint8_t> unique_id4;
-    get_unique_id(app_id, max_date, &unique_id4);
+    GetUniqueId(app_id, max_date, &unique_id4);
     EXPECT_EQ(unique_id, unique_id4);
 
     // A different attestation application ID should yield a different unique ID.
     auto app_id2 = "different_foo";
     vector<uint8_t> unique_id5;
-    get_unique_id(app_id2, cert_date, &unique_id5);
+    GetUniqueId(app_id2, cert_date, &unique_id5);
     EXPECT_NE(unique_id, unique_id5);
 
     // A radically different date should yield a different unique ID.
     vector<uint8_t> unique_id6;
-    get_unique_id(app_id, 1611621648000, &unique_id6);
+    GetUniqueId(app_id, 1611621648000, &unique_id6);
     EXPECT_NE(unique_id, unique_id6);
 
     vector<uint8_t> unique_id7;
-    get_unique_id(app_id, max_date + 1, &unique_id7);
+    GetUniqueId(app_id, max_date + 1, &unique_id7);
     EXPECT_NE(unique_id, unique_id7);
 
     vector<uint8_t> unique_id8;
-    get_unique_id(app_id, min_date - 1, &unique_id8);
+    GetUniqueId(app_id, min_date - 1, &unique_id8);
     EXPECT_NE(unique_id, unique_id8);
 
     // Some StrongBox implementations did not correctly handle RESET_SINCE_ID_ROTATION when
@@ -2279,7 +2255,7 @@ TEST_P(NewKeyGenerationTest, EcdsaAttestationUniqueId) {
           vendor_api_level < AVendorSupport_getVendorApiLevelOf(__ANDROID_API_V__))) {
         // Marking RESET_SINCE_ID_ROTATION should give a different unique ID.
         vector<uint8_t> unique_id9;
-        get_unique_id(app_id, cert_date, &unique_id9, /* reset_id = */ true);
+        GetUniqueId(app_id, cert_date, &unique_id9, /* reset_id = */ true);
         EXPECT_NE(unique_id, unique_id9);
     }
 }
@@ -6208,7 +6184,7 @@ TEST_P(EncryptionOperationsTest, AesEcbPkcs7CiphertextTooShort) {
 
     string message = "a";
     string ciphertext = EncryptMessage(message, params);
-    EXPECT_EQ(16U, ciphertext.size());
+    ASSERT_EQ(16U, ciphertext.size());
     EXPECT_NE(ciphertext, message);
 
     // Shorten the ciphertext.
@@ -6281,12 +6257,54 @@ TEST_P(EncryptionOperationsTest, AesEcbIncremental) {
 }
 
 /*
+ * EncryptionOperationsTest.AesEcbIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for ECB block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesEcbIncrementalProcessLastChunkInFinish) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (SecLevel() == SecurityLevel::STRONGBOX && vendor_api_level <= last_unsupported_api_level) {
+        // Skipped for StrongBox: Some implementations, including the reference implementation,
+        // mistakenly require strict block alignment for the final data segment in AES/DES ECB and
+        // CBC modes. While the specification allows for non-aligned data in the finish operation,
+        // these implementations erroneously reject it and return KM_ERROR_INVALID_INPUT_LENGTH.
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+    CheckAesIncrementalEncryptOperation(BlockMode::ECB, 240, true /* final_chunk_via_finish */);
+}
+
+/*
  * EncryptionOperationsTest.AesCbcIncremental
  *
  * Verifies that AES works for CBC block mode, when provided data in various size increments.
  */
 TEST_P(EncryptionOperationsTest, AesCbcIncremental) {
     CheckAesIncrementalEncryptOperation(BlockMode::CBC, 240);
+}
+
+/*
+ * EncryptionOperationsTest.AesCbcIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for CBC block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesCbcIncrementalProcessLastChunkInFinish) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (SecLevel() == SecurityLevel::STRONGBOX && vendor_api_level <= last_unsupported_api_level) {
+        // Skipped for StrongBox: Some implementations, including the reference implementation,
+        // mistakenly require strict block alignment for the final data segment in AES/DES ECB and
+        // CBC modes. While the specification allows for non-aligned data in the finish operation,
+        // these implementations erroneously reject it and return KM_ERROR_INVALID_INPUT_LENGTH.
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+    CheckAesIncrementalEncryptOperation(BlockMode::CBC, 240, true /* final_chunk_via_finish */);
 }
 
 /*
@@ -6299,12 +6317,32 @@ TEST_P(EncryptionOperationsTest, AesCtrIncremental) {
 }
 
 /*
+ * EncryptionOperationsTest.AesCtrIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for CTR block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesCtrIncrementalProcessLastChunkInFinish) {
+    CheckAesIncrementalEncryptOperation(BlockMode::CTR, 240, true /* final_chunk_via_finish */);
+}
+
+/*
  * EncryptionOperationsTest.AesGcmIncremental
  *
  * Verifies that AES works for GCM block mode, when provided data in various size increments.
  */
 TEST_P(EncryptionOperationsTest, AesGcmIncremental) {
     CheckAesIncrementalEncryptOperation(BlockMode::GCM, 240);
+}
+
+/*
+ * EncryptionOperationsTest.AesGcmIncrementalProcessLastChunkInFinish
+ *
+ * Verifies that AES works for GCM block mode, when provided data in various size increments. This
+ * test sends the last chunk via finish.
+ */
+TEST_P(EncryptionOperationsTest, AesGcmIncrementalProcessLastChunkInFinish) {
+    CheckAesIncrementalEncryptOperation(BlockMode::GCM, 240, true /* final_chunk_via_finish */);
 }
 
 /*
@@ -8310,7 +8348,6 @@ TEST_P(KeyDeletionTest, DeleteKey) {
 
     ASSERT_EQ(ErrorCode::OK, DeleteKey(true /* keep key blob */));
 
-    string message = "12345678901234567890123456789012";
     AuthorizationSet begin_out_params;
     EXPECT_EQ(ErrorCode::INVALID_KEY_BLOB,
               Begin(KeyPurpose::SIGN, key_blob_,
@@ -8318,6 +8355,60 @@ TEST_P(KeyDeletionTest, DeleteKey) {
                     &begin_out_params));
     AbortIfNeeded();
     key_blob_ = AidlBuf();
+}
+
+/**
+ * KeyDeletionTest.DeleteKeyInUse
+ *
+ * This test checks that deleting a key that is mid-operation doesn't cause serious failures.
+ */
+TEST_P(KeyDeletionTest, DeleteKeyInUse) {
+    for (bool rollback_resistance : {false, true}) {
+        SCOPED_TRACE(testing::Message() << "rollback_resistance=" << rollback_resistance);
+        auto builder = AuthorizationSetBuilder()
+                               .RsaSigningKey(2048, 65537)
+                               .Digest(Digest::NONE)
+                               .Padding(PaddingMode::NONE)
+                               .Authorization(TAG_NO_AUTH_REQUIRED)
+                               .SetDefaultValidity();
+        if (rollback_resistance) {
+            builder.Authorization(TAG_ROLLBACK_RESISTANCE);
+        }
+        auto error = GenerateKey(builder);
+        if (rollback_resistance && error == ErrorCode::ROLLBACK_RESISTANCE_UNAVAILABLE) {
+            continue;
+        }
+
+        ASSERT_EQ(ErrorCode::OK, error);
+        if (rollback_resistance) {
+            AuthorizationSet hardwareEnforced(SecLevelAuthorizations());
+            ASSERT_TRUE(hardwareEnforced.Contains(TAG_ROLLBACK_RESISTANCE));
+        }
+
+        // Start an operation.
+        AuthorizationSet begin_out_params;
+        ASSERT_EQ(ErrorCode::OK,
+                  Begin(KeyPurpose::SIGN, key_blob_,
+                        AuthorizationSetBuilder().Digest(Digest::NONE).Padding(PaddingMode::NONE),
+                        &begin_out_params));
+
+        // Delete the key while the operation is still active.
+        ASSERT_EQ(ErrorCode::OK, DeleteKey(/* keep key blob= */ true));
+
+        const string message = "12345678901234567890123456789012";
+        string signature;
+        auto result = Finish(message, &signature);
+
+        // Continuing use of a deleted key may or may not succeed (so this is mostly a robustness
+        // test).
+        EXPECT_TRUE(result == ErrorCode::OK || result == ErrorCode::INVALID_KEY_BLOB ||
+                    result == ErrorCode::INVALID_OPERATION_HANDLE ||
+                    result == ErrorCode::INVALID_OPERATION ||
+                    result == ErrorCode::INVALID_ARGUMENT ||
+                    result == ErrorCode::OPERATION_CANCELLED)
+                << "failed with " << result;
+        key_blob_ = AidlBuf();
+    }
 }
 
 /**
@@ -8823,10 +8914,21 @@ using DestroyAttestationIdsTest = KeyMintAidlTestBase;
 
 // This is a problematic test, as it can render the device under test permanently unusable.
 // Re-enable and run at your own risk.
+// The test could theoretically be enabled by default for KeyMint versions >= 5 since the
+// IKeyMintDevice method "destroyAttestationIds" should be a no-op and return
+// ErrorCode::UNIMPLEMENTED. However, out of an abundance of caution, it is still disabled
+// to avoid damaging test devices (for example, in cases where tests are run before all
+// changes needed to fully implement KeyMint v5 are made).
+// @GmsTest = 9.5-002.001
 TEST_P(DestroyAttestationIdsTest, DISABLED_DestroyTest) {
     auto result = DestroyAttestationIds();
-    EXPECT_TRUE(result == ErrorCode::OK || result == ErrorCode::UNIMPLEMENTED)
-            << "unexpected result " << result;
+    if (AidlVersion() >= 5) {
+        EXPECT_TRUE(result == ErrorCode::UNIMPLEMENTED)
+                << "Expected UNIMPLEMENTED for KeyMint HAL version >= 5 but got: " << result;
+    } else {
+        EXPECT_TRUE(result == ErrorCode::OK || result == ErrorCode::UNIMPLEMENTED)
+                << "Expected OK or UNIMPLEMENTED for KeyMint HAL version < 5 but got: " << result;
+    }
 }
 
 INSTANTIATE_KEYMINT_AIDL_TEST(DestroyAttestationIdsTest);
@@ -9037,6 +9139,22 @@ TEST_P(VsrRequirementTest, Vsr16Test) {
     EXPECT_GE(AidlVersion(), 4) << "VSR 16+ requires KeyMint version 4 in TEE";
 }
 
+// @VsrTest = GMS-VSR-3.10-023
+// @VsrTest = VSR-3.10-023
+TEST_P(VsrRequirementTest, Vsr17Test) {
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (vendor_api_level <= last_unsupported_api_level) {
+        GTEST_SKIP() << "Applies only to vendor API level > " << last_unsupported_api_level
+                     << ", but this device is: " << vendor_api_level;
+    }
+    if (SecLevel() == SecurityLevel::STRONGBOX) {
+        EXPECT_GE(AidlVersion(), 4) << "VSR 17+ requires KeyMint version 4 in StrongBox";
+    } else {
+        EXPECT_GE(AidlVersion(), 5) << "VSR 17+ requires KeyMint version 5 in TEE";
+    }
+}
+
 INSTANTIATE_KEYMINT_AIDL_TEST(VsrRequirementTest);
 
 class InstanceTest : public testing::Test {
@@ -9143,7 +9261,7 @@ int main(int argc, char** argv) {
                 // Allow checks of BOOT_PATCHLEVEL to be disabled, so that the tests can
                 // be run in emulated environments that don't have the normal bootloader
                 // interactions.
-                aidl::android::hardware::security::keymint::test::check_boot_pl = false;
+                aidl::android::hardware::security::keymint::test::skip_boot_pl_check();
             }
             if (std::string(argv[i]) == "--keyblob_dir") {
                 if (i + 1 >= argc) {
@@ -9151,6 +9269,14 @@ int main(int argc, char** argv) {
                     return 1;
                 }
                 KeyMintAidlTestBase::keyblob_dir = std::string(argv[i + 1]);
+                ++i;
+            }
+            if (std::string(argv[i]) == "--upgraded_from") {
+                if (i + 1 >= argc) {
+                    std::cerr << "Missing argument for --upgraded_from\n";
+                    return 1;
+                }
+                KeyMintAidlTestBase::upgraded_from_version = atoi(argv[i + 1]);
                 ++i;
             }
             if (std::string(argv[i]) == "--expect_upgrade") {

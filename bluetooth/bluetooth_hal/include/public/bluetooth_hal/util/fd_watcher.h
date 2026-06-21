@@ -18,53 +18,50 @@
 
 #include <functional>
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class FdWatcherImpl;
 
 class FdWatcher {
- public:
-  FdWatcher();
+  public:
+    FdWatcher();
 
-  FdWatcher(const FdWatcher&) = delete;
-  FdWatcher& operator=(const FdWatcher&) = delete;
+    FdWatcher(const FdWatcher&) = delete;
+    FdWatcher& operator=(const FdWatcher&) = delete;
 
-  ~FdWatcher();
+    ~FdWatcher();
 
-  /**
-   * @brief Starts watching a file descriptor.
-   *
-   * This function adds the specified file descriptor to the list of monitored
-   * file descriptors. When the file descriptor becomes ready for reading, the
-   * provided callback function is invoked.
-   *
-   * @note This is not a blocking call. The callback will be invoked
-   * asynchronously.
-   *
-   * @param fd The file descriptor to watch.
-   * @param on_read_fd_ready_callback The callback function to be invoked when
-   * the file descriptor is ready for reading.
-   *
-   * @return 0 on success, -1 on error.
-   *
-   */
-  int StartWatching(int fd,
-                    const std::function<void(int)>& on_read_fd_ready_callback);
+    /**
+     * @brief Starts watching a file descriptor.
+     *
+     * This function adds the specified file descriptor to the list of monitored
+     * file descriptors. When the file descriptor becomes ready for reading, the
+     * provided callback function is invoked.
+     *
+     * @note This is not a blocking call. The callback will be invoked
+     * asynchronously.
+     *
+     * @param fd The file descriptor to watch.
+     * @param on_read_fd_ready_callback The callback function to be invoked when
+     * the file descriptor is ready for reading.
+     *
+     * @return 0 on success, -1 on error.
+     *
+     */
+    int StartWatching(int fd, const std::function<void(int)>& on_read_fd_ready_callback);
 
-  /**
-   * @brief Stops watching all file descriptors and terminates the internal
-   * thread.
-   *
-   * This function should be called when the FdWatcher object is no longer
-   * needed.
-   *
-   */
-  void StopWatching();
+    /**
+     * @brief Stops watching all file descriptors and terminates the internal
+     * thread.
+     *
+     * This function should be called when the FdWatcher object is no longer
+     * needed.
+     *
+     */
+    void StopWatching();
 
- private:
-  std::unique_ptr<FdWatcherImpl> impl_;
+  private:
+    std::unique_ptr<FdWatcherImpl> impl_;
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

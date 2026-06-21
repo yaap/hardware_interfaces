@@ -24,6 +24,7 @@
 
 namespace android::hardware::radio::service {
 
+using ::aidl::android::hardware::radio::AccessNetwork;
 using ::aidl::android::hardware::radio::RadioConst;
 using ::android::hardware::radio::minimal::noError;
 using ::ndk::ScopedAStatus;
@@ -66,6 +67,32 @@ ScopedAStatus RadioNetwork::getDataRegistrationState(int32_t serial) {
             .accessTechnologySpecificInfo = aidl::EutranRegistrationInfo{},
     };
     respond()->getDataRegistrationStateResponse(noError(serial), res);
+    return ok();
+}
+
+ScopedAStatus RadioNetwork::getNetworkSelectionMode(int32_t serial) {
+    LOG_CALL;
+    respond()->getNetworkSelectionModeResponse(noError(serial), mIsManualNetworkSelectionMode);
+    return ok();
+}
+
+ScopedAStatus RadioNetwork::setNetworkSelectionModeAutomatic(int32_t serial) {
+    LOG_CALL;
+
+    mIsManualNetworkSelectionMode = false;
+    respond()->setNetworkSelectionModeAutomaticResponse(noError(serial));
+    return ok();
+}
+
+ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(int32_t serial,
+                                                          const std::string& opNumeric,
+                                                          AccessNetwork ran) {
+    (void)opNumeric;
+    (void)ran;
+    LOG_CALL;
+
+    mIsManualNetworkSelectionMode = true;
+    respond()->setNetworkSelectionModeManualResponse(noError(serial));
     return ok();
 }
 

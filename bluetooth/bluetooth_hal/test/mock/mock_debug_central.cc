@@ -16,22 +16,19 @@
 
 #include "bluetooth_hal/test/mock/mock_debug_central.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 DebugCentral& DebugCentral::Get() {
-  if (!MockDebugCentral::mock_debug_central_) {
-    LOG(FATAL) << __func__
-               << ": mock_debug_central_ is nullptr. Did you forget "
-                  "to call SetMockLoader in your test SetUp?";
-  }
-  return *MockDebugCentral::mock_debug_central_;
+    if (!MockDebugCentral::mock_debug_central_) {
+        LOG(FATAL) << __func__
+                   << ": mock_debug_central_ is nullptr. Did you forget "
+                      "to call SetMockLoader in your test SetUp?";
+    }
+    return *MockDebugCentral::mock_debug_central_;
 }
 
-void MockDebugCentral::SetMockDebugCentral(
-    MockDebugCentral* mock_debug_central) {
-  mock_debug_central_ = mock_debug_central;
+void MockDebugCentral::SetMockDebugCentral(MockDebugCentral* mock_debug_central) {
+    mock_debug_central_ = mock_debug_central;
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

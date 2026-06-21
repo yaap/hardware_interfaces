@@ -9,8 +9,15 @@ flag {
 }
 
 flag {
-    name: "coredump_when_receiving_unimplemented_packet_type"
+    name: "bt_activities_subscription"
     namespace: "pixel_bluetooth"
-    description: "Flag for the unimplemented packet type coredump fix"
-    bug: "440031741"
+    description: "Flag for adding bt activities subscription"
+    bug: "454214776"
+}
+
+flag {
+    name: "async_hci_router"
+    namespace: "pixel_bluetooth"
+    description: "A mutex free asynchronous HCI router"
+    bug: "465886035"
 }

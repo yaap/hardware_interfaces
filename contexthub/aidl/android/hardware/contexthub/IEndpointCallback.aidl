@@ -16,6 +16,8 @@
 
 package android.hardware.contexthub;
 
+import android.hardware.contexthub.DataFlowId;
+import android.hardware.contexthub.DataFlowSinkRegistrationParams;
 import android.hardware.contexthub.EndpointId;
 import android.hardware.contexthub.EndpointInfo;
 import android.hardware.contexthub.Message;
@@ -115,4 +117,36 @@ oneway interface IEndpointCallback {
      *         onEndpointSessionOpenRequest(). This id is assigned by the host.
      */
     void onEndpointSessionOpenComplete(int sessionId);
+
+    /**
+     * Callback delivering a sink context for a data flow whose source is an offload endpoint. The
+     * client (e.g. the Android framework) must check the endpoint permissions before forwarding
+     * the context. On failure, the client must call {@code
+     * IEndpointCommunication.unregisterDataFlowHostSink()} to clean up HAL resources.
+     *
+     * @param params The parameters for registering a new sink on a data flow.
+     */
+    void onDataFlowHostSinkRegistered(in DataFlowSinkRegistrationParams params);
+
+    /**
+     * Callback indicating that an offload endpoint has stopped accessing a data flow. This will
+     * only notify a host endpoint that has not unregistered the data flow yet via
+     * IEndpointCommunication::unregisterDataFlowHostSource() or
+     * IEndpointCommunication::unregisterDataFlowHostSink(). It will be called both in the case that
+     * the offload endpoint crashed and when the endpoint intentionally stops accessing the data
+     * flow.
+     *
+     * This callback is required to handle the case that an endpoint on the other side of the data
+     * flow has not correctly updated metadata in the shared data region(s) and notified the host
+     * endpoint. For a host sink, tghis is a signal that it must immediately stop accessing the
+     * data flow. For a host source, this is a signal that it should clean up any references to
+     * the sink endpoint.
+     *
+     * @param dataFlowId The id of the data flow this callback is being sent for.
+     * @param endpointId The id of the endpoint that is no longer accessing the data flow.
+     * @param destinationIds The ids of the endpoints that should be notified. This will only
+     *         contain a single endpoint id for a data flow whose source is a host endpoint.
+     */
+    void onDataFlowOffloadEndpointUnregistered(
+            in DataFlowId dataFlowId, in EndpointId endpointId, in EndpointId[] destinationIds);
 }

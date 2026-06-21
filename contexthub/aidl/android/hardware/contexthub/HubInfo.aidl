@@ -17,6 +17,7 @@
 package android.hardware.contexthub;
 
 import android.hardware.contexthub.ContextHubInfo;
+import android.hardware.contexthub.SharedDataCapabilities;
 import android.hardware.contexthub.VendorHubInfo;
 
 @VintfStability
@@ -51,4 +52,10 @@ parcelable HubInfo {
      * Detail information about the hub.
      */
     HubDetails hubDetails;
+
+    /**
+     * Shared data capabilities of the hub. The HAL will set this field based on what shared data
+     * capabilities are supported between a particular offload hub and AP endpoints.
+     */
+    @nullable SharedDataCapabilities sharedDataCapabilities;
 }

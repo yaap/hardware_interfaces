@@ -20,16 +20,22 @@ use android_hardware_tv_mediaquality::aidl::android::hardware::tv::mediaquality:
     IMediaQualityCallback::IMediaQualityCallback,
     AmbientBacklightEvent::AmbientBacklightEvent,
     AmbientBacklightSettings::AmbientBacklightSettings,
+    CommonParamCapability::CommonParamCapability,
     IPictureProfileAdjustmentListener::IPictureProfileAdjustmentListener,
     IPictureProfileChangedListener::IPictureProfileChangedListener,
     ParamCapability::ParamCapability,
     ParameterName::ParameterName,
     PictureParameters::PictureParameters,
+    PanelTechnologyType::PanelTechnologyType,
+    PictureProfile::PictureProfile,
     ISoundProfileAdjustmentListener::ISoundProfileAdjustmentListener,
     ISoundProfileChangedListener::ISoundProfileChangedListener,
     SoundParameters::SoundParameters,
+    SoundProfile::SoundProfile,
     VendorParamCapability::VendorParamCapability,
     VendorParameterIdentifier::VendorParameterIdentifier,
+    EqualizerCapabilities::EqualizerCapabilities,
+    EqualizerDetail::EqualizerDetail,
 };
 use binder::{Interface, Strong};
 use binder::ExceptionCode;
@@ -54,6 +60,9 @@ pub struct MediaQualityService {
             Arc<Mutex<Option<Strong<dyn ISoundProfileAdjustmentListener>>>>,
     picture_profile_changed_listener: Arc<Mutex<Option<Strong<dyn IPictureProfileChangedListener>>>>,
     sound_profile_changed_listener: Arc<Mutex<Option<Strong<dyn ISoundProfileChangedListener>>>>,
+    equalizer_capabilities: Arc<Mutex<EqualizerCapabilities>>,
+    equalizer_settings: Arc<Mutex<EqualizerDetail>>,
+    oled_panel_supported: Arc<Mutex<bool>>,
 }
 
 impl MediaQualityService {
@@ -76,6 +85,21 @@ impl MediaQualityService {
             sound_profile_adjustment_listener: Arc::new(Mutex::new(None)),
             picture_profile_changed_listener: Arc::new(Mutex::new(None)),
             sound_profile_changed_listener: Arc::new(Mutex::new(None)),
+            equalizer_capabilities: Arc::new(Mutex::new(EqualizerCapabilities {
+                minLevelDb: -1200,
+                maxLevelDb: 1200,
+                supportedFrequenciesHz: vec![],
+                hasAdjustableQ: false,
+            })),
+            equalizer_settings: Arc::new(Mutex::new(EqualizerDetail {
+                band120Hz: 0,
+                band500Hz: 0,
+                band1_5kHz: 0,
+                band5kHz: 0,
+                band10kHz: 0,
+                bands: vec![],
+            })),
+            oled_panel_supported: Arc::new(Mutex::new(true)),
         }
     }
 }
@@ -254,6 +278,16 @@ impl IMediaQuality for MediaQualityService {
         Ok(())
     }
 
+    fn setMutedColor(&self, color: i32) -> binder::Result<()> {
+        println!("setMutedColor called with color: {}", color);
+        Ok(())
+    }
+
+    fn setColorMuteEnabled(&self, enable: bool) -> binder::Result<()> {
+        println!("setColorMuteEnabled called with enable: {}", enable);
+        Ok(())
+    }
+
     fn getSoundProfileListener(&self) -> binder::Result<binder::Strong<dyn ISoundProfileChangedListener>> {
         println!("getSoundProfileListener");
         let listener = self.sound_profile_changed_listener.lock().unwrap();
@@ -278,18 +312,148 @@ impl IMediaQuality for MediaQualityService {
     fn getParamCaps(
             &self,
             param_names: &[ParameterName],
-            _caps: &mut Vec<ParamCapability>
+            caps: &mut Vec<ParamCapability>
     ) -> binder::Result<()> {
         println!("getParamCaps. len= {}", param_names.len());
+        for name in param_names {
+            caps.push(ParamCapability {
+                name: name.clone(),
+                isSupported: true,
+                defaultValue: None,
+                range: None,
+                commonParamCapability: Some(CommonParamCapability { isMutable: true }),
+            });
+        }
+        Ok(())
+    }
+
+    fn sendDefaultPictureProfile(
+        &self,
+        _picture_profile: &PictureProfile,
+    ) -> binder::Result<()> {
+        println!("Received default picture profile");
+        Ok(())
+    }
+
+    fn sendDefaultSoundProfile(
+        &self,
+        _sound_profile: &SoundProfile,
+    ) -> binder::Result<()> {
+        println!("Received default sound profile with id");
         Ok(())
     }
 
     fn getVendorParamCaps(
             &self,
             param_names: &[VendorParameterIdentifier],
-            _caps: &mut Vec<VendorParamCapability>
+            caps: &mut Vec<VendorParamCapability>
     ) -> binder::Result<()> {
         println!("getVendorParamCaps. len= {}", param_names.len());
+        for name in param_names {
+            caps.push(VendorParamCapability {
+                identifier: VendorParameterIdentifier { identifier: name.identifier.clone() },
+                isSupported: true,
+                defaultValue: None,
+                range: None,
+                commonParamCapability: Some(CommonParamCapability { isMutable: true }),
+            });
+        }
         Ok(())
+    }
+
+    fn getEqualizerCapabilities(&self) -> binder::Result<EqualizerCapabilities> {
+        println!("HAL: getEqualizerCapabilities called");
+        let caps = self.equalizer_capabilities.lock().unwrap();
+        Ok((*caps).clone())
+    }
+
+    fn getEqualizerSettings(&self) -> binder::Result<EqualizerDetail> {
+        println!("HAL: getEqualizerSettings called");
+        let settings = self.equalizer_settings.lock().unwrap();
+        Ok((*settings).clone())
+    }
+
+    fn setEqualizerSettings(&self, detail: &EqualizerDetail) -> binder::Result<()> {
+        println!("HAL: setEqualizerSettings called");
+        let mut settings = self.equalizer_settings.lock().unwrap();
+        *settings = detail.clone();
+        Ok(())
+    }
+
+    fn isDisplayTechnologySupported(
+        &self,
+        panel_technology: PanelTechnologyType,
+    ) -> binder::Result<bool> {
+        println!(
+            "isDisplayTechnologySupported called with type: {:?}",
+            panel_technology
+        );
+        match panel_technology {
+            PanelTechnologyType::OLED => {
+                let supported = self.oled_panel_supported.lock().unwrap();
+                Ok(*supported)
+            }
+            _ => {
+                Ok(false)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_picture_params_range() {
+        let service = MediaQualityService::new();
+        // Test valid values (including boundaries)
+        let params_valid = PictureParameters {
+            pictureParameters: vec![
+                PictureParameter::MemcDeblur(0),
+                PictureParameter::MemcDejudder(10),
+            ],
+            vendorPictureParameters: Default::default(),
+        };
+        assert!(service.sendDefaultPictureParameters(&params_valid).is_ok());
+
+        // Test invalid value (too high)
+        let params_invalid_high = PictureParameters {
+            pictureParameters: vec![PictureParameter::MemcDeblur(11)],
+            vendorPictureParameters: Default::default(),
+        };
+        assert!(service.sendDefaultPictureParameters(&params_invalid_high).is_err());
+
+        // Test invalid value (too low)
+        let params_invalid_low = PictureParameters {
+            pictureParameters: vec![PictureParameter::MemcDejudder(-1)],
+            vendorPictureParameters: Default::default(),
+        };
+        assert!(service.sendDefaultPictureParameters(&params_invalid_low).is_err());
+    }
+
+    #[test]
+    fn test_bt_latency_us_range() {
+        let service = MediaQualityService::new();
+
+        // Test with a valid (non-negative) value
+        let params_valid = SoundParameters {
+            soundParameters: vec![SoundParameter::BtLatencyUs(500)],
+            vendorSoundParameters: Default::default(),
+        };
+        assert!(service.sendDefaultSoundParameters(&params_valid).is_ok());
+
+        // Test with another valid value (boundary case)
+        let params_boundary = SoundParameters {
+            soundParameters: vec![SoundParameter::BtLatencyUs(0)],
+            vendorSoundParameters: Default::default(),
+        };
+        assert!(service.sendDefaultSoundParameters(&params_boundary).is_ok());
+
+        // Test with an invalid (negative) value
+        let params_invalid = SoundParameters {
+            soundParameters: vec![SoundParameter::BtLatencyUs(-1)],
+            vendorSoundParameters: Default::default(),
+        };
+        assert!(service.sendDefaultSoundParameters(&params_invalid).is_err());
     }
 }

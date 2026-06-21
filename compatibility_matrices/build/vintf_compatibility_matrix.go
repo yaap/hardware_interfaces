@@ -36,15 +36,17 @@ var (
 	pctx = android.NewPackageContext("android/vintf")
 
 	assembleVintfRule = pctx.AndroidStaticRule("assemble_vintf", blueprint.RuleParams{
-		Command:     `${assembleVintfEnv} ${assembleVintfCmd} -i ${inputs} -o ${out} ${extraArgs}`,
-		CommandDeps: []string{"${assembleVintfCmd}", "${AvbToolCmd}"},
-		Description: "assemble_vintf -i ${inputs}",
+		Command:         `${assembleVintfEnv} ${assembleVintfCmd} -i ${inputs} -o ${out} ${extraArgs}`,
+		CommandDeps:     []string{"${assembleVintfCmd}", "${AvbToolCmd}"},
+		Description:     "assemble_vintf -i ${inputs}",
+		SandboxDisabled: true,
 	}, "inputs", "extraArgs", "assembleVintfEnv")
 
 	xmllintXsd = pctx.AndroidStaticRule("xmllint-xsd", blueprint.RuleParams{
-		Command:     `$XmlLintCmd --quiet --schema $xsd $in > /dev/null && touch -a $out`,
-		CommandDeps: []string{"$XmlLintCmd"},
-		Restat:      true,
+		Command:         `$XmlLintCmd --quiet --schema $xsd $in > /dev/null && touch -a $out`,
+		CommandDeps:     []string{"$XmlLintCmd"},
+		Restat:          true,
+		SandboxDisabled: true,
 	}, "xsd")
 
 	kernelConfigTag  = dependencyTag{name: "kernel-config"}
@@ -125,9 +127,9 @@ func (g *vintfCompatibilityMatrixRule) generateValidateBuildAction(ctx android.M
 
 func (g *vintfCompatibilityMatrixRule) getSchema(ctx android.ModuleContext) android.OptionalPath {
 	schemaModule := ctx.GetDirectDepProxyWithTag(schemaModuleName, schemaTag)
-	sfp, ok := android.OtherModuleProvider(ctx, schemaModule, android.SourceFilesInfoProvider)
+	sfp := android.OtherModulePointerProviderOrDefault(ctx, schemaModule, android.CommonModuleInfoProvider).SourceFiles
 
-	if !ok {
+	if sfp == nil {
 		ctx.ModuleErrorf("Implicit dependency %q has no srcs", ctx.OtherModuleName(schemaModule))
 		return android.OptionalPath{}
 	}
@@ -190,7 +192,6 @@ func (g *vintfCompatibilityMatrixRule) GenerateAndroidBuildActions(ctx android.M
 		productMatrixs := android.PathsForSource(ctx, ctx.Config().DeviceProductCompatibilityMatrixFile())
 		if len(productMatrixs) > 0 {
 			inputPaths = append(inputPaths, productMatrixs...)
-			extraArgs = append(extraArgs, "-c", android.PathForSource(ctx, emptyManifest).String())
 		} else {
 			// For product_fcm, if DEVICE_PRODUCT_COMPATIBILITY_MATRIX_FILE not set, treat it as a phony target without any output generated.
 			g.phonyOnly = true

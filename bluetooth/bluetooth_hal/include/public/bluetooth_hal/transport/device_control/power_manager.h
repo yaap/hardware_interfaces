@@ -18,8 +18,7 @@
 
 #include "android-base/unique_fd.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 /**
  * @brief The PowerManager class manages Bluetooth device power states and low
@@ -33,87 +32,86 @@ namespace transport {
  * disabling the chip's power as needed.
  */
 class PowerManager {
- public:
-  virtual ~PowerManager() = default;
+  public:
+    virtual ~PowerManager() = default;
 
-  /**
-   * @brief Controls the Bluetooth chip's power state.
-   *
-   * Enables or disables power to the Bluetooth chip by writing to the rfkill
-   * interface. This effectively powers the device on or off.
-   *
-   * @param is_enabled Set to true to power on the Bluetooth chip, false to
-   * power it off.
-   *
-   * @return True if the operation succeeds, false otherwise.
-   *
-   */
-  virtual bool PowerControl(bool is_enabled);
+    /**
+     * @brief Controls the Bluetooth chip's power state.
+     *
+     * Enables or disables power to the Bluetooth chip by writing to the rfkill
+     * interface. This effectively powers the device on or off.
+     *
+     * @param is_enabled Set to true to power on the Bluetooth chip, false to
+     * power it off.
+     *
+     * @return True if the operation succeeds, false otherwise.
+     *
+     */
+    virtual bool PowerControl(bool is_enabled);
 
-  /**
-   * @brief Prepares the system to enter Low Power Mode (LPM).
-   *
-   * Configures the necessary environment so the Bluetooth device can enter LPM,
-   * where it will enter a sleep state to save power.
-   *
-   * @return True if setup is successful, false otherwise.
-   *
-   */
-  virtual bool SetupLowPowerMode();
+    /**
+     * @brief Prepares the system to enter Low Power Mode (LPM).
+     *
+     * Configures the necessary environment so the Bluetooth device can enter LPM,
+     * where it will enter a sleep state to save power.
+     *
+     * @return True if setup is successful, false otherwise.
+     *
+     */
+    virtual bool SetupLowPowerMode();
 
-  /**
-   * @brief Cleans up after exiting Low Power Mode (LPM).
-   *
-   * Releases resources or resets configurations used during LPM.
-   *
-   */
-  virtual void TeardownLowPowerMode();
+    /**
+     * @brief Cleans up after exiting Low Power Mode (LPM).
+     *
+     * Releases resources or resets configurations used during LPM.
+     *
+     */
+    virtual void TeardownLowPowerMode();
 
-  /**
-   * @brief Wakes the Bluetooth device from Low Power Mode to active mode.
-   *
-   * Transitions the device from sleep back to full operation.
-   *
-   * @return True if resume succeeds, false otherwise.
-   *
-   */
-  virtual bool ResumeFromLowPowerMode();
+    /**
+     * @brief Wakes the Bluetooth device from Low Power Mode to active mode.
+     *
+     * Transitions the device from sleep back to full operation.
+     *
+     * @return True if resume succeeds, false otherwise.
+     *
+     */
+    virtual bool ResumeFromLowPowerMode();
 
-  /**
-   * @brief Puts the Bluetooth device into Low Power Mode (LPM).
-   *
-   * Transitions the device to a low power sleep state.
-   *
-   * @return True if suspend succeeds, false otherwise.
-   *
-   */
-  virtual bool SuspendToLowPowerMode();
+    /**
+     * @brief Puts the Bluetooth device into Low Power Mode (LPM).
+     *
+     * Transitions the device to a low power sleep state.
+     *
+     * @return True if suspend succeeds, false otherwise.
+     *
+     */
+    virtual bool SuspendToLowPowerMode();
 
-  /**
-   * @brief Checks if Low Power Mode setup has been completed.
-   *
-   * Determines if the device is properly configured to enter or exit LPM.
-   *
-   * @return True if LPM setup is complete, false otherwise.
-   *
-   */
-  virtual bool IsLowPowerModeSetupCompleted() const;
+    /**
+     * @brief Checks if Low Power Mode setup has been completed.
+     *
+     * Determines if the device is properly configured to enter or exit LPM.
+     *
+     * @return True if LPM setup is complete, false otherwise.
+     *
+     */
+    virtual bool IsLowPowerModeSetupCompleted() const;
 
-  /**
-   * @brief Sets the RX wakelock duration in the kernel.
-   *
-   * Configures how long the RX wakelock holds the device awake after receiving
-   * data.
-   *
-   * @param duration Duration in milliseconds; must be positive.
-   *
-   * @return True if the duration is successfully configured, false otherwise.
-   *
-   */
-  virtual bool ConfigRxWakelockTime(int duration);
+    /**
+     * @brief Sets the RX wakelock duration in the kernel.
+     *
+     * Configures how long the RX wakelock holds the device awake after receiving
+     * data.
+     *
+     * @param duration Duration in milliseconds; must be positive.
+     *
+     * @return True if the duration is successfully configured, false otherwise.
+     *
+     */
+    virtual bool ConfigRxWakelockTime(int duration);
 
- protected:
-  ::android::base::unique_fd lpm_fd_{-1};
+  protected:
+    ::android::base::unique_fd lpm_fd_{-1};
 };
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

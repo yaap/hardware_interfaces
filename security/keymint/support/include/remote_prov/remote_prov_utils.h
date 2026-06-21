@@ -96,7 +96,7 @@ bytevec randomBytes(size_t numBytes);
 
 const std::string DEFAULT_INSTANCE_NAME =
         "android.hardware.security.keymint.IRemotelyProvisionedComponent/default";
-const std::string RKPVM_INSTANCE_NAME =
+const std::string AVF_INSTANCE_NAME =
         "android.hardware.security.keymint.IRemotelyProvisionedComponent/avf";
 
 /**
@@ -192,13 +192,11 @@ ErrMsgOr<std::vector<BccEntryData>> verifyProductionProtectedData(
  * Verify the CSR as if the device is still early in the factory process and may not
  * have all device identifiers provisioned yet.
  */
-ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(const cppbor::Array& keysToSign,
-                                                          const std::vector<uint8_t>& csr,
-                                                          const RpcHardwareInfo& info,
-                                                          const std::string& instanceName,
-                                                          const std::vector<uint8_t>& challenge,
-                                                          bool allowDegenerate = true,
-                                                          bool requireUdsCerts = false);
+ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(
+        const cppbor::Array& keysToSign, const std::vector<uint8_t>& csr,
+        const RpcHardwareInfo& info, const std::string& instanceName,
+        const std::vector<uint8_t>& challenge, bool strict = false, bool allowDegenerate = true,
+        bool requireUdsCerts = false);
 
 /**
  * Verify the CSR as if the device is a final production sample.
@@ -222,6 +220,10 @@ ErrMsgOr<bool> compareRootPublicKeysInDiceChains(const std::vector<uint8_t>& csr
                                                  const std::vector<uint8_t>& csr2,
                                                  std::string_view instanceName2);
 
+/** Returns the leaf component name of DICE chain. */
+ErrMsgOr<std::string> getLeafComponentNameFromDiceChain(const std::vector<uint8_t>& encodedCsr,
+                                                        std::string_view instanceName);
+
 /** Checks whether the component name in the configuration descriptor in the leaf certificate
  * of the primary KeyMint instance's DICE certificate chain contains "keymint"
  */
@@ -236,5 +238,9 @@ ErrMsgOr<std::vector<BccEntryData>> validateBcc(const cppbor::Array* bcc,
                                                 hwtrust::DiceChain::Kind kind, bool allowAnyMode,
                                                 bool allowDegenerate,
                                                 const std::string& instanceName);
+
+/** Counts the number of trailing RKP VM markers at the end of the DICE chain. */
+ErrMsgOr<int> countTrailingRkpVmMarkersInCsr(const std::vector<uint8_t>& encodedCsr,
+                                             std::string_view instanceName);
 
 }  // namespace aidl::android::hardware::security::keymint::remote_prov

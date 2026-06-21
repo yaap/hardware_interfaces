@@ -391,14 +391,25 @@ TEST_P(DrmHalTest, EncryptedAesCtrSegmentTestNoKeys) {
 }
 
 /**
- * A get key handle should fail if no keyId is provided
+ * A get key handle should handle empty key id.
  */
 TEST_P(DrmHalTest, GetKeyHandleNoKeyId) {
+    int32_t version = 0;
+    auto status = cryptoPlugin->getInterfaceVersion(&version);
+    ASSERT_TRUE(status.isOk());
+    if (version < 2) {
+        GTEST_SKIP() << "getKeyHandle is not supported in version " << version;
+    }
+
     KeyHandleResult result;
     vector<uint8_t> emptyKeyId = {};
     auto ret = cryptoPlugin->getKeyHandle(emptyKeyId, Mode::UNENCRYPTED, &result);
     EXPECT_TXN(ret);
-    EXPECT_NE(Status::OK, DrmErr(ret));
+    // If the HAL returns OK, we verify the returned handle is empty (sanity check).
+    // If the HAL returns an Error, that is also accepted.
+    if (DrmErr(ret) == Status::OK) {
+        EXPECT_TRUE(result.keyHandle.empty()) << "Should return empty handle for empty KeyId";
+    }
 }
 
 /**

@@ -29,122 +29,121 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/worker.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 namespace {
 
 using ::bluetooth_hal::HalState;
 
 std::string MessageTypeToString(ChipProvisionMessageType type) {
-  switch (type) {
-    case ChipProvisionMessageType::kInitialize:
-      return "Initialize";
-    case ChipProvisionMessageType::kDownloadFirmware:
-      return "DownloadFirmware";
-    case ChipProvisionMessageType::kResetFirmware:
-      return "ResetFirmware";
-    default:
-      return "Unknown";
-  }
+    switch (type) {
+        case ChipProvisionMessageType::kInitialize:
+            return "Initialize";
+        case ChipProvisionMessageType::kDownloadFirmware:
+            return "DownloadFirmware";
+        case ChipProvisionMessageType::kResetFirmware:
+            return "ResetFirmware";
+        default:
+            return "Unknown";
+    }
 }
 
 }  // namespace
 
-ChipProvisionMessage ChipProvisionMessage::CreateInitialize(
-    InitializePayload payload) {
-  ChipProvisionMessage msg;
-  msg.type = ChipProvisionMessageType::kInitialize;
-  msg.payload = std::move(payload);
-  return msg;
+ChipProvisionMessage ChipProvisionMessage::CreateInitialize(InitializePayload payload) {
+    ChipProvisionMessage msg;
+    msg.type = ChipProvisionMessageType::kInitialize;
+    msg.payload = std::move(payload);
+    return msg;
 }
 
 ChipProvisionMessage ChipProvisionMessage::CreateDownloadFirmware() {
-  ChipProvisionMessage msg;
-  msg.type = ChipProvisionMessageType::kDownloadFirmware;
-  msg.payload = DownloadFirmwarePayload{};
-  return msg;
+    ChipProvisionMessage msg;
+    msg.type = ChipProvisionMessageType::kDownloadFirmware;
+    msg.payload = DownloadFirmwarePayload{};
+    return msg;
 }
 
 ChipProvisionMessage ChipProvisionMessage::CreateResetFirmware() {
-  ChipProvisionMessage msg;
-  msg.type = ChipProvisionMessageType::kResetFirmware;
-  msg.payload = ResetFirmwarePayload{};
-  return msg;
+    ChipProvisionMessage msg;
+    msg.type = ChipProvisionMessageType::kResetFirmware;
+    msg.payload = ResetFirmwarePayload{};
+    return msg;
 }
 
 AsyncChipProvisioner::AsyncChipProvisioner()
-    : worker_([this](ChipProvisionMessage msg) {
-        this->ProcessMessage(std::move(msg));
-      }) {}
+    : worker_([this](ChipProvisionMessage msg) { this->ProcessMessage(std::move(msg)); }) {}
 
 AsyncChipProvisioner& AsyncChipProvisioner::GetProvisioner() {
-  static AsyncChipProvisioner provisioner;
-  return provisioner;
+    static AsyncChipProvisioner provisioner;
+    return provisioner;
 }
 
-void AsyncChipProvisioner::PostInitialize(
-    const std::function<void(HalState)> on_hal_state_update) {
-  InitializePayload payload = {std::move(on_hal_state_update)};
-  worker_.Post(ChipProvisionMessage::CreateInitialize(std::move(payload)));
+void AsyncChipProvisioner::PostInitialize(const std::function<void(HalState)> on_hal_state_update) {
+    InitializePayload payload = {std::move(on_hal_state_update)};
+    worker_.Post(ChipProvisionMessage::CreateInitialize(std::move(payload)));
 }
 
 void AsyncChipProvisioner::PostDownloadFirmware() {
-  worker_.Post(ChipProvisionMessage::CreateDownloadFirmware());
+    worker_.Post(ChipProvisionMessage::CreateDownloadFirmware());
 }
 
 void AsyncChipProvisioner::PostResetFirmware() {
-  worker_.Post(ChipProvisionMessage::CreateResetFirmware());
+    worker_.Post(ChipProvisionMessage::CreateResetFirmware());
+}
+
+void AsyncChipProvisioner::Stop() {
+    if (chip_provisioner_) {
+        chip_provisioner_->Stop();
+    }
 }
 
 void AsyncChipProvisioner::ProcessMessage(ChipProvisionMessage message) {
-  LOG(DEBUG) << __func__
-             << ": Message type: " << MessageTypeToString(message.type);
+    LOG(DEBUG) << __func__ << ": Message type: " << MessageTypeToString(message.type);
 
-  switch (message.type) {
-    case ChipProvisionMessageType::kInitialize:
-      // Only Initialize has a payload now.
-      if (auto* payload = std::get_if<InitializePayload>(&message.payload)) {
-        HandleInitialize(*payload);
-      } else {
-        LOG(WARNING) << __func__ << ": Callback is null.";
-      }
-      break;
-    case ChipProvisionMessageType::kDownloadFirmware:
-      HandleDownloadFirmware();
-      break;
-    case ChipProvisionMessageType::kResetFirmware:
-      HandleResetFirmware();
-      break;
-    default:
-      break;
-  }
+    switch (message.type) {
+        case ChipProvisionMessageType::kInitialize:
+            // Only Initialize has a payload now.
+            if (auto* payload = std::get_if<InitializePayload>(&message.payload)) {
+                HandleInitialize(*payload);
+            } else {
+                LOG(WARNING) << __func__ << ": Callback is null.";
+            }
+            break;
+        case ChipProvisionMessageType::kDownloadFirmware:
+            HandleDownloadFirmware();
+            break;
+        case ChipProvisionMessageType::kResetFirmware:
+            HandleResetFirmware();
+            break;
+        default:
+            break;
+    }
 }
 
 void AsyncChipProvisioner::HandleInitialize(const InitializePayload& payload) {
-  if (chip_provisioner_) {
-    return;
-  }
-  chip_provisioner_ = ChipProvisionerInterface::Create();
-  if (chip_provisioner_) {
-    chip_provisioner_->Initialize(payload.on_hal_state_update);
-  } else {
-    LOG(ERROR) << __func__ << ": Failed to create ChipProvisioner instance.";
-    // Consider how to report this failure, e.g., by invoking
-    // on_hal_state_update with an error state.
-  }
+    if (chip_provisioner_) {
+        return;
+    }
+    chip_provisioner_ = ChipProvisionerInterface::Create();
+    if (chip_provisioner_) {
+        chip_provisioner_->Initialize(payload.on_hal_state_update);
+    } else {
+        LOG(ERROR) << __func__ << ": Failed to create ChipProvisioner instance.";
+        // Consider how to report this failure, e.g., by invoking
+        // on_hal_state_update with an error state.
+    }
 };
 
 void AsyncChipProvisioner::HandleDownloadFirmware() {
-  if (chip_provisioner_) {
-    chip_provisioner_->DownloadFirmware();
-  }
+    if (chip_provisioner_) {
+        chip_provisioner_->DownloadFirmware();
+    }
 };
 
 void AsyncChipProvisioner::HandleResetFirmware() {
-  if (chip_provisioner_) {
-    chip_provisioner_->ResetFirmware();
-  }
+    if (chip_provisioner_) {
+        chip_provisioner_->ResetFirmware();
+    }
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

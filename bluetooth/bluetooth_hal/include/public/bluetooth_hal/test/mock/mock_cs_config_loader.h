@@ -23,22 +23,20 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class MockCsConfigLoader : public CsConfigLoader {
- public:
-  MOCK_METHOD(bool, LoadConfig, (), (override));
+  public:
+    MOCK_METHOD(bool, LoadConfig, (), (override));
 
-  MOCK_METHOD(const std::vector<::bluetooth_hal::hci::HalPacket>&,
-              GetCsCalibrationCommands, (), (const, override));
-  MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
+    MOCK_METHOD(const std::vector<::bluetooth_hal::hci::HalPacket>&, GetCsCalibrationCommands, (),
+                (const, override));
+    MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
 
-  static CsConfigLoader& GetLoader();
-  static void SetMockLoader(MockCsConfigLoader* loader);
+    static CsConfigLoader& GetLoader();
+    static void SetMockLoader(MockCsConfigLoader* loader);
 
-  static inline MockCsConfigLoader* mock_cs_config_loader_{nullptr};
+    static inline MockCsConfigLoader* mock_cs_config_loader_{nullptr};
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

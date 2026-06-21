@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#ifdef USE_FINDER_V1
+
 #pragma once
 
 #include <vector>
@@ -23,27 +25,23 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/finder/bluetooth_finder_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 
-class BluetoothFinder
-    : public ::aidl::android::hardware::bluetooth::finder::BnBluetoothFinder {
- public:
-  BluetoothFinder();
+class BluetoothFinder : public ::aidl::android::hardware::bluetooth::finder::BnBluetoothFinder {
+  public:
+    BluetoothFinder();
 
-  ::ndk::ScopedAStatus sendEids(
-      const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>&
-          eids) override;
+    ::ndk::ScopedAStatus sendEids(
+            const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>& eids) override;
 
-  ::ndk::ScopedAStatus setPoweredOffFinderMode(bool enable) override;
+    ::ndk::ScopedAStatus setPoweredOffFinderMode(bool enable) override;
 
-  ::ndk::ScopedAStatus getPoweredOffFinderMode(bool* _aidl_return) override;
+    ::ndk::ScopedAStatus getPoweredOffFinderMode(bool* _aidl_return) override;
 
- private:
-  BluetoothFinderHandler& handler_;
+  private:
+    BluetoothFinderHandler& handler_;
 };
 
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder
+
+#endif

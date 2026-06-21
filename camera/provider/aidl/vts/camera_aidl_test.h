@@ -183,8 +183,12 @@ class CameraAidlTest : public ::testing::TestWithParam<std::string> {
 
     void notifyDeviceState(int64_t state);
 
+    typedef std::optional<
+            std::vector<std::optional<::aidl::android::hardware::graphics::common::ExtendableType>>>
+            ExtendableType;
     static void allocateGraphicBuffer(uint32_t width, uint32_t height, uint64_t usage,
-                                      PixelFormat format, buffer_handle_t* buffer_handle /*out*/);
+                                      PixelFormat format, const ExtendableType& extras,
+                                      buffer_handle_t* buffer_handle /*out*/);
 
     static void openEmptyDeviceSession(const std::string& name,
                                        const std::shared_ptr<ICameraProvider>& provider,
@@ -641,6 +645,7 @@ namespace {
 const char* kDeviceNameRE = "device@([0-9]+\\.[0-9]+)/\\s+/(.+)";
 const std::string CAMERA_DEVICE_API_VERSION_1 = "1.1";
 const int32_t CAMERA_DEVICE_API_MINOR_VERSION_3 = 3;
+const int32_t CAMERA_DEVICE_API_MINOR_VERSION_4 = 4;
 
 const int32_t kMaxVideoWidth = 4096;
 const int32_t kMaxVideoHeight = 2160;

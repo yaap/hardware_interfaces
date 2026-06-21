@@ -6,7 +6,6 @@
    "linker_set_key" : "_ZTIA0_i",
    "name" : "int[0]",
    "referenced_type" : "_ZTIi",
-   "self_type" : "_ZTIA0_i",
    "source_file" : "system/core/include/cutils/native_handle.h"
   },
   {
@@ -14,7 +13,6 @@
    "linker_set_key" : "_ZTIA32_h",
    "name" : "unsigned char[32]",
    "referenced_type" : "_ZTIh",
-   "self_type" : "_ZTIA32_h",
    "size" : 32,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   }
@@ -27,8 +25,6 @@
    "is_unsigned" : true,
    "linker_set_key" : "_ZTIb",
    "name" : "bool",
-   "referenced_type" : "_ZTIb",
-   "self_type" : "_ZTIb",
    "size" : 1
   },
   {
@@ -37,16 +33,12 @@
    "is_unsigned" : true,
    "linker_set_key" : "_ZTIc",
    "name" : "char",
-   "referenced_type" : "_ZTIc",
-   "self_type" : "_ZTIc",
    "size" : 1
   },
   {
    "alignment" : 16,
    "linker_set_key" : "_ZTIe",
    "name" : "long double",
-   "referenced_type" : "_ZTIe",
-   "self_type" : "_ZTIe",
    "size" : 16
   },
   {
@@ -55,8 +47,6 @@
    "is_unsigned" : true,
    "linker_set_key" : "_ZTIh",
    "name" : "unsigned char",
-   "referenced_type" : "_ZTIh",
-   "self_type" : "_ZTIh",
    "size" : 1
   },
   {
@@ -64,8 +54,6 @@
    "is_integral" : true,
    "linker_set_key" : "_ZTIi",
    "name" : "int",
-   "referenced_type" : "_ZTIi",
-   "self_type" : "_ZTIi",
    "size" : 4
   },
   {
@@ -74,8 +62,6 @@
    "is_unsigned" : true,
    "linker_set_key" : "_ZTIj",
    "name" : "unsigned int",
-   "referenced_type" : "_ZTIj",
-   "self_type" : "_ZTIj",
    "size" : 4
   },
   {
@@ -83,8 +69,6 @@
    "is_integral" : true,
    "linker_set_key" : "_ZTIl",
    "name" : "long",
-   "referenced_type" : "_ZTIl",
-   "self_type" : "_ZTIl",
    "size" : 8
   },
   {
@@ -93,23 +77,17 @@
    "is_unsigned" : true,
    "linker_set_key" : "_ZTIm",
    "name" : "unsigned long",
-   "referenced_type" : "_ZTIm",
-   "self_type" : "_ZTIm",
    "size" : 8
   },
   {
    "linker_set_key" : "_ZTIv",
-   "name" : "void",
-   "referenced_type" : "_ZTIv",
-   "self_type" : "_ZTIv"
+   "name" : "void"
   },
   {
    "alignment" : 8,
    "is_integral" : true,
    "linker_set_key" : "_ZTIx",
    "name" : "long long",
-   "referenced_type" : "_ZTIx",
-   "self_type" : "_ZTIx",
    "size" : 8
   }
  ],
@@ -153,8 +131,6 @@
    ],
    "linker_set_key" : "_ZTI14AIMapper_Error",
    "name" : "AIMapper_Error",
-   "referenced_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTI14AIMapper_Error",
    "size" : 4,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h",
    "underlying_type" : "_ZTIi"
@@ -166,12 +142,14 @@
     {
      "enum_field_value" : 5,
      "name" : "AIMAPPER_VERSION_5"
+    },
+    {
+     "enum_field_value" : 6,
+     "name" : "AIMAPPER_VERSION_6"
     }
    ],
    "linker_set_key" : "_ZTI16AIMapper_Version",
    "name" : "AIMapper_Version",
-   "referenced_type" : "_ZTI16AIMapper_Version",
-   "self_type" : "_ZTI16AIMapper_Version",
    "size" : 4,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h",
    "underlying_type" : "_ZTIj"
@@ -195,9 +173,7 @@
      "referenced_type" : "_ZTIPv"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPFvPvEPFvS0_21AIMapper_MetadataTypePKvmES0_E",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPFvPvEPFvS0_21AIMapper_MetadataTypePKvmES0_E",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -219,9 +195,7 @@
      "referenced_type" : "_ZTIm"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handle21AIMapper_MetadataTypePKvmE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handle21AIMapper_MetadataTypePKvmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -234,9 +208,7 @@
      "referenced_type" : "_ZTIPK13native_handle"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handleE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handleE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -255,9 +227,26 @@
      "referenced_type" : "_ZTIPv"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePFvPv21AIMapper_MetadataTypePKvmES3_E",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePFvPv21AIMapper_MetadataTypePKvmES3_E",
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 4,
+   "linker_set_key" : "_ZTIF14AIMapper_ErrorPK13native_handlePPKjPmE",
+   "name" : "AIMapper_Error (const native_handle *, const unsigned int **, unsigned long *)",
+   "parameters" :
+   [
+    {
+     "referenced_type" : "_ZTIPK13native_handle"
+    },
+    {
+     "referenced_type" : "_ZTIPPKj"
+    },
+    {
+     "referenced_type" : "_ZTIPm"
+    }
+   ],
+   "return_type" : "_ZTI14AIMapper_Error",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -276,9 +265,7 @@
      "referenced_type" : "_ZTIPm"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePPvPmE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePPvPmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -294,9 +281,7 @@
      "referenced_type" : "_ZTIPPK13native_handle"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePS2_E",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePS2_E",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -312,9 +297,23 @@
      "referenced_type" : "_ZTIPi"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePiE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePiE",
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 4,
+   "linker_set_key" : "_ZTIF14AIMapper_ErrorPK13native_handlePjE",
+   "name" : "AIMapper_Error (const native_handle *, unsigned int *)",
+   "parameters" :
+   [
+    {
+     "referenced_type" : "_ZTIPK13native_handle"
+    },
+    {
+     "referenced_type" : "_ZTIPj"
+    }
+   ],
+   "return_type" : "_ZTI14AIMapper_Error",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -333,9 +332,26 @@
      "referenced_type" : "_ZTIPj"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePjS3_E",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePjS3_E",
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 4,
+   "linker_set_key" : "_ZTIF14AIMapper_ErrorPK13native_handlejPS2_E",
+   "name" : "AIMapper_Error (const native_handle *, unsigned int, const native_handle **)",
+   "parameters" :
+   [
+    {
+     "referenced_type" : "_ZTIPK13native_handle"
+    },
+    {
+     "referenced_type" : "_ZTIj"
+    },
+    {
+     "referenced_type" : "_ZTIPPK13native_handle"
+    }
+   ],
+   "return_type" : "_ZTI14AIMapper_Error",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -357,9 +373,7 @@
      "referenced_type" : "_ZTIm"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlelPKvmE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlelPKvmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -384,9 +398,7 @@
      "referenced_type" : "_ZTIPPv"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlem5ARectiPPvE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPK13native_handlem5ARectiPPvE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -402,9 +414,7 @@
      "referenced_type" : "_ZTIPm"
     }
    ],
-   "referenced_type" : "_ZTIF14AIMapper_ErrorPPK32AIMapper_MetadataTypeDescriptionPmE",
    "return_type" : "_ZTI14AIMapper_Error",
-   "self_type" : "_ZTIF14AIMapper_ErrorPPK32AIMapper_MetadataTypeDescriptionPmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -426,9 +436,7 @@
      "referenced_type" : "_ZTIm"
     }
    ],
-   "referenced_type" : "_ZTIFiPK13native_handle21AIMapper_MetadataTypePvmE",
    "return_type" : "_ZTIi",
-   "self_type" : "_ZTIFiPK13native_handle21AIMapper_MetadataTypePvmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -450,9 +458,7 @@
      "referenced_type" : "_ZTIm"
     }
    ],
-   "referenced_type" : "_ZTIFiPK13native_handlelPvmE",
    "return_type" : "_ZTIi",
-   "self_type" : "_ZTIFiPK13native_handlelPvmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -474,9 +480,7 @@
      "referenced_type" : "_ZTIm"
     }
    ],
-   "referenced_type" : "_ZTIFvPv21AIMapper_MetadataTypePKvmE",
    "return_type" : "_ZTIv",
-   "self_type" : "_ZTIFvPv21AIMapper_MetadataTypePKvmE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -489,9 +493,7 @@
      "referenced_type" : "_ZTIPv"
     }
    ],
-   "referenced_type" : "_ZTIFvPvE",
    "return_type" : "_ZTIv",
-   "self_type" : "_ZTIFvPvE",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   }
  ],
@@ -519,7 +521,6 @@
    "linker_set_key" : "_ZTIP8AIMapper",
    "name" : "AIMapper *",
    "referenced_type" : "_ZTI8AIMapper",
-   "self_type" : "_ZTIP8AIMapper",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -528,7 +529,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPFvPvEPFvS0_21AIMapper_MetadataTypePKvmES0_E",
    "name" : "AIMapper_Error (*)(void (*)(void *), void (*)(void *, AIMapper_MetadataType, const void *, unsigned long), void *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPFvPvEPFvS0_21AIMapper_MetadataTypePKvmES0_E",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPFvPvEPFvS0_21AIMapper_MetadataTypePKvmES0_E",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -537,7 +537,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handle21AIMapper_MetadataTypePKvmE",
    "name" : "AIMapper_Error (*)(const native_handle *, AIMapper_MetadataType, const void *, unsigned long)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handle21AIMapper_MetadataTypePKvmE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handle21AIMapper_MetadataTypePKvmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -546,7 +545,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handleE",
    "name" : "AIMapper_Error (*)(const native_handle *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handleE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handleE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -555,7 +553,14 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePFvPv21AIMapper_MetadataTypePKvmES3_E",
    "name" : "AIMapper_Error (*)(const native_handle *, void (*)(void *, AIMapper_MetadataType, const void *, unsigned long), void *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePFvPv21AIMapper_MetadataTypePKvmES3_E",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePFvPv21AIMapper_MetadataTypePKvmES3_E",
+   "size" : 8,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 8,
+   "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePPKjPmE",
+   "name" : "AIMapper_Error (*)(const native_handle *, const unsigned int **, unsigned long *)",
+   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePPKjPmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -564,7 +569,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePPvPmE",
    "name" : "AIMapper_Error (*)(const native_handle *, void **, unsigned long *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePPvPmE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePPvPmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -573,7 +577,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePS2_E",
    "name" : "AIMapper_Error (*)(const native_handle *, const native_handle **)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePS2_E",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePS2_E",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -582,7 +585,14 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePiE",
    "name" : "AIMapper_Error (*)(const native_handle *, int *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePiE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePiE",
+   "size" : 8,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 8,
+   "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePjE",
+   "name" : "AIMapper_Error (*)(const native_handle *, unsigned int *)",
+   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePjE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -591,7 +601,14 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlePjS3_E",
    "name" : "AIMapper_Error (*)(const native_handle *, unsigned int *, unsigned int *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlePjS3_E",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePjS3_E",
+   "size" : 8,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 8,
+   "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlejPS2_E",
+   "name" : "AIMapper_Error (*)(const native_handle *, unsigned int, const native_handle **)",
+   "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlejPS2_E",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -600,7 +617,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlelPKvmE",
    "name" : "AIMapper_Error (*)(const native_handle *, long, const void *, unsigned long)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlelPKvmE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlelPKvmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -609,7 +625,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPK13native_handlem5ARectiPPvE",
    "name" : "AIMapper_Error (*)(const native_handle *, unsigned long, ARect, int, void **)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPK13native_handlem5ARectiPPvE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlem5ARectiPPvE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -618,7 +633,6 @@
    "linker_set_key" : "_ZTIPF14AIMapper_ErrorPPK32AIMapper_MetadataTypeDescriptionPmE",
    "name" : "AIMapper_Error (*)(const AIMapper_MetadataTypeDescription **, unsigned long *)",
    "referenced_type" : "_ZTIF14AIMapper_ErrorPPK32AIMapper_MetadataTypeDescriptionPmE",
-   "self_type" : "_ZTIPF14AIMapper_ErrorPPK32AIMapper_MetadataTypeDescriptionPmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -627,7 +641,6 @@
    "linker_set_key" : "_ZTIPFiPK13native_handle21AIMapper_MetadataTypePvmE",
    "name" : "int (*)(const native_handle *, AIMapper_MetadataType, void *, unsigned long)",
    "referenced_type" : "_ZTIFiPK13native_handle21AIMapper_MetadataTypePvmE",
-   "self_type" : "_ZTIPFiPK13native_handle21AIMapper_MetadataTypePvmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -636,7 +649,6 @@
    "linker_set_key" : "_ZTIPFiPK13native_handlelPvmE",
    "name" : "int (*)(const native_handle *, long, void *, unsigned long)",
    "referenced_type" : "_ZTIFiPK13native_handlelPvmE",
-   "self_type" : "_ZTIPFiPK13native_handlelPvmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -645,7 +657,6 @@
    "linker_set_key" : "_ZTIPFvPv21AIMapper_MetadataTypePKvmE",
    "name" : "void (*)(void *, AIMapper_MetadataType, const void *, unsigned long)",
    "referenced_type" : "_ZTIFvPv21AIMapper_MetadataTypePKvmE",
-   "self_type" : "_ZTIPFvPv21AIMapper_MetadataTypePKvmE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -654,7 +665,6 @@
    "linker_set_key" : "_ZTIPFvPvE",
    "name" : "void (*)(void *)",
    "referenced_type" : "_ZTIFvPvE",
-   "self_type" : "_ZTIPFvPvE",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -663,7 +673,6 @@
    "linker_set_key" : "_ZTIPK13native_handle",
    "name" : "const native_handle *",
    "referenced_type" : "_ZTIK13native_handle",
-   "self_type" : "_ZTIPK13native_handle",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -672,7 +681,6 @@
    "linker_set_key" : "_ZTIPK32AIMapper_MetadataTypeDescription",
    "name" : "const AIMapper_MetadataTypeDescription *",
    "referenced_type" : "_ZTIK32AIMapper_MetadataTypeDescription",
-   "self_type" : "_ZTIPK32AIMapper_MetadataTypeDescription",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -681,7 +689,14 @@
    "linker_set_key" : "_ZTIPKc",
    "name" : "const char *",
    "referenced_type" : "_ZTIKc",
-   "self_type" : "_ZTIPKc",
+   "size" : 8,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 8,
+   "linker_set_key" : "_ZTIPKj",
+   "name" : "const unsigned int *",
+   "referenced_type" : "_ZTIKj",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -690,7 +705,6 @@
    "linker_set_key" : "_ZTIPKv",
    "name" : "const void *",
    "referenced_type" : "_ZTIKv",
-   "self_type" : "_ZTIPKv",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -699,7 +713,6 @@
    "linker_set_key" : "_ZTIPP8AIMapper",
    "name" : "AIMapper **",
    "referenced_type" : "_ZTIP8AIMapper",
-   "self_type" : "_ZTIPP8AIMapper",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -708,7 +721,6 @@
    "linker_set_key" : "_ZTIPPK13native_handle",
    "name" : "const native_handle **",
    "referenced_type" : "_ZTIPK13native_handle",
-   "self_type" : "_ZTIPPK13native_handle",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -717,7 +729,14 @@
    "linker_set_key" : "_ZTIPPK32AIMapper_MetadataTypeDescription",
    "name" : "const AIMapper_MetadataTypeDescription **",
    "referenced_type" : "_ZTIPK32AIMapper_MetadataTypeDescription",
-   "self_type" : "_ZTIPPK32AIMapper_MetadataTypeDescription",
+   "size" : 8,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 8,
+   "linker_set_key" : "_ZTIPPKj",
+   "name" : "const unsigned int **",
+   "referenced_type" : "_ZTIPKj",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -726,7 +745,6 @@
    "linker_set_key" : "_ZTIPPv",
    "name" : "void **",
    "referenced_type" : "_ZTIPv",
-   "self_type" : "_ZTIPPv",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -735,7 +753,6 @@
    "linker_set_key" : "_ZTIPi",
    "name" : "int *",
    "referenced_type" : "_ZTIi",
-   "self_type" : "_ZTIPi",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -744,7 +761,6 @@
    "linker_set_key" : "_ZTIPj",
    "name" : "unsigned int *",
    "referenced_type" : "_ZTIj",
-   "self_type" : "_ZTIPj",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -753,7 +769,6 @@
    "linker_set_key" : "_ZTIPm",
    "name" : "unsigned long *",
    "referenced_type" : "_ZTIm",
-   "self_type" : "_ZTIPm",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -762,7 +777,6 @@
    "linker_set_key" : "_ZTIPv",
    "name" : "void *",
    "referenced_type" : "_ZTIv",
-   "self_type" : "_ZTIPv",
    "size" : 8,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   }
@@ -775,7 +789,6 @@
    "linker_set_key" : "_ZTIK13native_handle",
    "name" : "const native_handle",
    "referenced_type" : "_ZTI13native_handle",
-   "self_type" : "_ZTIK13native_handle",
    "size" : 12,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -785,7 +798,6 @@
    "linker_set_key" : "_ZTIK32AIMapper_MetadataTypeDescription",
    "name" : "const AIMapper_MetadataTypeDescription",
    "referenced_type" : "_ZTI32AIMapper_MetadataTypeDescription",
-   "self_type" : "_ZTIK32AIMapper_MetadataTypeDescription",
    "size" : 64,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -795,8 +807,16 @@
    "linker_set_key" : "_ZTIKc",
    "name" : "const char",
    "referenced_type" : "_ZTIc",
-   "self_type" : "_ZTIKc",
    "size" : 1,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 4,
+   "is_const" : true,
+   "linker_set_key" : "_ZTIKj",
+   "name" : "const unsigned int",
+   "referenced_type" : "_ZTIj",
+   "size" : 4,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -804,7 +824,6 @@
    "linker_set_key" : "_ZTIKv",
    "name" : "const void",
    "referenced_type" : "_ZTIv",
-   "self_type" : "_ZTIKv",
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   }
  ],
@@ -891,9 +910,31 @@
    ],
    "linker_set_key" : "_ZTI10AIMapperV5",
    "name" : "AIMapperV5",
-   "referenced_type" : "_ZTI10AIMapperV5",
-   "self_type" : "_ZTI10AIMapperV5",
    "size" : 120,
+   "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
+  },
+  {
+   "alignment" : 8,
+   "fields" :
+   [
+    {
+     "field_name" : "getMultiViewInfo",
+     "referenced_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePPKjPmE"
+    },
+    {
+     "field_name" : "getBaseView",
+     "field_offset" : 64,
+     "referenced_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlePjE"
+    },
+    {
+     "field_name" : "importViewBuffer",
+     "field_offset" : 128,
+     "referenced_type" : "_ZTIPF14AIMapper_ErrorPK13native_handlejPS2_E"
+    }
+   ],
+   "linker_set_key" : "_ZTI10AIMapperV6",
+   "name" : "AIMapperV6",
+   "size" : 24,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
   {
@@ -912,8 +953,6 @@
    ],
    "linker_set_key" : "_ZTI11max_align_t",
    "name" : "max_align_t",
-   "referenced_type" : "_ZTI11max_align_t",
-   "self_type" : "_ZTI11max_align_t",
    "size" : 32,
    "source_file" : "prebuilts/clang-tools/linux-x86/clang-headers/__stddef_max_align_t.h"
   },
@@ -943,8 +982,6 @@
    ],
    "linker_set_key" : "_ZTI13native_handle",
    "name" : "native_handle",
-   "referenced_type" : "_ZTI13native_handle",
-   "self_type" : "_ZTI13native_handle",
    "size" : 12,
    "source_file" : "system/core/include/cutils/native_handle.h"
   },
@@ -964,8 +1001,6 @@
    ],
    "linker_set_key" : "_ZTI21AIMapper_MetadataType",
    "name" : "AIMapper_MetadataType",
-   "referenced_type" : "_ZTI21AIMapper_MetadataType",
-   "self_type" : "_ZTI21AIMapper_MetadataType",
    "size" : 16,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -1000,8 +1035,6 @@
    ],
    "linker_set_key" : "_ZTI32AIMapper_MetadataTypeDescription",
    "name" : "AIMapper_MetadataTypeDescription",
-   "referenced_type" : "_ZTI32AIMapper_MetadataTypeDescription",
-   "self_type" : "_ZTI32AIMapper_MetadataTypeDescription",
    "size" : 64,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   },
@@ -1031,8 +1064,6 @@
    ],
    "linker_set_key" : "_ZTI5ARect",
    "name" : "ARect",
-   "referenced_type" : "_ZTI5ARect",
-   "self_type" : "_ZTI5ARect",
    "size" : 16,
    "source_file" : "frameworks/native/libs/arect/include/android/rect.h"
   },
@@ -1048,13 +1079,16 @@
      "field_name" : "v5",
      "field_offset" : 64,
      "referenced_type" : "_ZTI10AIMapperV5"
+    },
+    {
+     "field_name" : "v6",
+     "field_offset" : 1024,
+     "referenced_type" : "_ZTI10AIMapperV6"
     }
    ],
    "linker_set_key" : "_ZTI8AIMapper",
    "name" : "AIMapper",
-   "referenced_type" : "_ZTI8AIMapper",
-   "self_type" : "_ZTI8AIMapper",
-   "size" : 128,
+   "size" : 160,
    "source_file" : "hardware/interfaces/graphics/mapper/stable-c/include/android/hardware/graphics/mapper/IMapper.h"
   }
  ],

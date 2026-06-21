@@ -16,27 +16,34 @@
 
 #include "bluetooth_hal/util/power/power_interface.h"
 
+#include <utility>
+
+#include "bluetooth_hal/util/provider_factory.h"
 #include "hardware_legacy/power.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 constexpr char kWakeLockName[] = "bthal_wakelock";
 
+bool PowerInterface::RegisterPowerInterface(FactoryFn factory) {
+    if (!factory) {
+        return false;
+    }
+    VendorFactory::RegisterProviderFactory(std::move(factory));
+    return true;
+}
+
 bool PowerInterface::AcquireWakelock() {
-  return acquire_wake_lock(PARTIAL_WAKE_LOCK, kWakeLockName) == 0;
+    return acquire_wake_lock(PARTIAL_WAKE_LOCK, kWakeLockName) == 0;
 }
 
 bool PowerInterface::ReleaseWakelock() {
-  return release_wake_lock(kWakeLockName) == 0;
+    return release_wake_lock(kWakeLockName) == 0;
 }
 
 PowerInterface& PowerInterface::GetInterface() {
-  static PowerInterface interface;
-  return interface;
+    static auto interface = VendorFactory::Create();
+    return *interface;
 }
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

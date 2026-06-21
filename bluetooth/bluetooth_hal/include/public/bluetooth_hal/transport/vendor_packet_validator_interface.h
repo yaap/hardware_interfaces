@@ -21,43 +21,39 @@
 #include <memory>
 #include <span>
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 
 class VendorPacketValidatorInterface {
- public:
-  using FactoryFn =
-      std::function<std::unique_ptr<VendorPacketValidatorInterface>()>;
+  public:
+    using FactoryFn = std::function<std::unique_ptr<VendorPacketValidatorInterface>()>;
 
-  /**
-   * @brief Registers a vendor-specific factory for creating
-   * VendorPacketValidatorInterface instances.
-   *
-   * If a vendor factory is registered, VendorPacketValidatorInterface::Create()
-   * will use it. Otherwise, a default implementation will be created.
-   *
-   * @param factory The factory function to register.
-   */
-  static void RegisterVendorPacketValidator(FactoryFn factory);
+    /**
+     * @brief Registers a vendor-specific factory for creating
+     * VendorPacketValidatorInterface instances.
+     *
+     * If a vendor factory is registered, VendorPacketValidatorInterface::Create()
+     * will use it. Otherwise, a default implementation will be created.
+     *
+     * @param factory The factory function to register.
+     */
+    static void RegisterVendorPacketValidator(FactoryFn factory);
 
-  virtual ~VendorPacketValidatorInterface() = default;
+    virtual ~VendorPacketValidatorInterface() = default;
 
-  virtual bool IsValidVendorSpecificEvent(
-      std::span<const uint8_t> data) const = 0;
+    virtual bool IsValidVendorSpecificEvent(std::span<const uint8_t> data) const = 0;
 
-  /**
-   * @brief Creates an instance of VendorPacketValidatorInterface.
-   *
-   * This factory method will use a registered vendor factory if available,
-   * otherwise it will create a default implementation.
-   *
-   * @return A unique_ptr to a VendorPacketValidatorInterface instance.
-   */
-  static std::unique_ptr<VendorPacketValidatorInterface> Create();
+    /**
+     * @brief Creates an instance of VendorPacketValidatorInterface.
+     *
+     * This factory method will use a registered vendor factory if available,
+     * otherwise it will create a default implementation.
+     *
+     * @return A unique_ptr to a VendorPacketValidatorInterface instance.
+     */
+    static std::unique_ptr<VendorPacketValidatorInterface> Create();
 
- private:
-  static FactoryFn vendor_factory_;
+  private:
+    static FactoryFn vendor_factory_;
 };
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

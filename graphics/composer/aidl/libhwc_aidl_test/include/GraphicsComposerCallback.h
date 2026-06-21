@@ -52,6 +52,10 @@ class GraphicsComposerCallback : public BnComposerCallback {
 
     std::vector<std::pair<int64_t, common::DisplayHotplugEvent>> getAndClearLatestHotplugs();
 
+    bool waitForHdcpLevelsChanged(int64_t display, std::chrono::milliseconds timeout);
+
+    void clearHdcpLevelsChanged();
+
   private:
     virtual ::ndk::ScopedAStatus onHotplug(int64_t in_display, bool in_connected) override;
     virtual ::ndk::ScopedAStatus onRefresh(int64_t in_display) override;
@@ -68,9 +72,10 @@ class GraphicsComposerCallback : public BnComposerCallback {
     virtual ::ndk::ScopedAStatus onHotplugEvent(int64_t in_display,
                                                 common::DisplayHotplugEvent) override;
     virtual ::ndk::ScopedAStatus onHdcpLevelsChanged(
-            int64_t in_display, const ::aidl::android::hardware::drm::HdcpLevels&) override;
+            int64_t in_display, const ::aidl::android::hardware::drm::HdcpLevels& levels) override;
 
     mutable std::mutex mMutex;
+    std::condition_variable mHdcpLevelsChangedCv;
     // the set of all currently connected displays
     std::vector<int64_t> mDisplays GUARDED_BY(mMutex);
     std::vector<std::pair<int64_t /*display id*/, common::DisplayHotplugEvent>> mLatestHotplugs
@@ -94,7 +99,9 @@ class GraphicsComposerCallback : public BnComposerCallback {
     int32_t mInvalidVsyncPeriodChangeCount GUARDED_BY(mMutex) = 0;
     int32_t mInvalidSeamlessPossibleCount GUARDED_BY(mMutex) = 0;
     int32_t mInvalidRefreshRateDebugEnabledCallbackCount GUARDED_BY(mMutex) = 0;
-    int32_t mHdcpLevelChangedCount GUARDED_BY(mMutex) = 0;
+    int32_t mHdcpLevelsChangedCount GUARDED_BY(mMutex) = 0;
+    std::vector<std::pair<int64_t, ::aidl::android::hardware::drm::HdcpLevels>>
+            mHdcpLevelChangedDisplays GUARDED_BY(mMutex);
 };
 
 }  // namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test

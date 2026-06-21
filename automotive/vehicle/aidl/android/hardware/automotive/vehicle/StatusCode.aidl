@@ -20,7 +20,10 @@ package android.hardware.automotive.vehicle;
  * Error codes used in vehicle HAL interface. System defined error codes will have the range from
  * 0x0000 to 0xffff and vendor error codes will have the range from 0x0001 to 0xffff. The error code
  * is formatted as [VENDOR_ERROR] << 16 | [SYSTEM_ERROR]. A vendor error code of 0 indicates vendor
- * code not set.
+ * error code is not set.
+ *
+ * The vendor StatusCode and vendor VehiclePropertyStatus values must map one-to-one so that the
+ * framework can propagate the same vendor error to clients calling getProperty() or subscribe().
  */
 @VintfStability
 @Backing(type="int")

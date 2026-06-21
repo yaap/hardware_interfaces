@@ -89,3 +89,9 @@ ndk::ScopedAStatus RadioConfigResponse::setSimTypeResponse(const RadioResponseIn
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus RadioConfigResponse::rebootModemResponse(const RadioResponseInfo& info) {
+    rspInfo = info;
+    parent_config.notify(info.serial);
+    return ndk::ScopedAStatus::ok();
+}
+

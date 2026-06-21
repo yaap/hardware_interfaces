@@ -22,6 +22,11 @@ import android.hardware.automotive.evs.UltrasonicsDataFrameDesc;
 /**
  * Implemented on client side to receive asynchronous ultrasonic data
  * deliveries.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use <a
+ *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+ *             VHAL properties</a> instead.
  */
 @VintfStability
 interface IEvsUltrasonicsArrayStream {
@@ -29,6 +34,11 @@ interface IEvsUltrasonicsArrayStream {
      * Receives calls from the HAL each time a data frame is ready
      *
      * @param in dataFrameDesc Ultrasonic array data frame descriptor
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     oneway void deliverDataFrame(in UltrasonicsDataFrameDesc dataFrameDesc);
 
@@ -36,6 +46,11 @@ interface IEvsUltrasonicsArrayStream {
      * Receives calls from the HAL each time an event happens
      *
      * @param in event Event EVS event with possible event information
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     oneway void notify(in EvsEventDesc event);
 }

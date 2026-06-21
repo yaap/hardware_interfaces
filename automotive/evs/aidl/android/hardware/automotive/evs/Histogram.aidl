@@ -21,6 +21,15 @@ import android.hardware.graphics.common.Rect;
 
 /**
  * This data type represents 1D histogram statistics.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Applications should use the standard Android <a
+ *             href="https://developer.android.com/media/camera/camera2">Camera2 API
+ *             (android.hardware.camera2)</a> for camera access and management. Use either the
+ *             Camera2 NDK APIs
+ *             (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager">ACameraManager</a>)
+ *             or Camera2 Java APIs ({@link android.hardware.camera2.CameraManager}) instead.
  */
 @VintfStability
 parcelable Histogram {

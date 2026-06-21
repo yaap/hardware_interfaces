@@ -254,6 +254,34 @@ bool HandleImporter::isSmpte2094_40Present(const buffer_handle_t& buf) {
     return metadata.has_value();
 }
 
+bool HandleImporter::isSmpte2094_50Present(const buffer_handle_t& buf) {
+    Mutex::Autolock lock(mLock);
+
+    if (!mInitialized) {
+        initializeLocked();
+    }
+
+    std::optional<std::vector<uint8_t>> metadata;
+    status_t status = GraphicBufferMapper::get().getSmpte2094_50(buf, &metadata);
+    if (status != OK) {
+        ALOGE("%s: Mapper failed to get Smpte2094_50 metadata! Status: %d", __FUNCTION__, status);
+        return false;
+    }
+
+    return metadata.has_value();
+}
+
+status_t HandleImporter::setSmpte2094_50(const buffer_handle_t& buf,
+        const std::vector<uint8_t>& metadata) {
+    Mutex::Autolock lock(mLock);
+
+    if (!mInitialized) {
+        initializeLocked();
+    }
+
+    return GraphicBufferMapper::get().setSmpte2094_50(buf, metadata);
+}
+
 }  // namespace helper
 }  // namespace common
 }  // namespace camera

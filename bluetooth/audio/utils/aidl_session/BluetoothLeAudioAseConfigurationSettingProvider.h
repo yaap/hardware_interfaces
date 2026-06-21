@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2023 The Android Open Source Project
  *
@@ -15,17 +14,19 @@
  * limitations under the License.
  */
 
-#include <aidl/android/hardware/bluetooth/audio/IBluetoothAudioProvider.h>
-
 #include <map>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <vector>
+
+#include <aidl/android/hardware/bluetooth/audio/IBluetoothAudioProvider.h>
 
 #include "audio_set_configurations_generated.h"
 #include "audio_set_scenarios_generated.h"
+#include "flatbuffers/idl.h"
 
 namespace aidl {
 namespace android {
@@ -33,92 +34,84 @@ namespace hardware {
 namespace bluetooth {
 namespace audio {
 
-using LeAudioAseConfigurationSetting =
-    IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
-using AseDirectionConfiguration = IBluetoothAudioProvider::
-    LeAudioAseConfigurationSetting::AseDirectionConfiguration;
-using LeAudioAseQosConfiguration =
-    IBluetoothAudioProvider::LeAudioAseQosConfiguration;
-using LeAudioDataPathConfiguration =
-    IBluetoothAudioProvider::LeAudioDataPathConfiguration;
+using AseDirectionConfiguration =
+        IBluetoothAudioProvider::LeAudioAseConfigurationSetting::AseDirectionConfiguration;
+using LeAudioAseConfigurationSetting = IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
+using LeAudioAseQosConfiguration = IBluetoothAudioProvider::LeAudioAseQosConfiguration;
+using LeAudioDataPathConfiguration = IBluetoothAudioProvider::LeAudioDataPathConfiguration;
+using LeAudioUpdateLatencySetting =
+        aidl::android::hardware::bluetooth::audio::LeAudioUpdateLatencySetting;
 
 enum class CodecLocation {
-  HOST,
-  ADSP,
-  CONTROLLER,
+    HOST,
+    ADSP,
+    CONTROLLER,
+};
+
+struct ConfigurationSetFile {
+    const char* schema;
+    const char* content;
+};
+
+struct AseConfig {
+    std::vector<std::optional<AseDirectionConfiguration>> source;
+    std::vector<std::optional<AseDirectionConfiguration>> sink;
+    ConfigurationFlags flags;
+    std::optional<LeAudioUpdateLatencySetting> latency_setting;
 };
 
 class AudioSetConfigurationProviderJson {
- public:
-  static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
-  GetLeAudioAseConfigurationSettings();
+  public:
+    static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
+    GetLeAudioAseConfigurationSettings();
 
- private:
-  static void LoadAudioSetConfigurationProviderJson();
+  private:
+    static void LoadAudioSetConfigurationProviderJson();
 
-  static const le_audio::CodecSpecificConfiguration* LookupCodecSpecificParam(
-      const flatbuffers::Vector<flatbuffers::Offset<
-          le_audio::CodecSpecificConfiguration>>* flat_codec_specific_params,
-      le_audio::CodecSpecificLtvGenericTypes type);
+    static std::vector<CodecSpecificConfigurationLtv> PopulateCodecConfiguration(
+            const flatbuffers::Vector<flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
+                    flat_codec_specific_params,
+            uint8_t ase_channel_cnt, std::optional<CodecId> codec_id);
 
-  static void populateAudioChannelAllocation(
-      CodecSpecificConfigurationLtv::AudioChannelAllocation&
-          audio_channel_allocation,
-      uint32_t audio_location);
+    static std::optional<LeAudioAseConfiguration> PopulateAseConfiguration(
+            const le_audio::AudioSetSubConfiguration* flat_subconfig,
+            const le_audio::QosConfiguration* qos_cfg);
 
-  static void populateConfigurationData(
-      LeAudioAseConfiguration& ase,
-      const flatbuffers::Vector<
-          flatbuffers::Offset<le_audio::CodecSpecificConfiguration>>*
-          flat_codec_specific_params);
+    static std::optional<LeAudioAseQosConfiguration> PopulateAseQosConfiguration(
+            const le_audio::QosConfiguration* qos_cfg, const LeAudioAseConfiguration& ase,
+            uint8_t ase_channel_cnt);
 
-  static void populateAseConfiguration(
-      LeAudioAseConfiguration& ase,
-      const le_audio::AudioSetSubConfiguration* flat_subconfig,
-      const le_audio::QosConfiguration* qos_cfg,
-      ConfigurationFlags& configurationFlags);
+    static std::optional<std::vector<uint8_t>> PopulateVendorCodecConfiguration(
+            const LeAudioAseConfiguration& ase);
 
-  static void populateAseQosConfiguration(
-      LeAudioAseQosConfiguration& qos,
-      const le_audio::QosConfiguration* qos_cfg, LeAudioAseConfiguration& ase,
-      uint8_t ase_channel_cnt);
+    static std::optional<AseConfig> PopulateAseConfigsFromFlat(
+            const le_audio::AudioSetConfiguration* flat_cfg,
+            const std::map<std::string_view, const le_audio::CodecConfiguration*>& codec_cfgs,
+            const std::map<std::string_view, const le_audio::QosConfiguration*>& qos_cfgs,
+            const std::map<std::string_view, const le_audio::LeAudioUpdateLatencySetting*>&
+                    latency_cfgs,
+            CodecLocation location);
 
-  static AseDirectionConfiguration SetConfigurationFromFlatSubconfig(
-      const le_audio::AudioSetSubConfiguration* flat_subconfig,
-      const le_audio::QosConfiguration* qos_cfg, CodecLocation location,
-      ConfigurationFlags& configurationFlags);
+    static std::optional<LeAudioUpdateLatencySetting> PopulateLatencySetting(
+            const le_audio::LeAudioUpdateLatencySetting* flat_latency_cfg);
 
-  static void processSubconfig(
-      const le_audio::AudioSetSubConfiguration* subconfig,
-      const le_audio::QosConfiguration* qos_cfg,
-      std::vector<std::optional<AseDirectionConfiguration>>&
-          directionAseConfiguration,
-      CodecLocation location, ConfigurationFlags& configurationFlags);
+    static LeAudioDataPathConfiguration PopulateDatapath(const CodecLocation& location,
+                                                         const LeAudioAseConfiguration& ase);
 
-  static void PopulateAseConfigurationFromFlat(
-      const le_audio::AudioSetConfiguration* flat_cfg,
-      std::vector<const le_audio::CodecConfiguration*>* codec_cfgs,
-      std::vector<const le_audio::QosConfiguration*>* qos_cfgs,
-      CodecLocation location,
-      std::vector<std::optional<AseDirectionConfiguration>>&
-          sourceAseConfiguration,
-      std::vector<std::optional<AseDirectionConfiguration>>&
-          sinkAseConfiguration,
-      ConfigurationFlags& configurationFlags);
+    static void UpdateConfigurationFlags(AseConfig& result);
 
-  static bool LoadConfigurationsFromFiles(const char* schema_file,
-                                          const char* content_file,
-                                          CodecLocation location);
+    static bool LoadConfigurationsFromFiles(const ConfigurationSetFile& files,
+                                            CodecLocation location);
 
-  static bool LoadScenariosFromFiles(const char* schema_file,
-                                     const char* content_file);
+    static bool LoadScenariosFromFiles(const ConfigurationSetFile& files);
 
-  static bool LoadContent(
-      std::vector<std::pair<const char* /*schema*/, const char* /*content*/>>
-          config_files,
-      std::vector<std::pair<const char* /*schema*/, const char* /*content*/>>
-          scenario_files,
-      CodecLocation location);
+    static bool LoadConfigurationSetFile(const std::vector<ConfigurationSetFile>& config_files,
+                                         const std::vector<ConfigurationSetFile>& scenario_files,
+                                         CodecLocation location);
+
+    inline static std::map<std::string, AseConfig, std::less<>> ase_configs_;
+    inline static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
+            ase_configuration_settings_;
 };
 
 }  // namespace audio

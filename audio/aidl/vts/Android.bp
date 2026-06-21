@@ -26,6 +26,7 @@ cc_defaults {
         "android.hardware.common-V2-ndk",
         "android.hardware.common.fmq-V1-ndk",
         "libaudioaidlcommon",
+        "libaudioaidltestutils",
         "libaidlcommonsupport",
         "libpffft",
     ],
@@ -45,9 +46,6 @@ cc_defaults {
         "general-tests",
         "vts",
     ],
-    srcs: [
-        "TestUtils.cpp",
-    ],
 }
 
 cc_defaults {
@@ -55,9 +53,6 @@ cc_defaults {
     defaults: [
         "latest_android_hardware_audio_effect_ndk_static",
         "VtsHalAudioTargetTestDefaults",
-    ],
-    srcs: [
-        ":effectCommonFile",
     ],
     test_config_template: "VtsHalAudioEffectTargetTestTemplate.xml",
 }
@@ -73,13 +68,20 @@ cc_test {
         "libcutils",
     ],
     srcs: [
-        "ModuleConfig.cpp",
         "VtsHalAudioCoreConfigTargetTest.cpp",
         "VtsHalAudioCoreModuleTargetTest.cpp",
     ],
     data: [
         "data/sine882hz_44100_3s.ape",
+        "data/sine882hz_44100_3s_id3v1.mp3",
+        "data/sine882hz_44100_3s_id3v1_v2.mp3",
+        "data/sine882hz_44100_3s_id3v1_v2_partialID3v1Tag.mp3",
+        "data/sine882hz_44100_3s_id3v2.mp3",
+        "data/sine882hz_44100_3s_id3v2_partialHeader.mp3",
         "data/sine960hz_48000_3s.ape",
+        "data/sine960hz_48000_3s_id3v1.mp3",
+        "data/sine960hz_48000_3s_id3v1_v2.mp3",
+        "data/sine960hz_48000_3s_id3v2.mp3",
     ],
     test_config_template: "VtsHalAudioCoreTargetTestTemplate.xml",
 }
@@ -228,7 +230,6 @@ cc_test {
     ],
     test_config_template: "VtsHalAudioEraserTest.xml",
     srcs: [
-        ":effectCommonFile",
         "VtsHalEraserTargetTest.cpp",
     ],
     static_libs: [
@@ -243,4 +244,31 @@ cc_test {
         "data/rain.16khz.1ch.f32.wav",
         "data/pinknoise.16khz.1ch.f32.wav",
     ],
+}
+
+cc_test {
+    name: "VtsHalAudioProductTargetTest",
+    defaults: [
+        "VtsHalTargetTestDefaults",
+    ],
+    test_config: "VtsHalAudioProductTargetTest.xml",
+    srcs: [
+        "VtsHalAudioProductTargetTest.cpp",
+    ],
+    shared_libs: [
+        "libbase",
+        "libcutils",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wthread-safety",
+        "-Wno-error=unused-parameter",
+    ],
+    test_suites: [
+        "general-tests",
+        "vts",
+    ],
+
 }

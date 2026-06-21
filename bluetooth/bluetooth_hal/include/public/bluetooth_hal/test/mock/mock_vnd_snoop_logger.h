@@ -20,22 +20,18 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class MockVndSnoopLogger : public VndSnoopLogger {
- public:
-  MOCK_METHOD(void, StartNewRecording, (), (override));
-  MOCK_METHOD(void, StopRecording, (), (override));
-  MOCK_METHOD(void, Capture,
-              (const ::bluetooth_hal::hci::HalPacket& packet,
-               Direction direction),
-              (override));
+  public:
+    MOCK_METHOD(void, StartNewRecording, (), (override));
+    MOCK_METHOD(void, StopRecording, (), (override));
+    MOCK_METHOD(void, Capture, (const ::bluetooth_hal::hci::HalPacket& packet, Direction direction),
+                (override));
 
-  static void SetMockVndSnoopLogger(MockVndSnoopLogger* logger);
+    static void SetMockVndSnoopLogger(MockVndSnoopLogger* logger);
 
-  static inline MockVndSnoopLogger* mock_vnd_snoop_logger_{nullptr};
+    static inline MockVndSnoopLogger* mock_vnd_snoop_logger_{nullptr};
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

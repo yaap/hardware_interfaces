@@ -32,6 +32,10 @@ vintf_fragment {
 // A real device is required to run the TA code in a secure environment, as
 // per CDD 9.11 [C-1-1]: "MUST back up the keystore implementation with an
 // isolated execution environment."
+//
+// This C++ reference implementation will not be updated to support versions
+// of the KeyMint HAL beyond version 4. Use the Rust reference implementation
+// for versions 5 and later.
 cc_binary {
     name: "android.hardware.security.keymint-service",
     relative_install_path: "hw",
@@ -62,7 +66,7 @@ cc_binary {
         "service.cpp",
     ],
     required: [
-        "android.hardware.hardware_keystore.xml",
+        "android.hardware.hardware_keystore_V4.xml",
     ],
     vintf_fragment_modules: [
         "android.hardware.security.keymint-service.xml",
@@ -89,6 +93,7 @@ rust_binary {
     srcs: [
         "main.rs",
     ],
+    prefer_rlib: true,
     rustlibs: [
         "libandroid_logger",
         "libbinder_rs",
@@ -144,11 +149,21 @@ prebuilt_etc {
     src: "android.hardware.hardware_keystore_V4.xml",
 }
 
+prebuilt_etc {
+    name: "android.hardware.hardware_keystore_V5.xml",
+    sub_dir: "permissions",
+    vendor: true,
+    src: "android.hardware.hardware_keystore_V5.xml",
+}
+
+// The following library includes helper code for the KeyMint HAL that is only appropriate to use
+// in a non-secure environment (e.g. an emulator such as Cuttlefish).
 rust_library {
     name: "libkmr_hal_nonsecure",
     crate_name: "kmr_hal_nonsecure",
     vendor_available: true,
     lints: "android",
+    clippy_lints: "android",
     rustlibs: [
         "libbinder_rs",
         "libhex",
@@ -158,15 +173,32 @@ rust_library {
         "libkmr_wire",
     ],
     srcs: ["hal/lib.rs"],
-
+    // Limit visibility because this is a nonsecure library that should only be used in
+    // specific contexts (e.g. emulators such as Cuttlefish).
+    visibility: [
+        "//visibility:override",
+        // The following emulator targets can legitimately use nonsecure code.
+        "//device/google/cuttlefish/guest/hals/keymint/rust",
+        "//system/software_defined_vehicle/platform/third_party/sdv_keymint_nonsecure",
+        // TODO(b/477580755): remove the following use of nonsecure HAL code once the
+        // `keymint_rot_nonsecure` flag has been removed.
+        "//system/core/trusty/keymint",
+        // TODO(b/455661648): remove the following uses of nonsecure HAL code once RoT
+        // info is passed securely.
+        "//system/desktop/security/keymint_strongbox",
+        "//system/desktop/security/update-boot-info",
+    ],
 }
 
+// The following library includes helper code for the KeyMint TA that is only appropriate to use
+// in a non-secure environment (e.g. an emulator such as Cuttlefish).
 rust_library {
     name: "libkmr_ta_nonsecure",
     crate_name: "kmr_ta_nonsecure",
     vendor_available: true,
     host_supported: true,
     lints: "android",
+    clippy_lints: "android",
     rustlibs: [
         "libhex",
         "liblibc",
@@ -177,6 +209,14 @@ rust_library {
         "libkmr_wire",
     ],
     srcs: ["ta/lib.rs"],
+    // Limit visibility because this is a nonsecure library that should only be used in
+    // specific contexts (e.g. emulators such as Cuttlefish).
+    visibility: [
+        "//visibility:override",
+        // The following emulator targets can legitimately use nonsecure code.
+        "//device/google/cuttlefish/host/commands/secure_env/rust",
+        "//system/software_defined_vehicle/platform/third_party/sdv_keymint_nonsecure",
+    ],
 }
 
 apex {

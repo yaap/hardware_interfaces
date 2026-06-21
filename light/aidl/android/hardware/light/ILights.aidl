@@ -16,8 +16,9 @@
 
 package android.hardware.light;
 
-import android.hardware.light.HwLightState;
 import android.hardware.light.HwLight;
+import android.hardware.light.HwLightEffect;
+import android.hardware.light.HwLightState;
 
 /**
  * Allows controlling logical lights/indicators, mapped to LEDs in a
@@ -28,10 +29,9 @@ interface ILights {
     /**
      * Set light identified by id to the provided state.
      *
-     * If control over an invalid light is requested, this method exists with
-     * EX_UNSUPPORTED_OPERATION. Control over supported lights is done on a
-     * device-specific best-effort basis and unsupported sub-features will not
-     * be reported.
+     * If control over an invalid light is requested, this method must throw an
+     * UnsupportedOperationException. Control over supported lights is done on a device-specific
+     * best-effort basis and unsupported sub-features will not be reported.
      *
      * @param id ID of logical light to set as returned by getLights()
      * @param state describes what the light should look like.
@@ -44,4 +44,19 @@ interface ILights {
      * @return List of available lights
      */
     HwLight[] getLights();
+
+    /**
+     * Plays light effects on one or more lights.
+     *
+     * If control over an invalid light is requested, this method throws an
+     * UnsupportedOperationException. Control over supported lights is done on a device-specific
+     * best-effort basis and unsupported sub-features will not be reported.
+     *
+     * If the effect is ill formed or requests unsupported frame rates this method must throw an
+     * IllegalArgumentException.
+     *
+     * @param effects Effects that should be applied to the different lights. The id of the light it
+     *                should be played on is specified in the light effect itself.
+     */
+    void setLightEffects(in HwLightEffect[] effects);
 }

@@ -1,0 +1,50 @@
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "hardware_interfaces_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["hardware_interfaces_license"],
+}
+
+aidl_interface {
+    name: "android.hardware.npu",
+    vendor_available: true,
+    srcs: [
+        "android/hardware/npu/*.aidl",
+    ],
+    stability: "vintf",
+    frozen: true,
+    backend: {
+        java: {
+            sdk_version: "system_current",
+            min_sdk_version: "36",
+
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.npumanager",
+            ],
+        },
+        cpp: {
+            enabled: true,
+        },
+        ndk: {
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.npumanager",
+            ],
+            enabled: true,
+            min_sdk_version: "36",
+        },
+        rust: {
+            enabled: true,
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
+}

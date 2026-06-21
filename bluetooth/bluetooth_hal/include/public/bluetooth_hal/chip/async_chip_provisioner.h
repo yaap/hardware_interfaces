@@ -24,17 +24,16 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/worker.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 
 enum class ChipProvisionMessageType : int {
-  kInitialize = 0,
-  kDownloadFirmware,
-  kResetFirmware,
+    kInitialize = 0,
+    kDownloadFirmware,
+    kResetFirmware,
 };
 
 struct InitializePayload {
-  std::function<void(::bluetooth_hal::HalState)> on_hal_state_update;
+    std::function<void(::bluetooth_hal::HalState)> on_hal_state_update;
 };
 
 struct DownloadFirmwarePayload {};
@@ -42,57 +41,60 @@ struct DownloadFirmwarePayload {};
 struct ResetFirmwarePayload {};
 
 class ChipProvisionMessage {
- public:
-  static ChipProvisionMessage CreateInitialize(InitializePayload payload);
+  public:
+    static ChipProvisionMessage CreateInitialize(InitializePayload payload);
 
-  static ChipProvisionMessage CreateDownloadFirmware();
+    static ChipProvisionMessage CreateDownloadFirmware();
 
-  static ChipProvisionMessage CreateResetFirmware();
+    static ChipProvisionMessage CreateResetFirmware();
 
-  ChipProvisionMessageType type;
-  std::variant<InitializePayload, DownloadFirmwarePayload, ResetFirmwarePayload>
-      payload;
+    ChipProvisionMessageType type;
+    std::variant<InitializePayload, DownloadFirmwarePayload, ResetFirmwarePayload> payload;
 
- private:
-  ChipProvisionMessage() = default;
+  private:
+    ChipProvisionMessage() = default;
 };
 
 class AsyncChipProvisioner {
- public:
-  AsyncChipProvisioner();
+  public:
+    AsyncChipProvisioner();
 
-  static AsyncChipProvisioner& GetProvisioner();
+    static AsyncChipProvisioner& GetProvisioner();
 
-  /**
-   * @brief Posts an initialization request.
-   *
-   * @param on_hal_state_update Callback function for HAL state updates.
-   *
-   */
-  void PostInitialize(
-      const std::function<void(::bluetooth_hal::HalState)> on_hal_state_update);
+    /**
+     * @brief Posts an initialization request.
+     *
+     * @param on_hal_state_update Callback function for HAL state updates.
+     *
+     */
+    void PostInitialize(const std::function<void(::bluetooth_hal::HalState)> on_hal_state_update);
 
-  /**
-   * @brief Posts a request to download firmware.
-   *
-   */
-  void PostDownloadFirmware();
+    /**
+     * @brief Posts a request to download firmware.
+     *
+     */
+    void PostDownloadFirmware();
 
-  /**
-   * @brief Posts a request to reset firmware.
-   *
-   */
-  void PostResetFirmware();
+    /**
+     * @brief Posts a request to reset firmware.
+     *
+     */
+    void PostResetFirmware();
 
- private:
-  void ProcessMessage(ChipProvisionMessage message);
-  void HandleInitialize(const InitializePayload& payload);
-  void HandleDownloadFirmware();
-  void HandleResetFirmware();
+    /**
+     * @brief Stops any ongoing chip provisioning activity.
+     *
+     */
+    void Stop();
 
-  ::bluetooth_hal::util::Worker<ChipProvisionMessage> worker_;
-  std::unique_ptr<ChipProvisionerInterface> chip_provisioner_;
+  private:
+    void ProcessMessage(ChipProvisionMessage message);
+    void HandleInitialize(const InitializePayload& payload);
+    void HandleDownloadFirmware();
+    void HandleResetFirmware();
+
+    ::bluetooth_hal::util::Worker<ChipProvisionMessage> worker_;
+    std::unique_ptr<ChipProvisionerInterface> chip_provisioner_;
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

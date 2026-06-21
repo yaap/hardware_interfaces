@@ -21,19 +21,15 @@
 #include <android-base/unique_fd.h>
 #include <android/hardware/graphics/composer3/ComposerClientReader.h>
 #include <android/hardware/graphics/composer3/ComposerClientWriter.h>
-#include <renderengine/RenderEngine.h>
 #include <ui/GraphicBuffer.h>
-#include <ui/PixelFormat.h>
-#include <memory>
+#include <ui/Rect.h>
 #include "ComposerClientWrapper.h"
-#include "RenderEngine.h"
 #include "TestLayer.h"
 
 using aidl::android::hardware::graphics::composer3::Luts;
 
 namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test {
 
-using ::android::renderengine::LayerSettings;
 using common::Dataspace;
 using common::PixelFormat;
 
@@ -58,8 +54,6 @@ class TestColorLayer : public TestLayer {
 
     void write(ComposerClientWriter& writer) override;
 
-    LayerSettings toRenderEngineLayerSettings() override;
-
     void setColor(Color color) { mColor = color; }
 
   private:
@@ -68,13 +62,11 @@ class TestColorLayer : public TestLayer {
 
 class TestBufferLayer : public TestLayer {
   public:
-    TestBufferLayer(ComposerClientWrapper& client, TestRenderEngine& renderEngine, int64_t display,
-                    uint32_t width, uint32_t height, common::PixelFormat format,
-                    ComposerClientWriter& writer, Composition composition = Composition::DEVICE);
+    TestBufferLayer(ComposerClientWrapper& client, int64_t display, uint32_t width, uint32_t height,
+                    common::PixelFormat format, ComposerClientWriter& writer,
+                    Composition composition = Composition::DEVICE);
 
     void write(ComposerClientWriter& writer) override;
-
-    LayerSettings toRenderEngineLayerSettings() override;
 
     void fillBuffer(std::vector<Color>& expectedColors);
 
@@ -93,7 +85,6 @@ class TestBufferLayer : public TestLayer {
   protected:
     Composition mComposition;
     ::android::sp<::android::GraphicBuffer> mGraphicBuffer;
-    TestRenderEngine& mRenderEngine;
     int32_t mFillFence;
     uint32_t mWidth;
     uint32_t mHeight;
@@ -108,22 +99,16 @@ class TestBufferLayer : public TestLayer {
 
 struct DisplayProperties {
     DisplayProperties(int64_t displayId, std::vector<ColorMode> testColorModes,
-                      std::unique_ptr<TestRenderEngine> testRenderEngine,
-                      ::android::renderengine::DisplaySettings clientCompositionDisplaySettings,
                       common::PixelFormat pixelFormat, common::Dataspace dataspace)
         : testColorModes(testColorModes),
           pixelFormat(pixelFormat),
           dataspace(dataspace),
-          testRenderEngine(std::move(testRenderEngine)),
-          clientCompositionDisplaySettings(std::move(clientCompositionDisplaySettings)),
           writer(displayId),
           reader(displayId) {}
 
     std::vector<ColorMode> testColorModes = {};
     common::PixelFormat pixelFormat = common::PixelFormat::UNSPECIFIED;
     common::Dataspace dataspace = common::Dataspace::UNKNOWN;
-    std::unique_ptr<TestRenderEngine> testRenderEngine = nullptr;
-    ::android::renderengine::DisplaySettings clientCompositionDisplaySettings = {};
     ComposerClientWriter writer;
     ComposerClientReader reader;
 };
@@ -163,9 +148,6 @@ class ReadbackHelper {
                                     const uint32_t stride, int32_t bytesPerPixel,
                                     const uint32_t width, const uint32_t height,
                                     PixelFormat pixelFormat);
-    static void compareColorBuffers(void* expectedBuffer, void* actualBuffer, const uint32_t stride,
-                                    int32_t bytesPerPixel, const uint32_t width,
-                                    const uint32_t height, PixelFormat pixelFormat);
 };
 
 class ReadbackBuffer {

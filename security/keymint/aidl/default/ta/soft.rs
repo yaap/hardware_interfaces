@@ -24,6 +24,8 @@ use kmr_crypto_boring::{hmac::BoringHmac, rng::BoringRng};
 use kmr_ta::device::RetrieveKeyMaterial;
 
 /// Root key retrieval using hard-coded fake keys.
+///
+/// This implementation is not suitable for use in a real device, as it is insecure (known keys).
 pub struct Keys;
 
 impl RetrieveKeyMaterial for Keys {
@@ -42,9 +44,16 @@ impl RetrieveKeyMaterial for Keys {
     }
 }
 
-/// Implementation of key derivation using a random fake key.
+/// Implementation of key derivation using a fake key (random by default).
 pub struct Derive {
     hbk: Vec<u8>,
+}
+
+impl Derive {
+    /// Create a new `Derive` instance using the given key.
+    pub fn new(hbk: Vec<u8>) -> Self {
+        Self { hbk }
+    }
 }
 
 impl Default for Derive {
@@ -64,4 +73,6 @@ impl crate::rpc::DeriveBytes for Derive {
 }
 
 /// RPC artifact retrieval using software fake key.
+///
+/// This implementation is not suitable for use in a real device, as it is insecure (known keys).
 pub type RpcArtifacts = crate::rpc::Artifacts<Derive>;

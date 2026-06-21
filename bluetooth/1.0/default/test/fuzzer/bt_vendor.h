@@ -20,40 +20,40 @@
 #include "bt_vendor_lib.h"
 
 class BtVendor {
- public:
-  static BtVendor* getInstance() {
-    if (!mInstance) {
-      mInstance = new BtVendor;
+  public:
+    static BtVendor* getInstance() {
+        if (!mInstance) {
+            mInstance = new BtVendor;
+        }
+        return mInstance;
     }
-    return mInstance;
-  }
 
-  void setVendorCback(bt_vendor_callbacks_t* cb, bt_vendor_opcode_t opcode) {
-    mCbacks = cb;
-    mOpcode = opcode;
-  }
-
-  int32_t* queryFdList() { return fdList; }
-  size_t queryFdCount() { return fdCount; }
-  void callRemainingCbacks();
-  void populateFdList(int32_t list[], size_t count);
-
- private:
-  BtVendor() = default;
-
-  ~BtVendor() {
-    if (mInstance) {
-      delete mInstance;
-      mInstance = nullptr;
+    void setVendorCback(bt_vendor_callbacks_t* cb, bt_vendor_opcode_t opcode) {
+        mCbacks = cb;
+        mOpcode = opcode;
     }
-    mCbacks = nullptr;
-  }
 
-  static BtVendor* mInstance;
-  bt_vendor_callbacks_t* mCbacks = nullptr;
-  bt_vendor_opcode_t mOpcode;
-  int32_t fdCount;
-  int32_t fdList[CH_MAX] = {0};
+    int32_t* queryFdList() { return fdList; }
+    size_t queryFdCount() { return fdCount; }
+    void callRemainingCbacks();
+    void populateFdList(int32_t list[], size_t count);
+
+  private:
+    BtVendor() = default;
+
+    ~BtVendor() {
+        if (mInstance) {
+            delete mInstance;
+            mInstance = nullptr;
+        }
+        mCbacks = nullptr;
+    }
+
+    static BtVendor* mInstance;
+    bt_vendor_callbacks_t* mCbacks = nullptr;
+    bt_vendor_opcode_t mOpcode;
+    int32_t fdCount;
+    int32_t fdList[CH_MAX] = {0};
 };
 
 BtVendor* BtVendor::mInstance = nullptr;

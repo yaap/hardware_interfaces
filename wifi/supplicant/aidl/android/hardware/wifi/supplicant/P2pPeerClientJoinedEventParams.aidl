@@ -17,6 +17,7 @@
 package android.hardware.wifi.supplicant;
 
 import android.hardware.wifi.common.OuiKeyedData;
+import android.hardware.wifi.supplicant.ConnectionCapabilities;
 
 /**
  * Parameters passed as a part of P2P peer client joined event.
@@ -53,4 +54,9 @@ parcelable P2pPeerClientJoinedEventParams {
      * This is a bitmask of |KeyMgmtMask| values.
      */
     int keyMgmtMask;
+
+    /**
+     * The connection capabilities reported by the peer client for the current P2P connection.
+     */
+    @nullable ConnectionCapabilities connectionCapabilities;
 }

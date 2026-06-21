@@ -21,377 +21,459 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 namespace {
 
 using ::bluetooth_hal::hci::HalPacket;
 
 class HciMonitorTest : public ::testing::Test {
- protected:
-  void SetUp() override {}
-  void TearDown() override {}
+  protected:
+    void SetUp() override {}
+    void TearDown() override {}
 };
 
 TEST_F(HciMonitorTest, HciMonitorCommandEqual) {
-  // Command
-  uint16_t primary_code = 0x0c03;
-  HciMonitor monitor1(MonitorType::kCommand, primary_code,
-                      PacketDestination::kController);
-  HciMonitor monitor2(MonitorType::kCommand, primary_code,
-                      PacketDestination::kController);
-  EXPECT_TRUE(monitor1 == monitor2);
+    // Command
+    uint16_t primary_code = 0x0c03;
+    HciMonitor monitor1(MonitorType::kCommand, primary_code, PacketDestination::kController);
+    HciMonitor monitor2(MonitorType::kCommand, primary_code, PacketDestination::kController);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciMonitorEventEqual) {
-  // Event
-  uint16_t primary_code = 0x02;
-  HciMonitor monitor1(MonitorType::kEvent, primary_code,
-                      PacketDestination::kHost);
-  HciMonitor monitor2(MonitorType::kEvent, primary_code,
-                      PacketDestination::kHost);
-  EXPECT_TRUE(monitor1 == monitor2);
+    // Event
+    uint16_t primary_code = 0x02;
+    HciMonitor monitor1(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    HciMonitor monitor2(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciMonitorTypeNotEqual) {
-  // Types not equal
-  uint16_t primary_code = 0x0c03;
-  HciMonitor monitor1(MonitorType::kCommand, primary_code,
-                      PacketDestination::kController);
-  HciMonitor monitor2(MonitorType::kEvent, primary_code,
-                      PacketDestination::kHost);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // Types not equal
+    uint16_t primary_code = 0x0c03;
+    HciMonitor monitor1(MonitorType::kCommand, primary_code, PacketDestination::kController);
+    HciMonitor monitor2(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciMonitorEventNotEqual) {
-  // primary_codes not equal
-  uint16_t code1 = 0x02;
-  uint16_t code2 = 0x03;
-  HciMonitor monitor1(MonitorType::kEvent, code1, PacketDestination::kHost);
-  HciMonitor monitor2(MonitorType::kEvent, code2, PacketDestination::kHost);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // primary_codes not equal
+    uint16_t code1 = 0x02;
+    uint16_t code2 = 0x03;
+    HciMonitor monitor1(MonitorType::kEvent, code1, PacketDestination::kHost);
+    HciMonitor monitor2(MonitorType::kEvent, code2, PacketDestination::kHost);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciMonitorCommandNotEqual) {
-  // Sub-codes not equal
-  uint16_t code1 = 0xfd2b;
-  uint16_t code2 = 0x1234;
-  HciMonitor monitor1(MonitorType::kCommand, code1,
-                      PacketDestination::kController);
-  HciMonitor monitor2(MonitorType::kCommand, code2,
-                      PacketDestination::kController);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // Sub-codes not equal
+    uint16_t code1 = 0xfd2b;
+    uint16_t code2 = 0x1234;
+    HciMonitor monitor1(MonitorType::kCommand, code1, PacketDestination::kController);
+    HciMonitor monitor2(MonitorType::kCommand, code2, PacketDestination::kController);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketTypeNotEqual) {
-  // Type not equal
-  uint16_t primary_code = 0x0c03;
-  HciMonitor monitor(MonitorType::kEvent, primary_code,
-                     PacketDestination::kHost);
-  HalPacket packet({0x01, 0x03, 0x0c, 0x00});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_FALSE(packet == monitor);
+    // Type not equal
+    uint16_t primary_code = 0x0c03;
+    HciMonitor monitor(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    HalPacket packet({0x01, 0x03, 0x0c, 0x00});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_FALSE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketSubCodeNotEqual) {
-  // Sub-code not equal
-  uint16_t primary_code = 0xfd54;
-  uint16_t secondary_code = 0x02;  // should be 0x01
-  uint16_t offset = 4;
-  HciMonitor monitor(MonitorType::kCommand, primary_code,
-                     PacketDestination::kController);
-  monitor.MonitorOffset(secondary_code, offset);
+    // Sub-code not equal
+    uint16_t primary_code = 0xfd54;
+    uint16_t secondary_code = 0x02;  // should be 0x01
+    uint16_t offset = 4;
+    HciMonitor monitor(MonitorType::kCommand, primary_code, PacketDestination::kController);
+    monitor.MonitorOffset(secondary_code, offset);
 
-  // LE Multi ADV Command
-  HalPacket packet({0x01, 0x54, 0xfd, 0x18, 0x01, 0x90, 0x01, 0xc2, 0x01, 0x00,
-                    0x01, 0x9e, 0x46, 0x7e, 0x8f, 0x96, 0x66, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x01, 0xf1});
-  packet.SetDestination(PacketDestination::kController);
-  EXPECT_FALSE(packet == monitor);
+    // LE Multi ADV Command
+    HalPacket packet({0x01, 0x54, 0xfd, 0x18, 0x01, 0x90, 0x01, 0xc2, 0x01, 0x00,
+                      0x01, 0x9e, 0x46, 0x7e, 0x8f, 0x96, 0x66, 0x00, 0x00, 0x00,
+                      0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x01, 0xf1});
+    packet.SetDestination(PacketDestination::kController);
+    EXPECT_FALSE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketPrimaryCodeNotEqual) {
-  // primary_code not equal
-  uint16_t primary_code = 0x15;  // should be 0x14
-  HciMonitor monitor(MonitorType::kEvent, primary_code,
-                     PacketDestination::kHost);
-  HalPacket packet({0x04, 0x14, 0x06, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_FALSE(packet == monitor);
+    // primary_code not equal
+    uint16_t primary_code = 0x15;  // should be 0x14
+    HciMonitor monitor(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    HalPacket packet({0x04, 0x14, 0x06, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_FALSE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketOffsetNotEqual) {
-  // Offset not equal
-  uint16_t primary_code = 0x3e;
-  uint16_t secondary_code = 0x03;
-  uint16_t offset = 6;  // should be 3
-  HciMonitor monitor(MonitorType::kEvent, primary_code,
-                     PacketDestination::kHost);
-  monitor.MonitorOffset(secondary_code, offset);
+    // Offset not equal
+    uint16_t primary_code = 0x3e;
+    uint16_t secondary_code = 0x03;
+    uint16_t offset = 6;  // should be 3
+    HciMonitor monitor(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    monitor.MonitorOffset(secondary_code, offset);
 
-  // LE Connection Update Complete event
-  HalPacket packet({0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00,
-                    0x00, 0x00, 0x0a});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_FALSE(packet == monitor);
+    // LE Connection Update Complete event
+    HalPacket packet(
+            {0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x0a});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_FALSE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketOverflowNotEqual) {
-  // Offset overflow
-  uint16_t primary_code = 0x3e;
-  uint16_t secondary_code = 0x03;
-  uint16_t offset = 999;  // should be 3
-  HciMonitor monitor(MonitorType::kEvent, primary_code,
-                     PacketDestination::kHost);
-  monitor.MonitorOffset(secondary_code, offset);
-  // LE Connection Update Complete event
-  HalPacket packet({0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00,
-                    0x00, 0x00, 0x0a});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_FALSE(packet == monitor);
+    // Offset overflow
+    uint16_t primary_code = 0x3e;
+    uint16_t secondary_code = 0x03;
+    uint16_t offset = 999;  // should be 3
+    HciMonitor monitor(MonitorType::kEvent, primary_code, PacketDestination::kHost);
+    monitor.MonitorOffset(secondary_code, offset);
+    // LE Connection Update Complete event
+    HalPacket packet(
+            {0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x0a});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_FALSE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, HciMonitorDirectionNotEqual) {
-  // direction not equal
-  uint16_t code = 0x02;
-  HciMonitor monitor1(MonitorType::kEvent, code, PacketDestination::kHost);
-  HciMonitor monitor2(MonitorType::kEvent, code,
-                      PacketDestination::kController);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // direction not equal
+    uint16_t code = 0x02;
+    HciMonitor monitor1(MonitorType::kEvent, code, PacketDestination::kHost);
+    HciMonitor monitor2(MonitorType::kEvent, code, PacketDestination::kController);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciEventMonitorWithEventCodeOnly) {
-  uint8_t event_code = 0xff;
-  HciEventMonitor monitor1(event_code);
-  HciEventMonitor monitor2(event_code);
-  EXPECT_TRUE(monitor1 == monitor2);
+    uint8_t event_code = 0xff;
+    HciEventMonitor monitor1(event_code);
+    HciEventMonitor monitor2(event_code);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciEventMonitorWithSubEventCode) {
-  // BLE Meta Event
-  uint8_t primary_code = 0x3e;
-  uint8_t secondary_code = 0x01;
-  int offset = 4;
-  HciEventMonitor monitor1(primary_code, secondary_code, offset);
-  HciEventMonitor monitor2(primary_code, secondary_code, offset);
-  EXPECT_TRUE(monitor1 == monitor2);
+    // BLE Meta Event
+    uint8_t primary_code = 0x3e;
+    uint8_t secondary_code = 0x01;
+    int offset = 4;
+    HciEventMonitor monitor1(primary_code, secondary_code, offset);
+    HciEventMonitor monitor2(primary_code, secondary_code, offset);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciEventMonitorOffsetNotEqual) {
-  // Offsets not equal
-  uint8_t event_code = 0x12;
-  uint8_t sub_event_code = 0x34;
-  int offset1 = 5;
-  int offset2 = 6;
-  HciEventMonitor monitor1(event_code, sub_event_code, offset1);
-  HciEventMonitor monitor2(event_code, sub_event_code, offset2);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // Offsets not equal
+    uint8_t event_code = 0x12;
+    uint8_t sub_event_code = 0x34;
+    int offset1 = 5;
+    int offset2 = 6;
+    HciEventMonitor monitor1(event_code, sub_event_code, offset1);
+    HciEventMonitor monitor2(event_code, sub_event_code, offset2);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketEventEqual) {
-  // HCI Event
-  uint8_t event_code = 0x14;
-  HciEventMonitor monitor(event_code);
-  HalPacket packet({0x04, 0x14, 0x06, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_TRUE(packet == monitor);
+    // HCI Event
+    uint8_t event_code = 0x14;
+    HciEventMonitor monitor(event_code);
+    HalPacket packet({0x04, 0x14, 0x06, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_TRUE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketEventWithSubCodeEqual) {
-  // HCI Event with sub-code
-  uint8_t event_code = 0x3e;
-  uint8_t sub_event_code = 0x03;
-  int offset = 3;
-  HciEventMonitor monitor(event_code, sub_event_code, offset);
-  // LE Connection Update Complete event
-  HalPacket packet({0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00,
-                    0x00, 0x00, 0x0a});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_TRUE(packet == monitor);
+    // HCI Event with sub-code
+    uint8_t event_code = 0x3e;
+    uint8_t sub_event_code = 0x03;
+    int offset = 3;
+    HciEventMonitor monitor(event_code, sub_event_code, offset);
+    // LE Connection Update Complete event
+    HalPacket packet(
+            {0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x0a});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_TRUE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, HciCommandMonitorWithOpcodeOnly) {
-  uint16_t opcode = 0xff;
-  HciCommandMonitor monitor1(opcode);
-  HciCommandMonitor monitor2(opcode);
-  EXPECT_TRUE(monitor1 == monitor2);
+    uint16_t opcode = 0xff;
+    HciCommandMonitor monitor1(opcode);
+    HciCommandMonitor monitor2(opcode);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciCommandMonitorWithSubOpcode) {
-  // Vendor Command
-  uint16_t primary_code = 0xfd2b;
-  uint8_t secondary_code = 0x01;
-  int offset = 5;
-  HciCommandMonitor monitor1(primary_code, secondary_code, offset);
-  HciCommandMonitor monitor2(primary_code, secondary_code, offset);
-  EXPECT_TRUE(monitor1 == monitor2);
+    // Vendor Command
+    uint16_t primary_code = 0xfd2b;
+    uint8_t secondary_code = 0x01;
+    int offset = 5;
+    HciCommandMonitor monitor1(primary_code, secondary_code, offset);
+    HciCommandMonitor monitor2(primary_code, secondary_code, offset);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciCommandMonitorOffsetNotEqual) {
-  // Offsets not equal
-  uint16_t opcode = 0x1234;
-  uint8_t sub_opcode = 0x56;
-  int offset1 = 5;
-  int offset2 = 6;
-  HciCommandMonitor monitor1(opcode, sub_opcode, offset1);
-  HciCommandMonitor monitor2(opcode, sub_opcode, offset2);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // Offsets not equal
+    uint16_t opcode = 0x1234;
+    uint8_t sub_opcode = 0x56;
+    int offset1 = 5;
+    int offset2 = 6;
+    HciCommandMonitor monitor1(opcode, sub_opcode, offset1);
+    HciCommandMonitor monitor2(opcode, sub_opcode, offset2);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketCommandEqual) {
-  // HCI Command
-  uint16_t opcode = 0x0c03;
-  HciCommandMonitor monitor(opcode);
-  HalPacket packet({0x01, 0x03, 0x0c, 0x00});
-  packet.SetDestination(PacketDestination::kController);
-  EXPECT_TRUE(packet == monitor);
+    // HCI Command
+    uint16_t opcode = 0x0c03;
+    HciCommandMonitor monitor(opcode);
+    HalPacket packet({0x01, 0x03, 0x0c, 0x00});
+    packet.SetDestination(PacketDestination::kController);
+    EXPECT_TRUE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketCommandWithSubCodeEqual) {
-  // HCI Command with sub-code
-  uint16_t opcode = 0xfd54;
-  uint8_t sub_opcode = 0x01;
-  int offset = 4;
-  HciCommandMonitor monitor(opcode, sub_opcode, offset);
-  // LE Multi ADV Command
-  HalPacket packet({0x01, 0x54, 0xfd, 0x18, 0x01, 0x90, 0x01, 0xc2, 0x01, 0x00,
-                    0x01, 0x9e, 0x46, 0x7e, 0x8f, 0x96, 0x66, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x01, 0xf1});
-  packet.SetDestination(PacketDestination::kController);
-  EXPECT_TRUE(packet == monitor);
+    // HCI Command with sub-code
+    uint16_t opcode = 0xfd54;
+    uint8_t sub_opcode = 0x01;
+    int offset = 4;
+    HciCommandMonitor monitor(opcode, sub_opcode, offset);
+    // LE Multi ADV Command
+    HalPacket packet({0x01, 0x54, 0xfd, 0x18, 0x01, 0x90, 0x01, 0xc2, 0x01, 0x00,
+                      0x01, 0x9e, 0x46, 0x7e, 0x8f, 0x96, 0x66, 0x00, 0x00, 0x00,
+                      0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x01, 0xf1});
+    packet.SetDestination(PacketDestination::kController);
+    EXPECT_TRUE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, HciBleMetaEventMonitorEqual) {
-  // LE Connection Update Complete event
-  uint8_t correct_ble_event = 0x03;
-  uint8_t incorrect_ble_event = 0x05;
-  HalPacket packet({0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00,
-                    0x00, 0x00, 0x0a});
-  packet.SetDestination(PacketDestination::kHost);
+    // LE Connection Update Complete event
+    uint8_t correct_ble_event = 0x03;
+    uint8_t incorrect_ble_event = 0x05;
+    HalPacket packet(
+            {0x04, 0x3e, 0x0a, 0x03, 0x00, 0x40, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x0a});
+    packet.SetDestination(PacketDestination::kHost);
 
-  HciBleMetaEventMonitor monitor1(correct_ble_event);
-  HciBleMetaEventMonitor monitor2(incorrect_ble_event);
+    HciBleMetaEventMonitor monitor1(correct_ble_event);
+    HciBleMetaEventMonitor monitor2(incorrect_ble_event);
 
-  EXPECT_TRUE(monitor1 == monitor1);
-  EXPECT_TRUE(packet == monitor1);
-  EXPECT_FALSE(packet == monitor2);
-  EXPECT_FALSE(monitor1 == monitor2);
+    EXPECT_TRUE(monitor1 == monitor1);
+    EXPECT_TRUE(packet == monitor1);
+    EXPECT_FALSE(packet == monitor2);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciBqrEventMonitorEqual) {
-  // BQR root inflammation event
-  uint8_t root_inflammation_report_id = 0x05;
-  HalPacket correct_packet({0x04, 0xff, 0x04, 0x58, 0x05, 0x00, 0x01});
-  HalPacket incorrect_packet({0x01, 0x03, 0x0c, 0x00});
-  correct_packet.SetDestination(PacketDestination::kHost);
-  incorrect_packet.SetDestination(PacketDestination::kHost);
+    // BQR root inflammation event
+    uint8_t root_inflammation_report_id = 0x05;
+    HalPacket correct_packet({0x04, 0xff, 0x04, 0x58, 0x05, 0x00, 0x01});
+    HalPacket incorrect_packet({0x01, 0x03, 0x0c, 0x00});
+    correct_packet.SetDestination(PacketDestination::kHost);
+    incorrect_packet.SetDestination(PacketDestination::kHost);
 
-  HciBqrEventMonitor monitor1;
-  HciBqrEventMonitor monitor2(root_inflammation_report_id);
+    HciBqrEventMonitor monitor1;
+    HciBqrEventMonitor monitor2(root_inflammation_report_id);
 
-  EXPECT_TRUE(correct_packet == monitor1);
-  EXPECT_TRUE(correct_packet == monitor2);
-  EXPECT_FALSE(incorrect_packet == monitor1);
-  EXPECT_FALSE(incorrect_packet == monitor2);
+    EXPECT_TRUE(correct_packet == monitor1);
+    EXPECT_TRUE(correct_packet == monitor2);
+    EXPECT_FALSE(incorrect_packet == monitor1);
+    EXPECT_FALSE(incorrect_packet == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciCommandCompleteEventMonitorEqual) {
-  // HCI RESET command opcode
-  uint16_t opcode = 0x0c03;
+    // HCI RESET command opcode
+    uint16_t opcode = 0x0c03;
 
-  // HCI RESET command complete event
-  HalPacket correct_packet({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00});
-  HalPacket incorrect_packet({0x01, 0x03, 0x0c, 0x00});
-  correct_packet.SetDestination(PacketDestination::kHost);
-  incorrect_packet.SetDestination(PacketDestination::kHost);
+    // HCI RESET command complete event
+    HalPacket correct_packet({0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00});
+    HalPacket incorrect_packet({0x01, 0x03, 0x0c, 0x00});
+    correct_packet.SetDestination(PacketDestination::kHost);
+    incorrect_packet.SetDestination(PacketDestination::kHost);
 
-  HciCommandCompleteEventMonitor monitor(opcode);
+    HciCommandCompleteEventMonitor monitor(opcode);
 
-  EXPECT_TRUE(correct_packet == monitor);
-  EXPECT_FALSE(incorrect_packet == monitor);
+    EXPECT_TRUE(correct_packet == monitor);
+    EXPECT_FALSE(incorrect_packet == monitor);
 }
 
 TEST_F(HciMonitorTest, HciCommandStatusEventMonitorEqual) {
-  // HCI INQUIRY command opcode
-  uint16_t opcode = 0x0401;
+    // HCI INQUIRY command opcode
+    uint16_t opcode = 0x0401;
 
-  // HCI INQUIRY command status event
-  HalPacket correct_packet({0x04, 0x0f, 0x04, 0x00, 0x01, 0x01, 0x04});
-  HalPacket incorrect_packet({0x01, 0x03, 0x0c, 0x00});
-  correct_packet.SetDestination(PacketDestination::kHost);
-  incorrect_packet.SetDestination(PacketDestination::kHost);
+    // HCI INQUIRY command status event
+    HalPacket correct_packet({0x04, 0x0f, 0x04, 0x00, 0x01, 0x01, 0x04});
+    HalPacket incorrect_packet({0x01, 0x03, 0x0c, 0x00});
+    correct_packet.SetDestination(PacketDestination::kHost);
+    incorrect_packet.SetDestination(PacketDestination::kHost);
 
-  HciCommandStatusEventMonitor monitor(opcode);
+    HciCommandStatusEventMonitor monitor(opcode);
 
-  EXPECT_TRUE(correct_packet == monitor);
-  EXPECT_FALSE(incorrect_packet == monitor);
+    EXPECT_TRUE(correct_packet == monitor);
+    EXPECT_FALSE(incorrect_packet == monitor);
 }
 
 TEST_F(HciMonitorTest, HciThreadMonitorEqual) {
-  // Default constructor.
-  HciThreadMonitor monitor1;
-  HciThreadMonitor monitor2;
-  EXPECT_TRUE(monitor1 == monitor2);
+    // Default constructor.
+    HciThreadMonitor monitor1;
+    HciThreadMonitor monitor2;
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciThreadMonitorWithOffsetEqual) {
-  // Constructor with offset and data.
-  int offset = 2;
-  uint8_t data = 0xab;
-  HciThreadMonitor monitor1(offset, data);
-  HciThreadMonitor monitor2(offset, data);
-  EXPECT_TRUE(monitor1 == monitor2);
+    // Constructor with offset and data.
+    int offset = 2;
+    uint8_t data = 0xab;
+    HciThreadMonitor monitor1(offset, data);
+    HciThreadMonitor monitor2(offset, data);
+    EXPECT_TRUE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciThreadMonitorOffsetNotEqual) {
-  // Different offsets.
-  int offset1 = 2;
-  int offset2 = 3;
-  uint8_t data = 0xab;
-  HciThreadMonitor monitor1(offset1, data);
-  HciThreadMonitor monitor2(offset2, data);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // Different offsets.
+    int offset1 = 2;
+    int offset2 = 3;
+    uint8_t data = 0xab;
+    HciThreadMonitor monitor1(offset1, data);
+    HciThreadMonitor monitor2(offset2, data);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, HciThreadMonitorDataNotEqual) {
-  // Different data at the same offset.
-  int offset = 2;
-  uint8_t data1 = 0xab;
-  uint8_t data2 = 0xcd;
-  HciThreadMonitor monitor1(offset, data1);
-  HciThreadMonitor monitor2(offset, data2);
-  EXPECT_FALSE(monitor1 == monitor2);
+    // Different data at the same offset.
+    int offset = 2;
+    uint8_t data1 = 0xab;
+    uint8_t data2 = 0xcd;
+    HciThreadMonitor monitor1(offset, data1);
+    HciThreadMonitor monitor2(offset, data2);
+    EXPECT_FALSE(monitor1 == monitor2);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketThreadEqual) {
-  // Default thread monitor matches any thread packet.
-  HciThreadMonitor monitor;
-  HalPacket packet({0x70, 0x01, 0x02, 0x03});
-  packet.SetDestination(PacketDestination::kHost);
-  EXPECT_TRUE(packet == monitor);
+    // Default thread monitor matches any thread packet.
+    HciThreadMonitor monitor;
+    HalPacket packet({0x70, 0x01, 0x02, 0x03});
+    packet.SetDestination(PacketDestination::kHost);
+    EXPECT_TRUE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketThreadWrongDirection) {
-  // The thread monitor only catches packets from the controller.
-  HciThreadMonitor monitor;
-  HalPacket packet({0x70, 0x01, 0x02, 0x03});
-  packet.SetDestination(PacketDestination::kController);
-  EXPECT_FALSE(packet == monitor);
+    // The thread monitor only catches packets from the controller.
+    HciThreadMonitor monitor;
+    HalPacket packet({0x70, 0x01, 0x02, 0x03});
+    packet.SetDestination(PacketDestination::kController);
+    EXPECT_FALSE(packet == monitor);
 }
 
 TEST_F(HciMonitorTest, BluetoothPacketThreadWithOffsetEqual) {
-  // Thread monitor with specific offset and data.
-  int offset = 2;
-  uint8_t data = 0xab;
-  HciThreadMonitor monitor(offset, data);
-  HalPacket packet({0x70, 0x01, 0xab, 0x03});
-  HalPacket wrong_data_packet({0x70, 0x01, 0xcd, 0x03});
-  packet.SetDestination(PacketDestination::kHost);
-  wrong_data_packet.SetDestination(PacketDestination::kHost);
-  EXPECT_TRUE(packet == monitor);
-  EXPECT_FALSE(wrong_data_packet == monitor);
+    // Thread monitor with specific offset and data.
+    int offset = 2;
+    uint8_t data = 0xab;
+    HciThreadMonitor monitor(offset, data);
+    HalPacket packet({0x70, 0x01, 0xab, 0x03});
+    HalPacket wrong_data_packet({0x70, 0x01, 0xcd, 0x03});
+    packet.SetDestination(PacketDestination::kHost);
+    wrong_data_packet.SetDestination(PacketDestination::kHost);
+    EXPECT_TRUE(packet == monitor);
+    EXPECT_FALSE(wrong_data_packet == monitor);
 }
 
+TEST_F(HciMonitorTest, MonitorOffsetExclusionRejectPacket) {
+    // Test exclusive data should be false
+    uint16_t code = 0x1234;
+    HciMonitor monitor(MonitorType::kCommand, code, PacketDestination::kController);
+    HalPacket packet({0x01, 0x34, 0x12, 0x30, 0xFF, 0xFF});
+    monitor.MonitorOffsetExclusion(4, 0xFF);
+    EXPECT_FALSE(packet == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorOffsetExclusionAcceptPacket) {
+    // Test no exclusive packet for offset should be pass
+    uint16_t code = 0x1234;
+    HciMonitor monitor(MonitorType::kCommand, code, PacketDestination::kController);
+    HalPacket packet({0x01, 0x34, 0x12, 0xFF, 0x00, 0x00, 0x30});
+    monitor.MonitorOffsetExclusion(2, 0xFF);
+    EXPECT_TRUE(packet == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorOffsetExclusionIgnoreOOBPacket) {
+    // Test exclusion offset out of packet size will be ignored
+    uint16_t code = 0x1234;
+    HciMonitor monitor(MonitorType::kCommand, code, PacketDestination::kController);
+    HalPacket packet({0x01, 0x34, 0x12, 0xFF, 0x00});
+    monitor.MonitorOffsetExclusion(10, 0xFF);
+    EXPECT_FALSE(packet == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorEqualityWithExclusion) {
+    // Test the operator== correctly compare the exclusion map
+    uint16_t code = 0x01;
+    HciMonitor monitor1(MonitorType::kCommand, code, PacketDestination::kController);
+    HciMonitor monitor2(MonitorType::kCommand, code, PacketDestination::kController);
+    monitor1.MonitorOffsetExclusion(1, 0xFE);
+    monitor2.MonitorOffsetExclusion(1, 0xFE);
+    EXPECT_TRUE(monitor1 == monitor2);
+
+    monitor2.MonitorOffsetExclusion(1, 0xFF);
+    EXPECT_FALSE(monitor1 == monitor2);
+}
+
+TEST_F(HciMonitorTest, MonitorLessThanWithExclusion) {
+    // Test the operator< correctly compare the exclusion map
+    uint16_t code = 0x01;
+    HciMonitor monitor1(MonitorType::kCommand, code, PacketDestination::kController);
+    HciMonitor monitor2(MonitorType::kCommand, code, PacketDestination::kController);
+    monitor1.MonitorOffsetExclusion(1, 0x00);
+    monitor2.MonitorOffsetExclusion(1, 0x10);
+    EXPECT_TRUE(monitor1 < monitor2);
+    EXPECT_FALSE(monitor2 < monitor1);
+}
+
+TEST_F(HciMonitorTest, MonitorOffetAndExclusionConflict) {
+    // Test same offset with same value of MonitorOffset
+    // and MonitorOffsetEdxclusion
+    uint16_t code = 0x0123;
+    HciMonitor monitor(MonitorType::kCommand, code, PacketDestination::kController);
+    monitor.MonitorOffset(3, 0x01);
+    monitor.MonitorOffsetExclusion(3, 0x01);
+    HalPacket packet1({0x01, 0x23, 0x01, 0x01});
+    EXPECT_FALSE(packet1 == monitor);
+
+    HalPacket packet2({0x01, 0x23, 0x01, 0x01});
+    EXPECT_FALSE(packet2 == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorOffsetAndExclusionRedundant) {
+    // Test same offset with different values of MonitorOffset
+    // and MonitorOffsetEdxclusion
+    uint16_t code = 0x1234;
+    HciMonitor monitor(MonitorType::kCommand, code, PacketDestination::kController);
+    monitor.MonitorOffset(3, 0x01);
+    monitor.MonitorOffsetExclusion(3, 0xFF);
+    HalPacket packet1({0x01, 0x34, 0x12, 0x01});
+    EXPECT_TRUE(packet1 == monitor);
+
+    HalPacket packet2({0x01, 0x34, 0x12, 0x02});
+    EXPECT_FALSE(packet2 == monitor);
+
+    HalPacket packet3({0x01, 0x34, 0x12, 0xFF});
+    EXPECT_FALSE(packet3 == monitor);
+}
+
+TEST_F(HciMonitorTest, MonitorAndExclusionDifferentOffset) {
+    // Test different offsets with different values of
+    // MonitorOffset and MonitorOffsetEdxclusion
+    uint16_t code = 0x0123;
+    HciMonitor monitor(MonitorType::kCommand, code, PacketDestination::kController);
+    monitor.MonitorOffset(4, 0x01);
+    monitor.MonitorOffsetExclusion(3, 0xFF);
+    HalPacket packet1({0x01, 0x23, 0x01, 0xFE, 0x01});
+    EXPECT_TRUE(packet1 == monitor);
+
+    HalPacket packet2({0x01, 0x23, 0x01, 0x00, 0x02});
+    EXPECT_FALSE(packet2 == monitor);
+
+    HalPacket packet3({0x01, 0x23, 0x01, 0xFF, 0x01});
+    EXPECT_FALSE(packet3 == monitor);
+}
 }  // namespace
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

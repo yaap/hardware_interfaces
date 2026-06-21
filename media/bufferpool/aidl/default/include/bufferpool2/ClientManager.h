@@ -165,6 +165,63 @@ struct ClientManager : public BnClientManager {
                           int64_t *timestampMs);
 
     /**
+     * Enable caching per a buffer which is received/allocated via the specified
+     * BufferPool connection.
+     *
+     * @param connectionId      The connection Id by which the buffers are
+     *                          received/allocated.
+     * @param cacheName         Name for cache
+     * @param key               Key for cache update/retrieval
+     *
+     * @return OK when caching is enabled successfully.
+     *         ALREADY_EXISTS if the cache is already enabled by the cacheName.
+     *         CRITICAL_ERROR otherwise.
+     */
+    BufferPoolStatus enableCaching(
+            const ConnectionId connectionId,
+            const std::string &cacheName,
+            std::shared_ptr<BufferPoolCacheKey> *key);
+
+    /**
+     * Update a cache for a buffer. The cache's lifecycle is tied to the buffer.
+     * If the buffer is evicted or invalided from BufferPool, the cache is also
+     * invalidated(destroyed).
+     *
+     * This invalidates(destroys) the previously cached item. If nullptr is
+     * given as the item argument, the previously cached item is deleted.
+     *
+     * @param buffer        The owner of the cache
+     * @param key           The key for cache update(should be same to the key
+     *                      returned from enableCaching()).
+     * @param item          the item to be cached(buffer specific data).
+     *
+     * @return OK when cache is updated successfully.
+     *         NOT_FOUND when cache is not enabled by the given cacheName.
+     *         CRITICAL_ERROR otherwise.
+     */
+    BufferPoolStatus updateCache(
+            const std::shared_ptr<BufferPoolData> &buffer,
+            const std::shared_ptr<BufferPoolCacheKey> &key,
+            const std::shared_ptr<BufferPoolCachedItem> &item);
+
+    /**
+     * Retrieve a cache for a buffer.
+     *
+     * @param buffer        The owner of the cache
+     * @param key           The key for cache retrieval(should be same to the key
+     *                      returned from enableCaching()).
+     * @param item          out parameter for the cached item(buffer specific data).
+     *
+     * @return OK when cache is retrieved successfully(even if it is nullptr).
+     *         NOT_FOUND when cache is not enabled by the given cacheName.
+     *         CRITICAL_ERROR otherwise.
+     */
+    BufferPoolStatus getCache(
+            const std::shared_ptr<BufferPoolData> &buffer,
+            const std::shared_ptr<BufferPoolCacheKey> &key,
+            std::shared_ptr<BufferPoolCachedItem> *item);
+
+    /**
      *  Time out inactive lingering connections and close.
      */
     void cleanUp();
@@ -178,6 +235,7 @@ private:
     class Impl;
     const std::unique_ptr<Impl> mImpl;
 
+    friend class Impl;
     friend class ::ndk::SharedRefBase;
 
     ClientManager();

@@ -63,7 +63,8 @@ parcelable RttResult {
     RttStatus status;
     /**
      * If status is RTT_STATUS_FAIL_BUSY_TRY_LATER, this will be the time provided by the responder
-     * as to when the request can be tried again. Applies to 2-sided RTT only. In sec, 1-31 sec.
+     * as to when the request can be tried again. Applies to 2-sided RTT only.
+     * The unit is 128 milliseconds. e.g. a value of 1 means 128 ms.
      */
     byte retryAfterDuration;
     /**

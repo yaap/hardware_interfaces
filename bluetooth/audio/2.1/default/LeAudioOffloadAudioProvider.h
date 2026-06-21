@@ -28,28 +28,28 @@ namespace V2_1 {
 namespace implementation {
 
 class LeAudioOffloadAudioProvider : public BluetoothAudioProvider {
- public:
-  LeAudioOffloadAudioProvider();
+  public:
+    LeAudioOffloadAudioProvider();
 
-  bool isValid(const SessionType& sessionType) override;
-  bool isValid(const V2_0::SessionType& sessionType) override;
+    bool isValid(const SessionType& sessionType) override;
+    bool isValid(const V2_0::SessionType& sessionType) override;
 
-  Return<void> startSession_2_1(const sp<V2_0::IBluetoothAudioPort>& hostIf,
-                                const AudioConfiguration& audioConfig,
-                                startSession_cb _hidl_cb) override;
+    Return<void> startSession_2_1(const sp<V2_0::IBluetoothAudioPort>& hostIf,
+                                  const AudioConfiguration& audioConfig,
+                                  startSession_cb _hidl_cb) override;
 
- private:
-  Return<void> onSessionReady(startSession_cb _hidl_cb) override;
+  private:
+    Return<void> onSessionReady(startSession_cb _hidl_cb) override;
 };
 
 class LeAudioOffloadOutputAudioProvider : public LeAudioOffloadAudioProvider {
- public:
-  LeAudioOffloadOutputAudioProvider();
+  public:
+    LeAudioOffloadOutputAudioProvider();
 };
 
 class LeAudioOffloadInputAudioProvider : public LeAudioOffloadAudioProvider {
- public:
-  LeAudioOffloadInputAudioProvider();
+  public:
+    LeAudioOffloadInputAudioProvider();
 };
 
 }  // namespace implementation

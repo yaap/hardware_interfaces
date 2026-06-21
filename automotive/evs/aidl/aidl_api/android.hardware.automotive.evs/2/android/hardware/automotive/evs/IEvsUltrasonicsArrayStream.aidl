@@ -32,8 +32,17 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+ */
 @VintfStability
 interface IEvsUltrasonicsArrayStream {
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   oneway void deliverDataFrame(in android.hardware.automotive.evs.UltrasonicsDataFrameDesc dataFrameDesc);
+  /**
+   * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+   */
   oneway void notify(in android.hardware.automotive.evs.EvsEventDesc event);
 }

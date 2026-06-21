@@ -18,28 +18,26 @@
 
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 namespace {
 
 TEST(BluetoothAddressTest, HandleToString) {
-  BluetoothAddress address = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-  ASSERT_EQ(address.ToFullString(), "11:22:33:44:55:66");
-  ASSERT_EQ(address.ToString(), "XX:XX:XX:XX:55:66");
+    BluetoothAddress address = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    ASSERT_EQ(address.ToFullString(), "11:22:33:44:55:66");
+    ASSERT_EQ(address.ToString(), "XX:XX:XX:XX:55:66");
 }
 
 TEST(BluetoothAddressTest, HandleToStringWithAlphanumeric) {
-  BluetoothAddress address = {0x1a, 0xb2, 0x3c, 0xd4, 0xe5, 0x6f};
-  ASSERT_EQ(address.ToFullString(), "1A:B2:3C:D4:E5:6F");
-  ASSERT_EQ(address.ToString(), "XX:XX:XX:XX:E5:6F");
+    BluetoothAddress address = {0x1a, 0xb2, 0x3c, 0xd4, 0xe5, 0x6f};
+    ASSERT_EQ(address.ToFullString(), "1A:B2:3C:D4:E5:6F");
+    ASSERT_EQ(address.ToString(), "XX:XX:XX:XX:E5:6F");
 }
 
 TEST(BluetoothAddressTest, HandleToStringWithDefaultConstructor) {
-  BluetoothAddress address;
-  ASSERT_EQ(address.ToFullString(), "00:00:00:00:00:00");
-  ASSERT_EQ(address.ToString(), "XX:XX:XX:XX:00:00");
+    BluetoothAddress address;
+    ASSERT_EQ(address.ToFullString(), "00:00:00:00:00:00");
+    ASSERT_EQ(address.ToString(), "XX:XX:XX:XX:00:00");
 }
 
 }  // namespace
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

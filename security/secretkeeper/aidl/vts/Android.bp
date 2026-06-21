@@ -44,6 +44,7 @@ rust_test {
     test_suites: [
         "general-tests",
         "vts",
+        "dts",
     ],
     test_config: "AndroidTest.xml",
     rustlibs: [

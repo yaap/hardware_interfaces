@@ -22,6 +22,11 @@ import android.hardware.automotive.evs.UltrasonicsDataFrameDesc;
 
 /**
  * HAL interface for ultrasonics sensor array.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use <a
+ *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+ *             VHAL properties</a> instead.
  */
 @VintfStability
 interface IEvsUltrasonicsArray {
@@ -30,6 +35,11 @@ interface IEvsUltrasonicsArray {
      * IEvsUltrasonicsArrayStream
      *
      * @param in dataFrameDesc Ultrasonics data descriptor
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     void doneWithDataFrame(in UltrasonicsDataFrameDesc dataFrameDesc);
 
@@ -38,6 +48,11 @@ interface IEvsUltrasonicsArray {
      *
      * @throws The description of this ultrasonic array. This must be the same
      *        value as reported by IEvsEnumerator::getUltrasonicsArrayList().
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     UltrasonicsArrayDesc getUltrasonicArrayInfo();
 
@@ -56,6 +71,11 @@ interface IEvsUltrasonicsArray {
      * @param in bufferCount Number of buffers the client of IEvsUltrasonicsArray may hold
      *           concurrently.
      * @throws EvsResult::INVALID_ARG on invalid bufferCount.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     void setMaxFramesInFlight(in int bufferCount);
 
@@ -64,6 +84,11 @@ interface IEvsUltrasonicsArray {
      *
      * @param in stream Implementation of IEvsUltrasonicsArrayStream.
      * @throws EvsResult::STREAM_ALREADY_RUNNING if stream is already running
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     void startStream(in IEvsUltrasonicsArrayStream stream);
 
@@ -74,6 +99,11 @@ interface IEvsUltrasonicsArray {
      * some time after this call returns. Each must be returned until the
      * closure of the stream is signaled to the IEvsCameraStream.
      * This function cannot fail and is ignored if the stream isn't running.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use <a
+     *             href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics
+     *             VHAL properties</a> instead.
      */
     void stopStream();
 }

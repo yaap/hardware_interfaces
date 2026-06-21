@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,22 +25,19 @@
 using ::aidl::android::hardware::bluetooth::socket::impl::BluetoothSocket;
 
 int main(int /* argc */, char** /* argv */) {
-  ALOGI("Bluetooth Socket HAL registering");
-  if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
-    ALOGE("Failed to set thread pool max thread count");
-    return 1;
-  }
+    ALOGI("Bluetooth Socket HAL registering");
+    if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
+        ALOGE("Failed to set thread pool max thread count");
+        return 1;
+    }
 
-  std::shared_ptr<BluetoothSocket> service =
-      ndk::SharedRefBase::make<BluetoothSocket>();
-  std::string instance =
-      std::string() + BluetoothSocket::descriptor + "/default";
-  auto result =
-      AServiceManager_addService(service->asBinder().get(), instance.c_str());
-  if (result == STATUS_OK) {
-    ABinderProcess_joinThreadPool();
-  } else {
-    ALOGE("Could not register as a service!");
-  }
-  return EXIT_FAILURE;
+    std::shared_ptr<BluetoothSocket> service = ndk::SharedRefBase::make<BluetoothSocket>();
+    std::string instance = std::string() + BluetoothSocket::descriptor + "/default";
+    auto result = AServiceManager_addService(service->asBinder().get(), instance.c_str());
+    if (result == STATUS_OK) {
+        ABinderProcess_joinThreadPool();
+    } else {
+        ALOGE("Could not register as a service!");
+    }
+    return EXIT_FAILURE;
 }

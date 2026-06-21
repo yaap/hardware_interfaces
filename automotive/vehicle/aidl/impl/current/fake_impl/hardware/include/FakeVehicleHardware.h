@@ -269,8 +269,8 @@ class FakeVehicleHardware : public IVehicleHardware {
             const aidl::android::hardware::automotive::vehicle::VehiclePropValue& value);
     VehiclePropValuePool::RecyclableType createApPowerStateReq(
             aidl::android::hardware::automotive::vehicle::VehicleApPowerStateReq state);
-    VehiclePropValuePool::RecyclableType createAdasStateReq(int32_t propertyId, int32_t areaId,
-                                                            int32_t state);
+    VehiclePropValuePool::RecyclableType createUpdateStateReq(int32_t propertyId, int32_t areaId,
+                                                              int32_t state);
     VhalResult<void> setUserHalProp(
             const aidl::android::hardware::automotive::vehicle::VehiclePropValue& value);
     ValueResultType getUserHalProp(
@@ -279,6 +279,7 @@ class FakeVehicleHardware : public IVehicleHardware {
             const aidl::android::hardware::automotive::vehicle::VehiclePropValue& value) const;
     bool isHvacPropAndHvacNotAvailable(int32_t propId, int32_t areaId) const;
     VhalResult<void> isAdasPropertyAvailable(int32_t adasStatePropertyId) const;
+    bool isNightModeEnabled() const;
     VhalResult<void> synchronizeHvacTemp(int32_t hvacDualOnAreaId,
                                          std::optional<float> newTempC) const;
     std::optional<int32_t> getSyncedAreaIdIfHvacDualOn(int32_t hvacTemperatureSetAreaId) const;
@@ -323,6 +324,7 @@ class FakeVehicleHardware : public IVehicleHardware {
     std::string genFakeDataCommand(const std::vector<std::string>& options);
     void sendHvacPropertiesCurrentValues(int32_t areaId, int32_t hvacPowerOnVal);
     void sendAdasPropertiesState(int32_t propertyId, int32_t state);
+    void updateLightsState(int32_t propertyId, int32_t areaId, int32_t state);
     void generateVendorConfigs(
             std::vector<aidl::android::hardware::automotive::vehicle::VehiclePropConfig>&) const;
 

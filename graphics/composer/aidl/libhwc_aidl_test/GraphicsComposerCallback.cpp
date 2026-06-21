@@ -17,6 +17,7 @@
 #include "GraphicsComposerCallback.h"
 #include <log/log_main.h>
 #include <utils/Timers.h>
+#include <algorithm>
 #include <cinttypes>
 
 #pragma push_macro("LOG_TAG")
@@ -224,14 +225,27 @@ GraphicsComposerCallback::getAndClearLatestHotplugs() {
 }
 
 ::ndk::ScopedAStatus GraphicsComposerCallback::onHdcpLevelsChanged(
-        int64_t in_display, const ::aidl::android::hardware::drm::HdcpLevels&) {
+        int64_t in_display, const ::aidl::android::hardware::drm::HdcpLevels& levels) {
     std::scoped_lock lock(mMutex);
 
-    const auto it = std::find(mDisplays.begin(), mDisplays.end(), in_display);
-    if (it != mDisplays.end()) {
-        mHdcpLevelChangedCount++;
-    }
+    mHdcpLevelsChangedCount++;
+    mHdcpLevelChangedDisplays.emplace_back(in_display, levels);
+    mHdcpLevelsChangedCv.notify_all();
     return ::ndk::ScopedAStatus::ok();
+}
+
+bool GraphicsComposerCallback::waitForHdcpLevelsChanged(int64_t display,
+                                                        std::chrono::milliseconds timeout) {
+    std::unique_lock<std::mutex> lock(mMutex);
+    return mHdcpLevelsChangedCv.wait_for(lock, timeout, [this, display] {
+        return std::any_of(mHdcpLevelChangedDisplays.begin(), mHdcpLevelChangedDisplays.end(),
+                           [display](const auto& pair) { return pair.first == display; });
+    });
+}
+
+void GraphicsComposerCallback::clearHdcpLevelsChanged() {
+    std::scoped_lock lock(mMutex);
+    mHdcpLevelChangedDisplays.clear();
 }
 
 }  // namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test

@@ -19,6 +19,7 @@ package android.hardware.radio.network;
 import android.hardware.radio.RadioResponseInfo;
 import android.hardware.radio.RadioTechnology;
 import android.hardware.radio.RadioTechnologyFamily;
+import android.hardware.radio.network.AlertCategory;
 import android.hardware.radio.network.BarringInfo;
 import android.hardware.radio.network.CdmaRoamingType;
 import android.hardware.radio.network.CellIdentity;
@@ -838,6 +839,8 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:INTERNAL_ERR
      *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:INVALID_STATE
+     *
+     * @deprecated use setSatelliteNetworkInfoResponse
      */
     void setSatellitePlmnResponse(in RadioResponseInfo info);
 
@@ -873,4 +876,64 @@ oneway interface IRadioNetworkResponse {
      *   RadioError:INVALID_STATE
      */
     void isSatelliteEnabledForCarrierResponse(in RadioResponseInfo info, boolean isEnabled);
+
+    /**
+     * Response of setSatelliteNetworkInfo.
+     *
+     * @param info Response info struct containing response type, serial no. and error.
+     *
+     * Valid errors returned:
+     *   RadioError:REQUEST_NOT_SUPPORTED
+     *   RadioError:NONE
+     *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:INTERNAL_ERR
+     *   RadioError:INVALID_STATE
+     */
+    void setSatelliteNetworkInfoResponse(in RadioResponseInfo info);
+
+    /**
+     * Response of enablePrioritizedNetworkScan.
+     * This is an optional API.
+     *
+     * @param info Response info struct containing response type, serial no. and error.
+     *
+     * Valid errors returned:
+     *   RadioError:REQUEST_NOT_SUPPORTED
+     *   RadioError:NONE
+     *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:INTERNAL_ERR
+     *   RadioError:INVALID_STATE
+     */
+    void enablePrioritizedNetworkScanResponse(in RadioResponseInfo info);
+
+    /**
+     * Response of disablePrioritizedNetworkScan.
+     * This is an optional API.
+     *
+     * @param info Response info struct containing response type, serial no. and error.
+     *
+     * Valid errors returned:
+     *   RadioError:REQUEST_NOT_SUPPORTED
+     *   RadioError:NONE
+     *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:INTERNAL_ERR
+     *   RadioError:INVALID_STATE
+     */
+    void disablePrioritizedNetworkScanResponse(in RadioResponseInfo info);
+
+    /**
+     * Response of getSupportedNetworkAlertCategories.
+     *
+     * @param info Response info struct containing response type, serial no. and error.
+     * @param alertCategories List of supported alert categories.
+     *
+     * Valid errors returned:
+     *   RadioError:NONE
+     *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:INTERNAL_ERR
+     *   RadioError:REQUEST_NOT_SUPPORTED
+     *   RadioError:INVALID_STATE
+     */
+    void getSupportedNetworkAlertCategoriesResponse(
+            in RadioResponseInfo info, in AlertCategory[] alertCategories);
 }

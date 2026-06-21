@@ -90,4 +90,12 @@ interface IBluetoothAudioPort {
      * @param latencyMode latency mode from audio
      */
     void setLatencyMode(in LatencyMode latencyMode);
+
+    /**
+     * Configure the current audio latency in milliseconds to the remote
+     * source device.
+     *
+     * @param latencyMs latency in milliseconds
+     */
+    void updateSinkLatency(long latencyMs);
 }

@@ -19,21 +19,19 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 HalConfigLoader& HalConfigLoader::GetLoader() {
-  if (!MockHalConfigLoader::mock_hal_config_loader_) {
-    LOG(FATAL) << __func__
-               << ": mock_hal_config_loader_ is nullptr. Did you forget to "
-                  "call SetMockLoader in your test SetUp?";
-  }
-  return *MockHalConfigLoader::mock_hal_config_loader_;
+    if (!MockHalConfigLoader::mock_hal_config_loader_) {
+        LOG(FATAL) << __func__
+                   << ": mock_hal_config_loader_ is nullptr. Did you forget to "
+                      "call SetMockLoader in your test SetUp?";
+    }
+    return *MockHalConfigLoader::mock_hal_config_loader_;
 }
 
 void MockHalConfigLoader::SetMockLoader(MockHalConfigLoader* loader) {
-  mock_hal_config_loader_ = loader;
+    mock_hal_config_loader_ = loader;
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

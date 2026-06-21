@@ -17,14 +17,16 @@
 #include <vector>
 
 #define LOG_TAG "AHAL_ModulePrimary"
+#include <Log.h>
 #include <Utils.h>
-#include <android-base/logging.h>
 #include <android-base/properties.h>
 
+#include "core-impl/Configuration.h"
 #include "core-impl/ModulePrimary.h"
 #include "core-impl/StreamMmapStub.h"
 #include "core-impl/StreamOffloadStub.h"
 #include "core-impl/StreamPrimary.h"
+#include "core-impl/StreamStub.h"
 #include "core-impl/Telephony.h"
 
 using aidl::android::hardware::audio::common::areAllBitPositionFlagsSet;
@@ -39,6 +41,7 @@ using aidl::android::media::audio::common::AudioOutputFlags;
 using aidl::android::media::audio::common::AudioPort;
 using aidl::android::media::audio::common::AudioPortConfig;
 using aidl::android::media::audio::common::AudioPortExt;
+using aidl::android::media::audio::common::FlushFromFrameSupport;
 using aidl::android::media::audio::common::MicrophoneInfo;
 
 namespace aidl::android::hardware::audio::core {
@@ -55,13 +58,16 @@ ndk::ScopedAStatus ModulePrimary::getTelephony(std::shared_ptr<ITelephony>* _aid
 
 ndk::ScopedAStatus ModulePrimary::calculateBufferSizeFrames(
         const ::aidl::android::media::audio::common::AudioFormatDescription& format,
-        int32_t latencyMs, int32_t sampleRateHz, int32_t* bufferSizeFrames) {
-    if (format.type != ::aidl::android::media::audio::common::AudioFormatType::PCM &&
-        StreamOffloadStub::getSupportedEncodings().count(format.encoding)) {
+        const ::aidl::android::media::audio::common::AudioIoFlags& flags, int32_t latencyMs,
+        int32_t sampleRateHz, int32_t* bufferSizeFrames) {
+    if ((format.type != ::aidl::android::media::audio::common::AudioFormatType::PCM &&
+         StreamOffloadStub::getSupportedEncodings().count(format.encoding)) ||
+        common::isPcmOffload(format, flags)) {
         *bufferSizeFrames = sampleRateHz / 2;  // 1/2 of a second.
         return ndk::ScopedAStatus::ok();
     }
-    return Module::calculateBufferSizeFrames(format, latencyMs, sampleRateHz, bufferSizeFrames);
+    return Module::calculateBufferSizeFrames(format, flags, latencyMs, sampleRateHz,
+                                             bufferSizeFrames);
 }
 
 ndk::ScopedAStatus ModulePrimary::createInputStream(StreamContext&& context,
@@ -90,9 +96,32 @@ ndk::ScopedAStatus ModulePrimary::createOutputStream(
         // "Stub" is used because there is no actual decoder. The stream just
         // extracts the clip duration from the media file header and simulates
         // playback over time.
+        if (context.getSampleRate() <= 0) {
+            LOG(ERROR) << __func__
+                       << ": Invalid sample rate for offload stream: " << context.getSampleRate();
+            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+        }
+
         return createStreamInstance<StreamOutOffloadStub>(result, std::move(context),
                                                           sourceMetadata, offloadInfo);
     }
+
+    const auto& activeConfigs = getConfig().portConfigs;
+    int32_t handle = context.getMixPortHandle();
+    auto it = std::find_if(activeConfigs.begin(), activeConfigs.end(), [&](const auto& config) {
+        return config.ext.getTag() == AudioPortExt::Tag::mix &&
+               config.ext.template get<AudioPortExt::Tag::mix>().handle == handle;
+    });
+    if (it != activeConfigs.end()) {
+        int32_t portId = it->portId;
+        auto& ports = getConfig().ports;
+        auto foundPort = findById(ports, portId);
+        if (foundPort != ports.end() && foundPort->name == internal::kPortNameTelephonyTx) {
+            return createStreamInstance<StreamOutTelephonyStub>(result, std::move(context),
+                                                                sourceMetadata, offloadInfo);
+        }
+    }
+
     return createStreamInstance<StreamOutPrimary>(result, std::move(context), sourceMetadata,
                                                   offloadInfo);
 }
@@ -131,6 +160,18 @@ int32_t ModulePrimary::getNominalLatencyMs(const AudioPortConfig& portConfig) {
     return hasMmapFlag(portConfig.flags.value())
             ? kLowLatencyMs
             : ::android::base::GetIntProperty(kLatencyMsProp, kStandardLatencyMs);
+}
+
+ndk::ScopedAStatus ModulePrimary::getFlushFromFrameSupport(const AudioPortConfig& in_config,
+                                                           FlushFromFrameSupport* _aidl_return) {
+    LOG(DEBUG) << __func__ << ": config=" << in_config.toString();
+    if (!in_config.flags.has_value() || !in_config.format.has_value()) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    *_aidl_return = common::isPcmOffload(in_config.format.value(), in_config.flags.value())
+                            ? FlushFromFrameSupport::SUPPORTED
+                            : FlushFromFrameSupport::UNSUPPORTED;
+    return ndk::ScopedAStatus::ok();
 }
 
 }  // namespace aidl::android::hardware::audio::core

@@ -32,8 +32,11 @@
 #include <aidl/android/hardware/security/keymint/IKeyMintDevice.h>
 #include <aidl/android/hardware/security/keymint/MacedPublicKey.h>
 
+#define KEYMINT_HAL_V4
+#define KEYMINT_HAL_V5
 #include <keymint_support/attestation_record.h>
 #include <keymint_support/authorization_set.h>
+#include <keymint_support/key_param_output.h>
 #include <keymint_support/openssl_utils.h>
 
 namespace aidl::android::hardware::security::keymint {
@@ -58,6 +61,10 @@ constexpr uint64_t kOpHandleSentinel = 0xFFFFFFFFFFFFFFFF;
 const string FEATURE_KEYSTORE_APP_ATTEST_KEY = "android.hardware.keystore.app_attest_key";
 const string FEATURE_STRONGBOX_KEYSTORE = "android.hardware.strongbox_keystore";
 const string FEATURE_HARDWARE_KEYSTORE = "android.hardware.hardware_keystore";
+const string FEATURE_DEVICE_ID_ATTESTATION = "android.software.device_id_attestation";
+
+const string ML_DSA_65_OID = "2.16.840.1.101.3.4.3.18";
+const string ML_DSA_87_OID = "2.16.840.1.101.3.4.3.19";
 
 // RAII class to ensure that a keyblob is deleted regardless of how a test exits.
 class KeyBlobDeleter {
@@ -69,6 +76,16 @@ class KeyBlobDeleter {
   private:
     shared_ptr<IKeyMintDevice> keymint_;
     vector<uint8_t> key_blob_;
+};
+
+// Wrapped key information.
+struct WrappedKeyInfo {
+    // Wrapped key data as an ASN.1 DER-encoded `SecureKeyWrapper`.
+    std::vector<uint8_t> wrapped_key_data;
+    // Keyblob data for the KeyMint wrapping key.
+    std::vector<uint8_t> wrapping_key_blob;
+    // Masking key value.
+    std::vector<uint8_t> masking_key;
 };
 
 class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
@@ -84,8 +101,11 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     // Directory to store/retrieve keyblobs, using subdirectories named for the
     // KeyMint instance in question (e.g. "./default/", "./strongbox/").
     static std::string keyblob_dir;
-    // To specify if users expect an upgrade on the keyBlobs.
+    // To specify if users expect an upgrade on the keyblobs.
     static std::optional<bool> expect_upgrade;
+    // To specify if the pre-upgrade keyblobs are from an older HAL version.
+    // 0 indicates that the pre-upgrade HAL version is the same as the post-upgrade HAL version.
+    static int upgraded_from_version;
 
     void SetUp() override;
     void TearDown() override {
@@ -108,7 +128,10 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     bool isSecondImeiIdAttestationRequired();
     std::optional<bool> isRkpOnly();
 
-    bool Curve25519Supported();
+    bool Curve25519Supported() { return Curve25519Supported(SecLevel(), AidlVersion()); }
+    bool Curve25519Supported(SecurityLevel sec_level, int32_t aidl_version);
+    bool MlDsaSupported() { return MlDsaSupported(SecLevel(), AidlVersion()); }
+    bool MlDsaSupported(SecurityLevel sec_level, int32_t aidl_version);
 
     ErrorCode GenerateKey(const AuthorizationSet& key_desc);
 
@@ -130,6 +153,22 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     ErrorCode ImportKey(const AuthorizationSet& key_desc, KeyFormat format,
                         const string& key_material);
 
+    void WrapKey(const vector<uint8_t>& key_to_wrap, KeyFormat key_format,
+                 const AuthorizationSet& key_desc, WrappedKeyInfo* wrap_info);
+
+    ErrorCode ImportWrappedKey(const WrappedKeyInfo& wrap_info, int64_t password_sid,
+                               int64_t biometric_sid) {
+        auto params =
+                AuthorizationSetBuilder().Digest(Digest::SHA_2_256).Padding(PaddingMode::RSA_OAEP);
+        return ImportWrappedKey(wrap_info.wrapped_key_data, wrap_info.wrapping_key_blob,
+                                wrap_info.masking_key, params.vector_data(), password_sid,
+                                biometric_sid);
+    }
+    ErrorCode ImportWrappedKey(const vector<uint8_t>& wrapped_key,
+                               const vector<uint8_t>& wrapping_key_blob,
+                               const vector<uint8_t>& masking_key,
+                               const AuthorizationSet& unwrapping_params, int64_t password_sid,
+                               int64_t biometric_sid);
     ErrorCode ImportWrappedKey(string wrapped_key, string wrapping_key,
                                const AuthorizationSet& wrapping_key_desc, string masking_key,
                                const AuthorizationSet& unwrapping_params, int64_t password_sid,
@@ -162,6 +201,9 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
 
     void CheckedDeleteKey();
 
+    void GetUniqueId(const std::string& app_id, uint64_t datetime, vector<uint8_t>* unique_id,
+                     bool reset = false);
+
     ErrorCode Begin(KeyPurpose purpose, const vector<uint8_t>& key_blob,
                     const AuthorizationSet& in_params, AuthorizationSet* out_params,
                     std::shared_ptr<IKeyMintOperation>& op);
@@ -175,11 +217,22 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
     ErrorCode UpdateAad(const string& input);
     ErrorCode Update(const string& input, string* output) { return Update(input, output, {}, {}); }
     ErrorCode Update(const string& input, string* output, std::optional<HardwareAuthToken> hat,
+                     std::optional<secureclock::TimeStampToken> time_token) {
+        return Update(&op_, input, output, hat, time_token);
+    }
+    ErrorCode Update(std::shared_ptr<IKeyMintOperation>* op, const string& input, string* output,
+                     std::optional<HardwareAuthToken> hat,
                      std::optional<secureclock::TimeStampToken> time_token);
 
-    ErrorCode Finish(const string& message, const string& signature, string* output,
+    ErrorCode Finish(std::shared_ptr<IKeyMintOperation>* op, const string& message,
+                     const string& signature, string* output,
                      std::optional<HardwareAuthToken> hat = std::nullopt,
                      std::optional<secureclock::TimeStampToken> time_token = std::nullopt);
+    ErrorCode Finish(const string& message, const string& signature, string* output,
+                     std::optional<HardwareAuthToken> hat = std::nullopt,
+                     std::optional<secureclock::TimeStampToken> time_token = std::nullopt) {
+        return Finish(&op_, message, signature, output, hat, time_token);
+    }
     ErrorCode Finish(const string& message, string* output) {
         return Finish(message, {} /* signature */, output);
     }
@@ -201,7 +254,8 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
 
     string MacMessage(const string& message, Digest digest, size_t mac_length);
 
-    void CheckAesIncrementalEncryptOperation(BlockMode block_mode, int message_size);
+    void CheckAesIncrementalEncryptOperation(BlockMode block_mode, int message_size,
+                                             bool final_chunk_via_finish = false);
 
     void AesCheckEncryptOneByteAtATime(const string& key, BlockMode block_mode,
                                        PaddingMode padding_mode, const string& iv,
@@ -360,6 +414,11 @@ class KeyMintAidlTestBase : public ::testing::TestWithParam<string> {
                                 vector<KeyCharacteristics>* key_characteristics,
                                 vector<Certificate>* cert_chain);
 
+    void CheckBaseParams(const vector<KeyCharacteristics>& keyCharacteristics);
+    void CheckSymmetricParams(const vector<KeyCharacteristics>& keyCharacteristics);
+    AuthorizationSet CheckCommonParams(const vector<KeyCharacteristics>& keyCharacteristics,
+                                       const KeyOrigin expectedKeyOrigin);
+
     bool is_attest_key_feature_disabled(void) const;
     bool is_strongbox_enabled(void) const;
     bool is_chipset_allowed_km4_strongbox(void) const;
@@ -433,7 +492,10 @@ bool verify_attestation_record(int aidl_version,                       //
                                const vector<uint8_t>& attestation_cert,
                                vector<uint8_t>* unique_id = nullptr);
 
+string hex2str(string a);
 string bin2hex(const vector<uint8_t>& data);
+std::vector<uint8_t> random_vector(size_t len);
+
 X509_Ptr parse_cert_blob(const vector<uint8_t>& blob);
 ASN1_OCTET_STRING* get_attestation_record(X509* certificate);
 vector<uint8_t> make_name_from_str(const string& name);
@@ -447,6 +509,8 @@ std::string get_imei(int slot);
 
 // Retrieve a device ID property value, to match what is expected in attestations.
 std::optional<std::string> get_attestation_id(const char* prop);
+
+void skip_boot_pl_check();
 
 // Add the appropriate attestation device ID tag value to the provided `AuthorizationSetBuilder`,
 // if found.

@@ -177,6 +177,16 @@ TEST_F(DefaultBroadcastRadioHalTest, GetAmFmRegionConfig) {
     EXPECT_EQ(config.fmRds, AmFmRegionConfig::RDS);
 }
 
+TEST_F(DefaultBroadcastRadioHalTest, GetAmFmRegionConfigFromDabRadio) {
+    const VirtualRadio& dabRadioMock = VirtualRadio::getDabRadio();
+    auto dabRadioHal = ::ndk::SharedRefBase::make<BroadcastRadio>(dabRadioMock);
+    AmFmRegionConfig config;
+
+    auto halResult = dabRadioHal->getAmFmRegionConfig(/* full= */ false, &config);
+
+    ASSERT_EQ(halResult.getServiceSpecificError(), utils::resultToInt(Result::NOT_SUPPORTED));
+}
+
 TEST_F(DefaultBroadcastRadioHalTest, GetAmFmRegionConfigWithFullBand) {
     AmFmRegionConfig config;
 
@@ -188,10 +198,20 @@ TEST_F(DefaultBroadcastRadioHalTest, GetAmFmRegionConfigWithFullBand) {
     EXPECT_EQ(config.fmRds, AmFmRegionConfig::RDS | AmFmRegionConfig::RBDS);
 }
 
-TEST_F(DefaultBroadcastRadioHalTest, GetDabRegionConfig) {
+TEST_F(DefaultBroadcastRadioHalTest, GetDabRegionConfigFromAmFmRadio) {
     vector<DabTableEntry> config;
 
     auto halResult = mBroadcastRadioHal->getDabRegionConfig(&config);
+
+    ASSERT_EQ(halResult.getServiceSpecificError(), utils::resultToInt(Result::NOT_SUPPORTED));
+}
+
+TEST_F(DefaultBroadcastRadioHalTest, GetDabRegionConfigFromDabRadio) {
+    const VirtualRadio& dabRadioMock = VirtualRadio::getDabRadio();
+    auto dabRadioHal = ::ndk::SharedRefBase::make<BroadcastRadio>(dabRadioMock);
+    vector<DabTableEntry> config;
+
+    auto halResult = dabRadioHal->getDabRegionConfig(&config);
 
     ASSERT_TRUE(halResult.isOk());
     ASSERT_FALSE(config.empty());

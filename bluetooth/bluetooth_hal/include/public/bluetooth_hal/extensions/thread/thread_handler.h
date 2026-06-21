@@ -24,8 +24,7 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 /**
  * @brief This class provides a handler for processing Thread packets and
@@ -41,124 +40,121 @@ namespace thread {
  *
  */
 class ThreadHandler : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  ThreadHandler();
+  public:
+    ThreadHandler();
 
-  ~ThreadHandler() override;
+    ~ThreadHandler() override;
 
-  /**
-   * @brief Initializes the thread handler and associated resources.
-   *
-   * This function should be called before any other functions in this class are
-   * used.
-   *
-   */
-  static void Initialize();
+    /**
+     * @brief Initializes the thread handler and associated resources.
+     *
+     * This function should be called before any other functions in this class are
+     * used.
+     *
+     */
+    static void Initialize();
 
-  /**
-   * @brief Cleans up the thread handler and releases associated resources.
-   *
-   * This function should be called when the thread handler is no longer needed.
-   * It ensures that all resources are properly released and the handler is
-   * stopped gracefully.
-   *
-   */
-  static void Cleanup();
+    /**
+     * @brief Cleans up the thread handler and releases associated resources.
+     *
+     * This function should be called when the thread handler is no longer needed.
+     * It ensures that all resources are properly released and the handler is
+     * stopped gracefully.
+     *
+     */
+    static void Cleanup();
 
-  /**
-   * @brief Checks if the handler is initialized.
-   *
-   * @return True if the handler is initialized, false otherwise.
-   *
-   */
-  static bool IsHandlerRunning();
+    /**
+     * @brief Checks if the handler is initialized.
+     *
+     * @return True if the handler is initialized, false otherwise.
+     *
+     */
+    static bool IsHandlerRunning();
 
-  /**
-   * @brief Returns a reference to the ThreadHandler instance.
-   *
-   * This provides access to the underlying thread handler for advanced
-   * operations.
-   *
-   * @return A reference to the ThreadHandler instance.
-   *
-   */
-  static ThreadHandler& GetHandler();
+    /**
+     * @brief Returns a reference to the ThreadHandler instance.
+     *
+     * This provides access to the underlying thread handler for advanced
+     * operations.
+     *
+     * @return A reference to the ThreadHandler instance.
+     *
+     */
+    static ThreadHandler& GetHandler();
 
-  /**
-   * @brief Called when a command packet is received. Not used in this
-   * implementation.
-   *
-   * @param packet The received command packet.
-   *
-   */
-  void OnCommandCallback(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
+    /**
+     * @brief Called when a command packet is received. Not used in this
+     * implementation.
+     *
+     * @param packet The received command packet.
+     *
+     */
+    void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& packet) override;
 
-  /**
-   * @brief Called when a monitor packet is received. Forwards the
-   * packet to the remote client.
-   *
-   * This function is the primary mechanism for receiving packets from the
-   * Bluetooth chip and transmitting them to a connected remote client for
-   * processing.
-   *
-   * @param mode The monitor mode.
-   * @param packet The received packet from the HCI router.
-   *
-   */
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
+    /**
+     * @brief Called when a monitor packet is received. Forwards the
+     * packet to the remote client.
+     *
+     * This function is the primary mechanism for receiving packets from the
+     * Bluetooth chip and transmitting them to a connected remote client for
+     * processing.
+     *
+     * @param mode The monitor mode.
+     * @param packet The received packet from the HCI router.
+     *
+     */
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
 
-  /**
-   * @brief Called when the Bluetooth chip is ready. Starts the handler's thread
-   * daemon.
-   *
-   * This function is invoked as a callback when the underlying Bluetooth chip
-   * signals that it has completed its initialization and is ready for
-   * operation. It triggers the start of the thread daemon, enabling packet
-   * processing.
-   *
-   */
-  void OnBluetoothChipReady() override;
+    /**
+     * @brief Called when the Bluetooth chip is ready. Starts the handler's thread
+     * daemon.
+     *
+     * This function is invoked as a callback when the underlying Bluetooth chip
+     * signals that it has completed its initialization and is ready for
+     * operation. It triggers the start of the thread daemon, enabling packet
+     * processing.
+     *
+     */
+    void OnBluetoothChipReady() override;
 
-  /**
-   * @brief Called when the Bluetooth chip is closed. Stops the handler's thread
-   * daemon.
-   *
-   * This function is invoked as a callback when the underlying Bluetooth chip
-   * signals that it is being shut down. It triggers the stop of the handler's
-   * thread daemon, preventing further packet processing.
-   *
-   */
-  void OnBluetoothChipClosed() override;
+    /**
+     * @brief Called when the Bluetooth chip is closed. Stops the handler's thread
+     * daemon.
+     *
+     * This function is invoked as a callback when the underlying Bluetooth chip
+     * signals that it is being shut down. It triggers the stop of the handler's
+     * thread daemon, preventing further packet processing.
+     *
+     */
+    void OnBluetoothChipClosed() override;
 
-  /**
-   * @brief Called when Bluetooth is enabled. Not used in this implementation.
-   *
-   */
-  void OnBluetoothEnabled() override;
+    /**
+     * @brief Called when Bluetooth is enabled. Not used in this implementation.
+     *
+     */
+    void OnBluetoothEnabled() override;
 
-  /**
-   * @brief Called when Bluetooth is disabled. Not used in this implementation.
-   *
-   */
-  void OnBluetoothDisabled() override;
+    /**
+     * @brief Called when Bluetooth is disabled. Not used in this implementation.
+     *
+     */
+    void OnBluetoothDisabled() override;
 
-  /**
-   * @brief Checks if the Thread daemon is currently running.
-   *
-   * @return True if the daemon is running, false otherwise.
-   *
-   */
-  bool IsDaemonRunning() const;
+    /**
+     * @brief Checks if the Thread daemon is currently running.
+     *
+     * @return True if the daemon is running, false otherwise.
+     *
+     */
+    bool IsDaemonRunning() const;
 
- private:
-  std::unique_ptr<ThreadDaemon> thread_daemon_;
-  static inline std::mutex mutex_;
-  static inline std::unique_ptr<ThreadHandler> handler_{nullptr};
-  ::bluetooth_hal::hci::HciThreadMonitor thread_data_monitor_;
+  private:
+    std::unique_ptr<ThreadDaemon> thread_daemon_;
+    static inline std::mutex mutex_;
+    static std::unique_ptr<ThreadHandler> handler_;
+    ::bluetooth_hal::hci::HciThreadMonitor thread_data_monitor_;
 };
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

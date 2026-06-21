@@ -23,8 +23,7 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_monitor.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 using ::bluetooth_hal::hci::CommandOpCode;
 using ::bluetooth_hal::hci::HalPacket;
@@ -33,21 +32,19 @@ using ::bluetooth_hal::hci::MonitorMode;
 DebugEventWatcher::DebugEventWatcher()
     : bqr_event_monitor_(),
       google_vendor_capability_event_monitor_(
-          static_cast<uint16_t>(CommandOpCode::kGoogleVendorCapability)) {
-  RegisterMonitor(bqr_event_monitor_, MonitorMode::kMonitor);
-  RegisterMonitor(google_vendor_capability_event_monitor_,
-                  MonitorMode::kMonitor);
+              static_cast<uint16_t>(CommandOpCode::kGoogleVendorCapability)) {
+    RegisterMonitor(bqr_event_monitor_, MonitorMode::kMonitor);
+    RegisterMonitor(google_vendor_capability_event_monitor_, MonitorMode::kMonitor);
 }
 
 DebugEventWatcher::~DebugEventWatcher() {
-  UnregisterMonitor(bqr_event_monitor_);
-  UnregisterMonitor(google_vendor_capability_event_monitor_);
+    UnregisterMonitor(bqr_event_monitor_);
+    UnregisterMonitor(google_vendor_capability_event_monitor_);
 }
 
-void DebugEventWatcher::OnMonitorPacketCallback(
-    [[maybe_unused]] MonitorMode mode, const HalPacket& packet) {
-  LOG(INFO) << __func__ << ": " << packet.ToString();
+void DebugEventWatcher::OnMonitorPacketCallback([[maybe_unused]] MonitorMode mode,
+                                                const HalPacket& packet) {
+    LOG(INFO) << __func__ << ": " << packet.ToString();
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

@@ -82,6 +82,7 @@ class LoopCallback : public HalHealthLoopCallback {
         charger_->OnHealthInfoChanged(::android::ChargerHealthInfo{
                 .battery_level = health_info.batteryLevel,
                 .battery_status = health_info.batteryStatus,
+                .battery_temp = health_info.batteryTemperatureTenthsCelsius,
         });
         service_->OnHealthInfoChanged(health_info);
     }

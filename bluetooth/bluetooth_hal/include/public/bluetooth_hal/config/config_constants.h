@@ -22,37 +22,28 @@
 
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace config {
-namespace constants {
+namespace bluetooth_hal::config::constants {
 
-inline constexpr ::bluetooth_hal::transport::TransportType
-    kDefaultBtTransportType =
+inline constexpr ::bluetooth_hal::transport::TransportType kDefaultBtTransportType =
         ::bluetooth_hal::transport::TransportType::kUartH4;
-inline constexpr std::string_view kHalConfigFile =
-    "/vendor/etc/bluetooth/hal_config.json";
+inline constexpr std::string_view kHalConfigFile = "/vendor/etc/bluetooth/hal_config.json";
 inline constexpr int kDefaultBtRegOnDelay = 100;
 inline constexpr std::string_view kDefaultBtUartDevicePort = "/dev/ttySAC16";
 inline constexpr int kDefaultVendorTransportCrashIntervalSec = 3600;
 
-inline constexpr std::string_view kLpmEnableProcNode =
-    "/proc/bluetooth/sleep/lpm";
-inline constexpr std::string_view kLpmWakingProcNode =
-    "/proc/bluetooth/sleep/btwrite";
-inline constexpr std::string_view kLpmWakelockCtrlProcNode =
-    "/proc/bluetooth/sleep/wakelock_ctrl";
-inline constexpr std::string_view kRfkillFolderPrefix =
-    "/sys/class/rfkill/rfkill";
+inline constexpr std::string_view kLpmEnableProcNode = "/proc/bluetooth/sleep/lpm";
+inline constexpr std::string_view kLpmWakingProcNode = "/proc/bluetooth/sleep/btwrite";
+inline constexpr std::string_view kLpmWakelockCtrlProcNode = "/proc/bluetooth/sleep/wakelock_ctrl";
+inline constexpr std::string_view kRfkillFolderPrefix = "/sys/class/rfkill/rfkill";
 inline constexpr std::string_view kRfkillTypeBluetooth = "bluetooth";
 
 inline constexpr std::string_view kFirmwareConfigFile =
-    "/vendor/etc/bluetooth/firmware_config.json";
+        "/vendor/etc/bluetooth/firmware_config.json";
 inline constexpr int kDefaultLoadMiniDrvDelayMs = 50;
 inline constexpr int kDefaultLaunchRamDelayMs = 250;
 
 inline constexpr uint16_t kDefaultHciVscLaunchRamOpcode = 0xfc4e;
 inline constexpr size_t kDefaultFixedChunkSize = 200;
+inline constexpr size_t kDefaultAccumulatedBufferMaxSize = 32 * 1024;
 
-}  // namespace constants
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config::constants

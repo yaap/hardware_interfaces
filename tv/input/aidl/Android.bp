@@ -14,7 +14,7 @@ aidl_interface {
     srcs: ["android/hardware/tv/input/*.aidl"],
     imports: [
         "android.hardware.common-V2",
-        "android.media.audio.common.types-V1",
+        "android.media.audio.common.types-V5",
         "android.hardware.common.fmq-V1",
     ],
     stability: "vintf",
@@ -47,7 +47,7 @@ aidl_interface {
             version: "3",
             imports: [
                 "android.hardware.common-V2",
-                "android.media.audio.common.types-V1",
+                "android.media.audio.common.types-V5",
                 "android.hardware.common.fmq-V1",
             ],
         },

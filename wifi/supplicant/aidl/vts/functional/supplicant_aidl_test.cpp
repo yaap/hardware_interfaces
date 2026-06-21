@@ -30,6 +30,7 @@
 using aidl::android::hardware::wifi::supplicant::DebugLevel;
 using aidl::android::hardware::wifi::supplicant::IfaceInfo;
 using aidl::android::hardware::wifi::supplicant::IfaceType;
+using aidl::android::hardware::wifi::supplicant::ISupplicantWifiRttController;
 using android::ProcessState;
 
 class SupplicantAidlTest : public testing::TestWithParam<std::string> {
@@ -38,6 +39,7 @@ class SupplicantAidlTest : public testing::TestWithParam<std::string> {
         initializeService();
         supplicant_ = getSupplicant(GetParam().c_str());
         ASSERT_NE(supplicant_, nullptr);
+        ASSERT_TRUE(supplicant_->getInterfaceVersion(&interface_version_).isOk());
         ASSERT_TRUE(supplicant_->setDebugParams(DebugLevel::EXCESSIVE, true, true).isOk());
     }
 
@@ -48,6 +50,7 @@ class SupplicantAidlTest : public testing::TestWithParam<std::string> {
 
   protected:
     std::shared_ptr<ISupplicant> supplicant_;
+    int interface_version_;
 };
 
 /*
@@ -92,6 +95,24 @@ TEST_P(SupplicantAidlTest, SetConcurrencyPriority) {
 
     // Invalid value
     ASSERT_FALSE(supplicant_->setConcurrencyPriority(static_cast<IfaceType>(2)).isOk());
+}
+
+/*
+ * CreateRttController
+ */
+TEST_P(SupplicantAidlTest, CreateRttController) {
+    if (interface_version_ < 5) {
+        GTEST_SKIP() << "CreateRttController is available as of Supplicant V5";
+    }
+    std::shared_ptr<ISupplicantWifiRttController> rtt_controller;
+    auto status = supplicant_->createRttController(getStaIfaceName(), &rtt_controller);
+    ASSERT_TRUE(status.isOk());
+    ASSERT_NE(rtt_controller, nullptr);
+
+    std::string iface_name;
+    status = rtt_controller->getName(&iface_name);
+    ASSERT_TRUE(status.isOk());
+    EXPECT_EQ(iface_name, getStaIfaceName());
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SupplicantAidlTest);

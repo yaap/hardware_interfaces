@@ -32,6 +32,9 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. Use {@link android.view.Display} instead.
+ */
 @VintfStability
 parcelable DisplayDesc {
   @utf8InCpp String id;

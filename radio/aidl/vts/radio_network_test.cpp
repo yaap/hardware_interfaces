@@ -1384,7 +1384,7 @@ TEST_P(RadioNetworkTest, setNetworkSelectionModeManual) {
     // can't camp on nonexistent MCCMNC, so we expect this to fail.
     ndk::ScopedAStatus res =
             radio_network->setNetworkSelectionModeManual(serial, "123456", AccessNetwork::EUTRAN);
-    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(std::cv_status::no_timeout, wait(MODEM_SET_NETWORK_SELECTION_MODE_MANUAL_TIMEOUT));
     EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
     EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
 
@@ -1393,7 +1393,7 @@ TEST_P(RadioNetworkTest, setNetworkSelectionModeManual) {
             {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE, RadioError::INVALID_ARGUMENTS,
              RadioError::INVALID_STATE, RadioError::NO_MEMORY, RadioError::INTERNAL_ERR,
              RadioError::SYSTEM_ERR, RadioError::CANCELLED, RadioError::MODEM_ERR,
-             RadioError::REQUEST_NOT_SUPPORTED}));
+             RadioError::REQUEST_NOT_SUPPORTED, RadioError::ABORTED, RadioError::GENERIC_FAILURE}));
 }
 
 /*
@@ -1671,11 +1671,43 @@ TEST_P(RadioNetworkTest, getDataRegistrationState) {
     AccessTechnologySpecificInfo info = radioRsp_network->dataRegResp.accessTechnologySpecificInfo;
     RadioTechnology rat = radioRsp_network->dataRegResp.rat;
 
-    // TODO: add logic for cdmaInfo
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_network->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+
     if (rat == RadioTechnology::LTE) {
         ASSERT_EQ(info.getTag(), AccessTechnologySpecificInfo::eutranInfo);
+        const auto& eutranInfo = info.get<AccessTechnologySpecificInfo::eutranInfo>();
+        if (aidl_version >= 5) {
+            const auto satelliteTechnology = eutranInfo.satelliteTechnology;
+            bool isValidSatelliteTech =
+                    (satelliteTechnology == SatelliteTechnology::SAT_TECH_NONE) ||
+                    (satelliteTechnology == SatelliteTechnology::SAT_TECH_NB_IOT_NTN) ||
+                    (satelliteTechnology == SatelliteTechnology::SAT_TECH_DTC) ||
+                    (satelliteTechnology == SatelliteTechnology::SAT_TECH_3GPP_NTN);
+            ALOGI("satelliteTechnology = %d", satelliteTechnology);
+            ASSERT_TRUE(isValidSatelliteTech);
+        }
     } else if (rat == RadioTechnology::NR) {
-        ASSERT_TRUE(info.getTag() == AccessTechnologySpecificInfo::ngranNrVopsInfo);
+        if (aidl_version >= 5) {
+            if (info.getTag() == AccessTechnologySpecificInfo::nrInfo) {
+                const auto& nrInfo = info.get<AccessTechnologySpecificInfo::nrInfo>();
+                const auto satelliteTechnology = nrInfo.satelliteTechnology;
+                bool isValidSatelliteTech =
+                        (satelliteTechnology == SatelliteTechnology::SAT_TECH_NONE) ||
+                        (satelliteTechnology == SatelliteTechnology::SAT_TECH_NB_IOT_NTN) ||
+                        (satelliteTechnology == SatelliteTechnology::SAT_TECH_DTC) ||
+                        (satelliteTechnology == SatelliteTechnology::SAT_TECH_3GPP_NTN);
+                ALOGI("satelliteTechnology = %d", satelliteTechnology);
+                ASSERT_TRUE(isValidSatelliteTech);
+            } else {
+                ALOGI("AIDL v5+ but received legacy tag: %s", toString(info.getTag()).c_str());
+            }
+        } else {
+            if (info.getTag() == AccessTechnologySpecificInfo::ngranNrVopsInfo) {
+                ASSERT_TRUE(info.getTag() == AccessTechnologySpecificInfo::ngranNrVopsInfo);
+            }
+        }
     }
 }
 
@@ -2470,4 +2502,147 @@ TEST_P(RadioNetworkTest, setSatelliteEnabledForCarrier) {
         EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
         EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
     }
+}
+
+/*
+ * Test IRadioNetwork.setSatelliteNetworkInfo for the response returned.
+ */
+TEST_P(RadioNetworkTest, setSatelliteNetworkInfo) {
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_RADIO_ACCESS)) {
+        GTEST_SKIP() << "Skipping setSatelliteNetworkInfo due to undefined "
+                        "FEATURE_TELEPHONY_RADIO_ACCESS";
+    }
+
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_network->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 5) {
+        ALOGI("Skipped the test since setSatelliteNetworkInfo is not supported on version < 5");
+        GTEST_SKIP();
+    }
+
+    serial = GetRandomSerialNumber();
+
+    network::NetworkInfo allowedNetwork;
+    allowedNetwork.plmn = "12345";
+    allowedNetwork.arfcns = {100, 200};
+    allowedNetwork.accessNetwork = AccessNetwork::EUTRAN;
+    allowedNetwork.satelliteTechnology = network::SatelliteTechnology::SAT_TECH_DTC;
+
+    network::NetworkInfo knownNetwork;
+    knownNetwork.plmn = "67890";
+    knownNetwork.arfcns = {300, 400};
+    knownNetwork.accessNetwork = AccessNetwork::NGRAN;
+    knownNetwork.satelliteTechnology = network::SatelliteTechnology::SAT_TECH_3GPP_NTN;
+
+    network::SatelliteNetworkInfo satelliteNetworkInfo;
+    satelliteNetworkInfo.allowedPlmns = {allowedNetwork};
+    satelliteNetworkInfo.disallowedPlmns = {allowedNetwork, knownNetwork};
+
+    ndk::ScopedAStatus res = radio_network->setSatelliteNetworkInfo(serial, satelliteNetworkInfo);
+    ASSERT_OK(res);
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
+                                 {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                                  RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
+}
+
+/*
+ * Test IRadioNetwork.enablePrioritizedNetworkScan for the response returned.
+ */
+TEST_P(RadioNetworkTest, enablePrioritizedNetworkScan) {
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_RADIO_ACCESS)) {
+        GTEST_SKIP() << "Skipping enablePrioritizedNetworkScan due to undefined "
+                        "FEATURE_TELEPHONY_RADIO_ACCESS";
+    }
+
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_network->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 5) {
+        ALOGI("Skipped, since enablePrioritizedNetworkScan is not supported on version < 5");
+        GTEST_SKIP();
+    }
+
+    serial = GetRandomSerialNumber();
+
+    network::NetworkInfo networkToScan;
+    networkToScan.plmn = "310410";
+    networkToScan.accessNetwork = AccessNetwork::EUTRAN;
+
+    network::PrioritizedNetworkScanRequest scanRequest;
+    scanRequest.networkInfos = {networkToScan};
+    scanRequest.searchIntervalMs = 30000;
+    scanRequest.validDurationSec = 600;
+
+    ndk::ScopedAStatus res = radio_network->enablePrioritizedNetworkScan(serial, scanRequest);
+    ASSERT_OK(res);
+
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+
+    ASSERT_TRUE(CheckAnyOfErrors(
+            radioRsp_network->rspInfo.error,
+            {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE, RadioError::MODEM_ERR,
+             RadioError::INVALID_ARGUMENTS, RadioError::REQUEST_NOT_SUPPORTED}));
+}
+
+/*
+ * Test IRadioNetwork.disablePrioritizedNetworkScan for the response returned.
+ */
+TEST_P(RadioNetworkTest, disablePrioritizedNetworkScan) {
+    if (!deviceSupportsFeature(FEATURE_TELEPHONY_RADIO_ACCESS)) {
+        GTEST_SKIP() << "Skipping disablePrioritizedNetworkScan due to undefined "
+                        "FEATURE_TELEPHONY_RADIO_ACCESS";
+    }
+
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_network->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 5) {
+        ALOGI("Skipped, since disablePrioritizedNetworkScan is not supported on version < 5");
+        GTEST_SKIP();
+    }
+
+    serial = GetRandomSerialNumber();
+
+    ndk::ScopedAStatus res = radio_network->disablePrioritizedNetworkScan(serial);
+    ASSERT_OK(res);
+
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+
+    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
+                                 {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                                  RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
+}
+
+/*
+ * Test IRadioNetwork.getSupportedNetworkAlertCategories for the response returned.
+ */
+TEST_P(RadioNetworkTest, getSupportedNetworkAlertCategories) {
+    int32_t aidl_version;
+    ndk::ScopedAStatus aidl_status = radio_network->getInterfaceVersion(&aidl_version);
+    ASSERT_OK(aidl_status);
+    if (aidl_version < 5) {
+        ALOGI("Skipped the test since"
+              " getSupportedNetworkAlertCategories is not supported on version < 5");
+        GTEST_SKIP();
+    }
+
+    // Get current value
+    serial = GetRandomSerialNumber();
+    ndk::ScopedAStatus res = radio_network->getSupportedNetworkAlertCategories(serial);
+
+    ASSERT_OK(res);
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(RadioResponseType::SOLICITED, radioRsp_network->rspInfo.type);
+    EXPECT_EQ(serial, radioRsp_network->rspInfo.serial);
+    ASSERT_TRUE(CheckAnyOfErrors(radioRsp_network->rspInfo.error,
+                                 {RadioError::NONE, RadioError::RADIO_NOT_AVAILABLE,
+                                  RadioError::MODEM_ERR, RadioError::REQUEST_NOT_SUPPORTED}));
 }

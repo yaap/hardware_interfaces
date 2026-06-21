@@ -1,0 +1,4 @@
+service vendor.bluetooth.socket-lpp /vendor/bin/hw/android.hardware.bluetooth.socket-service.lpp
+    class hal
+    user nobody
+    group nobody

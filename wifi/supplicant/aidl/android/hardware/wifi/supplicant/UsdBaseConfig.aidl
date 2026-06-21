@@ -16,6 +16,7 @@
 
 package android.hardware.wifi.supplicant;
 
+import android.hardware.wifi.supplicant.DeviceIdentityKey;
 import android.hardware.wifi.supplicant.UsdServiceProtoType;
 
 /**
@@ -89,4 +90,33 @@ parcelable UsdBaseConfig {
      * 2.4 Ghz and/or 5 Ghz bands, per regulation in the geographical location.
      */
     int[] freqsMhz;
+
+    /**
+     * Whether the proximity ranging is enabled.
+     */
+    boolean isRangingEnabled;
+
+    /**
+     * This Ranging device's identity key (devIK) required for authenticated PASN mode in
+     * proximity ranging.
+     *
+     * As per the specification, a device seeking proximity ranging with Authenticated mode PASN
+     * security setup (section 4.2) shall use the configured Device Identity-Key (DevIK) as a
+     * long-term device identity to create a DIRA attribute (PR Device Identity Resolution attribute
+     * section 3.2.8) and include it in the USD service discovery frames the device sends. When a
+     * Device receives a DIRA from another P2P Device, it derives a set of Tag values based on the
+     * cached DevIKs of all known peers for proximity ranging. If a derived Tag value matches the
+     * Tag value in the received DIRA, the Device identifies the transmitter of the DIRA as a known
+     * peer.
+     *
+     */
+    @nullable DeviceIdentityKey selfDevIk;
+
+    /**
+     * List of peer device's device identity key
+     * When wpa_supplicant receives the DIRA attribute, it goes through this list of DevIKs and
+     * verify if it's a known peer. If it's a known peer, the devIk will be added in the
+     * discovery result.
+     */
+    @nullable DeviceIdentityKey[] peerDevIks;
 }

@@ -29,33 +29,29 @@ namespace bluetooth {
 namespace audio {
 
 HfpOffloadAudioProvider::HfpOffloadAudioProvider() {
-  session_type_ = SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH;
+    session_type_ = SessionType::HFP_HARDWARE_OFFLOAD_DATAPATH;
 }
 
 bool HfpOffloadAudioProvider::isValid(const SessionType& session_type) {
-  return (session_type == session_type_);
+    return (session_type == session_type_);
 }
 
 ndk::ScopedAStatus HfpOffloadAudioProvider::startSession(
-    const std::shared_ptr<IBluetoothAudioPort>& host_if,
-    const AudioConfiguration& audio_config,
-    const std::vector<LatencyMode>& latency_modes, DataMQDesc* _aidl_return) {
-  if (audio_config.getTag() != AudioConfiguration::hfpConfig) {
-    LOG(WARNING) << __func__ << " - Invalid Audio Configuration="
-                 << audio_config.toString();
-    *_aidl_return = DataMQDesc();
-    return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-  }
-  return BluetoothAudioProvider::startSession(host_if, audio_config,
-                                              latency_modes, _aidl_return);
+        const std::shared_ptr<IBluetoothAudioPort>& host_if, const AudioConfiguration& audio_config,
+        const std::vector<LatencyMode>& latency_modes, DataMQDesc* _aidl_return) {
+    if (audio_config.getTag() != AudioConfiguration::hfpConfig) {
+        LOG(WARNING) << __func__ << " - Invalid Audio Configuration=" << audio_config.toString();
+        *_aidl_return = DataMQDesc();
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+    }
+    return BluetoothAudioProvider::startSession(host_if, audio_config, latency_modes, _aidl_return);
 }
 
-ndk::ScopedAStatus HfpOffloadAudioProvider::onSessionReady(
-    DataMQDesc* _aidl_return) {
-  *_aidl_return = DataMQDesc();
-  BluetoothAudioSessionReport::OnSessionStarted(
-      session_type_, stack_iface_, nullptr, *audio_config_, latency_modes_);
-  return ndk::ScopedAStatus::ok();
+ndk::ScopedAStatus HfpOffloadAudioProvider::onSessionReady(DataMQDesc* _aidl_return) {
+    *_aidl_return = DataMQDesc();
+    BluetoothAudioSessionReport::OnSessionStarted(session_type_, stack_iface_, nullptr,
+                                                  *audio_config_, latency_modes_);
+    return ndk::ScopedAStatus::ok();
 }
 
 }  // namespace audio

@@ -86,6 +86,7 @@ oneway interface IRadioModem {
      * Response function is IRadioModemResponse.getHardwareConfigResponse()
      *
      * This is available when android.hardware.telephony is defined.
+     * @deprecated Android Telephony framework doesn't use this.
      */
     void getHardwareConfig(in int serial);
 
@@ -148,6 +149,8 @@ oneway interface IRadioModem {
      * @param resetType Always ResetNvType.RELOAD.
      *
      * Response function is IRadioModemResponse.nvResetConfigResponse()
+     *
+     * @deprecated use IRadioConfig.rebootModem()
      */
     void nvResetConfig(in int serial, in ResetNvType resetType);
 

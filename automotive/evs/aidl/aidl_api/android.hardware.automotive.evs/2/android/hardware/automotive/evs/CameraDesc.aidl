@@ -32,6 +32,9 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. Use the Camera2 NDK API (<a href="https://developer.android.com/ndk/reference/group/camera#acameramanager_getcameracharacteristics">ACameraManager_getCameraCharacteristics</a>) or the Camera2 Java API ({@link android.hardware.camera2.CameraManager#getCameraCharacteristics}) to retrieve individual camera details.
+ */
 @VintfStability
 parcelable CameraDesc {
   @utf8InCpp String id;

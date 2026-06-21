@@ -16,23 +16,31 @@
 
 #pragma once
 
-#include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
+#include <any>
+
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator_interface.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
-class ChannelSoundingDistanceEstimator
-    : public ChannelSoundingDistanceEstimatorInterface {
- public:
-  void ResetVariables() override;
+class ChannelSoundingDistanceEstimator : public ChannelSoundingDistanceEstimatorInterface {
+  public:
+    void ResetVariables() override;
 
-  double EstimateDistance(const ::aidl::android::hardware::bluetooth::ranging::
-                              ChannelSoudingRawData& raw_data) override;
+    double GetConfidenceLevel() override;
 
-  double GetConfidenceLevel() override;
+    double GetVelocity() override;
+
+    void SetInlinePCT(bool is_enabled) override;
+
+    void UpdateChannelSoundingConfig(
+            const ::aidl::android::hardware::bluetooth::ranging::Config& config) override;
+
+    void UpdateProcedureEnableConfig(
+            const ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig& config)
+            override;
+
+  protected:
+    double EstimateDistanceImpl(const std::any& data) override;
 };
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+
+}  // namespace bluetooth_hal::extensions::cs

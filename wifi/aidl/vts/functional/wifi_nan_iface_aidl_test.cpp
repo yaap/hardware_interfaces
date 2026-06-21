@@ -22,11 +22,13 @@
 #include <aidl/android/hardware/wifi/BnWifi.h>
 #include <aidl/android/hardware/wifi/BnWifiNanIfaceEventCallback.h>
 #include <aidl/android/hardware/wifi/NanBandIndex.h>
+#include <aidl/android/hardware/wifi/NanPeriodicRangingInterval.h>
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_status.h>
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
+#include <cutils/properties.h>
 
 #include "wifi_aidl_test_utils.h"
 
@@ -51,6 +53,7 @@ using aidl::android::hardware::wifi::NanMatchAlg;
 using aidl::android::hardware::wifi::NanMatchInd;
 using aidl::android::hardware::wifi::NanPairingConfirmInd;
 using aidl::android::hardware::wifi::NanPairingRequestInd;
+using aidl::android::hardware::wifi::NanPeriodicRangingInterval;
 using aidl::android::hardware::wifi::NanPublishRequest;
 using aidl::android::hardware::wifi::NanPublishType;
 using aidl::android::hardware::wifi::NanRespondToDataPathIndicationRequest;
@@ -72,8 +75,18 @@ static bool sWifiFrameworkDisabledByTest = false;
 class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
   public:
     void SetUp() override {
-        if (!::testing::deviceSupportsFeature("android.hardware.wifi.aware"))
-            GTEST_SKIP() << "Skipping this test since NAN is not supported.";
+        bool is_emulator = isEmulator();
+        is_vsr_required_ = get_vsr_api_level() >= 202604;
+        bool is_tv_device = isTvDevice();
+        bool is_wearable_device = isWearableDevice();
+        bool is_aware_supported =
+            testing::deviceSupportsFeature("android.hardware.wifi.aware");
+        if (is_emulator || is_tv_device || is_wearable_device || !is_vsr_required_) {
+            if (!is_aware_supported) {
+                GTEST_SKIP() << "Skipping test because device does not support Aware.";
+            }
+        }
+        ASSERT_TRUE(is_aware_supported);
         stopWifiService(getInstanceName());
 
         wifi_nan_iface_ = getWifiNanIface(getInstanceName());
@@ -102,6 +115,67 @@ class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
             LOG(INFO) << "Re-enabling the Wifi framework after testing";
             setWifiFrameworkEnabled(true);
         }
+    }
+
+    bool isTvDevice() {
+        return testing::deviceSupportsFeature("android.software.leanback") ||
+               testing::deviceSupportsFeature("android.hardware.type.television");
+    }
+
+    bool isWearableDevice() {
+        return testing::deviceSupportsFeature("android.hardware.type.watch");
+    }
+
+    bool isEmulator() {
+        if (property_get_bool("ro.boot.qemu", false)) {
+            return true;
+        }
+        char device[PROP_VALUE_MAX];
+        char model[PROP_VALUE_MAX];
+        char name[PROP_VALUE_MAX];
+        char hardware[PROP_VALUE_MAX];
+
+        property_get("ro.product.device", device, "");
+        property_get("ro.product.model", model, "");
+        property_get("ro.product.name", name, "");
+        property_get("ro.hardware", hardware, "");
+
+        std::string deviceStr(device);
+        std::string modelStr(model);
+        std::string nameStr(name);
+        std::string hardwareStr(hardware);
+
+        return deviceStr.rfind("vsoc_", 0) == 0 || modelStr.rfind("Cuttlefish ", 0) == 0 ||
+               nameStr.rfind("cf_", 0) == 0 || nameStr.rfind("aosp_cf_", 0) == 0 ||
+               hardwareStr.find("goldfish") != std::string::npos ||
+               hardwareStr.find("ranchu") != std::string::npos ||
+               hardwareStr.find("cutf_cvm") != std::string::npos ||
+               hardwareStr.find("starfish") != std::string::npos;
+    }
+
+    int get_vsr_api_level() {
+        int vendor_api_level = property_get_int32("ro.vendor.api_level", -1);
+        if (vendor_api_level != -1) {
+            return vendor_api_level;
+        }
+
+        // Android S and older devices do not define ro.vendor.api_level
+        vendor_api_level = property_get_int32("ro.board.api_level", -1);
+        if (vendor_api_level == -1) {
+            vendor_api_level = property_get_int32("ro.board.first_api_level", -1);
+        }
+
+        int product_api_level = property_get_int32("ro.product.first_api_level", -1);
+        if (product_api_level == -1) {
+            product_api_level = property_get_int32("ro.build.version.sdk", -1);
+            EXPECT_NE(product_api_level, -1) << "Could not find ro.build.version.sdk";
+        }
+
+        // VSR API level is the minimum of vendor_api_level and product_api_level.
+        if (vendor_api_level == -1 || vendor_api_level > product_api_level) {
+            return product_api_level;
+        }
+        return vendor_api_level;
     }
 
     enum CallbackType {
@@ -458,6 +532,8 @@ class WifiNanIfaceAidlTest : public testing::TestWithParam<std::string> {
     NanBootstrappingConfirmInd nan_bootstrapping_confirm_ind_;
     NanSuspensionModeChangeInd nan_suspension_mode_change_ind_;
 
+    bool is_vsr_required_;
+
     static NanEnableRequest createNanConfigRequest() {
         NanBandSpecificConfig config24 = {};
         config24.rssiClose = 60;
@@ -652,6 +728,41 @@ TEST_P(WifiNanIfaceAidlTest, NotifyCapabilitiesResponse) {
     EXPECT_GT(capabilities_.maxQueuedTransmitFollowupMsgs, 0);
     EXPECT_GT(capabilities_.maxSubscribeInterfaceAddresses, 0);
     EXPECT_NE(static_cast<int32_t>(capabilities_.supportedCipherSuites), 0);
+    if (interface_version_ >= 5 && is_vsr_required_) {
+        EXPECT_TRUE(capabilities_.supportsPairing);
+    }
+}
+
+/*
+ * ValidatePeriodicRangingIntervals
+ *
+ * Ensure that if the device supports periodic ranging, it correctly reports the supported
+ * ranging intervals.
+ */
+TEST_P(WifiNanIfaceAidlTest, ValidatePeriodicRangingIntervals) {
+    if (interface_version_ < 5) {
+        GTEST_SKIP() << "Skipping test, interface version is less than 5";
+    }
+    uint16_t inputCmdId = 10;
+    callback_event_bitmap_ = 0;
+    EXPECT_TRUE(wifi_nan_iface_->getCapabilitiesRequest(inputCmdId).isOk());
+
+    // Wait for a callback.
+    ASSERT_EQ(std::cv_status::no_timeout, wait(NOTIFY_CAPABILITIES_RESPONSE));
+    ASSERT_TRUE(receivedCallback(NOTIFY_CAPABILITIES_RESPONSE));
+    ASSERT_EQ(id_, inputCmdId);
+    ASSERT_EQ(status_.status, NanStatusCode::SUCCESS);
+
+    if (capabilities_.supportsPeriodicRanging) {
+        int32_t valid_intervals_mask = 0;
+        for (const auto& interval : ndk::internal::enum_values<
+                     aidl::android::hardware::wifi::NanPeriodicRangingInterval>) {
+            valid_intervals_mask |= static_cast<int32_t>(interval);
+        }
+
+        EXPECT_NE(capabilities_.supportedPeriodicRangingIntervals, 0);
+        EXPECT_EQ(capabilities_.supportedPeriodicRangingIntervals & ~valid_intervals_mask, 0);
+    }
 }
 
 /*

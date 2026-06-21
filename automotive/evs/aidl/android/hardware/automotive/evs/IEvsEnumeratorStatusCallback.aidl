@@ -21,6 +21,15 @@ import android.hardware.automotive.evs.DeviceStatus;
 /**
  * Implemented on client side to receive asynchronous notifications from
  * IEvsEnumreator.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Applications should use the standard Android <a
+ *             href="https://developer.android.com/media/camera/camera2">Camera2 API
+ *             (android.hardware.camera2)</a> for camera access and management. Use either the
+ *             Camera2 NDK APIs (<a
+ *             href="https://developer.android.com/ndk/reference/struct/a-camera-manager-availability-listener">ACameraManager_AvailabilityListener</a>)
+ *             or Camera2 Java APIs ({@link
+ *             android.hardware.camera2.CameraManager.AvailabilityCallback}) instead.
  */
 @VintfStability
 oneway interface IEvsEnumeratorStatusCallback {
@@ -29,6 +38,8 @@ oneway interface IEvsEnumeratorStatusCallback {
      * changed.
      *
      * @param in status A list of newly updated device status
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     void deviceStatusChanged(in DeviceStatus[] status);
 }

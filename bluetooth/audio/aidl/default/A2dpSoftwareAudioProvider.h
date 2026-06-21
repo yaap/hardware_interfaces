@@ -25,32 +25,31 @@ namespace bluetooth {
 namespace audio {
 
 class A2dpSoftwareAudioProvider : public BluetoothAudioProvider {
- public:
-  A2dpSoftwareAudioProvider();
+  public:
+    A2dpSoftwareAudioProvider();
 
-  bool isValid(const SessionType& sessionType) override;
+    bool isValid(const SessionType& sessionType) override;
 
-  ndk::ScopedAStatus startSession(
-      const std::shared_ptr<IBluetoothAudioPort>& host_if,
-      const AudioConfiguration& audio_config,
-      const std::vector<LatencyMode>& latency_modes,
-      DataMQDesc* _aidl_return);
+    ndk::ScopedAStatus startSession(const std::shared_ptr<IBluetoothAudioPort>& host_if,
+                                    const AudioConfiguration& audio_config,
+                                    const std::vector<LatencyMode>& latency_modes,
+                                    DataMQDesc* _aidl_return);
 
- private:
-  // audio data queue for software encoding
-  std::unique_ptr<DataMQ> data_mq_;
+  private:
+    // audio data queue for software encoding
+    std::unique_ptr<DataMQ> data_mq_;
 
-  ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
+    ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
 };
 
 class A2dpSoftwareEncodingAudioProvider : public A2dpSoftwareAudioProvider {
- public:
-  A2dpSoftwareEncodingAudioProvider();
+  public:
+    A2dpSoftwareEncodingAudioProvider();
 };
 
 class A2dpSoftwareDecodingAudioProvider : public A2dpSoftwareAudioProvider {
- public:
-  A2dpSoftwareDecodingAudioProvider();
+  public:
+    A2dpSoftwareDecodingAudioProvider();
 };
 
 }  // namespace audio

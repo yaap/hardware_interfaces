@@ -32,6 +32,9 @@
 // later when a module using the interface is updated, e.g., Mainline modules.
 
 package android.hardware.automotive.evs;
+/**
+ * @deprecated EVS functionality and APIs are deprecated. Use <a href="https://source.android.com/docs/automotive/camera/acs/camera2-migration#ultrasonics-apis">Ultrasonics VHAL properties</a> instead.
+ */
 @VintfStability
 parcelable UltrasonicSensor {
   android.hardware.automotive.evs.SensorPose pose;

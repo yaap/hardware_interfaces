@@ -75,6 +75,8 @@ using ::aidl::android::hardware::automotive::vehicle::VehicleApPowerStateReq;
 using ::aidl::android::hardware::automotive::vehicle::VehicleArea;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightState;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightSwitch;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleProperty;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropertyAccess;
@@ -126,6 +128,7 @@ constexpr char OVERRIDE_PROPERTY[] = "persist.vendor.vhal_init_value_override";
 constexpr char POWER_STATE_REQ_CONFIG_PROPERTY[] = "ro.vendor.fake_vhal.ap_power_state_req.config";
 // The value to be returned if VENDOR_PROPERTY_FOR_ERROR_CODE_TESTING is set as the property
 constexpr int VENDOR_ERROR_CODE = 0x00ab0005;
+constexpr int32_t SYSTEM_PROPERTY_STATUS_MASK = 0xffff;
 // A list of supported options for "--set" command.
 const std::unordered_set<std::string> SET_PROP_OPTIONS = {
         // integer.
@@ -266,6 +269,81 @@ const std::unordered_map<int32_t, std::vector<int32_t>> mAdasEnabledPropToAdasPr
                 {
                         toInt(VehicleProperty::LOW_SPEED_AUTOMATIC_EMERGENCY_BRAKING_STATE),
                 },
+        },
+};
+
+// Map of *_LIGHTS_SWITCH to *_LIGHTS_STATE properties
+const std::unordered_map<int32_t, int32_t> mLightsSwitchToLightsStateProps = {
+        {
+                toInt(VehicleProperty::HEADLIGHTS_SWITCH),
+                toInt(VehicleProperty::HEADLIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::HIGH_BEAM_LIGHTS_SWITCH),
+                toInt(VehicleProperty::HIGH_BEAM_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::FRONT_FOG_LIGHTS_SWITCH),
+                toInt(VehicleProperty::FRONT_FOG_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::REAR_FOG_LIGHTS_SWITCH),
+                toInt(VehicleProperty::REAR_FOG_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::HAZARD_LIGHTS_SWITCH),
+                toInt(VehicleProperty::HAZARD_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::CABIN_LIGHTS_SWITCH),
+                toInt(VehicleProperty::CABIN_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::READING_LIGHTS_SWITCH),
+                toInt(VehicleProperty::READING_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_SWITCH),
+                toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_STATE),
+        },
+        {
+                toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_SWITCH),
+                toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_STATE),
+        },
+};
+
+const std::unordered_map<int32_t, int32_t> mPropertyStatusToStatusCode = {
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_GENERAL),
+                toInt(StatusCode::NOT_AVAILABLE),
+        },
+        {
+                toInt(VehiclePropertyStatus::ERROR),
+                toInt(StatusCode::INTERNAL_ERROR),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_DISABLED),
+                toInt(StatusCode::NOT_AVAILABLE_DISABLED),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SPEED_LOW),
+                toInt(StatusCode::NOT_AVAILABLE_SPEED_LOW),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SPEED_HIGH),
+                toInt(StatusCode::NOT_AVAILABLE_SPEED_HIGH),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_POOR_VISIBILITY),
+                toInt(StatusCode::NOT_AVAILABLE_POOR_VISIBILITY),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SAFETY),
+                toInt(StatusCode::NOT_AVAILABLE_SAFETY),
+        },
+        {
+                toInt(VehiclePropertyStatus::NOT_AVAILABLE_SUBSYSTEM_NOT_CONNECTED),
+                toInt(StatusCode::NOT_AVAILABLE_SUBSYSTEM_NOT_CONNECTED),
         },
 };
 
@@ -600,9 +678,9 @@ VehiclePropValuePool::RecyclableType FakeVehicleHardware::createApPowerStateReq(
     return req;
 }
 
-VehiclePropValuePool::RecyclableType FakeVehicleHardware::createAdasStateReq(int32_t propertyId,
-                                                                             int32_t areaId,
-                                                                             int32_t state) {
+VehiclePropValuePool::RecyclableType FakeVehicleHardware::createUpdateStateReq(int32_t propertyId,
+                                                                               int32_t areaId,
+                                                                               int32_t state) {
     auto req = mValuePool->obtain(VehiclePropertyType::INT32);
     req->prop = propertyId;
     req->areaId = areaId;
@@ -842,6 +920,16 @@ VhalResult<void> FakeVehicleHardware::isAdasPropertyAvailable(int32_t adasStateP
     return {};
 }
 
+bool FakeVehicleHardware::isNightModeEnabled() const {
+    auto nightModeResult = mServerSidePropStore->readValue(toInt(VehicleProperty::NIGHT_MODE));
+    if (!nightModeResult.ok()) {
+        ALOGW("Failed to get NIGHT_MODE property, error: %s", getErrorMsg(nightModeResult).c_str());
+        return false;
+    }
+    return nightModeResult.value()->value.int32Values.size() == 1 &&
+           nightModeResult.value()->value.int32Values[0] == 1;
+}
+
 VhalResult<void> FakeVehicleHardware::setUserHalProp(const VehiclePropValue& value) {
     auto result = mFakeUserHal->onSetProperty(value);
     if (!result.ok()) {
@@ -1014,6 +1102,21 @@ FakeVehicleHardware::ValueResultType FakeVehicleHardware::maybeGetSpecialValue(
         case toInt(TestVendorProperty::VENDOR_PROPERTY_FOR_ERROR_CODE_TESTING):
             *isSpecialValue = true;
             return StatusError((StatusCode)VENDOR_ERROR_CODE);
+        case toInt(TestVendorProperty::VENDOR_PROPERTY_FOR_PROPERTY_STATUS_TESTING): {
+            auto readResult = mServerSidePropStore->readValue(value);
+            if (readResult.ok()) {
+                int32_t systemStatus =
+                        toInt(readResult.value()->status) & SYSTEM_PROPERTY_STATUS_MASK;
+                if (mPropertyStatusToStatusCode.count(systemStatus)) {
+                    int32_t vendorStatus =
+                            toInt(readResult.value()->status) & ~SYSTEM_PROPERTY_STATUS_MASK;
+                    int32_t status = vendorStatus | mPropertyStatusToStatusCode.at(systemStatus);
+                    *isSpecialValue = true;
+                    return StatusError((StatusCode)status);
+                }
+            }
+            break;
+        }
         case toInt(VehicleProperty::CRUISE_CONTROL_TARGET_SPEED):
             isAdasPropertyAvailableResult =
                     isAdasPropertyAvailable(toInt(VehicleProperty::CRUISE_CONTROL_STATE));
@@ -1160,11 +1263,31 @@ void FakeVehicleHardware::sendAdasPropertiesState(int32_t propertyId, int32_t st
                 hardcoded_state = toInt(CruiseControlType::ADAPTIVE);
             }
             auto propValue =
-                    createAdasStateReq(dependentPropId, areaConfig.areaId, hardcoded_state);
+                    createUpdateStateReq(dependentPropId, areaConfig.areaId, hardcoded_state);
             // This will trigger a property change event for the current ADAS property value.
             mServerSidePropStore->writeValue(std::move(propValue), /*updateStatus=*/true,
                                              VehiclePropertyStore::EventMode::ALWAYS);
         }
+    }
+}
+
+void FakeVehicleHardware::updateLightsState(int32_t lightsStatePropId, int32_t lightsSwitchAreaId,
+                                            int32_t state) {
+    auto propConfigResult = mServerSidePropStore->getPropConfig(lightsStatePropId);
+    if (!propConfigResult.ok()) {
+        ALOGW("Failed to get config for *_LIGHTS_STATE property 0x%x, error: %s", lightsStatePropId,
+              getErrorMsg(propConfigResult).c_str());
+        return;
+    }
+    for (auto& areaConfig : propConfigResult.value().areaConfigs) {
+        int32_t areaId = areaConfig.areaId;
+        // Only update the relevant area ID
+        if ((lightsSwitchAreaId & areaId) != areaId) {
+            continue;
+        }
+        auto propValue = createUpdateStateReq(lightsStatePropId, areaId, state);
+        mServerSidePropStore->writeValue(std::move(propValue), /*updateStatus=*/true,
+                                         VehiclePropertyStore::EventMode::ON_VALUE_CHANGE);
     }
 }
 
@@ -1197,6 +1320,30 @@ VhalResult<void> FakeVehicleHardware::maybeSetSpecialValue(const VehiclePropValu
             sendAdasPropertiesState(propId, /* state = */ 1);
         } else {
             sendAdasPropertiesState(propId, toInt(ErrorState::NOT_AVAILABLE_DISABLED));
+        }
+    }
+
+    if (mLightsSwitchToLightsStateProps.count(propId) && value.value.int32Values.size() == 1) {
+        int32_t lightsStatePropId = mLightsSwitchToLightsStateProps.find(propId)->second;
+        int32_t lightsSwitch = value.value.int32Values[0];
+        std::optional<int32_t> lightsState = std::nullopt;
+        switch (lightsSwitch) {
+            case toInt(VehicleLightSwitch::OFF):
+                lightsState = toInt(VehicleLightState::OFF);
+                break;
+            case toInt(VehicleLightSwitch::ON):
+                lightsState = toInt(VehicleLightState::ON);
+                break;
+            case toInt(VehicleLightSwitch::DAYTIME_RUNNING):
+                lightsState = toInt(VehicleLightState::DAYTIME_RUNNING);
+                break;
+            case toInt(VehicleLightSwitch::AUTOMATIC):
+                lightsState = isNightModeEnabled() ? toInt(VehicleLightState::ON)
+                                                   : toInt(VehicleLightState::OFF);
+                break;
+        }
+        if (lightsState.has_value()) {
+            updateLightsState(lightsStatePropId, value.areaId, lightsState.value());
         }
     }
 
@@ -1920,7 +2067,8 @@ VehiclePropValue FakeVehicleHardware::createHwMotionInputProp(
 }
 
 void FakeVehicleHardware::eventFromVehicleBus(const VehiclePropValue& value) {
-    mServerSidePropStore->writeValue(mValuePool->obtain(value));
+    mServerSidePropStore->writeValue(mValuePool->obtain(value), /* updateStatus= */ true,
+                                     VehiclePropertyStore::EventMode::ALWAYS);
 }
 
 std::string FakeVehicleHardware::dumpSubscriptions() {
@@ -2068,6 +2216,20 @@ std::string FakeVehicleHardware::dumpSetMinMaxValue(const std::vector<std::strin
     int32_t propId = maybeInfo->propId;
     int32_t areaId = maybeInfo->areaId;
 
+    auto configResult = mServerSidePropStore->getPropConfig(propId);
+    auto areaConfig = std::find_if(
+            configResult.value().areaConfigs.begin(), configResult.value().areaConfigs.end(),
+            [areaId](const auto& areaConfig) { return areaConfig.areaId == areaId; });
+    if (areaConfig == configResult.value().areaConfigs.end()) {
+        return "Failed to set min/max supported value: areaId not supported\n";
+    }
+    if (!areaConfig->hasSupportedValueInfo.has_value() ||
+        !areaConfig->hasSupportedValueInfo->hasMinSupportedValue ||
+        !areaConfig->hasSupportedValueInfo->hasMaxSupportedValue) {
+        return "Failed to set min/max supported value: property does not support min/max"
+               " supported value\n";
+    }
+
     Result<void> parseAndSetValueResult = {};
     switch (propId & toInt(VehiclePropertyType::MASK)) {
         case toInt(VehiclePropertyType::INT32):
@@ -2109,6 +2271,20 @@ std::string FakeVehicleHardware::dumpSetSupportedValues(const std::vector<std::s
     }
     int32_t propId = maybeInfo->propId;
     int32_t areaId = maybeInfo->areaId;
+
+    auto configResult = mServerSidePropStore->getPropConfig(propId);
+    auto areaConfig = std::find_if(
+            configResult.value().areaConfigs.begin(), configResult.value().areaConfigs.end(),
+            [areaId](const auto& areaConfig) { return areaConfig.areaId == areaId; });
+    if (areaConfig == configResult.value().areaConfigs.end()) {
+        return "Failed to set supported values list: areaId not supported\n";
+    }
+    if (!areaConfig->hasSupportedValueInfo.has_value() ||
+        !areaConfig->hasSupportedValueInfo->hasSupportedValuesList) {
+        return "Failed to set supported values list: property does not support supported"
+               " values\n";
+    }
+
     Result<std::vector<RawPropValues>> maybeSupportedValues;
     switch (propId & toInt(VehiclePropertyType::MASK)) {
         case toInt(VehiclePropertyType::INT32):
@@ -2360,7 +2536,12 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
         const std::vector<std::string>& options) {
     // Options format:
     // --set/get/inject-event PROP [-f f1 f2...] [-i i1 i2...] [-i64 i1 i2...] [-s s1 s2...]
-    // [-b b1 b2...] [-a a] [-t timestamp]
+    // [-b b1 b2...] [-a a] [-t timestamp] [-p property_status]
+    //
+    // Number formats:
+    // -f: accepts floating point values in decimal or hex with an optional '+' or '-' sign.
+    // -i, -i64, -a, -t, -p: accept integer values in decimal or hex with an optional '+' or '-'
+    // sign.
     size_t optionIndex = 1;
     auto result = parsePropId(options, optionIndex);
     if (!result.ok()) {
@@ -2369,7 +2550,6 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
     }
     VehiclePropValue prop = {};
     prop.prop = result.value();
-    prop.status = VehiclePropertyStatus::AVAILABLE;
     optionIndex++;
     std::unordered_set<std::string> parsedOptions;
     int32_t areaIdIndex = -1;
@@ -2459,6 +2639,17 @@ Result<VehiclePropValue> FakeVehicleHardware::parsePropOptions(
                                                getErrorMsg(int64Result).c_str());
             }
             prop.timestamp = int64Result.value();
+        } else if (EqualsIgnoreCase(argType, "-p")) {
+            if (argValuesSize != 1) {
+                return Error() << "Expect exact one value when using \"-p\"\n";
+            }
+            auto statusResult = safelyParseInt<int32_t>(currentIndex, argValues[0]);
+            if (!statusResult.ok()) {
+                return Error() << StringPrintf("Status: \"%s\" is not a valid int32: %s\n",
+                                               argValues[0].c_str(),
+                                               getErrorMsg(statusResult).c_str());
+            }
+            prop.status = static_cast<VehiclePropertyStatus>(statusResult.value());
         } else {
             return Error() << StringPrintf("Unknown option: %s\n", argType.c_str());
         }

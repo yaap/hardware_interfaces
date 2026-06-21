@@ -162,6 +162,14 @@ class HingeAngleSensor : public OnChangeSensor {
     virtual void readEventPayload(EventPayload& payload) override;
 };
 
+class LowLatencyOffBodyDetectSensor : public OnChangeSensor {
+  public:
+    LowLatencyOffBodyDetectSensor(int32_t sensorHandle, ISensorsEventCallback* callback);
+
+  protected:
+    virtual void readEventPayload(EventPayload& payload) override;
+};
+
 }  // namespace sensors
 }  // namespace hardware
 }  // namespace android

@@ -16,6 +16,7 @@
 
 #include "ComposerClientWrapper.h"
 #include <aidlcommonsupport/NativeHandle.h>
+#include <android-base/file.h>
 #include <android-base/logging.h>
 #include <log/log_main.h>
 
@@ -230,9 +231,15 @@ ScopedAStatus ComposerClientWrapper::dumpDebugInfo() {
         return ScopedAStatus::fromServiceSpecificError(IComposer::EX_NO_RESOURCES);
     }
 
+    std::string str;
+    // Use other thread to read pipe to prevent pipe is full, making HWC be blocked in writing.
+    std::thread t([&]() { ::android::base::ReadFdToString(pipefds[0], &str); });
     const auto status = mComposer->dump(pipefds[1], /*args*/ nullptr, /*numArgs*/ 0);
-    close(pipefds[0]);
+    // Close the write-end of the pipe to make sure that when reading from the
+    // read-end we will get eof instead of blocking forever
     close(pipefds[1]);
+    t.join();
+    close(pipefds[0]);
     return ScopedAStatus::fromStatus(status);
 }
 
@@ -719,6 +726,25 @@ std::pair<ScopedAStatus, std::vector<Luts>> ComposerClientWrapper::getLuts(
         int64_t display, const std::vector<Buffer>& buffers) {
     std::vector<Luts> outLuts;
     return {mComposerClient->getLuts(display, buffers, &outLuts), std::move(outLuts)};
+}
+
+std::pair<ScopedAStatus, VsyncSample> ComposerClientWrapper::getDisplayKnownVsyncSample(
+        int64_t display) {
+    VsyncSample outVsyncSample;
+    return {mComposerClient->getDisplayKnownVsyncSample(display, &outVsyncSample), outVsyncSample};
+}
+
+ScopedAStatus ComposerClientWrapper::startHdcpNegotiation(int64_t display, HdcpLevels levels) {
+    return mComposerClient->startHdcpNegotiation(display, levels);
+}
+
+bool ComposerClientWrapper::waitForHdcpLevelsChanged(int64_t display,
+                                                     std::chrono::milliseconds timeout) {
+    return mComposerCallback->waitForHdcpLevelsChanged(display, timeout);
+}
+
+void ComposerClientWrapper::clearHdcpLevelsChanged() {
+    mComposerCallback->clearHdcpLevelsChanged();
 }
 
 }  // namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test

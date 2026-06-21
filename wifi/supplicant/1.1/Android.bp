@@ -28,4 +28,13 @@ hidl_interface {
         "//apex_available:platform",
         "com.android.wifi",
     ],
+    // Restrict visibility to the Wifi mainline module and related modules
+    visibility: [
+        "//hardware/interfaces/wifi/supplicant:__subpackages__",
+        "//packages/modules/Wifi:__subpackages__",
+        "//system/tools/hidl/build",
+        // Still used by vendor/qcom/sa8255/codeaurora/interfaces/wifi/supplicant/2.1
+        //               vendor/qcom/sw6100-lw1/opensource/interfaces/wifi/supplicant/2.2
+        "//vendor:__subpackages__",
+    ],
 }

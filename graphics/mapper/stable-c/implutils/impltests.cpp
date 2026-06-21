@@ -294,6 +294,33 @@ TEST(Metadata, setGetSmpte2094_10) {
     EXPECT_EQ(simpleBuffer, read->value());
 }
 
+TEST(Metadata, setGetSmpte2094_50) {
+    using SMPTE2094_50Value = StandardMetadata<StandardMetadataType::SMPTE2094_50>::value;
+
+    std::vector<uint8_t> buffer(10000, 0);
+    EXPECT_EQ(0, SMPTE2094_50Value::encode(std::nullopt, buffer.data(), buffer.size()));
+    auto read = SMPTE2094_50Value::decode(buffer.data(), 0);
+    ASSERT_TRUE(read.has_value());
+    EXPECT_FALSE(read->has_value());
+
+    const std::vector<uint8_t> emptyBuffer;
+    EXPECT_EQ(sizeof(int64_t) + HeaderSize,
+              SMPTE2094_50Value::encode(emptyBuffer, buffer.data(), buffer.size()));
+    read = SMPTE2094_50Value::decode(buffer.data(), buffer.size());
+    ASSERT_TRUE(read.has_value());
+    ASSERT_TRUE(read->has_value());
+    EXPECT_EQ(0, read->value().size());
+
+    const std::vector<uint8_t> simpleBuffer{0, 1, 2, 3, 4, 5};
+    EXPECT_EQ(sizeof(int64_t) + 6 + HeaderSize,
+              SMPTE2094_50Value::encode(simpleBuffer, buffer.data(), buffer.size()));
+    read = SMPTE2094_50Value::decode(buffer.data(), buffer.size());
+    ASSERT_TRUE(read.has_value());
+    ASSERT_TRUE(read->has_value());
+    EXPECT_EQ(6, read->value().size());
+    EXPECT_EQ(simpleBuffer, read->value());
+}
+
 TEST(MetadataProvider, bufferId) {
     using BufferId = StandardMetadata<StandardMetadataType::BUFFER_ID>::value;
     std::vector<uint8_t> buffer(10000, 0);

@@ -16,6 +16,8 @@
 
 package android.hardware.wifi.supplicant;
 
+import android.hardware.wifi.supplicant.DeviceIdentityKey;
+import android.hardware.wifi.supplicant.ProximityRangingProtocolInfo;
 import android.hardware.wifi.supplicant.UsdServiceProtoType;
 
 /**
@@ -59,4 +61,18 @@ parcelable UsdServiceDiscoveryInfo {
      * Whether Further Service Discovery (FSD) is enabled.
      */
     boolean isFsd;
+
+    /**
+     * Proximity Ranging (PR) protocol information received in the discovery frame.
+     * This is only present if proximity ranging is part of the discovered service.
+     */
+    @nullable ProximityRangingProtocolInfo prInfo;
+
+    /**
+     * The Device Identity Key (DevIK) of the discovered ranging device.
+     * This key is derived by the supplicant from the DIRA (Device Identity Resolution Attribute)
+     * in the discovery frame, using the list of peer DevIKs provided in the subscribe or publish
+     * configuration. A non-null value indicates that the discovered peer is a known device.
+     */
+    @nullable DeviceIdentityKey peerDevIk;
 }

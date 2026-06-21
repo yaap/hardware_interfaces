@@ -55,6 +55,10 @@ aidl_interface {
             version: "4",
             imports: ["android.hardware.security.secureclock-V1"],
         },
+        {
+            version: "5",
+            imports: ["android.hardware.security.secureclock-V1"],
+        },
 
     ],
     min_sdk_version: "35",
@@ -65,7 +69,7 @@ aidl_interface {
 // aidl_interface_defaults to avoid managing dependency versions explicitly.
 aidl_interface_defaults {
     name: "android.hardware.security.keymint-latest-defaults",
-    imports: ["android.hardware.security.keymint-V4"],
+    imports: ["android.hardware.security.keymint-V5"],
 }
 
 // cc_defaults that includes the latest KeyMint AIDL library.
@@ -74,28 +78,28 @@ aidl_interface_defaults {
 cc_defaults {
     name: "keymint_use_latest_hal_aidl_ndk_static",
     static_libs: [
-        "android.hardware.security.keymint-V4-ndk",
+        "android.hardware.security.keymint-V5-ndk",
     ],
 }
 
 cc_defaults {
     name: "keymint_use_latest_hal_aidl_ndk_shared",
     shared_libs: [
-        "android.hardware.security.keymint-V4-ndk",
+        "android.hardware.security.keymint-V5-ndk",
     ],
 }
 
 cc_defaults {
     name: "keymint_use_latest_hal_aidl_cpp_static",
     static_libs: [
-        "android.hardware.security.keymint-V4-cpp",
+        "android.hardware.security.keymint-V5-cpp",
     ],
 }
 
 cc_defaults {
     name: "keymint_use_latest_hal_aidl_cpp_shared",
     shared_libs: [
-        "android.hardware.security.keymint-V4-cpp",
+        "android.hardware.security.keymint-V5-cpp",
     ],
 }
 
@@ -105,7 +109,7 @@ cc_defaults {
 rust_defaults {
     name: "keymint_use_latest_hal_aidl_rust",
     rustlibs: [
-        "android.hardware.security.keymint-V4-rust",
+        "android.hardware.security.keymint-V5-rust",
     ],
 }
 
@@ -115,6 +119,12 @@ rust_defaults {
 java_defaults {
     name: "keymint_use_latest_hal_aidl_java",
     static_libs: [
-        "android.hardware.security.keymint-V4-java",
+        "android.hardware.security.keymint-V5-java",
     ],
+}
+
+dirgroup {
+    name: "trusty_dirgroup_hardware_interfaces_security_keymint_aidl",
+    dirs: ["."],
+    visibility: ["//trusty/vendor/google/aosp/scripts"],
 }

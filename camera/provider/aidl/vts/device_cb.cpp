@@ -145,9 +145,10 @@ ScopedAStatus DeviceCb::requestStreamBuffers(const std::vector<BufferRequest>& b
 
             CameraAidlTest::allocateGraphicBuffer(
                     w, h,
-                    ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(static_cast<uint64_t>(halStream.producerUsage),
-                                                    static_cast<uint64_t>(halStream.consumerUsage))),
-                    halStream.overrideFormat, &handle);
+                    ANDROID_NATIVE_UNSIGNED_CAST(android_convertGralloc1To0Usage(
+                            static_cast<uint64_t>(halStream.producerUsage),
+                            static_cast<uint64_t>(halStream.consumerUsage))),
+                    halStream.overrideFormat, halStream.additionalOptions, &handle);
 
             StreamBuffer streamBuffer = StreamBuffer();
             StreamBuffer& sb = tmpRetBuffers[j];

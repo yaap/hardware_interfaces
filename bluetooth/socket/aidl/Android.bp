@@ -27,7 +27,7 @@ aidl_interface {
     host_supported: true,
     srcs: ["android/hardware/bluetooth/socket/*.aidl"],
     imports: [
-        "android.hardware.contexthub-V4",
+        "android.hardware.contexthub-V5",
     ],
     stability: "vintf",
     backend: {
@@ -44,6 +44,9 @@ aidl_interface {
             ],
             min_sdk_version: "33",
         },
+        cpp: {
+            enabled: false,
+        },
     },
     frozen: true,
     versions_with_info: [
@@ -51,6 +54,11 @@ aidl_interface {
             version: "1",
             imports: ["android.hardware.contexthub-V4"],
         },
+        {
+            version: "2",
+            imports: ["android.hardware.contexthub-V5"],
+        },
+
     ],
 
 }

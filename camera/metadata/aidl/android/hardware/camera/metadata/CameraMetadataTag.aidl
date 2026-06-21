@@ -1380,6 +1380,12 @@ enum CameraMetadataTag {
      */
     ANDROID_SCALER_RAW_CROP_REGION,
     /**
+     * android.scaler.concurrentMultiResolutionFormats [static, int32[], ndk_public]
+     *
+     * <p>The MultiResolutionImageReader formats supporting concurrent readers.</p>
+     */
+    ANDROID_SCALER_CONCURRENT_MULTI_RESOLUTION_FORMATS,
+    /**
      * android.sensor.exposureTime [dynamic, int64, public]
      *
      * <p>Duration each pixel is exposed to
@@ -2133,6 +2139,13 @@ enum CameraMetadataTag {
      */
     ANDROID_INFO_DEVICE_STATE_ORIENTATIONS,
     /**
+     * android.info.deviceType [dynamic, enum, public]
+     *
+     * <p>A classification of the underlying hardware and source of image data for this
+     * camera device, or for a specific camera output frame.</p>
+     */
+    ANDROID_INFO_DEVICE_TYPE = 1376262,
+    /**
      * android.blackLevel.lock [dynamic, enum, public]
      *
      * <p>Whether black-level compensation is locked
@@ -2325,6 +2338,13 @@ enum CameraMetadataTag {
      * capture.</p>
      */
     ANDROID_LOGICAL_MULTI_CAMERA_ACTIVE_PHYSICAL_SENSOR_CROP_REGION,
+    /**
+     * android.logicalMultiCamera.additionalResults [dynamic, enum, public]
+     *
+     * <p>Controls whether the camera device could also return additional
+     * physical cameras' metadata in the results.</p>
+     */
+    ANDROID_LOGICAL_MULTI_CAMERA_ADDITIONAL_RESULTS,
     /**
      * android.distortionCorrection.mode [dynamic, enum, public]
      *

@@ -193,9 +193,8 @@ parcelable StreamDescriptor {
          * intended for transitioning between two clips. Both 'DRAINING' and
          * 'DRAIN_PAUSED' states have "sub-states" not visible via the API. See
          * the details in the 'stream-out-async-sm.gv' state machine
-         * description. In the HAL API V3 this behavior is enabled when the
-         * HAL exposes "aosp.clipTransitionSupport" property, and in the HAL
-         * API V4 it is the default behavior.
+         * description. In the HAL API V3 and V4 this behavior is enabled when the
+         * HAL exposes "aosp.clipTransitionSupport" property.
          */
         DRAINING = 5,
         /**
@@ -246,14 +245,19 @@ parcelable StreamDescriptor {
          * for gapless playback. The exact amount of provided time is specific
          * to the HAL implementation.
          *
-         * In the HAL API V3, the HAL sends two 'onDrainReady' notifications:
+         * In the HAL API V3 and V4, the HAL sends two 'onDrainReady' notifications:
          * one to indicate readiness to receive next clip data, and another when
          * the previous clip has finished playing. This behavior is enabled when
-         * the HAL exposes "aosp.clipTransitionSupport" property, and in the HAL
-         * API V4 it is the default behavior.
+         * the HAL exposes "aosp.clipTransitionSupport" property.
          */
         DRAIN_EARLY_NOTIFY = 2,
     }
+
+    /**
+     * Used by 'flushFromFrame' command. It indicates how many lower bits is used
+     * to represent the flush from position.
+     */
+    const int FLUSH_FROM_FRAME_POSITION_BITS = 28;
 
     /**
      * Used for sending commands to the HAL module. The client writes into
@@ -348,6 +352,16 @@ parcelable StreamDescriptor {
          * different states.
          */
         Void flush;
+        /**
+         * The 'flushFromFrame' is used to flush the written but not yet played data.
+         * The 'flushFromFrame' request is packed integer where the higher 4 bits are the
+         * accuracy request, which is a value of 'FlushFromFrameAccuracy', the lower 28
+         * bits are the position to flush from, which is sent as a difference from the last
+         * reported observable position.
+         *
+         * See the state machines on the applicability of this command to different states.
+         */
+        int flushFromFrame;
     }
     MQDescriptor<Command, SynchronizedReadWrite> command;
 
@@ -436,6 +450,19 @@ parcelable StreamDescriptor {
          * reply.
          */
         State state = State.STANDBY;
+        /**
+         * Used with the 'flushFromFrame' command only.
+         *
+         * When the HAL cannot flush from the requested position, returns 'status'
+         * as 'STATUS_BAD_VALUE' and suggested position that can be flushed from,
+         * which should be a non-negative value. If the requested flush from accuracy
+         * is not valid, return 'status' as 'STATUS_BAD_VALUE' and 'flushFromPosition'
+         * as the requested one. If the stream is successfully flushed, returns the
+         * actual flushed position. Note, the 'flushFromPosition' must be an offset
+         * from the 'observable' position in the same reply and only occupy the lower
+         * 28 bits.
+         */
+        int flushFromPosition;
     }
     MQDescriptor<Reply, SynchronizedReadWrite> reply;
 

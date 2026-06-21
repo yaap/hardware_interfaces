@@ -35,53 +35,50 @@ namespace hardware {
 namespace bluetooth {
 namespace audio {
 
-using LeAudioAseConfigurationSetting =
-    IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
+using LeAudioAseConfigurationSetting = IBluetoothAudioProvider::LeAudioAseConfigurationSetting;
 
 class BluetoothAudioCodecs {
- public:
-  static std::vector<PcmCapabilities> GetSoftwarePcmCapabilities();
-  static std::vector<CodecCapabilities> GetA2dpOffloadCodecCapabilities(
-      const SessionType& session_type);
+  public:
+    static std::vector<PcmCapabilities> GetSoftwarePcmCapabilities();
+    static std::vector<CodecCapabilities> GetA2dpOffloadCodecCapabilities(
+            const SessionType& session_type);
 
-  static bool IsSoftwarePcmConfigurationValid(
-      const PcmConfiguration& pcm_config);
-  static bool IsOffloadCodecConfigurationValid(
-      const SessionType& session_type, const CodecConfiguration& codec_config);
+    static bool IsSoftwarePcmConfigurationValid(const PcmConfiguration& pcm_config);
+    static bool IsOffloadCodecConfigurationValid(const SessionType& session_type,
+                                                 const CodecConfiguration& codec_config);
 
-  static std::vector<LeAudioCodecCapabilitiesSetting>
-  GetLeAudioOffloadCodecCapabilities(const SessionType& session_type);
-  static std::vector<CodecInfo> GetLeAudioOffloadCodecInfo(
-      const SessionType& session_type);
+    static std::vector<LeAudioCodecCapabilitiesSetting> GetLeAudioOffloadCodecCapabilities(
+            const SessionType& session_type);
+    static std::vector<CodecInfo> GetCodecInfo(const SessionType& session_type);
 
-  static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
-  GetLeAudioAseConfigurationSettings();
+    static std::vector<std::pair<std::string, LeAudioAseConfigurationSetting>>
+    GetLeAudioAseConfigurationSettings();
 
-  static std::vector<CodecInfo> GetHfpOffloadCodecInfo();
-
- private:
-  template <typename T>
-  struct identity {
-    typedef T type;
-  };
-  template <class T>
-  static bool ContainedInVector(const std::vector<T>& vector,
-                                const typename identity<T>::type& target);
-  template <class T>
-  static bool ContainedInBitmask(const T& bitmask, const T& target);
-  static bool IsSingleBit(uint32_t bitmasks, uint32_t bitfield);
-  static bool IsOffloadSbcConfigurationValid(
-      const CodecConfiguration::CodecSpecific& codec_specific);
-  static bool IsOffloadAacConfigurationValid(
-      const CodecConfiguration::CodecSpecific& codec_specific);
-  static bool IsOffloadLdacConfigurationValid(
-      const CodecConfiguration::CodecSpecific& codec_specific);
-  static bool IsOffloadAptxConfigurationValid(
-      const CodecConfiguration::CodecSpecific& codec_specific);
-  static bool IsOffloadAptxHdConfigurationValid(
-      const CodecConfiguration::CodecSpecific& codec_specific);
-  static bool IsOffloadOpusConfigurationValid(
-      const CodecConfiguration::CodecSpecific& codec_specific);
+  private:
+    template <typename T>
+    struct identity {
+        typedef T type;
+    };
+    template <class T>
+    static bool ContainedInVector(const std::vector<T>& vector,
+                                  const typename identity<T>::type& target);
+    template <class T>
+    static bool ContainedInBitmask(const T& bitmask, const T& target);
+    static bool IsSingleBit(uint32_t bitmasks, uint32_t bitfield);
+    static bool IsOffloadSbcConfigurationValid(
+            const CodecConfiguration::CodecSpecific& codec_specific);
+    static bool IsOffloadAacConfigurationValid(
+            const CodecConfiguration::CodecSpecific& codec_specific);
+    static bool IsOffloadLdacConfigurationValid(
+            const CodecConfiguration::CodecSpecific& codec_specific);
+    static bool IsOffloadAptxConfigurationValid(
+            const CodecConfiguration::CodecSpecific& codec_specific);
+    static bool IsOffloadAptxHdConfigurationValid(
+            const CodecConfiguration::CodecSpecific& codec_specific);
+    static bool IsOffloadOpusConfigurationValid(
+            const CodecConfiguration::CodecSpecific& codec_specific);
+    static std::vector<CodecInfo> GetLeAudioOffloadCodecInfo(const SessionType& session_type);
+    static std::vector<CodecInfo> GetHfpOffloadCodecInfo();
 };
 
 }  // namespace audio

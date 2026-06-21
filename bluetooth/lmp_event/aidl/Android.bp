@@ -16,7 +16,12 @@ aidl_interface {
     backend: {
         java: {
             enabled: true,
-            platform_apis: true,
+            min_sdk_version: "33",
+            sdk_version: "module_current",
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.uwb",
+            ],
         },
         cpp: {
             enabled: true,

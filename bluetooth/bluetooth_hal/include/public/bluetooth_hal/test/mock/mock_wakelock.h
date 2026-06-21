@@ -20,23 +20,21 @@
 #include "bluetooth_hal/util/power/wakelock.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 class MockWakelock : public Wakelock {
- public:
-  MOCK_METHOD(void, Acquire, (WakeSource source), (override));
-  MOCK_METHOD(void, Release, (WakeSource source), (override));
-  MOCK_METHOD(bool, IsAcquired, (), (override));
-  MOCK_METHOD(bool, IsWakeSourceAcquired, (WakeSource source), (override));
-  MOCK_METHOD(void, SetWakelockTimeout, (const int timeout), (override));
+  public:
+    MOCK_METHOD(void, Acquire, (WakeSource source, ::bluetooth_hal::hci::HciPacketType type),
+                (override));
+    MOCK_METHOD(void, Acquire, (WakeSource source), (override));
+    MOCK_METHOD(void, Release, (WakeSource source), (override));
+    MOCK_METHOD(bool, IsAcquired, (), (override));
+    MOCK_METHOD(bool, IsWakeSourceAcquired, (WakeSource source), (override));
+    MOCK_METHOD(void, SetWakelockTimeout, (int timeout), (override));
 
-  static void SetMockWakelock(MockWakelock* wakelock);
+    static void SetMockWakelock(MockWakelock* wakelock);
 
-  static inline MockWakelock* mock_wakelock_{nullptr};
+    static inline MockWakelock* mock_wakelock_{nullptr};
 };
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

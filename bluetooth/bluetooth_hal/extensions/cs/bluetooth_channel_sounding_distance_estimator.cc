@@ -16,23 +16,38 @@
 
 #include "bluetooth_hal/extensions/cs/bluetooth_channel_sounding_distance_estimator.h"
 
+#include <any>
+
 #include "aidl/android/hardware/bluetooth/ranging/ChannelSoudingRawData.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace cs {
+namespace bluetooth_hal::extensions::cs {
 
 using ::aidl::android::hardware::bluetooth::ranging::ChannelSoudingRawData;
+using ::aidl::android::hardware::bluetooth::ranging::Config;
+using ::aidl::android::hardware::bluetooth::ranging::ProcedureEnableConfig;
 
 void ChannelSoundingDistanceEstimator::ResetVariables() {};
 
-double ChannelSoundingDistanceEstimator::EstimateDistance(
-    [[maybe_unused]] const ChannelSoudingRawData& raw_data) {
-  return 0;
+double ChannelSoundingDistanceEstimator::EstimateDistanceImpl(const std::any& data) {
+    if (std::any_cast<ChannelSoudingRawData>(&data)) {
+        return 0;
+    }
+    return -1;
 }
 
-double ChannelSoundingDistanceEstimator::GetConfidenceLevel() { return 0; }
+double ChannelSoundingDistanceEstimator::GetConfidenceLevel() {
+    return 0;
+}
 
-}  // namespace cs
-}  // namespace extensions
-}  // namespace bluetooth_hal
+double ChannelSoundingDistanceEstimator::GetVelocity() {
+    return 0;
+}
+
+void ChannelSoundingDistanceEstimator::SetInlinePCT(bool /*is_enabled*/) {}
+
+void ChannelSoundingDistanceEstimator::UpdateChannelSoundingConfig(const Config& /*config*/) {}
+
+void ChannelSoundingDistanceEstimator::UpdateProcedureEnableConfig(
+        const ProcedureEnableConfig& /*config*/) {}
+
+}  // namespace bluetooth_hal::extensions::cs

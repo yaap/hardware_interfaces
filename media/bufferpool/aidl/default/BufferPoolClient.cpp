@@ -777,11 +777,13 @@ BufferPoolStatus BufferPoolClient::Impl::fetchBufferHandle(
 BufferPoolClient::BufferPoolClient(const std::shared_ptr<Accessor> &accessor,
                                    const std::shared_ptr<IObserver> &observer) {
     mImpl = std::make_shared<Impl>(accessor, observer);
+    mKey = ~0;
 }
 
 BufferPoolClient::BufferPoolClient(const std::shared_ptr<IAccessor> &accessor,
                                    const std::shared_ptr<IObserver> &observer) {
     mImpl = std::make_shared<Impl>(accessor, observer);
+    mKey = ~0;
 }
 
 BufferPoolClient::~BufferPoolClient() {
@@ -794,6 +796,14 @@ bool BufferPoolClient::isValid() {
 
 bool BufferPoolClient::isLocal() {
     return mImpl && mImpl->isLocal();
+}
+
+void BufferPoolClient::setKey(uint32_t key) {
+    mKey = key;
+}
+
+uint32_t BufferPoolClient::getKey() {
+    return mKey;
 }
 
 bool BufferPoolClient::isActive(int64_t *lastTransactionMs, bool clearCache) {

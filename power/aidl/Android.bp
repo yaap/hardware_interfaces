@@ -44,6 +44,9 @@ aidl_interface {
             enabled: true,
             platform_apis: true,
         },
+        rust: {
+            enabled: true,
+        },
     },
     versions_with_info: [
         {
@@ -76,12 +79,20 @@ aidl_interface {
                 "android.hardware.common-V2",
             ],
         },
+        {
+            version: "7",
+            imports: [
+                "android.hardware.common.fmq-V1",
+                "android.hardware.common-V2",
+            ],
+        },
 
     ],
     frozen: true,
+    host_supported: true,
 }
 
-power_version = "android.hardware.power-V6"
+power_version = "android.hardware.power-V7"
 
 cc_defaults {
     name: "android.hardware.power-ndk_shared",

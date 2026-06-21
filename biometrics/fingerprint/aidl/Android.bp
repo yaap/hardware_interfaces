@@ -10,8 +10,10 @@ package {
 aidl_interface {
     name: "android.hardware.biometrics.fingerprint",
     vendor_available: true,
+    host_supported: true,
     srcs: [
         "android/hardware/biometrics/fingerprint/*.aidl",
+        "android/hardware/biometrics/fingerprint/location/*.aidl",
     ],
     imports: [
         "android.hardware.biometrics.common-V4",
@@ -64,6 +66,13 @@ aidl_interface {
                 "android.hardware.keymaster-V4",
             ],
         },
+        {
+            version: "5",
+            imports: [
+                "android.hardware.biometrics.common-V4",
+                "android.hardware.keymaster-V4",
+            ],
+        },
 
     ],
     frozen: true,
@@ -77,7 +86,7 @@ aidl_interface {
     imports: [
         "android.hardware.biometrics.common-V4",
         "android.hardware.keymaster-V4",
-        "android.hardware.biometrics.fingerprint-V4",
+        "android.hardware.biometrics.fingerprint-V5",
     ],
     vendor_available: true,
     unstable: true,

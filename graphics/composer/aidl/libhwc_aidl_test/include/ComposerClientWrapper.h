@@ -39,6 +39,8 @@
 #include <unordered_set>
 #include "GraphicsComposerCallback.h"
 
+using aidl::android::hardware::drm::HdcpLevel;
+using aidl::android::hardware::drm::HdcpLevels;
 using aidl::android::hardware::graphics::common::Dataspace;
 using aidl::android::hardware::graphics::common::DisplayDecorationSupport;
 using aidl::android::hardware::graphics::common::FRect;
@@ -204,6 +206,14 @@ class ComposerClientWrapper {
                                                         const std::vector<Buffer>& buffers);
 
     std::vector<std::pair<int64_t, common::DisplayHotplugEvent>> getAndClearLatestHotplugs();
+
+    std::pair<ScopedAStatus, VsyncSample> getDisplayKnownVsyncSample(int64_t display);
+
+    ScopedAStatus startHdcpNegotiation(int64_t display, HdcpLevels levels);
+
+    bool waitForHdcpLevelsChanged(int64_t display, std::chrono::milliseconds timeout);
+
+    void clearHdcpLevelsChanged();
 
     static constexpr int32_t kMaxFrameIntervalNs = 50000000;  // 20fps
     static constexpr int32_t kNoFrameIntervalNs = 0;

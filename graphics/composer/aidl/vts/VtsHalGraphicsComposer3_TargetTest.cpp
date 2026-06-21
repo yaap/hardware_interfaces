@@ -54,6 +54,8 @@ namespace aidl::android::hardware::graphics::composer3::vts {
 using namespace std::chrono_literals;
 using namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test;
 
+using aidl::android::hardware::graphics::composer3::DisplayConnectionType;
+
 using ::android::GraphicBuffer;
 using ::android::sp;
 
@@ -493,6 +495,9 @@ TEST_P(GraphicsComposerAidlTest, GetDisplayAttribute) {
                         display.getDisplayId(), config, attribute);
                 EXPECT_TRUE(attribStatus.isOk());
                 EXPECT_NE(-1, value);
+                if (attribute == DisplayAttribute::VSYNC_PERIOD) {
+                    EXPECT_GT(value, 0);
+                }
             }
 
             const std::array<DisplayAttribute, 2> optionalAttributes = {{
@@ -1247,6 +1252,11 @@ TEST_P(GraphicsComposerAidlTest, GetDataspaceSaturationMatrix_BadParameter) {
  * Test that no two display configs are exactly the same.
  */
 TEST_P(GraphicsComposerAidlTest, GetDisplayConfigNoRepetitions) {
+    if (getInterfaceVersion() >= 3) {
+        GTEST_SKIP() << "SurfaceFlinger never uses getDisplayConfigs on HAL versions < 3";
+        return;
+    }
+
     for (const auto& display : mDisplays) {
         const auto& [status, configs] = mComposerClient->getDisplayConfigs(display.getDisplayId());
         for (std::vector<int>::size_type i = 0; i < configs.size(); i++) {
@@ -1352,7 +1362,7 @@ TEST_P(GraphicsComposerAidlV3Test, GetDisplayConfigurations) {
         for (const auto& displayConfig : displayConfigurations) {
             EXPECT_NE(-1, displayConfig.width);
             EXPECT_NE(-1, displayConfig.height);
-            EXPECT_NE(-1, displayConfig.vsyncPeriod);
+            EXPECT_GT(displayConfig.vsyncPeriod, 0);
             EXPECT_NE(-1, displayConfig.configGroup);
             if (displayConfig.dpi) {
                 EXPECT_NE(-1.f, displayConfig.dpi->x);
@@ -1480,6 +1490,158 @@ TEST_P(GraphicsComposerAidlV3Test, GetDisplayConfigsIsSubsetOfGetDisplayConfigur
                         }
                     }));
         }
+    }
+}
+
+class GraphicsComposerAidlV4Test : public GraphicsComposerAidlTest {
+  protected:
+    void SetUp() override {
+        GraphicsComposerAidlTest::SetUp();
+        if (getInterfaceVersion() < 4) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 4";
+        }
+    }
+};
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
+    for (const auto& display : mDisplays) {
+        const auto& [connectionTypeStatus, connectionType] =
+                mComposerClient->getDisplayConnectionType(display.getDisplayId());
+        EXPECT_TRUE(connectionTypeStatus.isOk());
+        if (connectionType == DisplayConnectionType::EXTERNAL) {
+            constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
+                                                .maxLevel = HdcpLevel::HDCP_V2_3};
+            auto displayId = display.getDisplayId();
+            const auto& status = mComposerClient->startHdcpNegotiation(displayId, kHdcpLevels);
+            if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+                status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+                GTEST_FAIL() << "startHdcpNegotiation is not supported: " << displayId;
+                continue;
+            }
+            EXPECT_TRUE(status.isOk());
+        }
+    }
+}
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_CallbackReceived) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
+    for (const auto& display : mDisplays) {
+        const auto& [connectionTypeStatus, connectionType] =
+                mComposerClient->getDisplayConnectionType(display.getDisplayId());
+        EXPECT_TRUE(connectionTypeStatus.isOk());
+        if (connectionType == DisplayConnectionType::EXTERNAL) {
+            mComposerClient->clearHdcpLevelsChanged();
+            constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
+                                                .maxLevel = HdcpLevel::HDCP_V2_3};
+            auto displayId = display.getDisplayId();
+            const auto& status = mComposerClient->startHdcpNegotiation(displayId, kHdcpLevels);
+            if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+                status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+                GTEST_FAIL() << "startHdcpNegotiation is not supported: " << displayId;
+                continue;
+            }
+            ASSERT_TRUE(status.isOk());
+            EXPECT_TRUE(mComposerClient->waitForHdcpLevelsChanged(display.getDisplayId(), 10s));
+        }
+    }
+}
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadDisplay) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
+    auto displayId = getInvalidDisplayId();
+    constexpr HdcpLevels kHdcpLevels = {.connectedLevel = HdcpLevel::HDCP_V2_1,
+                                        .maxLevel = HdcpLevel::HDCP_V2_3};
+    const auto& status = mComposerClient->startHdcpNegotiation(displayId, kHdcpLevels);
+    if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+        status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+        // Gracefully skip instead of failing to accommodate devices without external displays
+        GTEST_SKIP() << "startHdcpNegotiation is not supported";
+        return;
+    }
+
+    if (status.isOk()) {
+        // Async call must report error via the callback
+        EXPECT_TRUE(mComposerClient->waitForHdcpLevelsChanged(displayId, 10s));
+        return;
+    }
+
+    EXPECT_FALSE(status.isOk());
+    EXPECT_NO_FATAL_FAILURE(assertServiceSpecificError(status, IComposerClient::EX_BAD_DISPLAY));
+}
+
+TEST_P(GraphicsComposerAidlV4Test, StartHdcpNegotiation_BadParameter) {
+    if (::android::base::GetIntProperty("ro.vendor.api_level", 0) < 202604) {
+        GTEST_SKIP() << "HDCP requirements not enforced until API level 202604";
+        return;
+    }
+    for (const auto& display : mDisplays) {
+        const auto& [connectionTypeStatus, connectionType] =
+                mComposerClient->getDisplayConnectionType(display.getDisplayId());
+        EXPECT_TRUE(connectionTypeStatus.isOk());
+        if (connectionType == DisplayConnectionType::EXTERNAL) {
+            constexpr HdcpLevels kInvalidHdcpLevels = {
+                    .connectedLevel = static_cast<HdcpLevel>(HdcpLevel::HDCP_UNKNOWN),
+                    .maxLevel = static_cast<HdcpLevel>(HdcpLevel::HDCP_UNKNOWN)};
+            auto displayId = display.getDisplayId();
+            const auto& status =
+                    mComposerClient->startHdcpNegotiation(displayId, kInvalidHdcpLevels);
+            if (status.isOk()) {
+                // Async call must report error via the callback
+                EXPECT_TRUE(mComposerClient->waitForHdcpLevelsChanged(displayId, 10s));
+                continue;
+            }
+            if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+                status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+                GTEST_FAIL() << "startHdcpNegotiation is not supported: " << displayId;
+                continue;
+            }
+            EXPECT_FALSE(status.isOk());
+            EXPECT_NO_FATAL_FAILURE(
+                    assertServiceSpecificError(status, IComposerClient::EX_BAD_PARAMETER));
+        }
+    }
+}
+
+class GraphicsComposerAidlV5Test : public GraphicsComposerAidlTest {
+  protected:
+    void SetUp() override {
+        GraphicsComposerAidlTest::SetUp();
+        if (getInterfaceVersion() < 5) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 5";
+        }
+    }
+};
+
+TEST_P(GraphicsComposerAidlV5Test, GetDisplayKnownVsyncSample) {
+    for (const auto& display : mDisplays) {
+        const auto& [status, vsyncSample] =
+                mComposerClient->getDisplayKnownVsyncSample(display.getDisplayId());
+
+        // Handle case where the API is not supported by the hardware composer.
+        // This is an optional API.
+        if (!status.isOk() && status.getExceptionCode() == EX_SERVICE_SPECIFIC &&
+            status.getServiceSpecificError() == IComposerClient::EX_UNSUPPORTED) {
+            GTEST_SUCCEED() << "getDisplayKnownVsyncSample is not supported on this display.";
+            continue;
+        }
+
+        // Any other error is a test failure.
+        ASSERT_TRUE(status.isOk()) << "Failed to get vsync sample: " << status.getDescription();
+
+        // Validate the contents of the VsyncSample struct.
+        EXPECT_GE(vsyncSample.timestampNs, 0) << "Timestamp should be non-negative.";
+        EXPECT_GT(vsyncSample.vsyncPeriodNs, 0)
+                << "Vsync period should be positive. Got: " << vsyncSample.vsyncPeriodNs;
     }
 }
 
@@ -3048,8 +3210,22 @@ TEST_P(GraphicsComposerAidlCommandV2Test,
         // Get display configurations and check if there's more than one.
         auto [status, displayConfigs] = mComposerClient->getDisplayConfigs(displayId);
         ASSERT_TRUE(status.isOk());
-        if (displayConfigs.size() <= 1) {
-            // Nothing to test if there aren't multiple configs to switch between.
+
+        // Skip if no physical refresh rate switching is possible.
+        // This avoids toggling the callback on single-config or ARR displays (where
+        // multiple configs share the same vsyncPeriod), preventing a race condition
+        // where an asynchronous refresh rate callback arrives after the test disables it.
+        bool hasDifferentRates = false;
+        for (size_t i = 0; i < displayConfigs.size(); ++i) {
+            for (size_t j = i + 1; j < displayConfigs.size(); ++j) {
+                if (!display.isRateSameBetweenConfigs(displayConfigs[i], displayConfigs[j])) {
+                    hasDifferentRates = true;
+                    break;
+                }
+            }
+            if (hasDifferentRates) break;
+        }
+        if (!hasDifferentRates) {
             continue;
         }
 
@@ -3594,9 +3770,6 @@ TEST_P(GraphicsComposerAidlCommandV4Test, SetUnsupportedLayerLuts) {
     for (const DisplayWrapper& display : mDisplays) {
         EXPECT_TRUE(mComposerClient->setPowerMode(display.getDisplayId(), PowerMode::ON).isOk());
         auto& writer = getWriter(display.getDisplayId());
-        const auto& [layerStatus, layer] =
-                mComposerClient->createLayer(display.getDisplayId(), kBufferSlotCount, &writer);
-        EXPECT_TRUE(layerStatus.isOk());
         const auto& [status, properties] = mComposerClient->getOverlaySupport();
 
         // TODO (b/362319189): add Lut VTS enforcement
@@ -3652,6 +3825,55 @@ TEST_P(GraphicsComposerAidlCommandV4Test, GetDisplayConfigurations_hasHdrType) {
     }
 }
 
+class GraphicsComposerAidlCommandV5Test : public GraphicsComposerAidlCommandTest {
+  protected:
+    void SetUp() override {
+        GraphicsComposerAidlTest::SetUp();
+        if (getInterfaceVersion() <= 4) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 5";
+        }
+    }
+};
+
+TEST_P(GraphicsComposerAidlCommandV5Test, SetActiveConfigDisplayCommand) {
+    if (!hasCapability(Capability::DISPLAY_COMMAND_CONFIG_CHANGE)) {
+        GTEST_SKIP() << "DISPLAY_COMMAND_CONFIG_CHANGE not supported by the implementation";
+    }
+    for (auto& display : mDisplays) {
+        const auto& [status, configs] = mComposerClient->getDisplayConfigs(display.getDisplayId());
+        EXPECT_TRUE(status.isOk());
+
+        for (const auto& config : configs) {
+            auto& writer = getWriter(display.getDisplayId());
+            writer.setActiveConfig(static_cast<int64_t>(display.getDisplayId()), config, false);
+
+            execute();
+            ASSERT_TRUE(getReader(display.getDisplayId()).takeErrors().empty());
+
+            const auto [status, configId] =
+                    mComposerClient->getActiveConfig(display.getDisplayId());
+            EXPECT_TRUE(status.isOk());
+            EXPECT_EQ(config, configId);
+        }
+    }
+}
+
+TEST_P(GraphicsComposerAidlCommandV5Test, SetActiveConfigDisplayCommand_BadConfig) {
+    if (!hasCapability(Capability::DISPLAY_COMMAND_CONFIG_CHANGE)) {
+        GTEST_SKIP() << "DISPLAY_COMMAND_CONFIG_CHANGE not supported by the implementation";
+    }
+    for (DisplayWrapper& display : mDisplays) {
+        int32_t constexpr kInvalidConfigId = IComposerClient::INVALID_CONFIGURATION;
+        auto& writer = getWriter(display.getDisplayId());
+        writer.setActiveConfig(static_cast<int64_t>(display.getDisplayId()), kInvalidConfigId,
+                               false);
+
+        execute();
+        const auto errors = getReader(display.getDisplayId()).takeErrors();
+        EXPECT_TRUE(errors.size() == 1 && errors[0].errorCode == IComposerClient::EX_BAD_CONFIG);
+    }
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandTest);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlCommandTest,
@@ -3672,6 +3894,16 @@ INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlV3Test,
         testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
         ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV4Test);
+INSTANTIATE_TEST_SUITE_P(
+        PerInstance, GraphicsComposerAidlV4Test,
+        testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
+        ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlV5Test);
+INSTANTIATE_TEST_SUITE_P(
+        PerInstance, GraphicsComposerAidlV5Test,
+        testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
+        ::android::PrintInstanceNameToString);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandV2Test);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlCommandV2Test,
@@ -3685,6 +3917,11 @@ INSTANTIATE_TEST_SUITE_P(
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandV4Test);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, GraphicsComposerAidlCommandV4Test,
+        testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
+        ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GraphicsComposerAidlCommandV5Test);
+INSTANTIATE_TEST_SUITE_P(
+        PerInstance, GraphicsComposerAidlCommandV5Test,
         testing::ValuesIn(::android::getAidlHalInstanceNames(IComposer::descriptor)),
         ::android::PrintInstanceNameToString);
 }  // namespace aidl::android::hardware::graphics::composer3::vts

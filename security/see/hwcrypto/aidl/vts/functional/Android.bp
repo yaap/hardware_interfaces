@@ -30,6 +30,7 @@ rust_defaults {
         "librpcbinder_rs",
         "librustutils",
         "libhwcryptohal_common",
+        "libhwcrypto_thal",
     ],
     arch: {
         arm64: {

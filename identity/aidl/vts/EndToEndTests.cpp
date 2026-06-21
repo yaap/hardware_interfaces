@@ -15,6 +15,7 @@
  */
 #define LOG_TAG "VtsHalIdentityEndToEndTest"
 
+#include <KeyMintAidlTestBase.h>
 #include <aidl/Gtest.h>
 #include <aidl/Vintf.h>
 #include <android-base/logging.h>
@@ -45,6 +46,7 @@ using ::android::sp;
 using ::android::String16;
 using ::android::binder::Status;
 
+using ::aidl::android::hardware::security::keymint::test::get_vendor_api_level;
 using ::android::hardware::keymaster::HardwareAuthToken;
 using ::android::hardware::keymaster::VerificationToken;
 
@@ -53,8 +55,13 @@ using test_utils::validateAttestationCertificate;
 class EndToEndTests : public testing::TestWithParam<std::string> {
   public:
     virtual void SetUp() override {
-        if (test_utils::isGsiImage()) {
-            GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
+        if (test_utils::isGsiImage() &&
+            get_vendor_api_level() < test_utils::GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL) {
+            GTEST_SKIP() << "Skipping test on GSI: Vendor API Level is " << get_vendor_api_level()
+                         << " Requires (26Q2) "
+                         << test_utils::GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL << " or higher."
+                         << "Vendor code cannot set appropriate RKP properties prior to "
+                         << test_utils::GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL;
         }
 
         credentialStore_ = android::waitForDeclaredService<IIdentityCredentialStore>(

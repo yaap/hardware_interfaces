@@ -22,6 +22,14 @@ import android.hardware.automotive.evs.DisplayState;
 
 /**
  * Represents a single display.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             OEMs should use the standard display classes:
+ *             <ul>
+ *                 <li>{@link android.hardware.display.DisplayManager}</li>
+ *                 <li>{@link android.view.Display}</li>
+ *                 <li>{@link android.view.WindowManager}</li>
+ *             </ul>
  */
 @VintfStability
 interface IEvsDisplay {
@@ -31,6 +39,9 @@ interface IEvsDisplay {
      * @return The information of this display including id, current mode, current state,
      *         and additional vendor-specific information.
      * @throws EvsResult::UNDERLYING_SERVICE_ERROR if it fails to read a display information.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use {@link android.view.Display} instead.
      */
     DisplayDesc getDisplayInfo();
 
@@ -44,6 +55,9 @@ interface IEvsDisplay {
      * change display states.
      *
      * @return Current DisplayState of this Display.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
+     *             Use {@link android.view.Display#getState} instead.
      */
     DisplayState getDisplayState();
 
@@ -57,6 +71,8 @@ interface IEvsDisplay {
      * @throws EvsResult::OWNERSHIP_LOST if a display is in DisplayState::DEAD.
      *        EvsResult::BUFFER_NOT_AVAILABLE if no buffer is available.
      *        EvsResult::UNDERLYING_SERVICE_ERROR for any other failures.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     BufferDesc getTargetBuffer();
 
@@ -72,6 +88,8 @@ interface IEvsDisplay {
      * @throws EvsResult::INVALID_ARG if a given buffer is unknown or invalid.
      *        EvsResult::OWNERSHIP_LOST if a display is in DisplayState::DEAD.
      *        EvsResult::UNDERLYING_SERVICE_ERROR for any other failures.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     void returnTargetBufferForDisplay(in BufferDesc buffer);
 
@@ -89,6 +107,8 @@ interface IEvsDisplay {
      * @param in state Desired new DisplayState.
      * @throws EvsResult::INVALID_ARG if a given state is invalid.
      *        EvsResult::OWNERSHIP_LOST if a display is in DisplayState::DEAD.
+     *
+     * @deprecated EVS functionality and APIs are deprecated.
      */
     void setDisplayState(in DisplayState state);
 }

@@ -261,6 +261,20 @@ static bool parseAreaListString(int fd, const string& areaListString,
     return true;
 }
 
+bool supportsIdentifierType(const Properties& properties, IdentifierType type) {
+    return std::find(properties.supportedIdentifierTypes.begin(),
+                     properties.supportedIdentifierTypes.end(),
+                     type) != properties.supportedIdentifierTypes.end();
+}
+
+bool supportsAmFm(const Properties& properties) {
+    return supportsIdentifierType(properties, IdentifierType::AMFM_FREQUENCY_KHZ);
+}
+
+bool supportsDab(const Properties& properties) {
+    return supportsIdentifierType(properties, IdentifierType::DAB_SID_EXT);
+}
+
 }  // namespace
 
 BroadcastRadio::BroadcastRadio(const VirtualRadio& virtualRadio)
@@ -268,15 +282,19 @@ BroadcastRadio::BroadcastRadio(const VirtualRadio& virtualRadio)
       mAmFmConfig(kDefaultAmFmConfig),
       mProperties(initProperties(virtualRadio)) {
     const auto& ranges = kDefaultAmFmConfig.ranges;
-    if (ranges.size() > 0) {
-        ProgramSelector sel = utils::makeSelectorAmfm(ranges[0].lowerBound);
-        VirtualProgram virtualProgram = {};
-        if (mVirtualRadio.getProgram(sel, &virtualProgram)) {
-            mCurrentProgramSelector = virtualProgram.selector;
-        } else {
-            mCurrentProgramSelector = sel;
+    if (supportsAmFm(mProperties)) {
+        if (ranges.size() > 0) {
+            ProgramSelector sel = utils::makeSelectorAmfm(ranges[0].lowerBound);
+            VirtualProgram virtualProgram = {};
+            if (mVirtualRadio.getProgram(sel, &virtualProgram)) {
+                mCurrentProgramSelector = virtualProgram.selector;
+            } else {
+                mCurrentProgramSelector = sel;
+            }
+            adjustAmFmRangeLocked();
         }
-        adjustAmFmRangeLocked();
+    } else {
+        mAmFmConfig.ranges.clear();
     }
 }
 
@@ -286,6 +304,11 @@ BroadcastRadio::~BroadcastRadio() {
 }
 
 ScopedAStatus BroadcastRadio::getAmFmRegionConfig(bool full, AmFmRegionConfig* returnConfigs) {
+    if (!supportsAmFm(mProperties)) {
+        LOG(INFO) << __func__ << ": AM/FM not supported";
+        return ScopedAStatus::fromServiceSpecificErrorWithMessage(
+                resultToInt(Result::NOT_SUPPORTED), "AM/FM not supported");
+    }
     if (full) {
         *returnConfigs = {};
         returnConfigs->ranges = vector<AmFmBandRange>({
@@ -303,6 +326,11 @@ ScopedAStatus BroadcastRadio::getAmFmRegionConfig(bool full, AmFmRegionConfig* r
 }
 
 ScopedAStatus BroadcastRadio::getDabRegionConfig(vector<DabTableEntry>* returnConfigs) {
+    if (!supportsDab(mProperties)) {
+        LOG(INFO) << __func__ << ": DAB not supported";
+        return ScopedAStatus::fromServiceSpecificErrorWithMessage(
+                resultToInt(Result::NOT_SUPPORTED), "DAB not supported");
+    }
     *returnConfigs = {
             {"5A", 174928},  {"7D", 194064},  {"8A", 195936},  {"8B", 197648},  {"9A", 202928},
             {"9B", 204640},  {"9C", 206352},  {"10B", 211648}, {"10C", 213360}, {"10D", 215072},
@@ -1166,7 +1194,7 @@ binder_status_t BroadcastRadio::cmdStartProgramListUpdates(int fd, const char** 
         dprintf(fd,
                 "Invalid excludeModifications(\"true\" or \"false\") "
                 "provided with startProgramListUpdates : %s\n",
-                excludeModificationsStr.c_str());
+                includeCategoriesStr.c_str());
         return STATUS_BAD_VALUE;
     }
     ProgramFilter filter = {filterTypeList, filterList, includeCategories, excludeModifications};

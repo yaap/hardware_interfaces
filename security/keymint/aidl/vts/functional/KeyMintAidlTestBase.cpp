@@ -26,14 +26,17 @@
 #include "keymint_support/keymint_tags.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <android-base/strings.h>
 #include <android/binder_manager.h>
 #include <android/content/pm/IPackageManagerNative.h>
 #include <cppbor_parse.h>
-#include <cutils/properties.h>
+
 #include <gmock/gmock.h>
 #include <openssl/evp.h>
 #include <openssl/mem.h>
+#include <openssl/mldsa.h>
+#include <openssl/rand.h>
 #include <remote_prov/remote_prov_utils.h>
 #include <vendorsupport/api_level.h>
 
@@ -41,6 +44,7 @@
 #include <keymint_support/key_param_output.h>
 #include <keymint_support/keymint_utils.h>
 #include <keymint_support/openssl_utils.h>
+#include <keymint_support/wrapped_key.h>
 
 namespace aidl::android::hardware::security::keymint {
 
@@ -70,6 +74,9 @@ namespace test {
 
 namespace {
 
+// Whether to check that BOOT_PATCHLEVEL is populated.
+bool check_boot_pl = true;
+
 // Possible values for the feature version.  Assumes that future KeyMint versions
 // will continue with the 100 * AIDL_version numbering scheme.
 //
@@ -87,7 +94,8 @@ const size_t kPkcs1UndigestedSignaturePaddingOverhead = 11;
 // Determine whether the key description is for an asymmetric key.
 bool is_asymmetric(const AuthorizationSet& key_desc) {
     auto algorithm = key_desc.GetTagValue(TAG_ALGORITHM);
-    if (algorithm && (algorithm.value() == Algorithm::RSA || algorithm.value() == Algorithm::EC)) {
+    if (algorithm && (algorithm.value() == Algorithm::RSA || algorithm.value() == Algorithm::EC ||
+                      algorithm.value() == Algorithm::ML_DSA)) {
         return true;
     } else {
         return false;
@@ -169,9 +177,25 @@ void check_attestation_version(uint32_t attestation_version, int32_t aidl_versio
 }
 
 bool avb_verification_enabled() {
-    char value[PROPERTY_VALUE_MAX];
-    return property_get("ro.boot.vbmeta.device_state", value, "") != 0;
+    return !::android::base::GetProperty("ro.boot.vbmeta.device_state", "").empty();
 }
+
+constexpr char hex_value[256] = {0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 1,  2,  3,  4,  5,  6,  7, 8, 9, 0, 0, 0, 0, 0, 0,  // '0'..'9'
+                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'A'..'F'
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 'a'..'f'
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0,  //
+                                 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 char nibble2hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -217,6 +241,7 @@ bool KeyMintAidlTestBase::arm_deleteAllKeys = false;
 bool KeyMintAidlTestBase::dump_Attestations = false;
 std::string KeyMintAidlTestBase::keyblob_dir;
 std::optional<bool> KeyMintAidlTestBase::expect_upgrade = std::nullopt;
+int KeyMintAidlTestBase::upgraded_from_version = 0;
 
 KeyBlobDeleter::~KeyBlobDeleter() {
     if (key_blob_.empty()) {
@@ -351,30 +376,43 @@ bool KeyMintAidlTestBase::isDeviceIdAttestationRequired() {
  * which is supported for KeyMint version 3 or first_api_level greater than 33.
  */
 bool KeyMintAidlTestBase::isSecondImeiIdAttestationRequired() {
-    return AidlVersion() >= 3 && property_get_int32("ro.vendor.api_level", 0) > __ANDROID_API_T__;
+    return AidlVersion() >= 3 &&
+           ::android::base::GetIntProperty("ro.vendor.api_level", 0) > __ANDROID_API_T__;
 }
 
 std::optional<bool> KeyMintAidlTestBase::isRkpOnly() {
-    // GSI replaces the values for remote_prov_prop properties (since they’re system_internal_prop
-    // properties), so on GSI the properties are not reliable indicators of whether StrongBox/TEE is
-    // RKP-only or not.
-    if (is_gsi_image()) {
+    // BEFORE 26Q2: GSI replaces the values for remote_prov_prop properties (since they’re
+    // system_internal_prop properties), so on GSI the properties are not reliable indicators of
+    // whether StrongBox/TEE is RKP-only or not.
+    // 26Q2 ONWARD: CL ag/37165459 allows vendor init to set the remote provisioning
+    // properties. This change enables Remote Key Provisioning (RKP) functionality on GSI.
+    if (is_gsi_image() && get_vendor_api_level() < 202604) {
         return std::nullopt;
     }
     if (SecLevel() == SecurityLevel::STRONGBOX) {
-        return property_get_bool("remote_provisioning.strongbox.rkp_only", false);
+        return ::android::base::GetBoolProperty("remote_provisioning.strongbox.rkp_only", false);
     }
-    return property_get_bool("remote_provisioning.tee.rkp_only", false);
+    return ::android::base::GetBoolProperty("remote_provisioning.tee.rkp_only", false);
 }
 
-bool KeyMintAidlTestBase::Curve25519Supported() {
+bool KeyMintAidlTestBase::Curve25519Supported(SecurityLevel sec_level, int32_t aidl_version) {
     // Strongbox never supports curve 25519.
-    if (SecLevel() == SecurityLevel::STRONGBOX) {
+    if (sec_level == SecurityLevel::STRONGBOX) {
         return false;
     }
 
     // Curve 25519 was included in version 2 of the KeyMint interface.
-    return AidlVersion() >= 2;
+    return aidl_version >= 2;
+}
+
+bool KeyMintAidlTestBase::MlDsaSupported(SecurityLevel sec_level, int32_t aidl_version) {
+    // Strongbox never supports ML-DSA
+    if (sec_level == SecurityLevel::STRONGBOX) {
+        return false;
+    }
+
+    // ML-DSA was included in version 5 of the KeyMint interface.
+    return aidl_version >= 5;
 }
 
 void KeyMintAidlTestBase::InitializeKeyMint(std::shared_ptr<IKeyMintDevice> keyMint) {
@@ -535,20 +573,85 @@ ErrorCode KeyMintAidlTestBase::ImportKey(const AuthorizationSet& key_desc, KeyFo
     return ImportKey(key_desc, format, key_material, &key_blob_, &key_characteristics_);
 }
 
-ErrorCode KeyMintAidlTestBase::ImportWrappedKey(string wrapped_key, string wrapping_key,
-                                                const AuthorizationSet& wrapping_key_desc,
-                                                string masking_key,
+// Construct a `SecureKeyWrapper` for a provided key + key description as follows:
+// 1. Encode Key Description:
+//     - Create an ASN.1 `KeyDescription` structure for the wrapped key. This structure defines the
+//       wrapped key's format and its authorization list.
+// 2. Generate Keys:
+//     - Generate a transient, 32-byte AES key to encrypt the wrapped key.
+//     - Generate a KeyMint wrapping key, which must be an RSA 2048-bit key with the purpose
+//       WRAP_KEY.
+// 3. Encrypt the Wrapped Key:
+//     - Generate a random IV.
+//     - Encrypt the provided key with the transient AES key (from step 2) using AES-GCM.
+//     - Use the DER-encoded KeyDescription (from step 1) as the Additional Authenticated Data
+//       (AAD) for this encryption. This binds the key data to its properties, ensuring their
+//       integrity.
+// 4. Secure the Transient Key:
+//     - Generate a random, 32-byte masking key.
+//     - XOR the transient AES key with this masking key.
+//     - Encrypt the result with the RSA wrapping key (from step 2) using the RSA OAEP MGF1 SHA1
+//       digest algorithm. This final output is the encrypted transport key.
+// 5. Assemble the Wrapper:
+//     - Construct the final ASN.1 `SecureKeyWrapper` structure. This structure contains the
+//       encrypted transport key, the IV from the AES-GCM encryption, the KeyDescription, the
+//       encrypted wrapped key, and the authentication tag generated by the AES-GCM process.
+//
+// Emit the results into the provided `WrappedKeyInfo` structure.
+void KeyMintAidlTestBase::WrapKey(const vector<uint8_t>& key_to_wrap, KeyFormat key_format,
+                                  const AuthorizationSet& key_desc, WrappedKeyInfo* wrap_info) {
+    // Create ASN.1 DER encoded `KeyDescription`.
+    std::vector<uint8_t> der_wrapped_key_description;
+    EXPECT_EQ(ErrorCode::OK,
+              buildWrappedKeyDescription(key_desc, key_format, der_wrapped_key_description));
+
+    // Encrypt the keyblob with a random transport_key.
+    std::vector<uint8_t> transport_key = random_vector(32);
+    std::vector<uint8_t> iv = random_vector(12);
+    std::vector<uint8_t> encrypted_wrapped_key(key_to_wrap.size());
+    std::vector<uint8_t> aes_gcm_tag(16);
+    aes256GcmEncrypt(transport_key, key_to_wrap, der_wrapped_key_description, iv,
+                     encrypted_wrapped_key, aes_gcm_tag);
+
+    // XOR the transport key with a random masking key.
+    wrap_info->masking_key = random_vector(32);
+    std::transform(transport_key.begin(), transport_key.end(), wrap_info->masking_key.begin(),
+                   transport_key.begin(), [](uint8_t transport_key_byte, uint8_t masking_key_byte) {
+                       return transport_key_byte ^ masking_key_byte;
+                   });
+
+    // Generate an RSA-2048 key as the wrapping key.
+    ASSERT_EQ(ErrorCode::OK, GenerateKey(AuthorizationSetBuilder()
+                                                 .Authorization(TAG_NO_AUTH_REQUIRED)
+                                                 .RsaEncryptionKey(2048, 65537)
+                                                 .Authorization(TAG_PURPOSE, KeyPurpose::WRAP_KEY)
+                                                 .Padding(PaddingMode::RSA_OAEP)
+                                                 .Digest(Digest::SHA_2_256)
+                                                 .SetDefaultValidity()));
+    wrap_info->wrapping_key_blob = key_blob_;
+
+    // Encrypt the masked transport key with wrapping key.
+    auto params =
+            AuthorizationSetBuilder().Digest(Digest::SHA_2_256).Padding(PaddingMode::RSA_OAEP);
+    string encrypted_transport_key =
+            LocalRsaEncryptMessage({transport_key.begin(), transport_key.end()}, params);
+
+    // Build an ASN.1 DER-encoded `SecureKeyWrapper`.
+    EXPECT_EQ(ErrorCode::OK,
+              buildWrappedKey({encrypted_transport_key.begin(), encrypted_transport_key.end()}, iv,
+                              encrypted_wrapped_key, aes_gcm_tag, key_format, key_desc,
+                              wrap_info->wrapped_key_data));
+}
+
+ErrorCode KeyMintAidlTestBase::ImportWrappedKey(const vector<uint8_t>& wrapped_key,
+                                                const vector<uint8_t>& wrapping_key_blob,
+                                                const vector<uint8_t>& masking_key,
                                                 const AuthorizationSet& unwrapping_params,
                                                 int64_t password_sid, int64_t biometric_sid) {
-    EXPECT_EQ(ErrorCode::OK, ImportKey(wrapping_key_desc, KeyFormat::PKCS8, wrapping_key));
-
-    key_characteristics_.clear();
-
     KeyCreationResult creationResult;
-    Status result = keymint_->importWrappedKey(
-            vector<uint8_t>(wrapped_key.begin(), wrapped_key.end()), key_blob_,
-            vector<uint8_t>(masking_key.begin(), masking_key.end()),
-            unwrapping_params.vector_data(), password_sid, biometric_sid, &creationResult);
+    Status result = keymint_->importWrappedKey(wrapped_key, wrapping_key_blob, masking_key,
+                                               unwrapping_params.vector_data(), password_sid,
+                                               biometric_sid, &creationResult);
 
     if (result.isOk()) {
         EXPECT_PRED3(KeyCharacteristicsBasicallyValid, SecLevel(),
@@ -572,6 +675,20 @@ ErrorCode KeyMintAidlTestBase::ImportWrappedKey(string wrapped_key, string wrapp
     }
 
     return GetReturnErrorCode(result);
+}
+
+ErrorCode KeyMintAidlTestBase::ImportWrappedKey(string wrapped_key, string wrapping_key,
+                                                const AuthorizationSet& wrapping_key_desc,
+                                                string masking_key,
+                                                const AuthorizationSet& unwrapping_params,
+                                                int64_t password_sid, int64_t biometric_sid) {
+    EXPECT_EQ(ErrorCode::OK, ImportKey(wrapping_key_desc, KeyFormat::PKCS8, wrapping_key));
+
+    key_characteristics_.clear();
+
+    return ImportWrappedKey(vector<uint8_t>(wrapped_key.begin(), wrapped_key.end()), key_blob_,
+                            vector<uint8_t>(masking_key.begin(), masking_key.end()),
+                            unwrapping_params, password_sid, biometric_sid);
 }
 
 ErrorCode KeyMintAidlTestBase::GetCharacteristics(const vector<uint8_t>& key_blob,
@@ -663,6 +780,46 @@ void KeyMintAidlTestBase::CheckedDeleteKey() {
     EXPECT_TRUE(result == ErrorCode::OK || result == ErrorCode::UNIMPLEMENTED) << result << endl;
 }
 
+void KeyMintAidlTestBase::GetUniqueId(const std::string& app_id, uint64_t datetime,
+                                      vector<uint8_t>* unique_id, bool reset) {
+    auto challenge = "hello";
+    auto subject = "cert subj 2";
+    vector<uint8_t> subject_der(make_name_from_str(subject));
+    uint64_t serial_int = 0x1010;
+    vector<uint8_t> serial_blob(build_serial_blob(serial_int));
+    AuthorizationSetBuilder builder = AuthorizationSetBuilder()
+                                              .Authorization(TAG_NO_AUTH_REQUIRED)
+                                              .Authorization(TAG_INCLUDE_UNIQUE_ID)
+                                              .EcdsaSigningKey(EcCurve::P_256)
+                                              .Digest(Digest::NONE)
+                                              .AttestationChallenge(challenge)
+                                              .Authorization(TAG_CERTIFICATE_SERIAL, serial_blob)
+                                              .Authorization(TAG_CERTIFICATE_SUBJECT, subject_der)
+                                              .AttestationApplicationId(app_id)
+                                              .Authorization(TAG_CREATION_DATETIME, datetime)
+                                              .SetDefaultValidity();
+    if (reset) {
+        builder.Authorization(TAG_RESET_SINCE_ID_ROTATION);
+    }
+    auto result = GenerateKey(builder);
+    ASSERT_EQ(ErrorCode::OK, result);
+    ASSERT_GT(key_blob_.size(), 0U);
+
+    EXPECT_TRUE(ChainSignaturesAreValid(cert_chain_));
+    ASSERT_GT(cert_chain_.size(), 0);
+    verify_subject_and_serial(cert_chain_[0], serial_int, subject, /* self_signed = */ false);
+
+    AuthorizationSet hw_enforced = HwEnforcedAuthorizations(key_characteristics_);
+    AuthorizationSet sw_enforced = SwEnforcedAuthorizations(key_characteristics_);
+
+    // Check that the unique ID field in the extension is non-empty.
+    EXPECT_TRUE(verify_attestation_record(AidlVersion(), challenge, app_id, sw_enforced,
+                                          hw_enforced, SecLevel(),
+                                          cert_chain_[0].encodedCertificate, unique_id));
+    EXPECT_GT(unique_id->size(), 0);
+    CheckedDeleteKey();
+}
+
 ErrorCode KeyMintAidlTestBase::Begin(KeyPurpose purpose, const vector<uint8_t>& key_blob,
                                      const AuthorizationSet& in_params,
                                      AuthorizationSet* out_params,
@@ -721,47 +878,48 @@ ErrorCode KeyMintAidlTestBase::UpdateAad(const string& input) {
                                              {} /* verificationToken */));
 }
 
-ErrorCode KeyMintAidlTestBase::Update(const string& input, string* output,
-                                      std::optional<HardwareAuthToken> hat,
+ErrorCode KeyMintAidlTestBase::Update(std::shared_ptr<IKeyMintOperation>* op, const string& input,
+                                      string* output, std::optional<HardwareAuthToken> hat,
                                       std::optional<secureclock::TimeStampToken> time_token) {
     SCOPED_TRACE("Update");
 
     Status result;
     if (!output) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
-    EXPECT_NE(op_, nullptr);
-    if (!op_) return ErrorCode::UNEXPECTED_NULL_POINTER;
+    EXPECT_NE((*op), nullptr);
+    if (!(*op)) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
     std::vector<uint8_t> o_put;
-    result = op_->update(vector<uint8_t>(input.begin(), input.end()), hat, time_token, &o_put);
+    result = (*op)->update(vector<uint8_t>(input.begin(), input.end()), hat, time_token, &o_put);
 
     if (result.isOk()) {
         output->append(o_put.begin(), o_put.end());
     } else {
         // Failure always terminates the operation.
-        op_ = {};
+        (*op) = {};
     }
 
     return GetReturnErrorCode(result);
 }
 
-ErrorCode KeyMintAidlTestBase::Finish(const string& input, const string& signature, string* output,
+ErrorCode KeyMintAidlTestBase::Finish(std::shared_ptr<IKeyMintOperation>* op, const string& input,
+                                      const string& signature, string* output,
                                       std::optional<HardwareAuthToken> hat,
                                       std::optional<secureclock::TimeStampToken> time_token) {
     SCOPED_TRACE("Finish");
     Status result;
 
-    EXPECT_NE(op_, nullptr);
-    if (!op_) return ErrorCode::UNEXPECTED_NULL_POINTER;
+    EXPECT_NE((*op), nullptr);
+    if (!(*op)) return ErrorCode::UNEXPECTED_NULL_POINTER;
 
     vector<uint8_t> oPut;
-    result = op_->finish(vector<uint8_t>(input.begin(), input.end()),
-                         vector<uint8_t>(signature.begin(), signature.end()), hat, time_token,
-                         {} /* confirmationToken */, &oPut);
+    result = (*op)->finish(vector<uint8_t>(input.begin(), input.end()),
+                           vector<uint8_t>(signature.begin(), signature.end()), hat, time_token,
+                           {} /* confirmationToken */, &oPut);
 
     if (result.isOk()) output->append(oPut.begin(), oPut.end());
 
-    op_ = {};
+    (*op) = {};
     return GetReturnErrorCode(result);
 }
 
@@ -843,7 +1001,8 @@ string KeyMintAidlTestBase::MacMessage(const string& message, Digest digest, siz
 }
 
 void KeyMintAidlTestBase::CheckAesIncrementalEncryptOperation(BlockMode block_mode,
-                                                              int message_size) {
+                                                              int message_size,
+                                                              bool final_chunk_via_finish) {
     auto builder = AuthorizationSetBuilder()
                            .Authorization(TAG_NO_AUTH_REQUIRED)
                            .AesEncryptionKey(128)
@@ -866,8 +1025,15 @@ void KeyMintAidlTestBase::CheckAesIncrementalEncryptOperation(BlockMode block_mo
 
         string ciphertext;
         string to_send;
-        for (size_t i = 0; i < message.size(); i += increment) {
-            EXPECT_EQ(ErrorCode::OK, Update(message.substr(i, increment), &ciphertext));
+        for (size_t i = 0; i < message_size; i += increment) {
+            // If the final_chunk_via_finish is enabled then check if the current iteration would go
+            // past the end of the message
+            if (final_chunk_via_finish && (i + increment) >= message_size) {
+                to_send = message.substr(i, increment);
+                break;
+            } else {
+                EXPECT_EQ(ErrorCode::OK, Update(message.substr(i, increment), &ciphertext));
+            }
         }
         EXPECT_EQ(ErrorCode::OK, Finish(to_send, &ciphertext))
                 << "Error sending " << to_send << " with block mode " << block_mode;
@@ -903,9 +1069,18 @@ void KeyMintAidlTestBase::CheckAesIncrementalEncryptOperation(BlockMode block_mo
         EXPECT_EQ(ErrorCode::OK, Begin(KeyPurpose::DECRYPT, params))
                 << "Decrypt begin() failed for block mode " << block_mode;
 
+        to_send.clear();
         string plaintext;
-        for (size_t i = 0; i < ciphertext.size(); i += increment) {
-            EXPECT_EQ(ErrorCode::OK, Update(ciphertext.substr(i, increment), &plaintext));
+        size_t ciphertext_size = ciphertext.size();
+        for (size_t i = 0; i < ciphertext_size; i += increment) {
+            // If the final_chunk_via_finish is enabled then check if the current iteration would go
+            // past the end of the message
+            if (final_chunk_via_finish && (i + increment) >= ciphertext_size) {
+                to_send = ciphertext.substr(i, increment);
+                break;
+            } else {
+                EXPECT_EQ(ErrorCode::OK, Update(ciphertext.substr(i, increment), &plaintext));
+            }
         }
         ErrorCode error = Finish(to_send, &plaintext);
         ASSERT_EQ(ErrorCode::OK, error) << "Decryption failed for block mode " << block_mode
@@ -977,7 +1152,7 @@ void KeyMintAidlTestBase::CheckEncryptOneByteAtATime(BlockMode block_mode, const
         // Every input block produces an output block.
         bool compare_output = true;
         string additional_information;
-        int vendor_api_level = property_get_int32("ro.vendor.api_level", 0);
+        int vendor_api_level = ::android::base::GetIntProperty("ro.vendor.api_level", 0);
         if (SecLevel() == SecurityLevel::STRONGBOX) {
             // This is known to be broken on older vendor implementations.
             if (vendor_api_level <= __ANDROID_API_U__) {
@@ -1123,6 +1298,48 @@ void KeyMintAidlTestBase::LocalVerifyMessage(const vector<uint8_t>& der_cert, co
                                             message.size(),
                                             reinterpret_cast<const uint8_t*>(signature.data()),
                                             pub_keydata));
+                break;
+            }
+
+            case EVP_PKEY_ML_DSA_65: {
+                ASSERT_EQ(3309, signature.size());
+                uint8_t pub_keydata[1952];
+                size_t pub_len = sizeof(pub_keydata);
+                ASSERT_EQ(1, EVP_PKEY_get_raw_public_key(pub_key.get(), pub_keydata, &pub_len));
+                ASSERT_EQ(sizeof(pub_keydata), pub_len);
+
+                CBS in_cbs;
+                CBS_init(&in_cbs, pub_keydata, pub_len);
+                MLDSA65_public_key mldsa_pubkey;
+                ASSERT_EQ(MLDSA65_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
+
+                ASSERT_EQ(MLDSA65_verify(&mldsa_pubkey,
+                                         reinterpret_cast<const uint8_t*>(signature.data()),
+                                         signature.size(),
+                                         reinterpret_cast<const uint8_t*>(message.data()),
+                                         message.size(), nullptr, 0),
+                          1);
+                break;
+            }
+
+            case EVP_PKEY_ML_DSA_87: {
+                ASSERT_EQ(4627, signature.size());
+                uint8_t pub_keydata[2592];
+                size_t pub_len = sizeof(pub_keydata);
+                ASSERT_EQ(1, EVP_PKEY_get_raw_public_key(pub_key.get(), pub_keydata, &pub_len));
+                ASSERT_EQ(sizeof(pub_keydata), pub_len);
+
+                CBS in_cbs;
+                CBS_init(&in_cbs, pub_keydata, pub_len);
+                MLDSA87_public_key mldsa_pubkey;
+                ASSERT_EQ(MLDSA87_parse_public_key(&mldsa_pubkey, &in_cbs), 1);
+
+                ASSERT_EQ(MLDSA87_verify(&mldsa_pubkey,
+                                         reinterpret_cast<const uint8_t*>(signature.data()),
+                                         signature.size(),
+                                         reinterpret_cast<const uint8_t*>(message.data()),
+                                         message.size(), nullptr, 0),
+                          1);
                 break;
             }
 
@@ -1713,6 +1930,65 @@ ErrorCode KeyMintAidlTestBase::GenerateAttestKey(const AuthorizationSet& key_des
     return GenerateKey(key_desc, attest_key, key_blob, key_characteristics, cert_chain);
 }
 
+void KeyMintAidlTestBase::CheckBaseParams(const vector<KeyCharacteristics>& keyCharacteristics) {
+    AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
+    EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
+
+    // Check that some unexpected tags/values are NOT present.
+    EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
+    EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
+}
+
+void KeyMintAidlTestBase::CheckSymmetricParams(
+        const vector<KeyCharacteristics>& keyCharacteristics) {
+    AuthorizationSet auths = CheckCommonParams(keyCharacteristics, KeyOrigin::GENERATED);
+    EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::ENCRYPT));
+    EXPECT_TRUE(auths.Contains(TAG_PURPOSE, KeyPurpose::DECRYPT));
+
+    EXPECT_FALSE(auths.Contains(TAG_PURPOSE, KeyPurpose::SIGN));
+}
+
+AuthorizationSet KeyMintAidlTestBase::CheckCommonParams(
+        const vector<KeyCharacteristics>& keyCharacteristics, const KeyOrigin expectedKeyOrigin) {
+    // TODO(swillden): Distinguish which params should be in which auth list.
+    AuthorizationSet auths;
+    for (auto& entry : keyCharacteristics) {
+        auths.push_back(AuthorizationSet(entry.authorizations));
+    }
+    EXPECT_TRUE(auths.Contains(TAG_ORIGIN, expectedKeyOrigin));
+
+    // Verify that App data, ROT and auth timeout are NOT included.
+    EXPECT_FALSE(auths.Contains(TAG_ROOT_OF_TRUST));
+    EXPECT_FALSE(auths.Contains(TAG_APPLICATION_DATA));
+    EXPECT_FALSE(auths.Contains(TAG_MODULE_HASH));
+    EXPECT_FALSE(auths.Contains(TAG_AUTH_TIMEOUT, 301U));
+
+    // None of the tests specify CREATION_DATETIME so check that the KeyMint implementation
+    // never adds it.
+    EXPECT_FALSE(auths.Contains(TAG_CREATION_DATETIME));
+
+    // Check OS details match the original hardware info.
+    auto os_ver = auths.GetTagValue(TAG_OS_VERSION);
+    EXPECT_TRUE(os_ver);
+    EXPECT_EQ(*os_ver, os_version());
+    auto os_pl = auths.GetTagValue(TAG_OS_PATCHLEVEL);
+    EXPECT_TRUE(os_pl);
+    EXPECT_EQ(*os_pl, os_patch_level());
+
+    // Should include vendor patchlevel.
+    auto vendor_pl = auths.GetTagValue(TAG_VENDOR_PATCHLEVEL);
+    EXPECT_TRUE(vendor_pl);
+    EXPECT_EQ(*vendor_pl, vendor_patch_level());
+
+    // Should include boot patchlevel (but there are some test scenarios where this is not
+    // possible).
+    if (check_boot_pl) {
+        auto boot_pl = auths.GetTagValue(TAG_BOOT_PATCHLEVEL);
+        EXPECT_TRUE(boot_pl);
+    }
+
+    return auths;
+}
 // Check if ATTEST_KEY feature is disabled
 bool KeyMintAidlTestBase::is_attest_key_feature_disabled(void) const {
     if (!check_feature(FEATURE_KEYSTORE_APP_ATTEST_KEY)) {
@@ -1736,24 +2012,21 @@ bool KeyMintAidlTestBase::is_strongbox_enabled(void) const {
 // Check if chipset has received a waiver allowing it to be launched with Android S or T with
 // Keymaster 4.0 in StrongBox.
 bool KeyMintAidlTestBase::is_chipset_allowed_km4_strongbox(void) const {
-    std::array<char, PROPERTY_VALUE_MAX> buffer;
-
-    const int32_t first_api_level = property_get_int32("ro.board.first_api_level", 0);
+    const int32_t first_api_level = ::android::base::GetIntProperty("ro.board.first_api_level", 0);
     if (first_api_level <= 0 || first_api_level > __ANDROID_API_T__) return false;
 
-    auto res = property_get("ro.vendor.qti.soc_model", buffer.data(), nullptr);
-    if (res <= 0) return false;
+    std::string model = ::android::base::GetProperty("ro.vendor.qti.soc_model", "");
+    if (model.empty()) return false;
 
     const string allowed_soc_models[] = {"SM8450", "SM8475", "SM8550", "SXR2230P",
                                          "SM4450", "SM7450", "SM6450"};
 
-    for (const string& model : allowed_soc_models) {
-        if (model.compare(buffer.data()) == 0) {
-            GTEST_LOG_(INFO) << "QTI SOC Model " + model + " is allowed SB KM 4.0";
+    for (const string& allowed_model : allowed_soc_models) {
+        if (allowed_model == model) {
+            GTEST_LOG_(INFO) << "QTI SOC Model " + allowed_model + " is allowed SB KM 4.0";
             return true;
         }
     }
-
     return false;
 }
 
@@ -1893,16 +2166,18 @@ void verify_subject_and_serial(const Certificate& certificate,  //
 void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_locked,
                           VerifiedBoot verified_boot_state,
                           const vector<uint8_t>& verified_boot_hash) {
-    char property_value[PROPERTY_VALUE_MAX] = {};
+    std::string property_value;
 
     if (avb_verification_enabled()) {
-        EXPECT_NE(property_get("ro.boot.vbmeta.digest", property_value, ""), 0);
-        string prop_string(property_value);
-        EXPECT_EQ(prop_string.size(), 64);
-        EXPECT_EQ(prop_string, bin2hex(verified_boot_hash));
+        property_value = ::android::base::GetProperty("ro.boot.vbmeta.digest", /* default= */ "");
+        EXPECT_NE(property_value, "");
+        EXPECT_EQ(property_value.size(), 64);
+        EXPECT_EQ(property_value, bin2hex(verified_boot_hash));
 
-        EXPECT_NE(property_get("ro.boot.vbmeta.device_state", property_value, ""), 0);
-        if (!strcmp(property_value, "unlocked")) {
+        property_value =
+                ::android::base::GetProperty("ro.boot.vbmeta.device_state", /* default= */ "");
+        EXPECT_NE(property_value, "");
+        if (property_value == "unlocked") {
             EXPECT_FALSE(device_locked);
         } else {
             EXPECT_TRUE(device_locked);
@@ -1911,7 +2186,7 @@ void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_
         // Check that the device is locked if not debuggable, e.g., user build
         // images in CTS. For VTS, debuggable images are used to allow adb root
         // and the device is unlocked.
-        if (!property_get_bool("ro.debuggable", false)) {
+        if (!::android::base::GetBoolProperty("ro.debuggable", false)) {
             EXPECT_TRUE(device_locked);
         } else {
             EXPECT_FALSE(device_locked);
@@ -1941,20 +2216,22 @@ void verify_root_of_trust(const vector<uint8_t>& verified_boot_key, bool device_
     std::string empty_boot_key(32, '\0');
     std::string verified_boot_key_str((const char*)verified_boot_key.data(),
                                       verified_boot_key.size());
-    EXPECT_NE(property_get("ro.boot.verifiedbootstate", property_value, ""), 0);
-    if (!strcmp(property_value, "green")) {
+
+    property_value = ::android::base::GetProperty("ro.boot.verifiedbootstate", /* default= */ "");
+    EXPECT_NE(property_value, "");
+    if (property_value == "green") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::VERIFIED);
         EXPECT_NE(0, memcmp(verified_boot_key.data(), empty_boot_key.data(),
                             verified_boot_key.size()));
-    } else if (!strcmp(property_value, "yellow")) {
+    } else if (property_value == "yellow") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::SELF_SIGNED);
         EXPECT_NE(0, memcmp(verified_boot_key.data(), empty_boot_key.data(),
                             verified_boot_key.size()));
-    } else if (!strcmp(property_value, "orange")) {
+    } else if (property_value == "orange") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::UNVERIFIED);
         EXPECT_EQ(0, memcmp(verified_boot_key.data(), empty_boot_key.data(),
                             verified_boot_key.size()));
-    } else if (!strcmp(property_value, "red")) {
+    } else if (property_value == "red") {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::FAILED);
     } else {
         EXPECT_EQ(verified_boot_state, VerifiedBoot::UNVERIFIED);
@@ -2092,6 +2369,16 @@ bool verify_attestation_record(int32_t aidl_version,                   //
     return true;
 }
 
+string hex2str(string a) {
+    string b;
+    size_t num = a.size() / 2;
+    b.resize(num);
+    for (size_t i = 0; i < num; i++) {
+        b[i] = (hex_value[a[i * 2] & 0xFF] << 4) + (hex_value[a[i * 2 + 1] & 0xFF]);
+    }
+    return b;
+}
+
 string bin2hex(const vector<uint8_t>& data) {
     string retval;
     retval.reserve(data.size() * 2 + 1);
@@ -2100,6 +2387,12 @@ string bin2hex(const vector<uint8_t>& data) {
         retval.push_back(nibble2hex[0x0F & byte]);
     }
     return retval;
+}
+
+std::vector<uint8_t> random_vector(size_t len) {
+    std::vector<uint8_t> v(len);
+    RAND_bytes(v.data(), v.size());
+    return v;
 }
 
 AuthorizationSet HwEnforcedAuthorizations(const vector<KeyCharacteristics>& key_characteristics) {
@@ -2140,6 +2433,15 @@ AssertionResult ChainSignaturesAreValid(const vector<Certificate>& chain,
         }
         if (!key_cert.get() || !signing_cert.get()) return AssertionFailure() << cert_data.str();
 
+        string cert_issuer = x509NameToStr(X509_get_issuer_name(key_cert.get()));
+        string signer_subj = x509NameToStr(X509_get_subject_name(signing_cert.get()));
+        if (cert_issuer != signer_subj && strict_issuer_check) {
+            return AssertionFailure() << "Cert " << i << " has wrong issuer.\n"
+                                      << " Signer subject is " << signer_subj
+                                      << " Issuer subject is " << cert_issuer << endl
+                                      << cert_data.str();
+        }
+
         EVP_PKEY_Ptr signing_pubkey(X509_get_pubkey(signing_cert.get()));
         if (!signing_pubkey.get()) return AssertionFailure() << cert_data.str();
 
@@ -2148,15 +2450,6 @@ AssertionResult ChainSignaturesAreValid(const vector<Certificate>& chain,
                    << "Verification of certificate " << i << " failed "
                    << "OpenSSL error string: " << ERR_error_string(ERR_get_error(), NULL) << '\n'
                    << cert_data.str();
-        }
-
-        string cert_issuer = x509NameToStr(X509_get_issuer_name(key_cert.get()));
-        string signer_subj = x509NameToStr(X509_get_subject_name(signing_cert.get()));
-        if (cert_issuer != signer_subj && strict_issuer_check) {
-            return AssertionFailure() << "Cert " << i << " has wrong issuer.\n"
-                                      << " Signer subject is " << signer_subj
-                                      << " Issuer subject is " << cert_issuer << endl
-                                      << cert_data.str();
         }
     }
 
@@ -2446,7 +2739,7 @@ void device_id_attestation_check_acceptable_error(Tag tag, const ErrorCode& resu
 bool check_feature(const std::string& name) {
     ::android::sp<::android::IServiceManager> sm(::android::defaultServiceManager());
     ::android::sp<::android::IBinder> binder(
-        sm->waitForService(::android::String16("package_native")));
+            sm->waitForService(::android::String16("package_native")));
     if (binder == nullptr) {
         GTEST_LOG_(ERROR) << "waitForService package_native failed";
         return false;
@@ -2600,6 +2893,10 @@ std::optional<std::string> get_attestation_id(const char* prop) {
     }
 
     return std::nullopt;
+}
+
+void skip_boot_pl_check() {
+    check_boot_pl = false;
 }
 
 }  // namespace test

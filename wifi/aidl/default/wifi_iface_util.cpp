@@ -31,6 +31,11 @@ namespace {
 constexpr uint8_t kMacAddressMulticastMask = 0x01;
 constexpr uint8_t kMacAddressLocallyAssignedMask = 0x02;
 
+#ifdef WIFI_HAL_RETRY_SET_MAC_ADDRESS
+// Constants to retry within setMacAddress()
+constexpr uint32_t kMaxSetMacAddressRetries = 5;
+constexpr useconds_t kSetMacAddressRetryDelayUsec = 20 * 1000;
+#endif
 }  // namespace
 
 namespace aidl {
@@ -65,6 +70,25 @@ bool WifiIfaceUtil::setMacAddress(const std::string& iface_name,
     }
 #endif
     bool success = iface_tool_.lock()->SetMacAddress(iface_name.c_str(), mac);
+
+#ifdef WIFI_HAL_RETRY_SET_MAC_ADDRESS
+    uint32_t retry_count = 0;
+    while (!success && retry_count < kMaxSetMacAddressRetries) {
+        usleep(kSetMacAddressRetryDelayUsec * (1 << retry_count));
+        retry_count++;
+        success = iface_tool_.lock()->SetMacAddress(iface_name.c_str(), mac);
+    }
+    if (retry_count > 0) {
+        if (success) {
+            LOG(INFO) << "SetMacAddress succeeded after " << retry_count << " retries.";
+        } else {
+            LOG(ERROR) << "SetMacAddress failed after " << retry_count << " retries.";
+        }
+    } else {
+        LOG(INFO) << "SetMacAddress succeeded without retries.";
+    }
+#endif
+
 #ifndef WIFI_AVOID_IFACE_RESET_MAC_CHANGE
     if (!(legacy_feature_set & WIFI_FEATURE_DYNAMIC_SET_MAC) &&
         !iface_tool_.lock()->SetUpState(iface_name.c_str(), true)) {

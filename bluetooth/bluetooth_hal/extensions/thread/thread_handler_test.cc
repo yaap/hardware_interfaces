@@ -22,8 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 namespace {
 
 using ::bluetooth_hal::HalState;
@@ -33,47 +32,85 @@ using ::bluetooth_hal::hci::MockHciRouterClientAgent;
 using ::testing::Test;
 
 class ThreadHandlerTest : public Test {
- protected:
-  void SetUp() override {
-    MockHciRouter::SetMockRouter(&mock_hci_router_);
-    MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
-  }
+  protected:
+    void SetUp() override {
+        MockHciRouter::SetMockRouter(&mock_hci_router_);
+        MockHciRouterClientAgent::SetMockAgent(&mock_hci_router_client_agent_);
+    }
 
-  void TearDown() override { ThreadHandler::Cleanup(); }
+    void TearDown() override { ThreadHandler::Cleanup(); }
 
-  MockHciRouter mock_hci_router_;
-  MockHciRouterClientAgent mock_hci_router_client_agent_;
+    MockHciRouter mock_hci_router_;
+    MockHciRouterClientAgent mock_hci_router_client_agent_;
 };
 
 TEST_F(ThreadHandlerTest, GetHandlerWithoutInitialization) {
-  EXPECT_DEATH(ThreadHandler::GetHandler(), "");
+    EXPECT_DEATH(ThreadHandler::GetHandler(), "");
 }
 
 TEST_F(ThreadHandlerTest, HandleHandlerEnabled) {
-  ThreadHandler::Initialize();
-  EXPECT_TRUE(ThreadHandler::IsHandlerRunning());
+    ThreadHandler::Initialize();
+    EXPECT_TRUE(ThreadHandler::IsHandlerRunning());
 }
 
 TEST_F(ThreadHandlerTest, HandleHandlerDisabled) {
-  EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
+    EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
 }
 
 TEST_F(ThreadHandlerTest, HandleDaemonDisabledAfterBtChipClosed) {
-  ThreadHandler::Initialize();
-  EXPECT_FALSE(ThreadHandler::GetHandler().IsDaemonRunning());
+    ThreadHandler::Initialize();
+    EXPECT_FALSE(ThreadHandler::GetHandler().IsDaemonRunning());
 
-  ThreadHandler::GetHandler().OnBluetoothChipReady();
-  EXPECT_TRUE(ThreadHandler::GetHandler().IsDaemonRunning());
+    ThreadHandler::GetHandler().OnBluetoothChipReady();
+    EXPECT_TRUE(ThreadHandler::GetHandler().IsDaemonRunning());
 
-  ThreadHandler::GetHandler().OnBluetoothChipClosed();
-  EXPECT_FALSE(ThreadHandler::GetHandler().IsDaemonRunning());
+    ThreadHandler::GetHandler().OnBluetoothChipClosed();
+    EXPECT_FALSE(ThreadHandler::GetHandler().IsDaemonRunning());
 }
 
 TEST_F(ThreadHandlerTest, IsSameHandler) {
-  ThreadHandler::Initialize();
-  EXPECT_EQ(&ThreadHandler::GetHandler(), &ThreadHandler::GetHandler());
+    ThreadHandler::Initialize();
+    EXPECT_EQ(&ThreadHandler::GetHandler(), &ThreadHandler::GetHandler());
+}
+
+TEST_F(ThreadHandlerTest, CleanupResetsHandler) {
+    // Initialize the handler and verify it's running.
+    ThreadHandler::Initialize();
+    EXPECT_TRUE(ThreadHandler::IsHandlerRunning());
+
+    // Cleanup the handler.
+    ThreadHandler::Cleanup();
+
+    // Verify the handler is no longer running.
+    EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
+
+    // Verify that getting the handler now results in a fatal error.
+    EXPECT_DEATH(ThreadHandler::GetHandler(), "");
+}
+
+TEST_F(ThreadHandlerTest, InitializeIsIdempotent) {
+    // First initialization.
+    ThreadHandler::Initialize();
+    auto* handler1 = &ThreadHandler::GetHandler();
+
+    // Second initialization should not create a new instance.
+    ThreadHandler::Initialize();
+    auto* handler2 = &ThreadHandler::GetHandler();
+
+    // The handler instance should be the same.
+    EXPECT_EQ(handler1, handler2);
+}
+
+TEST_F(ThreadHandlerTest, CleanupIsSafeWhenNotInitialized) {
+    // Verify handler is not running initially.
+    EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
+
+    // Calling Cleanup on a non-existent handler should be a safe no-op.
+    ASSERT_NO_FATAL_FAILURE(ThreadHandler::Cleanup());
+
+    // Verify handler is still not running.
+    EXPECT_FALSE(ThreadHandler::IsHandlerRunning());
 }
 
 }  // namespace
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

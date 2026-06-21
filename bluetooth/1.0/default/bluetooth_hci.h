@@ -35,19 +35,18 @@ using ::android::hardware::Return;
 class BluetoothDeathRecipient;
 
 class BluetoothHci : public IBluetoothHci {
- public:
-  BluetoothHci();
-  Return<void> initialize(
-      const ::android::sp<IBluetoothHciCallbacks>& cb) override;
-  Return<void> sendHciCommand(const hidl_vec<uint8_t>& packet) override;
-  Return<void> sendAclData(const hidl_vec<uint8_t>& data) override;
-  Return<void> sendScoData(const hidl_vec<uint8_t>& data) override;
-  Return<void> close() override;
+  public:
+    BluetoothHci();
+    Return<void> initialize(const ::android::sp<IBluetoothHciCallbacks>& cb) override;
+    Return<void> sendHciCommand(const hidl_vec<uint8_t>& packet) override;
+    Return<void> sendAclData(const hidl_vec<uint8_t>& data) override;
+    Return<void> sendScoData(const hidl_vec<uint8_t>& data) override;
+    Return<void> close() override;
 
- private:
-  void sendDataToController(const uint8_t type, const hidl_vec<uint8_t>& data);
-  ::android::sp<BluetoothDeathRecipient> death_recipient_;
-  std::function<void(sp<BluetoothDeathRecipient>&)> unlink_cb_;
+  private:
+    void sendDataToController(const uint8_t type, const hidl_vec<uint8_t>& data);
+    ::android::sp<BluetoothDeathRecipient> death_recipient_;
+    std::function<void(sp<BluetoothDeathRecipient>&)> unlink_cb_;
 };
 
 extern "C" IBluetoothHci* HIDL_FETCH_IBluetoothHci(const char* name);

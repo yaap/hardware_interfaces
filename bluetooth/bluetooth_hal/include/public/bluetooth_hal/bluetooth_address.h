@@ -23,42 +23,40 @@
 #include <sstream>
 #include <string>
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 inline constexpr int kBluetoothAddressLength = 6;
 inline constexpr int kBluetoothAddressHiddenBytes = 4;
 
 class BluetoothAddress : public std::array<uint8_t, kBluetoothAddressLength> {
- public:
-  std::string ToString() const {
-    std::stringstream ss;
-    ss << std::hex << std::uppercase << std::setfill('0');
-    for (size_t i = 0; i < kBluetoothAddressLength; ++i) {
-      if (i < kBluetoothAddressHiddenBytes) {
-        ss << "XX";
-      } else {
-        ss << std::setw(2) << static_cast<int>((*this)[i]);
-      }
-      if (i < kBluetoothAddressLength - 1) {
-        ss << ":";
-      }
+  public:
+    std::string ToString() const {
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setfill('0');
+        for (size_t i = 0; i < kBluetoothAddressLength; ++i) {
+            if (i < kBluetoothAddressHiddenBytes) {
+                ss << "XX";
+            } else {
+                ss << std::setw(2) << static_cast<int>((*this)[i]);
+            }
+            if (i < kBluetoothAddressLength - 1) {
+                ss << ":";
+            }
+        }
+        return ss.str();
     }
-    return ss.str();
-  }
 
-  std::string ToFullString() const {
-    std::stringstream ss;
-    ss << std::hex << std::uppercase << std::setfill('0');
-    for (size_t i = 0; i < kBluetoothAddressLength; ++i) {
-      ss << std::setw(2) << static_cast<int>((*this)[i]);
-      if (i < kBluetoothAddressLength - 1) {
-        ss << ":";
-      }
+    std::string ToFullString() const {
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << std::setfill('0');
+        for (size_t i = 0; i < kBluetoothAddressLength; ++i) {
+            ss << std::setw(2) << static_cast<int>((*this)[i]);
+            if (i < kBluetoothAddressLength - 1) {
+                ss << ":";
+            }
+        }
+        return ss.str();
     }
-    return ss.str();
-  }
 };
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

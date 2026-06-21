@@ -18,8 +18,6 @@
 
 #include <memory>
 
-#include "bluetooth_hal/hal_packet.h"
-#include "bluetooth_hal/hal_types.h"
 #include "hal/ffi.h"
 
 namespace bluetooth_hal {
@@ -32,25 +30,23 @@ namespace bluetooth_hal {
  * libbluetooth_offload_hal, a Rust-based static library integrated within
  * the Android Bluetooth stack.
  */
-class HciProxyFfi
-    : public ::aidl::android::hardware::bluetooth::hal::IBluetoothHci {
- public:
-  HciProxyFfi();
+class HciProxyFfi : public ::aidl::android::hardware::bluetooth::hal::IBluetoothHci {
+  public:
+    HciProxyFfi();
 
-  void initialize(
-      const std::shared_ptr<
-          ::aidl::android::hardware::bluetooth::hal::IBluetoothHciCallbacks>&
-          cb) override;
-  void sendHciCommand(const std::vector<uint8_t>& packet) override;
-  void sendAclData(const std::vector<uint8_t>& packet) override;
-  void sendScoData(const std::vector<uint8_t>& packet) override;
-  void sendIsoData(const std::vector<uint8_t>& packet) override;
-  void close() override;
-  void clientDied() override;
-  void dump(int fd);
+    void initialize(const std::shared_ptr<
+                    ::aidl::android::hardware::bluetooth::hal::IBluetoothHciCallbacks>& cb)
+            override;
+    void sendHciCommand(const std::vector<uint8_t>& packet) override;
+    void sendAclData(const std::vector<uint8_t>& packet) override;
+    void sendScoData(const std::vector<uint8_t>& packet) override;
+    void sendIsoData(const std::vector<uint8_t>& packet) override;
+    void close() override;
+    void clientDied() override;
+    void dump(int fd);
 
- private:
-  static void SigtermHandler(int signum);
+  private:
+    static void SigtermHandler(int signum);
 };
 
 }  // namespace bluetooth_hal

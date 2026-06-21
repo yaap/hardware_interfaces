@@ -50,6 +50,15 @@ import android.hardware.automotive.evs.Translation;
  * Rotation = + 90 degrees around Z axis = (0.7071, 0, 0, 0.7071) as a unit quaternion.
  * Translation = (-2, 4, 0) in meters = (-2000, 4000, 0) in milli-meters.
  * Note: Every sensor type must specify its own pose.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Applications should use the standard Android <a
+ *             href="https://developer.android.com/media/camera/camera2">Camera2 API
+ *             (android.hardware.camera2)</a> for camera access and management. Use either the
+ *             Camera2 NDK APIs
+ *             (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager">ACameraManager</a>)
+ *             or Camera2 Java APIs ({@link android.hardware.camera2.CameraManager}) instead.
  */
 @VintfStability
 parcelable SensorPose {

@@ -16,66 +16,79 @@
 
 #include "bluetooth_hal/util/logging.h"
 
+#include <fcntl.h>
+#include <unistd.h>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-namespace bluetooth_hal {
-namespace util {
+#include "android-base/logging.h"
+
+namespace bluetooth_hal::util {
 namespace {
 
 // Helper function to format time with leading zeros.
 std::string FormatTimeComponent(int value, int width) {
-  std::stringstream ss;
-  ss << std::setw(width) << std::setfill('0') << value;
-  return ss.str();
+    std::stringstream ss;
+    ss << std::setw(width) << std::setfill('0') << value;
+    return ss.str();
 }
 
 }  // namespace
 
 std::string Logger::GetLogFormatTimestamp() {
-  const auto now = std::chrono::system_clock::now();
-  const auto now_ms =
-      std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-  const std::chrono::duration value = now_ms.time_since_epoch();
+    const auto now = std::chrono::system_clock::now();
+    const auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    const std::chrono::duration value = now_ms.time_since_epoch();
 
-  // Get seconds and milliseconds separately.
-  const long long seconds =
-      std::chrono::duration_cast<std::chrono::seconds>(value).count();
-  const long long milliseconds = value.count() % 1000;
+    // Get seconds and milliseconds separately.
+    const long long seconds = std::chrono::duration_cast<std::chrono::seconds>(value).count();
+    const long long milliseconds = value.count() % 1000;
 
-  // Convert to local time.
-  const std::time_t now_c = static_cast<std::time_t>(seconds);
-  const std::tm* now_tm = std::localtime(&now_c);
+    // Convert to local time.
+    const std::time_t now_c = static_cast<std::time_t>(seconds);
+    const std::tm* now_tm = std::localtime(&now_c);
 
-  std::stringstream ss;
-  ss << FormatTimeComponent(now_tm->tm_hour, 2) << ":"
-     << FormatTimeComponent(now_tm->tm_min, 2) << ":"
-     << FormatTimeComponent(now_tm->tm_sec, 2) << ":"
-     << FormatTimeComponent(static_cast<int>(milliseconds), 3);
+    std::stringstream ss;
+    ss << FormatTimeComponent(now_tm->tm_hour, 2) << ":" << FormatTimeComponent(now_tm->tm_min, 2)
+       << ":" << FormatTimeComponent(now_tm->tm_sec, 2) << ":"
+       << FormatTimeComponent(static_cast<int>(milliseconds), 3);
 
-  return ss.str();
+    return ss.str();
 }
 
 std::string Logger::GetFileFormatTimestamp() {
-  const auto now = std::chrono::system_clock::now();
-  const std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t now_c = std::chrono::system_clock::to_time_t(now);
 
-  // Convert to local time.
-  const std::tm* now_tm = std::localtime(&now_c);
+    // Convert to local time.
+    const std::tm* now_tm = std::localtime(&now_c);
 
-  std::stringstream ss;
-  ss << FormatTimeComponent(now_tm->tm_year + 1900, 4) << "-"
-     << FormatTimeComponent(now_tm->tm_mon + 1, 2) << "-"
-     << FormatTimeComponent(now_tm->tm_mday, 2) << "_"
-     << FormatTimeComponent(now_tm->tm_hour, 2) << "-"
-     << FormatTimeComponent(now_tm->tm_min, 2) << "-"
-     << FormatTimeComponent(now_tm->tm_sec, 2);
+    std::stringstream ss;
+    ss << FormatTimeComponent(now_tm->tm_year + 1900, 4) << "-"
+       << FormatTimeComponent(now_tm->tm_mon + 1, 2) << "-"
+       << FormatTimeComponent(now_tm->tm_mday, 2) << "_" << FormatTimeComponent(now_tm->tm_hour, 2)
+       << "-" << FormatTimeComponent(now_tm->tm_min, 2) << "-"
+       << FormatTimeComponent(now_tm->tm_sec, 2);
 
-  return ss.str();
+    return ss.str();
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+void Logger::WriteToKernelLog(const std::string& message) {
+    LOG(INFO) << __func__;
+    int kmsg_fd = open("/dev/kmsg", O_WRONLY | O_CLOEXEC);
+    if (kmsg_fd < 0) {
+        LOG(ERROR) << __func__ << ": Failed to open /dev/kmsg";
+        return;
+    }
+
+    const std::string formatted_message = "bluetooth_hal: " + message + "\n";
+    if (write(kmsg_fd, formatted_message.c_str(), formatted_message.length()) < 0) {
+        LOG(ERROR) << __func__ << ": Failed to write to /dev/kmsg";
+    }
+    close(kmsg_fd);
+}
+
+}  // namespace bluetooth_hal::util

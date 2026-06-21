@@ -21,57 +21,59 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/util/provider_factory.h"
 
-namespace bluetooth_hal {
-namespace chip {
+namespace bluetooth_hal::chip {
 
 class ChipProvisioner;
 
 class ChipProvisionerInterface
-    : public ::bluetooth_hal::util::ProviderFactory<ChipProvisionerInterface,
-                                                    ChipProvisioner> {
- public:
-  /**
-   * @brief Registers a vendor-specific factory for creating
-   * ChipProvisionerInterface instances.
-   *
-   * @param factory The factory function to register.
-   */
-  static void RegisterVendorChipProvisioner(FactoryFn factory) {
-    RegisterProviderFactory(std::move(factory));
-  }
+    : public ::bluetooth_hal::util::ProviderFactory<ChipProvisionerInterface, ChipProvisioner> {
+  public:
+    /**
+     * @brief Registers a vendor-specific factory for creating
+     * ChipProvisionerInterface instances.
+     *
+     * @param factory The factory function to register.
+     */
+    static void RegisterVendorChipProvisioner(FactoryFn factory) {
+        RegisterProviderFactory(std::move(factory));
+    }
 
-  /**
-   * @brief Unregisters the vendor-specific factory.
-   *
-   * This is primarily intended for use in test environments.
-   */
-  static void UnregisterVendorChipProvisioner() { UnregisterProviderFactory(); }
+    /**
+     * @brief Unregisters the vendor-specific factory.
+     *
+     * This is primarily intended for use in test environments.
+     */
+    static void UnregisterVendorChipProvisioner() { UnregisterProviderFactory(); }
 
-  virtual ~ChipProvisionerInterface() = default;
+    virtual ~ChipProvisionerInterface() = default;
 
-  /**
-   * @brief Initializes the chip provisioner.
-   *
-   * @param on_hal_state_update A callback function invoked when the HAL state
-   * changes.
-   */
-  virtual void Initialize(const std::function<void(::bluetooth_hal::HalState)>
-                              on_hal_state_update) = 0;
+    /**
+     * @brief Initializes the chip provisioner.
+     *
+     * @param on_hal_state_update A callback function invoked when the HAL state
+     * changes.
+     */
+    virtual void Initialize(
+            const std::function<void(::bluetooth_hal::HalState)> on_hal_state_update) = 0;
 
-  /**
-   * @brief Downloads firmware to the Bluetooth chip.
-   *
-   * @return True if firmware download is successful, false otherwise.
-   */
-  virtual bool DownloadFirmware() = 0;
+    /**
+     * @brief Downloads firmware to the Bluetooth chip.
+     *
+     * @return True if firmware download is successful, false otherwise.
+     */
+    virtual bool DownloadFirmware() = 0;
 
-  /**
-   * @brief Resets the firmware on the Bluetooth chip.
-   *
-   * @return True if firmware reset is successful, false otherwise.
-   */
-  virtual bool ResetFirmware() = 0;
+    /**
+     * @brief Resets the firmware on the Bluetooth chip.
+     *
+     * @return True if firmware reset is successful, false otherwise.
+     */
+    virtual bool ResetFirmware() = 0;
+
+    /**
+     * @brief Stops any ongoing chip provisioning activity.
+     */
+    virtual void Stop() = 0;
 };
 
-}  // namespace chip
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::chip

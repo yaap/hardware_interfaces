@@ -67,6 +67,16 @@ aidl_interface {
                 "android.hardware.graphics.common-V7",
             ],
         },
+        {
+            version: "4",
+            imports: [
+                "android.hardware.graphics.common-V7",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+                "android.hardware.camera.common-V1",
+                "android.hardware.camera.metadata-V3",
+            ],
+        },
 
     ],
 

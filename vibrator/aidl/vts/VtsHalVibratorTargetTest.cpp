@@ -54,6 +54,8 @@ using aidl::android::hardware::vibrator::VendorEffect;
 using aidl::android::os::PersistableBundle;
 using std::chrono::high_resolution_clock;
 
+using aidl::android::hardware::vibrator::testing::VIBRATION_CALLBACK_TIMEOUT;
+
 using namespace ::std::chrono_literals;
 
 namespace pwle_v2_utils = aidl::android::hardware::vibrator::testing::pwlev2;
@@ -86,10 +88,6 @@ const std::vector<CompositePrimitive> kInvalidPrimitives = {
     static_cast<CompositePrimitive>(static_cast<int32_t>(kCompositePrimitives.front()) - 1),
     static_cast<CompositePrimitive>(static_cast<int32_t>(kCompositePrimitives.back()) + 1),
 };
-
-// Timeout to wait for vibration callback completion.
-static const std::chrono::milliseconds VIBRATION_CALLBACK_TIMEOUT =
-        300ms * android::base::HwTimeoutMultiplier();
 
 static constexpr int32_t VENDOR_EFFECTS_MIN_VERSION = 3;
 static constexpr int32_t PWLE_V2_MIN_VERSION = 3;
@@ -285,9 +283,17 @@ TEST_P(VibratorAidl, OnWithCallback) {
 
     auto callback = ndk::SharedRefBase::make<CompletionCallback>();
     uint32_t durationMs = 250;
-    auto timeout = std::chrono::milliseconds(durationMs) + VIBRATION_CALLBACK_TIMEOUT;
+    auto expectedDuration = std::chrono::milliseconds(durationMs);
+    auto timeout = expectedDuration + VIBRATION_CALLBACK_TIMEOUT;
+
+    auto start = high_resolution_clock::now();
     EXPECT_OK(vibrator->on(durationMs, callback));
     EXPECT_EQ(callback->wait_for(timeout), std::future_status::ready);
+    auto end = high_resolution_clock::now();
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    EXPECT_GE(elapsed.count(), expectedDuration.count());
+
     EXPECT_OK(vibrator->off());
 }
 
@@ -339,23 +345,29 @@ TEST_P(VibratorAidl, ValidateEffectWithCallback) {
         for (EffectStrength strength : kEffectStrengths) {
             auto callback = ndk::SharedRefBase::make<CompletionCallback>();
             int lengthMs = 0;
+            auto start = high_resolution_clock::now();
             ndk::ScopedAStatus status = vibrator->perform(effect, strength, callback, &lengthMs);
+            const std::string message =
+                    "\n  For effect: " + toString(effect) + " " + toString(strength);
 
             if (isEffectSupported) {
-                EXPECT_OK(std::move(status))
-                        << "\n  For effect: " << toString(effect) << " " << toString(strength);
-                EXPECT_GT(lengthMs, 0);
+                EXPECT_OK(std::move(status)) << message;
+                EXPECT_GT(lengthMs, 0) << message;
             } else {
-                EXPECT_UNKNOWN_OR_UNSUPPORTED(std::move(status))
-                        << "\n  For effect: " << toString(effect) << " " << toString(strength);
+                EXPECT_UNKNOWN_OR_UNSUPPORTED(std::move(status)) << message;
             }
 
             if (lengthMs <= 0) continue;
 
-            auto timeout = std::chrono::milliseconds(lengthMs) + VIBRATION_CALLBACK_TIMEOUT;
-            EXPECT_EQ(callback->wait_for(timeout), std::future_status::ready);
 
-            EXPECT_OK(vibrator->off());
+            auto expectedDuration = std::chrono::milliseconds(lengthMs);
+            auto timeout = expectedDuration + VIBRATION_CALLBACK_TIMEOUT;
+            EXPECT_EQ(callback->wait_for(timeout), std::future_status::ready) << message;
+            auto end = high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+            EXPECT_GE(elapsed.count(), expectedDuration.count()) << message;
+            EXPECT_OK(vibrator->off()) << message;
         }
     }
 }
@@ -1134,13 +1146,7 @@ TEST_P(VibratorAidl, FrequencyToOutputAccelerationMapHasValidFrequencyRange) {
         return;
     }
 
-    std::vector<FrequencyAccelerationMapEntry> frequencyToOutputAccelerationMap;
-    ndk::ScopedAStatus status =
-            vibrator->getFrequencyToOutputAccelerationMap(&frequencyToOutputAccelerationMap);
-    EXPECT_OK(std::move(status));
-    ASSERT_FALSE(frequencyToOutputAccelerationMap.empty());
-    auto sharpnessRange =
-            pwle_v2_utils::getPwleV2SharpnessRange(vibrator, frequencyToOutputAccelerationMap);
+    auto sharpnessRange = pwle_v2_utils::getPwleV2SharpnessRange(vibrator);
     // Validate the curve provides a usable sharpness range, which is a range of frequencies
     // that are supported by the device.
     ASSERT_TRUE(sharpnessRange.first >= 0);
@@ -1205,6 +1211,33 @@ TEST_P(VibratorAidl, ValidatePwleV2DependencyOnFrequencyControl) {
     // Check if frequency control is supported
     bool hasFrequencyControl = (capabilities & IVibrator::CAP_FREQUENCY_CONTROL) != 0;
     ASSERT_TRUE(hasFrequencyControl) << "Frequency control MUST be supported when PWLE V2 is.";
+}
+
+TEST_P(VibratorAidl, ValidatePwleDependencyOnResonantFrequency) {
+    if (!(capabilities & IVibrator::CAP_COMPOSE_PWLE_EFFECTS_V2)) {
+        GTEST_SKIP() << "PWLE V2 not supported, skipping test";
+        return;
+    }
+
+    // Check if resonant frequency is supported
+    bool hasResonantFrequency = (capabilities & IVibrator::CAP_GET_RESONANT_FREQUENCY) != 0;
+    ASSERT_TRUE(hasResonantFrequency) << "Resonant frequency MUST be supported when PWLE V2 is.";
+}
+
+TEST_P(VibratorAidl, ValidateResonantFrequencyWithinPwleRange) {
+    if (!(capabilities & IVibrator::CAP_GET_RESONANT_FREQUENCY) ||
+        !(capabilities & IVibrator::CAP_COMPOSE_PWLE_EFFECTS_V2)) {
+        GTEST_SKIP() << "Resonant frequency or PWLE V2 not supported, skipping test";
+        return;
+    }
+
+    float resonantFrequencyHz = getResonantFrequencyHz(vibrator, capabilities);
+    const auto [minFrequencyHz, maxFrequencyHz] = pwle_v2_utils::getPwleV2SharpnessRange(vibrator);
+
+    if (minFrequencyHz > 0 && maxFrequencyHz > 0) {
+        EXPECT_GE(resonantFrequencyHz, minFrequencyHz);
+        EXPECT_LE(resonantFrequencyHz, maxFrequencyHz);
+    }
 }
 
 TEST_P(VibratorAidl, ComposeValidPwleV2Effect) {

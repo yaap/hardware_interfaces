@@ -23,21 +23,16 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/channel_avoidance/bluetooth_channel_avoidance_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace channel_avoidance {
+namespace bluetooth_hal::extensions::channel_avoidance {
 
 class BluetoothChannelAvoidance
-    : public ::aidl::hardware::google::bluetooth::bt_channel_avoidance::
-          BnBTChannelAvoidance {
- public:
-  ::ndk::ScopedAStatus setBluetoothChannelStatus(
-      const std::array<uint8_t, 10>& channel_map) override;
+    : public ::aidl::hardware::google::bluetooth::bt_channel_avoidance::BnBTChannelAvoidance {
+  public:
+    ::ndk::ScopedAStatus setBluetoothChannelStatus(
+            const std::array<uint8_t, 10>& channel_map) override;
 
- private:
-  BluetoothChannelAvoidanceHandler handler_;
+  private:
+    BluetoothChannelAvoidanceHandler handler_;
 };
 
-}  // namespace channel_avoidance
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::channel_avoidance

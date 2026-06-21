@@ -32,8 +32,7 @@ namespace implementation {
 static constexpr char PROPERTY_BT_BDADDR_PATH[] = "ro.bt.bdaddr_path";
 
 // Check for a legacy address stored as a property.
-static constexpr char PERSIST_BDADDR_PROPERTY[] =
-    "persist.service.bdroid.bdaddr";
+static constexpr char PERSIST_BDADDR_PROPERTY[] = "persist.service.bdroid.bdaddr";
 
 // If there is no valid bdaddr available from PROPERTY_BT_BDADDR_PATH and there
 // is no available persistent bdaddr available from PERSIST_BDADDR_PROPERTY,
@@ -42,16 +41,16 @@ static constexpr char FACTORY_BDADDR_PROPERTY[] = "ro.boot.btmacaddr";
 
 // Encapsulate handling for Bluetooth Addresses:
 class BluetoothAddress {
- public:
-  // Conversion constants
-  static constexpr size_t kStringLength = sizeof("XX:XX:XX:XX:XX:XX") - 1;
-  static constexpr size_t kBytes = (kStringLength + 1) / 3;
+  public:
+    // Conversion constants
+    static constexpr size_t kStringLength = sizeof("XX:XX:XX:XX:XX:XX") - 1;
+    static constexpr size_t kBytes = (kStringLength + 1) / 3;
 
-  static void bytes_to_string(const uint8_t* addr, char* addr_str);
+    static void bytes_to_string(const uint8_t* addr, char* addr_str);
 
-  static bool string_to_bytes(const char* addr_str, uint8_t* addr);
+    static bool string_to_bytes(const char* addr_str, uint8_t* addr);
 
-  static bool get_local_address(uint8_t* addr);
+    static bool get_local_address(uint8_t* addr);
 };
 
 }  // namespace implementation

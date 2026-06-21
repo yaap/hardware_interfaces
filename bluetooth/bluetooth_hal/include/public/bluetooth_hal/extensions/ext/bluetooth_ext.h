@@ -23,21 +23,15 @@
 #include "android/binder_auto_utils.h"
 #include "bluetooth_hal/extensions/ext/bluetooth_ext_handler.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ext {
+namespace bluetooth_hal::extensions::ext {
 
-struct BluetoothExt
-    : public ::aidl::hardware::google::bluetooth::ext::BnBluetoothExt {
- public:
-  ::ndk::ScopedAStatus setBluetoothCmdPacket(char16_t opcode,
-                                             const std::vector<uint8_t>& params,
-                                             bool* ret) override;
+struct BluetoothExt : public ::aidl::hardware::google::bluetooth::ext::BnBluetoothExt {
+  public:
+    ::ndk::ScopedAStatus setBluetoothCmdPacket(char16_t opcode, const std::vector<uint8_t>& params,
+                                               bool* ret) override;
 
- private:
-  BluetoothExtHandler handler_;
+  private:
+    BluetoothExtHandler handler_;
 };
 
-}  // namespace ext
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ext

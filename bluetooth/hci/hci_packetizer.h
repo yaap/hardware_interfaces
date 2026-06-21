@@ -25,17 +25,16 @@
 namespace android::hardware::bluetooth::hci {
 
 class HciPacketizer {
- public:
-  HciPacketizer() = default;
-  bool OnDataReady(PacketType packet_type, const std::vector<uint8_t>& data,
-                   size_t* offset);
-  const std::vector<uint8_t>& GetPacket() const;
+  public:
+    HciPacketizer() = default;
+    bool OnDataReady(PacketType packet_type, const std::vector<uint8_t>& data, size_t* offset);
+    const std::vector<uint8_t>& GetPacket() const;
 
- protected:
-  enum State { HCI_HEADER, HCI_PAYLOAD };
-  State state_{HCI_HEADER};
-  std::vector<uint8_t> packet_;
-  size_t bytes_remaining_{0};
+  protected:
+    enum State { HCI_HEADER, HCI_PAYLOAD };
+    State state_{HCI_HEADER};
+    std::vector<uint8_t> packet_;
+    size_t bytes_remaining_{0};
 };
 
 }  // namespace android::hardware::bluetooth::hci

@@ -26,37 +26,30 @@
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace channel_avoidance {
+namespace bluetooth_hal::extensions::channel_avoidance {
 
-class BluetoothChannelAvoidanceHandler
-    : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  BluetoothChannelAvoidanceHandler() = default;
+class BluetoothChannelAvoidanceHandler : public ::bluetooth_hal::hci::HciRouterClient {
+  public:
+    BluetoothChannelAvoidanceHandler() = default;
 
-  bool SetBluetoothChannelStatus(const std::array<uint8_t, 10>& channel_map);
+    bool SetBluetoothChannelStatus(const std::array<uint8_t, 10>& channel_map);
 
- protected:
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override {};
-  void OnBluetoothDisabled() override {};
-  void OnCommandCallback(
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const bluetooth_hal::hci::HalPacket& packet) override;
+  protected:
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override {};
+    void OnBluetoothDisabled() override {};
+    void OnCommandCallback(const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const bluetooth_hal::hci::HalPacket& packet) override;
 
-  ::bluetooth_hal::hci::HalPacket BuildSetChannelAvoidanceCommand(
-      const std::array<uint8_t, 10>& channel_map);
+    ::bluetooth_hal::hci::HalPacket BuildSetChannelAvoidanceCommand(
+            const std::array<uint8_t, 10>& channel_map);
 
- private:
-  std::mutex command_mtx_;
-  std::promise<void> command_promise_;
-  std::atomic<bool> command_success_{false};
+  private:
+    std::mutex command_mtx_;
+    std::promise<void> command_promise_;
+    std::atomic<bool> command_success_{false};
 };
 
-}  // namespace channel_avoidance
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::channel_avoidance

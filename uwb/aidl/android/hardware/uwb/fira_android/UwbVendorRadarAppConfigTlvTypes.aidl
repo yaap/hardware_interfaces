@@ -107,4 +107,44 @@ enum UwbVendorRadarAppConfigTlvTypes {
      * 0x00: Radar Sweep Samples. Reported in RADAR_DATA_NTF. (default)
      */
     RADAR_DATA_TYPE = 0xB,
+    /**
+     * 2 byte data
+     * Bitmap of antenna ports to be used in the radar session.
+     * bit pos 0 = RX ANT1 (RX1)
+     * bit pos 1 = RX ANT2 (RX2)
+     * bit pos 2 = RX ANT3 (RX3)
+     * bit pos 3 = RX ANT4 (RX4)
+     * bit pos 4~7 = reserved
+     * bit pos 8 = TX ANT1 (TX1)
+     * bit pos 9 = TX ANT2 (TX2)
+     * bit pos 10~15 = reserved
+     * default value : 0x108
+     */
+    ANTENNA_BITMAP = 0xA0,
+    /**
+     * 1 byte data
+     * Bitmap of GPIO pins to be used in the radar session.
+     * bit pos 0 = GPIO6
+     * bit pos 1 = GPIO7
+     * bit pos 2 = GPIO8
+     * bit pos 3 = GPIO9
+     * default value : 0xC
+     */
+    GPIO_BITMAP = 0xA1,
+    /**
+     * 1 byte data
+     * Expected Tx power control level (0.25dB step)
+     * max : 0
+     * min : 106
+     * default value : 24
+     */
+    TX_POWER = 0xA2,
+    /**
+     * 1 byte data
+     * Radar Rx gain
+     * max : 3
+     * min : 63
+     * default value : 30
+     */
+    RX_GAIN = 0xA3,
 }

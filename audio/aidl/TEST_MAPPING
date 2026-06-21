@@ -1,7 +1,13 @@
 {
   "presubmit": [
     {
-      "name": "VtsHalAudioCoreTargetTest"
+      "name": "VtsHalAudioCoreTargetTest",
+      "options": [
+         {
+            // These tests are a minor variation, save time in presubmit.
+            "exclude-filter": "*SetupSeq2*"
+         }
+       ]
     },
     {
       "name": "audioeffect_tests"
@@ -73,6 +79,9 @@
     },
     {
       "name": "CtsVirtualDevicesAudioTestCases"
+    },
+    {
+      "name": "audio_module_bluetooth_tests"
     }
   ]
 }

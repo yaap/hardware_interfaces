@@ -1067,11 +1067,13 @@ TEST_P(AttestKeyTest, SwappedIMEIAttestationIDSuccess) {
     // The attested key characteristics will not contain APPLICATION_ID_* fields (their
     // spec definitions all have "Must never appear in KeyCharacteristics"), but the
     // attestation extension should contain them, so make sure the extra tag is added.
-    vector<uint8_t> sec_imei_blob(second_imei.data(), second_imei.data() + second_imei.size());
-    KeyParameter sec_imei_tag = Authorization(TAG_ATTESTATION_ID_SECOND_IMEI, sec_imei_blob);
-    hw_enforced.push_back(sec_imei_tag);
     vector<uint8_t> imei_blob(imei.data(), imei.data() + imei.size());
-    KeyParameter imei_tag = Authorization(TAG_ATTESTATION_ID_IMEI, imei_blob);
+    vector<uint8_t> sec_imei_blob(second_imei.data(), second_imei.data() + second_imei.size());
+    // Keep the tags reversed to avoid an issue in comparing the attestation record to the
+    // specified tag ordering.
+    KeyParameter imei_tag = Authorization(TAG_ATTESTATION_ID_IMEI, sec_imei_blob);
+    KeyParameter sec_imei_tag = Authorization(TAG_ATTESTATION_ID_SECOND_IMEI, imei_blob);
+    hw_enforced.push_back(sec_imei_tag);
     hw_enforced.push_back(imei_tag);
 
     ASSERT_TRUE(verify_attestation_record(AidlVersion(), "challenge", "foo", sw_enforced,

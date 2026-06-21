@@ -21,30 +21,25 @@
 #include "bluetooth_hal/hci_monitor.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 class DebugEventWatcher : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  DebugEventWatcher();
-  ~DebugEventWatcher();
+  public:
+    DebugEventWatcher();
+    ~DebugEventWatcher();
 
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override {};
-  void OnBluetoothDisabled() override {};
-  void OnCommandCallback(
-      [[maybe_unused]] const ::bluetooth_hal::hci::HalPacket& packet) override {
-  };
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const ::bluetooth_hal::hci::HalPacket& packet) override;
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override {};
+    void OnBluetoothDisabled() override {};
+    void OnCommandCallback(
+            [[maybe_unused]] const ::bluetooth_hal::hci::HalPacket& packet) override {};
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const ::bluetooth_hal::hci::HalPacket& packet) override;
 
- private:
-  ::bluetooth_hal::hci::HciBqrEventMonitor bqr_event_monitor_;
-  ::bluetooth_hal::hci::HciCommandCompleteEventMonitor
-      google_vendor_capability_event_monitor_;
+  private:
+    ::bluetooth_hal::hci::HciBqrEventMonitor bqr_event_monitor_;
+    ::bluetooth_hal::hci::HciCommandCompleteEventMonitor google_vendor_capability_event_monitor_;
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

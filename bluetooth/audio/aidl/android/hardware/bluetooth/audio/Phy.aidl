@@ -26,4 +26,5 @@ enum Phy {
     ONE_M = 0x01,
     TWO_M = 0x02,
     CODED = 0x03,
+    HDT = 0x05,
 }

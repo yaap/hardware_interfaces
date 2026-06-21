@@ -49,6 +49,14 @@ parcelable ConfigurationFlags {
      * Set for mono microphone configurations
      */
     const int MONO_MIC_CONFIGURATION = 0x0020;
+    /**
+     * Set for ISO Parameter Update
+     */
+    const int ISO_PARAMETER_UPDATE = 0x0040;
+    /**
+     * Set for Adapter Bit Rate
+     */
+    const int ADAPTER_BIT_RATE = 0x0080;
 
     int bitmask;
 }

@@ -19,22 +19,19 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/debug/bluetooth_activities.h"
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 BluetoothActivities& BluetoothActivities::Get() {
-  if (!MockBluetoothActivities::mock_bluetooth_activities_) {
-    LOG(FATAL) << __func__
-               << ": mock_bluetooth_activities_ is nullptr. Did you forget to "
-                  "call SetMockBluetoothActivities in your test SetUp?";
-  }
-  return *MockBluetoothActivities::mock_bluetooth_activities_;
+    if (!MockBluetoothActivities::mock_bluetooth_activities_) {
+        LOG(FATAL) << __func__
+                   << ": mock_bluetooth_activities_ is nullptr. Did you forget to "
+                      "call SetMockBluetoothActivities in your test SetUp?";
+    }
+    return *MockBluetoothActivities::mock_bluetooth_activities_;
 }
 
-void MockBluetoothActivities::SetMockBluetoothActivities(
-    MockBluetoothActivities* mock) {
-  mock_bluetooth_activities_ = mock;
+void MockBluetoothActivities::SetMockBluetoothActivities(MockBluetoothActivities* mock) {
+    mock_bluetooth_activities_ = mock;
 }
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

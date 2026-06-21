@@ -86,6 +86,8 @@ interface IFactory {
      * @param handle The handle of effect instance to be destroyed.
      * @throws EX_ILLEGAL_ARGUMENT if the effect handle is not valid.
      * @throws EX_ILLEGAL_STATE if the effect instance can not be destroyed.
+     * @throws EX_NULL_POINTER As an alternative to `EX_ILLEGAL_ARGUMENT` when the effect reference
+     *                         is null (depending on the implementation backend).
      */
     void destroyEffect(in IEffect handle);
 }

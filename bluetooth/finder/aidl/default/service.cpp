@@ -25,26 +25,23 @@
 using ::aidl::android::hardware::bluetooth::finder::impl::BluetoothFinder;
 
 int main(int /* argc */, char** /* argv */) {
-  ALOGI("Bluetooth Finder HAL registering");
-  if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
-    ALOGE("failed to set thread pool max thread count");
-    return 1;
-  }
-
-  std::shared_ptr<BluetoothFinder> service =
-      ndk::SharedRefBase::make<BluetoothFinder>();
-  std::string instance =
-      std::string() + BluetoothFinder::descriptor + "/default";
-  if (AServiceManager_isDeclared(instance.c_str())) {
-    auto result =
-        AServiceManager_addService(service->asBinder().get(), instance.c_str());
-    if (result != STATUS_OK) {
-      ALOGE("Could not register as a service!");
+    ALOGI("Bluetooth Finder HAL registering");
+    if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
+        ALOGE("failed to set thread pool max thread count");
+        return 1;
     }
-  } else {
-    ALOGE("Could not register as a service because it's not declared.");
-  }
-  // Keep running
-  ABinderProcess_joinThreadPool();
-  return 0;
+
+    std::shared_ptr<BluetoothFinder> service = ndk::SharedRefBase::make<BluetoothFinder>();
+    std::string instance = std::string() + BluetoothFinder::descriptor + "/default";
+    if (AServiceManager_isDeclared(instance.c_str())) {
+        auto result = AServiceManager_addService(service->asBinder().get(), instance.c_str());
+        if (result != STATUS_OK) {
+            ALOGE("Could not register as a service!");
+        }
+    } else {
+        ALOGE("Could not register as a service because it's not declared.");
+    }
+    // Keep running
+    ABinderProcess_joinThreadPool();
+    return 0;
 }

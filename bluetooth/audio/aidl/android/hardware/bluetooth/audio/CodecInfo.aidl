@@ -19,6 +19,7 @@ package android.hardware.bluetooth.audio;
 import android.hardware.bluetooth.audio.ChannelMode;
 import android.hardware.bluetooth.audio.CodecId;
 import android.hardware.bluetooth.audio.ConfigurationFlags;
+import android.hardware.bluetooth.audio.LeAudioPeripheralCapabilities;
 
 /**
  * General information about a Codec
@@ -91,7 +92,7 @@ parcelable CodecInfo {
     }
 
     /**
-     * LE Audio Context
+     * LE Audio Central Context
      */
     parcelable LeAudio {
         /**
@@ -127,6 +128,20 @@ parcelable CodecInfo {
     }
 
     /**
+     * LE Audio Peripheral Context
+     */
+    parcelable LeAudioPeripheral {
+        /**
+         * Additional configuration flags for provider for given codec.
+         */
+        ConfigurationFlags flags;
+        /**
+         *  Codec Capabilities for LeAudio. Each element in the array MUST be unique.
+         */
+        LeAudioPeripheralCapabilities[] codecCapabilities;
+    }
+
+    /**
      * Specific informations,
      * depending on transport.
      */
@@ -134,6 +149,7 @@ parcelable CodecInfo {
         LeAudio leAudio;
         A2dp a2dp;
         Hfp hfp;
+        LeAudioPeripheral leAudioPeripheral;
     }
 
     Transport transport;

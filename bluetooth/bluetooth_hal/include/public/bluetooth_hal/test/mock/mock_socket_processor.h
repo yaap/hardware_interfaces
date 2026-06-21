@@ -18,61 +18,58 @@
 
 #include <cstdint>
 #include <optional>
-#include <string>
+#include <string_view>
 #include <vector>
 
 #include "bluetooth_hal/extensions/thread/socket_processor.h"
 #include "bluetooth_hal/hal_packet.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace thread {
+namespace bluetooth_hal::thread {
 
 class MockSocketProcessor : public SocketProcessor {
- public:
-  // Mocks the static Initialize and Cleanup methods of SocketProcessor.
-  MOCK_METHOD(
-      void, Initialize,
-      (const std::string& socket_path,
-       std::optional<::bluetooth_hal::hci::HalPacketCallback> hal_packet_cb));
-  MOCK_METHOD(void, Cleanup, ());
+  public:
+    // Mocks the static Initialize and Cleanup methods of SocketProcessor.
+    MOCK_METHOD(void, Initialize,
+                (std::string_view socket_path,
+                 std::optional<::bluetooth_hal::hci::HalPacketCallback> hal_packet_cb));
+    MOCK_METHOD(void, Cleanup, ());
 
-  // Mocks the virtual socket operation methods, allowing their behavior to be
-  // customized and verified in tests.
-  MOCK_METHOD(bool, Send, (const std::vector<uint8_t>& data), (override));
+    // Mocks the virtual socket operation methods, allowing their behavior to be
+    // customized and verified in tests.
+    MOCK_METHOD(bool, Send, (const std::vector<uint8_t>& data), (override));
 
-  MOCK_METHOD(bool, Recv, (), (override));
+    MOCK_METHOD(bool, Recv, (), (override));
 
-  MOCK_METHOD(bool, OpenServer, (), (override));
+    MOCK_METHOD(bool, OpenServer, (), (override));
 
-  MOCK_METHOD(void, CloseServer, (), (override));
+    MOCK_METHOD(void, CloseServer, (), (override));
 
-  MOCK_METHOD(void, CloseClient, (), (override));
+    MOCK_METHOD(void, CloseClient, (), (override));
 
-  MOCK_METHOD(int, AcceptClient, (), (override));
+    MOCK_METHOD(int, AcceptClient, (), (override));
 
-  MOCK_METHOD(void, SetServerSocket, (int socket), (override));
+    MOCK_METHOD(void, SetServerSocket, (int socket), (override));
 
-  MOCK_METHOD(void, SetClientSocket, (int socket), (override));
+    MOCK_METHOD(void, SetClientSocket, (int socket), (override));
 
-  MOCK_METHOD(void, SetSocketMode, (SocketMode mode), (override));
+    MOCK_METHOD(void, SetSocketMode, (SocketMode mode), (override));
 
-  MOCK_METHOD(int, GetServerSocket, (), (const, override));
+    MOCK_METHOD(int, GetServerSocket, (), (const, override));
 
-  MOCK_METHOD(int, GetClientSocket, (), (const, override));
+    MOCK_METHOD(int, GetClientSocket, (), (const, override));
 
-  MOCK_METHOD(bool, IsSocketFileExisted, (), (const, override));
+    MOCK_METHOD(bool, IsSocketFileExisted, (), (const, override));
 
-  MOCK_METHOD(int, OpenSocketFileMonitor, (), (override));
+    MOCK_METHOD(int, OpenSocketFileMonitor, (), (override));
 
-  MOCK_METHOD(void, CloseSocketFileMonitor, (), (override));
+    MOCK_METHOD(void, CloseSocketFileMonitor, (), (override));
 
-  MOCK_METHOD(int, GetSocketFileMonitor, (), (override));
+    MOCK_METHOD(int, GetSocketFileMonitor, (), (override));
 
-  static void SetMockProcessor(MockSocketProcessor* processor);
+    static void SetMockProcessor(MockSocketProcessor* processor);
 
-  static inline MockSocketProcessor* mock_socket_processor_{nullptr};
+    static inline MockSocketProcessor* mock_socket_processor_{nullptr};
 };
 
-}  // namespace thread
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::thread

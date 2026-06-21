@@ -1,0 +1,25 @@
+package {
+    default_applicable_licenses: ["hardware_interfaces_license"],
+}
+
+aidl_interface {
+    name: "android.hardware.security.see.devicestate",
+    stability: "vintf",
+    host_supported: true,
+    srcs: [
+        "android/hardware/security/see/devicestate/*.aidl",
+    ],
+    backend: {
+        rust: {
+            enabled: true,
+        },
+    },
+    frozen: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
+}

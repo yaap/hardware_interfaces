@@ -30,83 +30,108 @@
 #include "bluetooth_hal/hci_router.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 using ::bluetooth_hal::HalState;
 
 HciRouterClient::HciRouterClient() {
-  HciRouterClientAgent::GetAgent().RegisterClient(this);
+    HciRouterClientAgent::GetAgent().RegisterClient(this);
 }
 
 HciRouterClient::~HciRouterClient() {
-  std::scoped_lock<std::recursive_mutex> lock(mutex_);
-  monitors_.clear();
-  HciRouterClientAgent::GetAgent().UnregisterClient(this);
+    std::scoped_lock<std::recursive_mutex> lock(mutex_);
+    monitors_.clear();
+    HciRouterClientAgent::GetAgent().UnregisterClient(this);
+}
+
+void HciRouterClient::SyncBluetoothState() {
+    if (IsBluetoothChipReady()) {
+        OnBluetoothChipReady();
+    }
+    if (IsBluetoothEnabled()) {
+        OnBluetoothEnabled();
+    }
 }
 
 MonitorMode HciRouterClient::OnPacketCallback(const HalPacket& packet) {
-  std::scoped_lock<std::recursive_mutex> lock(mutex_);
-  // Find the mode with the highest priority.
-  MonitorMode mode = MonitorMode::kNone;
-  for (const auto& it : monitors_) {
-    if (it.first == packet) {
-      mode = std::max(mode, it.second);
+    std::scoped_lock<std::recursive_mutex> lock(mutex_);
+    // Find the mode with the highest priority.
+    MonitorMode mode = MonitorMode::kNone;
+    for (const auto& it : monitors_) {
+        if (it.first == packet) {
+            mode = std::max(mode, it.second);
+        }
     }
-  }
 
-  if (mode != MonitorMode::kNone) {
-    OnMonitorPacketCallback(mode, packet);
-  }
-  return mode;
+    if (mode != MonitorMode::kNone) {
+        OnMonitorPacketCallback(mode, packet);
+    }
+    return mode;
 }
 
 bool HciRouterClient::IsBluetoothChipReady() {
-  return HciRouterClientAgent::GetAgent().IsBluetoothChipReady();
+    return HciRouterClientAgent::GetAgent().IsBluetoothChipReady();
 }
 
 bool HciRouterClient::IsBluetoothEnabled() {
-  return HciRouterClientAgent::GetAgent().IsBluetoothEnabled();
+    return HciRouterClientAgent::GetAgent().IsBluetoothEnabled();
 }
 
-bool HciRouterClient::RegisterMonitor(const HciMonitor& monitor,
-                                      MonitorMode mode) {
-  std::scoped_lock<std::recursive_mutex> lock(mutex_);
-  if (mode == MonitorMode::kNone) {
-    LOG(ERROR) << __func__ << ": Monitor mode cannot be kNone!";
-    return false;
-  }
-  if (monitors_.count(monitor)) {
-    LOG(ERROR) << __func__ << ": The same monitor already exist!";
-    return false;
-  }
-  monitors_.insert({monitor, mode});
-  return true;
+bool HciRouterClient::RegisterMonitor(const HciMonitor& monitor, MonitorMode mode) {
+    std::scoped_lock<std::recursive_mutex> lock(mutex_);
+    if (mode == MonitorMode::kNone) {
+        LOG(ERROR) << __func__ << ": Monitor mode cannot be kNone!";
+        return false;
+    }
+    if (monitors_.count(monitor)) {
+        LOG(ERROR) << __func__ << ": The same monitor already exist!";
+        return false;
+    }
+    monitors_.insert({monitor, mode});
+    return true;
 }
 
 bool HciRouterClient::UnregisterMonitor(const HciMonitor& monitor) {
-  std::scoped_lock<std::recursive_mutex> lock(mutex_);
-  if (monitors_.erase(monitor) == 0) {
-    LOG(ERROR) << __func__ << ": Monitor not registered!";
-    return false;
-  }
-  return true;
+    std::scoped_lock<std::recursive_mutex> lock(mutex_);
+    if (monitors_.erase(monitor) == 0) {
+        LOG(ERROR) << __func__ << ": Monitor not registered!";
+        return false;
+    }
+    return true;
 }
 
 bool HciRouterClient::SendCommand(const HalPacket& packet) {
-  if (packet.GetType() != HciPacketType::kCommand) {
-    return false;
-  }
-  return HciRouter::GetRouter().SendCommand(
-      packet, std::bind_front(&HciRouterClient::OnCommandCallback, this));
+    if (packet.GetType() != HciPacketType::kCommand) {
+        return false;
+    }
+    packet.SetSource(PacketSource::kClient);
+    packet.SetDestination(PacketDestination::kController);
+    return HciRouter::GetRouter().SendCommand(
+            packet, std::bind_front(&HciRouterClient::OnCommandCallback, this));
+}
+
+bool HciRouterClient::SendCommandNoAck(const HalPacket& packet) {
+    if (packet.GetType() != HciPacketType::kCommand) {
+        return false;
+    }
+    packet.SetSource(PacketSource::kClient);
+    packet.SetDestination(PacketDestination::kController);
+    return HciRouter::GetRouter().SendCommandNoAck(packet);
 }
 
 bool HciRouterClient::SendData(const HalPacket& packet) {
-  if (packet.GetType() == HciPacketType::kCommand) {
-    return false;
-  }
-  return HciRouter::GetRouter().Send(packet);
+    if (packet.GetType() == HciPacketType::kCommand) {
+        return false;
+    }
+    packet.SetSource(PacketSource::kClient);
+    packet.SetDestination(PacketDestination::kController);
+    return HciRouter::GetRouter().Send(packet);
 }
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+void HciRouterClient::SendPacketToStack(const HalPacket& packet) {
+    packet.SetSource(PacketSource::kClient);
+    packet.SetDestination(PacketDestination::kHost);
+    return HciRouter::GetRouter().SendPacketToStack(packet);
+}
+
+}  // namespace bluetooth_hal::hci

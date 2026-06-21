@@ -19,28 +19,26 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/config/firmware_config_loader.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 FirmwareConfigLoader& FirmwareConfigLoader::GetLoader() {
-  if (!MockFirmwareConfigLoader::mock_firmware_config_loader_) {
-    LOG(FATAL) << __func__
-               << ": mock_firmware_config_loader_ is nullptr. Did you forget "
-                  "to call SetMockLoader in your test SetUp?";
-  }
-  return *MockFirmwareConfigLoader::mock_firmware_config_loader_;
+    if (!MockFirmwareConfigLoader::mock_firmware_config_loader_) {
+        LOG(FATAL) << __func__
+                   << ": mock_firmware_config_loader_ is nullptr. Did you forget "
+                      "to call SetMockLoader in your test SetUp?";
+    }
+    return *MockFirmwareConfigLoader::mock_firmware_config_loader_;
 }
 
 void MockFirmwareConfigLoader::SetMockLoader(MockFirmwareConfigLoader* loader) {
-  mock_firmware_config_loader_ = loader;
+    mock_firmware_config_loader_ = loader;
 }
 
 void FirmwareConfigLoader::ResetLoader() {
-  if (MockFirmwareConfigLoader::mock_firmware_config_loader_ != nullptr) {
-    delete MockFirmwareConfigLoader::mock_firmware_config_loader_;
-    MockFirmwareConfigLoader::mock_firmware_config_loader_ = nullptr;
-  }
+    if (MockFirmwareConfigLoader::mock_firmware_config_loader_ != nullptr) {
+        delete MockFirmwareConfigLoader::mock_firmware_config_loader_;
+        MockFirmwareConfigLoader::mock_firmware_config_loader_ = nullptr;
+    }
 }
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

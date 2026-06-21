@@ -16,6 +16,7 @@
 
 #define LOG_TAG "VtsIWritableIdentityCredentialTests"
 
+#include <KeyMintAidlTestBase.h>
 #include <aidl/Gtest.h>
 #include <aidl/Vintf.h>
 #include <aidl/android/hardware/security/keymint/IRemotelyProvisionedComponent.h>
@@ -41,6 +42,7 @@ using std::optional;
 using std::string;
 using std::vector;
 
+using ::aidl::android::hardware::security::keymint::test::get_vendor_api_level;
 using ::android::sp;
 using ::android::String16;
 using ::android::binder::Status;
@@ -50,6 +52,14 @@ using ::android::hardware::security::keymint::MacedPublicKey;
 class IdentityCredentialTests : public testing::TestWithParam<string> {
   public:
     virtual void SetUp() override {
+        if (test_utils::isGsiImage() &&
+            get_vendor_api_level() < test_utils::GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL) {
+            GTEST_SKIP() << "Skipping test on GSI: Vendor API Level is " << get_vendor_api_level()
+                         << " Requires (26Q2) "
+                         << test_utils::GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL << " or higher."
+                         << "Vendor code cannot set appropriate RKP properties prior to "
+                         << test_utils::GSI_RKP_PROP_REQUIRED_VENDOR_API_LEVEL;
+        }
         credentialStore_ = android::waitForDeclaredService<IIdentityCredentialStore>(
                 String16(GetParam().c_str()));
         ASSERT_NE(credentialStore_, nullptr);
@@ -59,10 +69,6 @@ class IdentityCredentialTests : public testing::TestWithParam<string> {
 };
 
 TEST_P(IdentityCredentialTests, verifyAttestationWithEmptyChallenge) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     Status result;
 
     HardwareInformation hwInfo;
@@ -85,9 +91,6 @@ TEST_P(IdentityCredentialTests, verifyAttestationWithEmptyChallenge) {
 }
 
 TEST_P(IdentityCredentialTests, verifyAttestationSuccessWithChallenge) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
     Status result;
 
     HardwareInformation hwInfo;
@@ -113,10 +116,6 @@ TEST_P(IdentityCredentialTests, verifyAttestationSuccessWithChallenge) {
 }
 
 TEST_P(IdentityCredentialTests, verifyAttestationSuccessWithRemoteProvisioning) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     HardwareInformation hwInfo;
     ASSERT_TRUE(credentialStore_->getHardwareInformation(&hwInfo).isOk());
 
@@ -175,10 +174,6 @@ TEST_P(IdentityCredentialTests, verifyAttestationSuccessWithRemoteProvisioning) 
 }
 
 TEST_P(IdentityCredentialTests, verifyRemotelyProvisionedKeyMayOnlyBeSetOnce) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     HardwareInformation hwInfo;
     ASSERT_TRUE(credentialStore_->getHardwareInformation(&hwInfo).isOk());
 
@@ -220,10 +215,6 @@ TEST_P(IdentityCredentialTests, verifyRemotelyProvisionedKeyMayOnlyBeSetOnce) {
 }
 
 TEST_P(IdentityCredentialTests, verifyAttestationDoubleCallFails) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     Status result;
 
     sp<IWritableIdentityCredential> writableCredential;
@@ -407,10 +398,6 @@ TEST_P(IdentityCredentialTests, verifyDuplicateProfileId) {
 }
 
 TEST_P(IdentityCredentialTests, verifyOneProfileAndEntryPass) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     Status result;
 
     HardwareInformation hwInfo;
@@ -499,10 +486,6 @@ TEST_P(IdentityCredentialTests, verifyOneProfileAndEntryPass) {
 }
 
 TEST_P(IdentityCredentialTests, verifyManyProfilesAndEntriesPass) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     Status result;
 
     HardwareInformation hwInfo;
@@ -664,10 +647,6 @@ TEST_P(IdentityCredentialTests, verifyManyProfilesAndEntriesPass) {
 }
 
 TEST_P(IdentityCredentialTests, verifyEmptyNameSpaceMixedWithNonEmptyWorks) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     Status result;
 
     HardwareInformation hwInfo;
@@ -732,10 +711,6 @@ TEST_P(IdentityCredentialTests, verifyEmptyNameSpaceMixedWithNonEmptyWorks) {
 }
 
 TEST_P(IdentityCredentialTests, verifyInterleavingEntryNameSpaceOrderingFails) {
-    if (test_utils::isGsiImage()) {
-        GTEST_SKIP() << "Test not applicable because RKP-only status cannot be determined";
-    }
-
     Status result;
 
     HardwareInformation hwInfo;

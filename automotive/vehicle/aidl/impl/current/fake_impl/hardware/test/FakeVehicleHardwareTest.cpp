@@ -82,6 +82,8 @@ using ::aidl::android::hardware::automotive::vehicle::VehicleAreaMirror;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaSeat;
 using ::aidl::android::hardware::automotive::vehicle::VehicleAreaWindow;
 using ::aidl::android::hardware::automotive::vehicle::VehicleHwKeyInputAction;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightState;
+using ::aidl::android::hardware::automotive::vehicle::VehicleLightSwitch;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropConfig;
 using ::aidl::android::hardware::automotive::vehicle::VehicleProperty;
 using ::aidl::android::hardware::automotive::vehicle::VehiclePropertyAccess;
@@ -358,6 +360,11 @@ class FakeVehicleHardwareTest : public ::testing::Test {
                   getHardware()->subscribe(newSubscribeOptions(propId, areaId, sampleRateHz)))
                 << "failed to subscribe to propId: " << propId << "areaId: " << areaId
                 << ", sampleRateHz: " << sampleRateHz;
+    }
+
+    void unsubscribe(int32_t propId, int32_t areaId) {
+        ASSERT_EQ(StatusCode::OK, getHardware()->unsubscribe(propId, areaId))
+                << "failed to unsubscribe to propId: " << propId << "areaId: " << areaId;
     }
 
     static void addSetValueRequest(std::vector<SetValueRequest>& requests,
@@ -705,6 +712,24 @@ TEST_F(FakeVehicleHardwareTest, testReadValuesErrorInvalidProp) {
 
     ASSERT_EQ(status, StatusCode::OK);
     ASSERT_THAT(getGetValueResults(), ContainerEq(expectedGetValueResults));
+}
+
+TEST_F(FakeVehicleHardwareTest, testGetValueForPropertyStatusTesting) {
+    int32_t prop = toInt(TestVendorProperty::VENDOR_PROPERTY_FOR_PROPERTY_STATUS_TESTING);
+    std::string propIdStr = std::to_string(prop);
+    int64_t timestamp = elapsedRealtimeNano();
+    DumpResult output = getHardware()->dump(
+            {"--inject-event", propIdStr, "-p",
+             std::to_string(toInt(VehiclePropertyStatus::NOT_AVAILABLE_DISABLED)), "-t",
+             std::to_string(timestamp)});
+
+    ASSERT_FALSE(output.callerShouldDumpState);
+    ASSERT_THAT(output.buffer, ContainsRegex("injected"));
+
+    auto result = getValue(VehiclePropValue{.prop = prop});
+
+    ASSERT_TRUE(!result.ok());
+    ASSERT_EQ(getStatus(result), toInt(StatusCode::NOT_AVAILABLE_DISABLED));
 }
 
 TEST_F(FakeVehicleHardwareTest, testReadValuesErrorNotAvailable) {
@@ -2328,6 +2353,117 @@ TEST_F(FakeVehicleHardwareTest, testSendAdasPropertiesState) {
     }
 }
 
+TEST_F(FakeVehicleHardwareTest, testUpdateLightsState) {
+    StatusCode status = setValue(
+            VehiclePropValue{.prop = toInt(VehicleProperty::NIGHT_MODE), .value.int32Values = {0}});
+
+    ASSERT_EQ(status, StatusCode::OK);
+
+    const std::vector<std::pair<int32_t, int32_t>> lightsSwitchAndLightsStateProps = {
+            {
+                    toInt(VehicleProperty::HEADLIGHTS_SWITCH),
+                    toInt(VehicleProperty::HEADLIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::HIGH_BEAM_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::HIGH_BEAM_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::FRONT_FOG_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::FRONT_FOG_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::REAR_FOG_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::REAR_FOG_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::HAZARD_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::HAZARD_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::CABIN_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::CABIN_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::READING_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::READING_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::STEERING_WHEEL_LIGHTS_STATE),
+            },
+            {
+                    toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_SWITCH),
+                    toInt(VehicleProperty::SEAT_FOOTWELL_LIGHTS_STATE),
+            },
+    };
+
+    for (auto& lightsSwitchAndLightsStateProp : lightsSwitchAndLightsStateProps) {
+        int32_t lightsSwitchPropId = lightsSwitchAndLightsStateProp.first;
+        int32_t lightsStatePropId = lightsSwitchAndLightsStateProp.second;
+        auto lightsSwitchPropConfig = getVehiclePropConfig(lightsSwitchPropId);
+        auto lightsStatePropConfig = getVehiclePropConfig(lightsStatePropId);
+        for (auto& lightsSwitchAreaConfig : lightsSwitchPropConfig->areaConfigs) {
+            for (auto& lightsStateAreaConfig : lightsStatePropConfig->areaConfigs) {
+                // Area IDs don't match
+                if ((lightsSwitchAreaConfig.areaId & lightsStateAreaConfig.areaId) == 0) {
+                    continue;
+                }
+                for (int64_t enumValueLong : lightsSwitchAreaConfig.supportedEnumValues.value()) {
+                    int32_t enumValue = static_cast<int32_t>(enumValueLong);
+                    auto result = getValue(VehiclePropValue{.areaId = lightsSwitchAreaConfig.areaId,
+                                                            .prop = lightsSwitchPropId});
+
+                    EXPECT_TRUE(result.ok());
+                    EXPECT_EQ(result.value().value.int32Values.size(), 1u);
+
+                    // Skip if value already set
+                    if (enumValue == result.value().value.int32Values[0]) {
+                        continue;
+                    }
+                    subscribe(lightsSwitchPropId, lightsSwitchAreaConfig.areaId,
+                              /* sampleRateHz= */ 0);
+                    subscribe(lightsStatePropId, lightsStateAreaConfig.areaId,
+                              /* sampleRateHz= */ 0);
+                    StatusCode status =
+                            setValue(VehiclePropValue{.areaId = lightsSwitchAreaConfig.areaId,
+                                                      .prop = lightsSwitchPropId,
+                                                      .value.int32Values = {enumValue}});
+
+                    EXPECT_EQ(status, StatusCode::OK);
+
+                    auto events = getChangedProperties();
+                    EXPECT_EQ(events.size(), 2u);
+                    for (const auto& event : events) {
+                        EXPECT_TRUE(event.prop == lightsSwitchPropId ||
+                                    event.prop == lightsStatePropId);
+                        if (event.prop == lightsSwitchPropId) {
+                            EXPECT_EQ(event.areaId, lightsSwitchAreaConfig.areaId);
+                            EXPECT_EQ(event.value.int32Values.size(), 1u);
+                            EXPECT_EQ(event.value.int32Values[0], enumValue);
+                        }
+                        if (event.prop == lightsStatePropId) {
+                            EXPECT_EQ(event.areaId, lightsStateAreaConfig.areaId);
+                            EXPECT_EQ(event.value.int32Values.size(), 1u);
+
+                            if (enumValue == toInt(VehicleLightSwitch::AUTOMATIC)) {
+                                // Night mode is disabled at the beginning of the test
+                                EXPECT_EQ(event.value.int32Values[0],
+                                          toInt(VehicleLightState::OFF));
+                            } else {
+                                EXPECT_EQ(event.value.int32Values[0], enumValue);
+                            }
+                        }
+                    }
+                    unsubscribe(lightsSwitchPropId, lightsSwitchAreaConfig.areaId);
+                    unsubscribe(lightsStatePropId, lightsStateAreaConfig.areaId);
+                    clearChangedProperties();
+                }
+            }
+        }
+    }
+}
+
 TEST_F(FakeVehicleHardwareTest, testGetUserPropertySetOnly) {
     for (VehicleProperty prop : std::vector<VehicleProperty>({
                  VehicleProperty::INITIAL_USER_INFO,
@@ -2740,6 +2876,29 @@ TEST_F(FakeVehicleHardwareTest, testDumpInjectEvent) {
     ASSERT_EQ(event.value.int32Values, std::vector<int32_t>({1234}));
 }
 
+TEST_F(FakeVehicleHardwareTest, testDumpInjectEventStatusCode) {
+    int32_t prop = toInt(VehicleProperty::ENGINE_OIL_LEVEL);
+    std::string propIdStr = std::to_string(prop);
+
+    subscribe(prop, /*areaId*/ 0, /*sampleRateHz*/ 0);
+
+    int64_t timestamp = elapsedRealtimeNano();
+    DumpResult result = getHardware()->dump(
+            {"--inject-event", propIdStr, "-p",
+             std::to_string(toInt(VehiclePropertyStatus::NOT_AVAILABLE_DISABLED)), "-t",
+             std::to_string(timestamp)});
+
+    ASSERT_FALSE(result.callerShouldDumpState);
+    ASSERT_THAT(result.buffer, ContainsRegex("Event for property: ENGINE_OIL_LEVEL injected"));
+    ASSERT_TRUE(waitForChangedProperties(prop, 0, /*count=*/1, milliseconds(1000)))
+            << "No changed event received for injected event from vehicle bus";
+    auto events = getChangedProperties();
+    ASSERT_EQ(events.size(), 1u);
+    auto event = events[0];
+    ASSERT_EQ(event.timestamp, timestamp);
+    ASSERT_EQ(event.status, VehiclePropertyStatus::NOT_AVAILABLE_DISABLED);
+}
+
 TEST_F(FakeVehicleHardwareTest, testDumpInvalidOptions) {
     std::vector<std::string> options;
     options.push_back("--invalid");
@@ -2885,12 +3044,38 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_invalidInt) {
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
 }
 
+TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_invalidAreaId) {
+    std::vector<std::string> options = {
+            "--set-minmaxvalue", "SEAT_MEMORY_SELECT", "-a", "blah", "1", "4"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not valid"));
+}
+
 TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_minLargerThanMax) {
     std::vector<std::string> options = {
             "--set-minmaxvalue", "SEAT_MEMORY_SELECT", "-a", "ROW_1_LEFT", "2", "1"};
 
     DumpResult result = getHardware()->dump(options);
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_areaIdNotSupported) {
+    std::vector<std::string> options = {
+            "--set-minmaxvalue", "SEAT_MEMORY_SELECT", "-a", "0", "1", "4"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not supported"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetMinMaxValue_minMaxValueNotSupportedForProperty) {
+    std::vector<std::string> options = {"--set-minmaxvalue", "EV_BATTERY_DISPLAY_UNITS", "1", "4"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("property does not support min/max"));
 }
 
 TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_Int) {
@@ -3025,6 +3210,24 @@ TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_invalidAreaId) {
     DumpResult result = getHardware()->dump(options);
     ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
     ASSERT_THAT(result.buffer, ContainsRegex("areaId not valid"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_areaIdNotSupported) {
+    std::vector<std::string> options = {
+            "--set-supportedvalues", "EV_STOPPING_MODE", "-a", "1", "1", "2", "3"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("areaId not supported"));
+}
+
+TEST_F(FakeVehicleHardwareTest, testDumpSetSupportedValues_supportedValuesNotSupportedForProperty) {
+    std::vector<std::string> options = {
+            "--set-supportedvalues", "INFO_EV_BATTERY_CAPACITY", "1", "2"};
+
+    DumpResult result = getHardware()->dump(options);
+    ASSERT_THAT(result.buffer, ContainsRegex("Failed"));
+    ASSERT_THAT(result.buffer, ContainsRegex("property does not support supported values"));
 }
 
 struct SetPropTestCase {

@@ -33,11 +33,11 @@ namespace audio {
 using hfp::setting::HfpOffloadSetting;
 
 class BluetoothHfpCodecsProvider {
- public:
-  static std::optional<HfpOffloadSetting> ParseFromHfpOffloadSettingFile();
+  public:
+    static std::optional<HfpOffloadSetting> ParseFromHfpOffloadSettingFile();
 
-  static std::vector<CodecInfo> GetHfpAudioCodecInfo(
-      const std::optional<HfpOffloadSetting>& hfp_offload_setting);
+    static std::vector<CodecInfo> GetHfpAudioCodecInfo(
+            const std::optional<HfpOffloadSetting>& hfp_offload_setting);
 };
 }  // namespace audio
 }  // namespace bluetooth

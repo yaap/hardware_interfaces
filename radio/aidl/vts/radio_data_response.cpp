@@ -130,3 +130,8 @@ ndk::ScopedAStatus RadioDataResponse::notifyImsDataNetworkResponse(const RadioRe
     parent_data.notify(info.serial);
     return ndk::ScopedAStatus::ok();
 }
+
+ndk::ScopedAStatus RadioDataResponse::dataCallListUpdated(
+        RadioIndicationType /*type*/, const std::vector<SetupDataCallResult>& /*dcList*/) {
+    return ndk::ScopedAStatus::ok();
+}

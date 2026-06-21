@@ -50,6 +50,10 @@
 //
 //    All tests should pass, and the `UpgradeKeyBlobs` test should have output that matches whether
 //    upgrade was expected or not.
+//
+//    If the upgrade includes a HAL version upgrade, and if the change in HAL version adds support
+//    for a new key type, the additional `--upgraded_from <prev_AIDL-version>` option should be
+//    specified.
 
 #define LOG_TAG "keymint_1_test"
 #include <cutils/log.h>
@@ -77,15 +81,24 @@ namespace {
 // Names for individual key types to create and use.  Note that some the names
 // induce specific behaviour, as indicated by the functions below.
 
+// Current TEE KeyMint supports all algorithms.
 std::vector<std::string> keyblob_names_tee = {
+        "aes-key",         "aes-key-rr",         "des-key",         "hmac-key",  "rsa-key",
+        "p256-key",        "ed25519-key",        "x25519-key",      "mldsa-key", "rsa-attest-key",
+        "p256-attest-key", "ed25519-attest-key", "mldsa-attest-key"};
+
+// TEE KeyMint before < v5 does not support ML-DSA.
+std::vector<std::string> keyblob_names_tee_no_mldsa = {
         "aes-key",        "aes-key-rr",      "des-key",           "hmac-key",
         "rsa-key",        "p256-key",        "ed25519-key",       "x25519-key",
         "rsa-attest-key", "p256-attest-key", "ed25519-attest-key"};
 
+// TEE KeyMint before < v2 supports neither ML-DSA nor curve 25519.
 std::vector<std::string> keyblob_names_tee_no_25519 = {
         "aes-key", "aes-key-rr", "des-key",        "hmac-key",
         "rsa-key", "p256-key",   "rsa-attest-key", "p256-attest-key"};
 
+/// StrongBox KeyMint (any version) supports neither ML-DSA nor curve 25519.
 std::vector<std::string> keyblob_names_sb = {"aes-key",        "aes-key-rr",     "des-key",
                                              "hmac-key",       "rsa-key",        "p256-key",
                                              "rsa-attest-key", "p256-attest-key"};
@@ -101,7 +114,7 @@ bool requires_rr(const std::string& name) {
 
 bool is_asymmetric(const std::string& name) {
     return (name.find("rsa") != std::string::npos || name.find("25519") != std::string::npos ||
-            name.find("p256") != std::string::npos);
+            name.find("p256") != std::string::npos || name.find("mldsa") != std::string::npos);
 }
 
 std::string keyblob_subdir(const std::string& keyblob_dir, const std::string& full_name,
@@ -201,14 +214,28 @@ std::vector<uint8_t> load_cert(const std::string& subdir, const std::string& nam
 
 class KeyBlobUpgradeTest : public KeyMintAidlTestBase {
   protected:
-    const std::vector<std::string>& keyblob_names() {
+    const std::vector<std::string>& keyblob_names() { return keyblob_names(AidlVersion()); }
+
+    const std::vector<std::string>& keyblob_names(int aidl_version) {
         if (SecLevel() == SecurityLevel::STRONGBOX) {
             return keyblob_names_sb;
-        } else if (!Curve25519Supported()) {
+        } else if (!Curve25519Supported(SecLevel(), aidl_version)) {
+            // TEE KeyMint v1 does not support curve 25519 (nor ML-DSA).
             return keyblob_names_tee_no_25519;
+        } else if (!MlDsaSupported(SecLevel(), aidl_version)) {
+            // TEE KeyMint v2-v4 does not support ML-DSA
+            return keyblob_names_tee_no_mldsa;
         } else {
             return keyblob_names_tee;
         }
+    }
+
+    // Return the AIDL version associated with the pre-upgrade keyblobs.
+    int32_t previous_aidl_version() {
+        if (upgraded_from_version != 0) {
+            return upgraded_from_version;
+        }
+        return AidlVersion();
     }
 
     void UpgradeKeyBlobs(bool expectUpgrade) {
@@ -217,7 +244,7 @@ class KeyBlobUpgradeTest : public KeyMintAidlTestBase {
             GTEST_SKIP() << "No keyblob directory provided";
         }
 
-        for (std::string name : keyblob_names()) {
+        for (std::string name : keyblob_names(previous_aidl_version())) {
             if (requires_attest_key(name) && shouldSkipAttestKeyTest()) {
                 std::cerr << "Skipping variant '" << name
                           << "' which requires ATTEST_KEY support that has been waivered\n";
@@ -368,7 +395,25 @@ TEST_P(KeyBlobUpgradeTest, CreateKeyBlobsBefore) {
                             .AttestKey()
                             .Authorization(TAG_NO_AUTH_REQUIRED)
                             .SetDefaultValidity(),
-            }};
+            },
+            {
+                    "mldsa-key",
+                    AuthorizationSetBuilder()
+                            .MlDsaSigningKey(MlDsaVariant::ML_DSA_65)
+                            .Digest(Digest::NONE)
+                            .Authorization(TAG_NO_AUTH_REQUIRED)
+                            .SetDefaultValidity(),
+            },
+            {
+                    "mldsa-attest-key",
+                    AuthorizationSetBuilder()
+                            .MlDsaKey(MlDsaVariant::ML_DSA_65)
+                            .Authorization(TAG_PURPOSE, KeyPurpose::ATTEST_KEY)
+                            .Digest(Digest::NONE)
+                            .Authorization(TAG_NO_AUTH_REQUIRED)
+                            .SetDefaultValidity(),
+            },
+    };
 
     for (std::string name : keyblob_names()) {
         if (requires_attest_key(name) && shouldSkipAttestKeyTest()) {
@@ -458,7 +503,7 @@ TEST_P(KeyBlobUpgradeTest, UseKeyBlobsBeforeOrAfter) {
                         "/data/local/tmp/keymint-blobs";
     }
 
-    for (std::string name : keyblob_names()) {
+    for (std::string name : keyblob_names(previous_aidl_version())) {
         if (requires_attest_key(name) && shouldSkipAttestKeyTest()) {
             std::cerr << "Skipping variant '" << name
                       << "' which requires ATTEST_KEY support that has been waivered\n";
@@ -520,6 +565,10 @@ TEST_P(KeyBlobUpgradeTest, UseKeyBlobsBeforeOrAfter) {
                 builder.Digest(Digest::NONE);
                 string signature = SignMessage(keyblob, message, builder);
                 LocalVerifyMessage(cert, message, signature, builder);
+            } else if (name.find("mldsa-key") != std::string::npos) {
+                builder.Digest(Digest::NONE);
+                string signature = SignMessage(keyblob, message, builder);
+                LocalVerifyMessage(cert, message, signature, builder);
             } else if (name.find("x25519-key") != std::string::npos) {
                 // Generate EC key on same curve locally (with access to private key material).
                 uint8_t localPrivKeyData[32];
@@ -564,7 +613,7 @@ TEST_P(KeyBlobUpgradeTest, UseKeyBlobsBeforeOrAfter) {
                 // Both ways round should agree.
                 EXPECT_EQ(keymint_data, local_data);
             } else if (requires_attest_key(name)) {
-                // Covers rsa-attest-key, p256-attest-key, ed25519-attest-key.
+                // Covers rsa-attest-key, p256-attest-key, ed25519-attest-key, mldsa-attest-key.
 
                 // Use attestation key to sign RSA signing key
                 AttestationKey attest_key;
@@ -600,7 +649,7 @@ TEST_P(KeyBlobUpgradeTest, DeleteRRKeyBlobsAfter) {
                         "/data/local/tmp/keymint-blobs";
     }
 
-    for (std::string name : keyblob_names()) {
+    for (std::string name : keyblob_names(previous_aidl_version())) {
         for (bool with_hidden : {false, true}) {
             auto builder = AuthorizationSetBuilder();
             if (with_hidden) {

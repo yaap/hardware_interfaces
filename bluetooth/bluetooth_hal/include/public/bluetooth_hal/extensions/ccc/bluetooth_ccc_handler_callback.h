@@ -18,65 +18,54 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "bluetooth_hal/bluetooth_address.h"
 #include "bluetooth_hal/extensions/ccc/bluetooth_ccc_util.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 class BluetoothCccHandlerCallback {
- public:
-  BluetoothCccHandlerCallback(
-      const ::bluetooth_hal::hci::BluetoothAddress& address,
-      const std::vector<CccLmpEventId>& lmp_event_ids)
-      : address_(address),
-        address_type_(AddressType::kRandom),
-        lmp_event_ids_(lmp_event_ids) {};
-  BluetoothCccHandlerCallback(
-      const ::bluetooth_hal::hci::BluetoothAddress& address,
-      const AddressType address_type,
-      const std::vector<CccLmpEventId>& lmp_event_ids)
-      : address_(address),
-        address_type_(address_type),
-        lmp_event_ids_(lmp_event_ids) {};
-  virtual ~BluetoothCccHandlerCallback() = default;
-  virtual void OnEventGenerated(
-      const CccTimestamp& timestamp,
-      const ::bluetooth_hal::hci::BluetoothAddress& address,
-      CccDirection direction, CccLmpEventId lmp_event_id,
-      uint8_t event_counter) = 0;
+  public:
+    BluetoothCccHandlerCallback(::bluetooth_hal::hci::BluetoothAddress address,
+                                std::vector<CccLmpEventId> lmp_event_ids)
+        : address_(std::move(address)),
+          address_type_(AddressType::kRandom),
+          lmp_event_ids_(std::move(lmp_event_ids)) {};
+    BluetoothCccHandlerCallback(::bluetooth_hal::hci::BluetoothAddress address,
+                                AddressType address_type, std::vector<CccLmpEventId> lmp_event_ids)
+        : address_(std::move(address)),
+          address_type_(address_type),
+          lmp_event_ids_(std::move(lmp_event_ids)) {};
+    virtual ~BluetoothCccHandlerCallback() = default;
+    virtual void OnEventGenerated(const CccTimestamp& timestamp,
+                                  const ::bluetooth_hal::hci::BluetoothAddress& address,
+                                  CccDirection direction, CccLmpEventId lmp_event_id,
+                                  uint16_t event_counter) = 0;
 
-  virtual void OnRegistered(bool status) = 0;
+    virtual void OnRegistered(bool status) = 0;
 
-  bool ContainsEventId(CccLmpEventId lmp_event_id) const {
-    return std::find(lmp_event_ids_.begin(), lmp_event_ids_.end(),
-                     lmp_event_id) != lmp_event_ids_.end();
-  }
+    bool ContainsEventId(CccLmpEventId lmp_event_id) const {
+        return std::find(lmp_event_ids_.begin(), lmp_event_ids_.end(), lmp_event_id) !=
+               lmp_event_ids_.end();
+    }
 
-  bool IsAddressEqual(const ::bluetooth_hal::hci::BluetoothAddress& address,
-                      const AddressType address_type) const {
-    return ((address_ == address) && (address_type_ == address_type));
-  }
+    bool IsAddressEqual(const ::bluetooth_hal::hci::BluetoothAddress& address,
+                        const AddressType address_type) const {
+        return ((address_ == address) && (address_type_ == address_type));
+    }
 
-  const ::bluetooth_hal::hci::BluetoothAddress& GetAddress() const {
-    return address_;
-  }
+    const ::bluetooth_hal::hci::BluetoothAddress& GetAddress() const { return address_; }
 
-  AddressType GetAddressType() const { return address_type_; }
+    AddressType GetAddressType() const { return address_type_; }
 
-  const std::vector<CccLmpEventId>& GetLmpEventIds() const {
-    return lmp_event_ids_;
-  }
+    const std::vector<CccLmpEventId>& GetLmpEventIds() const { return lmp_event_ids_; }
 
- private:
-  const ::bluetooth_hal::hci::BluetoothAddress address_;
-  const AddressType address_type_;
-  const std::vector<CccLmpEventId> lmp_event_ids_;
+  private:
+    const ::bluetooth_hal::hci::BluetoothAddress address_;
+    const AddressType address_type_;
+    const std::vector<CccLmpEventId> lmp_event_ids_;
 };
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

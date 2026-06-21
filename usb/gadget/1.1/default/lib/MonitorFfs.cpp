@@ -121,10 +121,15 @@ void* MonitorFfs::startMonitorFd(void* param) {
     }
 
     while (!stopMonitor) {
-        int nrEvents = epoll_wait(monitorFfs->mEpollFd, events, kEpollEvents, -1);
+        int nrEvents =
+                TEMP_FAILURE_RETRY(epoll_wait(monitorFfs->mEpollFd, events, kEpollEvents, -1));
 
-        if (nrEvents <= 0) {
-            ALOGE("epoll wait did not return descriptor number");
+        if (nrEvents < 0) {
+            ALOGE("epoll wait did not return descriptor number. errno=%d", errno);
+            continue;
+        }
+
+        if (nrEvents == 0) {
             continue;
         }
 

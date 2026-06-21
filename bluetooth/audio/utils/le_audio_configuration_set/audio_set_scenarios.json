@@ -144,6 +144,8 @@
         "One-TwoChan-SnkAse-Lc3_48_1_Low_Latency",
         "Two-OneChan-SnkAse-Lc3_32_2-Two-OneChan-SrcAse-Lc3_32_2_1",
         "Two-OneChan-SnkAse-Lc3_32_2-Two-OneChan-SrcAse-Lc3_32_2_Low_Latency",
+        "Two-OneChan-SnkAse-Lc3_24_2-Two-OneChan-SrcAse-Lc3_24_2_Low_Latency",
+        "Two-OneChan-SnkAse-Lc3_24_1-Two-OneChan-SrcAse-Lc3_24_1_Low_Latency",
         "Two-OneChan-SnkAse-Lc3_16_2-Two-OneChan-SrcAse-Lc3_16_2_Low_Latency",
         "Two-OneChan-SnkAse-Lc3_16_1-Two-OneChan-SrcAse-Lc3_16_1_Low_Latency",
         "Two-TwoChan-SnkAse-Lc3_48_2-Two-TwoChan-SrcAse-Lc3_48_2_Low_Latency",

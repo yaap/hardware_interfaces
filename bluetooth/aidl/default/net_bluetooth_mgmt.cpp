@@ -25,9 +25,11 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <thread>
 
 // Definitions imported from <linux/net/bluetooth/bluetooth.h>
 #define BTPROTO_HCI 1
@@ -38,9 +40,9 @@
 #define HCI_DEV_NONE 0xffff
 
 struct sockaddr_hci {
-  sa_family_t hci_family;
-  unsigned short hci_dev;
-  unsigned short hci_channel;
+    sa_family_t hci_family;
+    unsigned short hci_dev;
+    unsigned short hci_channel;
 };
 
 // Definitions imported from <linux/net/bluetooth/mgmt.h>
@@ -51,17 +53,17 @@ struct sockaddr_hci {
 #define MGMT_INDEX_NONE 0xFFFF
 
 struct mgmt_pkt {
-  uint16_t opcode;
-  uint16_t index;
-  uint16_t len;
-  uint8_t data[MGMT_PKT_SIZE_MAX];
+    uint16_t opcode;
+    uint16_t index;
+    uint16_t len;
+    uint8_t data[MGMT_PKT_SIZE_MAX];
 } __attribute__((packed));
 
 struct mgmt_ev_read_index_list {
-  uint16_t opcode;
-  uint8_t status;
-  uint16_t num_controllers;
-  uint16_t index[];
+    uint16_t opcode;
+    uint8_t status;
+    uint16_t num_controllers;
+    uint16_t index[];
 } __attribute__((packed));
 
 // Definitions imported from <linux/rfkill.h>
@@ -75,11 +77,11 @@ struct mgmt_ev_read_index_list {
 #define RFKILL_OP_CHANGE 2
 
 struct rfkill_event {
-  uint32_t idx;
-  uint8_t type;
-  uint8_t op;
-  uint8_t soft;
-  uint8_t hard;
+    uint32_t idx;
+    uint8_t type;
+    uint8_t op;
+    uint8_t soft;
+    uint8_t hard;
 } __attribute__((packed));
 
 namespace aidl::android::hardware::bluetooth::impl {
@@ -87,221 +89,214 @@ namespace aidl::android::hardware::bluetooth::impl {
 // Wait indefinitely for the selected HCI interface to be enabled in the
 // bluetooth driver.
 int NetBluetoothMgmt::waitHciDev(int hci_interface) {
-  ALOGI("waiting for hci interface %d", hci_interface);
+    ALOGI("waiting for hci interface %d", hci_interface);
 
-  int ret = -1;
-  struct mgmt_pkt cmd;
-  struct pollfd pollfd;
-  struct sockaddr_hci hci_addr = {
-      .hci_family = AF_BLUETOOTH,
-      .hci_dev = HCI_DEV_NONE,
-      .hci_channel = HCI_CHANNEL_CONTROL,
-  };
+    int ret = -1;
+    struct mgmt_pkt cmd;
+    struct pollfd pollfd;
+    struct sockaddr_hci hci_addr = {
+            .hci_family = AF_BLUETOOTH,
+            .hci_dev = HCI_DEV_NONE,
+            .hci_channel = HCI_CHANNEL_CONTROL,
+    };
 
-  // Open and bind a socket to the bluetooth control interface in the
-  // kernel driver, used to send control commands and receive control
-  // events.
-  int fd = socket(PF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
-  if (fd < 0) {
-    ALOGE("unable to open raw bluetooth socket: %s", strerror(errno));
-    return -1;
-  }
-
-  if (bind(fd, (struct sockaddr*)&hci_addr, sizeof(hci_addr)) < 0) {
-    ALOGE("unable to bind bluetooth control channel: %s", strerror(errno));
-    goto end;
-  }
-
-  // Send the control command [Read Index List].
-  cmd = {
-      .opcode = MGMT_OP_READ_INDEX_LIST,
-      .index = MGMT_INDEX_NONE,
-      .len = 0,
-  };
-
-  if (write(fd, &cmd, 6) != 6) {
-    ALOGE("error writing mgmt command: %s", strerror(errno));
-    goto end;
-  }
-
-  // Poll the control socket waiting for the command response,
-  // and subsequent [Index Added] events. The loops continue without
-  // timeout until the selected hci interface is detected.
-  pollfd = {.fd = fd, .events = POLLIN};
-
-  for (;;) {
-    ret = poll(&pollfd, 1, -1);
-
-    // Poll interrupted, try again.
-    if (ret == -1 && (errno == EINTR || errno == EAGAIN)) {
-      continue;
+    // Open and bind a socket to the bluetooth control interface in the
+    // kernel driver, used to send control commands and receive control
+    // events.
+    int fd = socket(PF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+    if (fd < 0) {
+        ALOGE("unable to open raw bluetooth socket: %s", strerror(errno));
+        return -1;
     }
 
-    // Poll failure, abandon.
-    if (ret == -1) {
-      ALOGE("poll error: %s", strerror(errno));
-      break;
+    if (bind(fd, (struct sockaddr*)&hci_addr, sizeof(hci_addr)) < 0) {
+        ALOGE("unable to bind bluetooth control channel: %s", strerror(errno));
+        goto end;
     }
 
-    // Spurious wakeup, try again.
-    if (ret == 0 || (pollfd.revents & POLLIN) == 0) {
-      continue;
-    }
+    // Send the control command [Read Index List].
+    cmd = {
+            .opcode = MGMT_OP_READ_INDEX_LIST,
+            .index = MGMT_INDEX_NONE,
+            .len = 0,
+    };
 
-    // Read the next control event.
-    struct mgmt_pkt ev {};
-    ret = read(fd, &ev, sizeof(ev));
-    if (ret < 0) {
-      ALOGE("error reading mgmt event: %s", strerror(errno));
-      goto end;
-    }
-
-    // Received [Read Index List] command response.
-    if (ev.opcode == MGMT_EV_CMD_COMPLETE) {
-      struct mgmt_ev_read_index_list* data =
-          (struct mgmt_ev_read_index_list*)ev.data;
-
-      // Prefer the exact hci_interface
-      for (int i = 0; i < data->num_controllers; i++) {
-        if (data->index[i] == hci_interface) {
-          ALOGI("hci interface %d found", data->index[i]);
-          ret = data->index[i];
-          goto end;
+    for (;;) {
+        if (write(fd, &cmd, 6) != 6) {
+            ALOGE("error writing mgmt command: %s", strerror(errno));
+            goto end;
         }
-      }
 
-      // Accept a larger one if we can't find the exact one
-      for (int i = 0; i < data->num_controllers; i++) {
-        if (data->index[i] >= hci_interface) {
-          ALOGI("hci interface %d found", data->index[i]);
-          ret = data->index[i];
-          goto end;
+        // Poll the control socket waiting for the command response,
+        // and subsequent [Index Added] events.
+        do {
+            pollfd = {.fd = fd, .events = POLLIN};
+            ret = poll(&pollfd, 1, 500);
+        } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+
+        // Poll failure, abandon.
+        if (ret == -1) {
+            ALOGE("poll error: %s", strerror(errno));
+            break;
         }
-      }
-    }
 
-    // Received [Index Added] event.
-    if (ev.opcode == MGMT_EV_INDEX_ADDED && ev.index == hci_interface) {
-      ALOGI("hci interface %d added", hci_interface);
-      ret = hci_interface;
-      goto end;
+        // Spurious wakeup, try again.
+        if (ret == 0 || (pollfd.revents & POLLIN) == 0) {
+            continue;
+        }
+
+        // Read the next control event.
+        struct mgmt_pkt ev{};
+        ret = read(fd, &ev, sizeof(ev));
+        if (ret < 0) {
+            ALOGE("error reading mgmt event: %s", strerror(errno));
+            goto end;
+        }
+
+        if (ev.opcode == MGMT_EV_CMD_COMPLETE) {
+            // Received [Read Index List] command response.
+            struct mgmt_ev_read_index_list* data = (struct mgmt_ev_read_index_list*)ev.data;
+
+            // Prefer the exact hci_interface
+            for (int i = 0; i < data->num_controllers; i++) {
+                if (data->index[i] == hci_interface) {
+                    ALOGI("hci interface %d found", data->index[i]);
+                    ret = data->index[i];
+                    goto end;
+                }
+            }
+
+            // Accept a larger one if we can't find the exact one
+            for (int i = 0; i < data->num_controllers; i++) {
+                if (data->index[i] >= hci_interface) {
+                    ALOGI("hci interface %d found", data->index[i]);
+                    ret = data->index[i];
+                    goto end;
+                }
+            }
+        }
+
+        else if (ev.opcode == MGMT_EV_INDEX_ADDED && ev.index == hci_interface) {
+            // Received [Index Added] event.
+            ALOGI("hci interface %d added", hci_interface);
+            ret = hci_interface;
+            goto end;
+        }
     }
-  }
 
 end:
-  ::close(fd);
-  return ret;
+    ::close(fd);
+    return ret;
 }
 
 int NetBluetoothMgmt::openRfkill() {
-  int fd = open("/dev/rfkill", O_RDWR);
-  if (fd < 0) {
-    ALOGE("unable to open /dev/rfkill: %s", strerror(errno));
-    return -1;
-  }
+    int fd = open("/dev/rfkill", O_RDWR);
+    if (fd < 0) {
+        ALOGE("unable to open /dev/rfkill: %s", strerror(errno));
+        return -1;
+    }
 
-  if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
-    ALOGE("unable to set rfkill control device to non-blocking: %s",
-          strerror(errno));
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
+        ALOGE("unable to set rfkill control device to non-blocking: %s", strerror(errno));
+        ::close(fd);
+        return -1;
+    }
+
+    for (;;) {
+        struct rfkill_event event{};
+        ssize_t res = read(fd, &event, sizeof(event));
+        if (res < 0) {
+            ALOGE("error reading rfkill events: %s", strerror(errno));
+            break;
+        }
+
+        ALOGI("index:%d type:%d op:%d", event.idx, event.type, event.op);
+
+        if (event.op == RFKILL_OP_ADD && event.type == RFKILL_TYPE_BLUETOOTH) {
+            rfkill_bt_index_ = event.idx;
+            rfkill_fd_ = fd;
+            return 0;
+        }
+    }
+
     ::close(fd);
     return -1;
-  }
-
-  for (;;) {
-    struct rfkill_event event {};
-    ssize_t res = read(fd, &event, sizeof(event));
-    if (res < 0) {
-      ALOGE("error reading rfkill events: %s", strerror(errno));
-      break;
-    }
-
-    ALOGI("index:%d type:%d op:%d", event.idx, event.type, event.op);
-
-    if (event.op == RFKILL_OP_ADD && event.type == RFKILL_TYPE_BLUETOOTH) {
-      rfkill_bt_index_ = event.idx;
-      rfkill_fd_ = fd;
-      return 0;
-    }
-  }
-
-  ::close(fd);
-  return -1;
 }
 
 // Block or unblock Bluetooth.
 int NetBluetoothMgmt::rfkill(int block) {
-  if (rfkill_fd_ == -1) {
-    openRfkill();
-  }
+    if (rfkill_fd_ == -1) {
+        openRfkill();
+    }
 
-  if (rfkill_fd_ == -1) {
-    ALOGE("rfkill unavailable");
-    return -1;
-  }
+    if (rfkill_fd_ == -1) {
+        ALOGE("rfkill unavailable");
+        return -1;
+    }
 
-  struct rfkill_event event = {
-      .idx = static_cast<uint32_t>(rfkill_bt_index_),
-      .type = RFKILL_TYPE_BLUETOOTH,
-      .op = RFKILL_OP_CHANGE,
-      .soft = static_cast<uint8_t>(block),
-      .hard = 0,
-  };
+    struct rfkill_event event = {
+            .idx = static_cast<uint32_t>(rfkill_bt_index_),
+            .type = RFKILL_TYPE_BLUETOOTH,
+            .op = RFKILL_OP_CHANGE,
+            .soft = static_cast<uint8_t>(block),
+            .hard = 0,
+    };
 
-  int res = write(rfkill_fd_, &event, sizeof(event));
-  if (res < 0) {
-    ALOGE("error writing rfkill command: %s", strerror(errno));
-    return -1;
-  }
+    int res = write(rfkill_fd_, &event, sizeof(event));
+    if (res < 0) {
+        ALOGE("error writing rfkill command: %s", strerror(errno));
+        return -1;
+    }
 
-  return 0;
+    return 0;
 }
 
 int NetBluetoothMgmt::openHci(int hci_interface) {
-  ALOGI("opening hci interface %d", hci_interface);
+    ALOGI("opening hci interface %d", hci_interface);
 
-  // Unblock Bluetooth.
-  rfkill(0);
+    // Unblock Bluetooth.
+    rfkill(0);
 
-  // Wait for the HCI interface to complete initialization or to come online.
-  int hci = waitHciDev(hci_interface);
-  if (hci < 0) {
-    ALOGE("hci interface %d not found", hci_interface);
-    return -1;
-  }
+    // Wait for the HCI interface to complete initialization or to come online.
+    int hci = waitHciDev(hci_interface);
+    if (hci < 0) {
+        ALOGE("hci interface %d not found", hci_interface);
+        return -1;
+    }
 
-  // Open the raw HCI socket.
-  int fd = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
-  if (fd < 0) {
-    ALOGE("unable to open raw bluetooth socket: %s", strerror(errno));
-    return -1;
-  }
+    // Open the raw HCI socket.
+    int fd = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+    if (fd < 0) {
+        ALOGE("unable to open raw bluetooth socket: %s", strerror(errno));
+        return -1;
+    }
 
-  struct sockaddr_hci hci_addr = {
-      .hci_family = AF_BLUETOOTH,
-      .hci_dev = static_cast<uint16_t>(hci),
-      .hci_channel = HCI_CHANNEL_USER,
-  };
+    struct sockaddr_hci hci_addr = {
+            .hci_family = AF_BLUETOOTH,
+            .hci_dev = static_cast<uint16_t>(hci),
+            .hci_channel = HCI_CHANNEL_USER,
+    };
 
-  // Bind the socket to the selected interface.
-  if (bind(fd, (struct sockaddr*)&hci_addr, sizeof(hci_addr)) < 0) {
-    ALOGE("unable to bind bluetooth user channel: %s", strerror(errno));
-    ::close(fd);
-    return -1;
-  }
+    // Bind the socket to the selected interface.
+    if (bind(fd, (struct sockaddr*)&hci_addr, sizeof(hci_addr)) < 0) {
+        ALOGE("unable to bind bluetooth user channel: %s", strerror(errno));
+        ::close(fd);
+        return -1;
+    }
 
-  ALOGI("hci interface %d ready", hci);
-  bt_fd_ = fd;
-  return fd;
+    ALOGI("hci interface %d ready", hci);
+    bt_fd_ = fd;
+    return fd;
 }
 
 void NetBluetoothMgmt::closeHci() {
-  if (bt_fd_ != -1) {
-    ::close(bt_fd_);
-    bt_fd_ = -1;
-  }
+    if (bt_fd_ != -1) {
+        ::close(bt_fd_);
+        bt_fd_ = -1;
+    }
 
-  // Block Bluetooth.
-  rfkill(1);
+    // Block Bluetooth.
+    rfkill(1);
 }
 
 }  // namespace aidl::android::hardware::bluetooth::impl

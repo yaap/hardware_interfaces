@@ -27,15 +27,16 @@
 #include <thread>
 
 #include "android-base/logging.h"
+#include "android-base/stringprintf.h"
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/config/hal_config_loader.h"
 #include "bluetooth_hal/debug/debug_central.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace transport {
+namespace bluetooth_hal::transport {
 namespace {
 
+using ::android::base::StringPrintf;
 using ::android::base::unique_fd;
 using ::bluetooth_hal::bqr::BqrErrorCode;
 using ::bluetooth_hal::config::HalConfigLoader;
@@ -46,48 +47,45 @@ using ::bluetooth_hal::util::SystemCallWrapper;
 constexpr std::chrono::milliseconds kLpmWakeupSettlementMs{10};
 
 std::string GetRfkillStatePath() {
-  std::string state_path;
-  constexpr int kMaxRfkillNodes = 256;
+    std::string state_path;
+    constexpr int kMaxRfkillNodes = 256;
 
-  for (int i = 0; i < kMaxRfkillNodes; ++i) {
-    const std::string type_path =
-        HalConfigLoader::GetLoader().GetRfkillFolderPrefix() +
-        std::to_string(i) + "/type";
-    unique_fd fd(
-        SystemCallWrapper::GetWrapper().Open(type_path.c_str(), O_RDONLY));
+    for (int i = 0; i < kMaxRfkillNodes; ++i) {
+        const std::string type_path = StringPrintf(
+                "%s%d/type", HalConfigLoader::GetLoader().GetRfkillFolderPrefix().c_str(), i);
+        unique_fd fd(SystemCallWrapper::GetWrapper().Open(type_path.c_str(), O_RDONLY));
 
-    if (!fd.ok()) {
-      LOG(INFO) << __func__ << ": Open(" << type_path
-                << "): " << strerror(errno) << " (" << errno << ").";
-      break;
+        if (!fd.ok()) {
+            LOG(INFO) << __func__ << ": Open(" << type_path << "): " << strerror(errno) << " ("
+                      << errno << ").";
+            break;
+        }
+
+        std::array<char, 16> buffer{};
+        const ssize_t length = TEMP_FAILURE_RETRY(
+                SystemCallWrapper::GetWrapper().Read(fd.get(), buffer.data(), buffer.size() - 1));
+
+        if (length < 1) {
+            continue;
+        }
+
+        if (buffer[length - 1] == '\n') {
+            buffer[length - 1] = '\0';
+        }
+
+        LOG(DEBUG) << __func__ << ": rfkill candidate " << type_path << " is [" << buffer.data()
+                   << "].";
+
+        if ((std::string_view(buffer.data()) ==
+             HalConfigLoader::GetLoader().GetRfkillTypeBluetooth())) {
+            state_path = StringPrintf(
+                    "%s%d/state", HalConfigLoader::GetLoader().GetRfkillFolderPrefix().c_str(), i);
+            LOG(INFO) << __func__ << ": Use rfkill " << state_path << ".";
+            break;
+        }
     }
 
-    std::array<char, 16> buffer{};
-    const ssize_t length =
-        TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Read(
-            fd.get(), buffer.data(), buffer.size() - 1));
-
-    if (length < 1) {
-      continue;
-    }
-
-    if (buffer[length - 1] == '\n') {
-      buffer[length - 1] = '\0';
-    }
-
-    LOG(DEBUG) << __func__ << ": rfkill candidate " << type_path << " is ["
-               << buffer.data() << "].";
-
-    if ((std::string_view(buffer.data()) ==
-         HalConfigLoader::GetLoader().GetRfkillTypeBluetooth())) {
-      state_path = HalConfigLoader::GetLoader().GetRfkillFolderPrefix() +
-                   std::to_string(i) + "/state";
-      LOG(INFO) << __func__ << ": Use rfkill " << state_path << ".";
-      break;
-    }
-  }
-
-  return state_path;
+    return state_path;
 }
 
 }  // namespace
@@ -95,196 +93,186 @@ std::string GetRfkillStatePath() {
 // TODO: b/421766932 - Add battery level query.
 
 bool PowerManager::PowerControl(bool is_enabled) {
-  SCOPED_ANCHOR(AnchorType::kPowerControl, __func__);
+    SCOPED_ANCHOR(AnchorType::kPowerControl, __func__);
 
-  const std::string state_path = GetRfkillStatePath();
-  if (state_path.empty()) {
-    LOG(INFO) << __func__
-              << ": Power sequence is not controlled by Bluetooth HAL.";
+    const std::string state_path = GetRfkillStatePath();
+    if (state_path.empty()) {
+        LOG(INFO) << __func__ << ": Power sequence is not controlled by Bluetooth HAL.";
+        return true;
+    }
+
+    unique_fd fd(SystemCallWrapper::GetWrapper().Open(state_path.c_str(), O_WRONLY));
+    if (!fd.ok()) {
+        LOG(ERROR) << __func__ << ": Unable to open rfkill state {" << state_path
+                   << "}: " << strerror(errno) << " (" << errno << ")";
+#ifndef UNIT_TEST
+        DebugCentral::Get().ReportBqrError(BqrErrorCode::kHostPowerUpController,
+                                           "Unable to open rfkill state");
+#endif
+        return false;
+    }
+
+    ANCHOR_LOG_INFO(AnchorType::kLowPowerMode)
+            << __func__ << ": " << (is_enabled ? "Enabling" : "Disabling")
+            << ", state_path: " << state_path;
+
+    char power = is_enabled ? '1' : '0';
+    const ssize_t length = SystemCallWrapper::GetWrapper().Write(fd.get(), &power, sizeof(power));
+
+    if (length < 1) {
+        LOG(ERROR) << __func__ << ": Failed to change rfkill state: " << strerror(errno) << " ("
+                   << errno << ")";
+#ifndef UNIT_TEST
+        DebugCentral::Get().ReportBqrError(BqrErrorCode::kHostPowerUpController,
+                                           "Cannot write power control data");
+#endif
+        return false;
+    }
+
     return true;
-  }
-
-  unique_fd fd(
-      SystemCallWrapper::GetWrapper().Open(state_path.c_str(), O_WRONLY));
-  if (!fd.ok()) {
-    LOG(ERROR) << __func__ << ": Unable to open rfkill state {" << state_path
-               << "}: " << strerror(errno) << " (" << errno << ")";
-#ifndef UNIT_TEST
-    DebugCentral::Get().ReportBqrError(BqrErrorCode::kHostPowerUpController,
-                                       "Unable to open rfkill state");
-#endif
-    return false;
-  }
-
-  ANCHOR_LOG_INFO(AnchorType::kLowPowerMode)
-      << __func__ << ": " << (is_enabled ? "Enabling" : "Disabling")
-      << ", state_path: " << state_path;
-
-  char power = is_enabled ? '1' : '0';
-  const ssize_t length =
-      SystemCallWrapper::GetWrapper().Write(fd.get(), &power, sizeof(power));
-
-  if (length < 1) {
-    LOG(ERROR) << __func__
-               << ": Failed to change rfkill state: " << strerror(errno) << " ("
-               << errno << ")";
-#ifndef UNIT_TEST
-    DebugCentral::Get().ReportBqrError(BqrErrorCode::kHostPowerUpController,
-                                       "Cannot write power control data");
-#endif
-    return false;
-  }
-
-  return true;
 }
 
 bool PowerManager::SetupLowPowerMode() {
-  HAL_LOG(INFO) << __func__ << ": LPM enabling";
+    HAL_LOG(INFO) << __func__ << ": LPM enabling";
 
-  lpm_fd_.reset(SystemCallWrapper::GetWrapper().Open(
-      HalConfigLoader::GetLoader().GetLpmWakingProcNode().c_str(), O_WRONLY));
-  if (!lpm_fd_.ok()) {
-    HAL_LOG(WARNING) << __func__ << ": Unable to open LPM control port ("
-                     << HalConfigLoader::GetLoader().GetLpmWakingProcNode()
+    lpm_fd_.reset(SystemCallWrapper::GetWrapper().Open(
+            HalConfigLoader::GetLoader().GetLpmWakingProcNode().c_str(), O_WRONLY));
+    if (!lpm_fd_.ok()) {
+        HAL_LOG(WARNING) << __func__ << ": Unable to open LPM control port ("
+                         << HalConfigLoader::GetLoader().GetLpmWakingProcNode()
+                         << "): " << strerror(errno) << " (" << errno << ").";
+        return false;
+    }
+
+    // Enable Host LPM.
+    unique_fd enable_fd(SystemCallWrapper::GetWrapper().Open(
+            HalConfigLoader::GetLoader().GetLpmEnableProcNode().c_str(), O_WRONLY));
+    if (!enable_fd.ok()) {
+        HAL_LOG(WARNING) << __func__ << ": Unable to open LPM driver, " << strerror(errno) << "("
+                         << errno << ")";
+        return false;
+    }
+
+    constexpr char enable_cmd = '1';
+    ssize_t length = TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
+            enable_fd.get(), &enable_cmd, sizeof(enable_cmd)));
+    if (length < 1) {
+        LOG(WARNING) << __func__ << ": Unable to enable LPM driver ("
+                     << HalConfigLoader::GetLoader().GetLpmEnableProcNode()
                      << "): " << strerror(errno) << " (" << errno << ").";
-    return false;
-  }
+        TeardownLowPowerMode();
+        return false;
+    }
 
-  // Enable Host LPM.
-  unique_fd enable_fd(SystemCallWrapper::GetWrapper().Open(
-      HalConfigLoader::GetLoader().GetLpmEnableProcNode().c_str(), O_WRONLY));
-  if (!enable_fd.ok()) {
-    HAL_LOG(WARNING) << __func__ << ": Unable to open LPM driver, "
-                     << strerror(errno) << "(" << errno << ")";
-    return false;
-  }
+    length = TEMP_FAILURE_RETRY(
+            SystemCallWrapper::GetWrapper().Write(lpm_fd_.get(), &enable_cmd, sizeof(enable_cmd)));
+    if (length < 1) {
+        HAL_LOG(WARNING) << __func__ << ": Unable to wake up LPM:" << strerror(errno) << " ("
+                         << errno << ").";
+        TeardownLowPowerMode();
+        return false;
+    }
 
-  constexpr char enable_cmd = '1';
-  ssize_t length = TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
-      enable_fd.get(), &enable_cmd, sizeof(enable_cmd)));
-  if (length < 1) {
-    LOG(WARNING) << __func__ << ": Unable to enable LPM driver ("
-                 << HalConfigLoader::GetLoader().GetLpmEnableProcNode()
-                 << "): " << strerror(errno) << " (" << errno << ").";
-    TeardownLowPowerMode();
-    return false;
-  }
-
-  length = TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
-      lpm_fd_.get(), &enable_cmd, sizeof(enable_cmd)));
-  if (length < 1) {
-    HAL_LOG(WARNING) << __func__
-                     << ": Unable to wake up LPM:" << strerror(errno) << " ("
-                     << errno << ").";
-    TeardownLowPowerMode();
-    return false;
-  }
-
-  return true;
+    return true;
 }
 
 void PowerManager::TeardownLowPowerMode() {
-  HAL_LOG(INFO) << __func__ << ": LPM disabling.";
+    HAL_LOG(INFO) << __func__ << ": LPM disabling.";
 
-  lpm_fd_.reset();
+    lpm_fd_.reset();
 
-  unique_fd disable_fd(SystemCallWrapper::GetWrapper().Open(
-      HalConfigLoader::GetLoader().GetLpmEnableProcNode().c_str(), O_WRONLY));
-  if (!disable_fd.ok()) {
-    HAL_LOG(WARNING) << __func__ << ": Unable to close LPM driver ("
+    unique_fd disable_fd(SystemCallWrapper::GetWrapper().Open(
+            HalConfigLoader::GetLoader().GetLpmEnableProcNode().c_str(), O_WRONLY));
+    if (!disable_fd.ok()) {
+        HAL_LOG(WARNING) << __func__ << ": Unable to close LPM driver ("
+                         << HalConfigLoader::GetLoader().GetLpmEnableProcNode()
+                         << "): " << strerror(errno) << " (" << errno << ").";
+        return;
+    }
+
+    constexpr char disable_cmd = '0';
+    const ssize_t length = SystemCallWrapper::GetWrapper().Write(disable_fd.get(), &disable_cmd,
+                                                                 sizeof(disable_cmd));
+    if (length < 1) {
+        LOG(WARNING) << __func__ << ": Unable to disable LPM driver ("
                      << HalConfigLoader::GetLoader().GetLpmEnableProcNode()
-                     << "): " << strerror(errno) << " (" << errno << ").";
-    return;
-  }
-
-  constexpr char disable_cmd = '0';
-  const ssize_t length = SystemCallWrapper::GetWrapper().Write(
-      disable_fd.get(), &disable_cmd, sizeof(disable_cmd));
-  if (length < 1) {
-    LOG(WARNING) << __func__ << ": Unable to disable LPM driver ("
-                 << HalConfigLoader::GetLoader().GetLpmEnableProcNode()
-                 << "): " << strerror(errno) << " (" << errno << ")";
-  }
+                     << "): " << strerror(errno) << " (" << errno << ")";
+    }
 }
 
 bool PowerManager::ResumeFromLowPowerMode() {
-  if (!lpm_fd_.ok()) {
-    // LPM is not enabled.
+    if (!lpm_fd_.ok()) {
+        // LPM is not enabled.
+        return true;
+    }
+
+    constexpr char resume_cmd = '1';
+    const ssize_t length = TEMP_FAILURE_RETRY(
+            SystemCallWrapper::GetWrapper().Write(lpm_fd_.get(), &resume_cmd, sizeof(resume_cmd)));
+    if (length < 1) {
+        HAL_LOG(ERROR) << __func__ << ": Unable to wake up LPM:" << strerror(errno) << " (" << errno
+                       << ").";
+        return false;
+    }
+
+    std::this_thread::sleep_for(kLpmWakeupSettlementMs);
+    HAL_LOG(VERBOSE) << __func__ << ": Assert";
     return true;
-  }
-
-  constexpr char resume_cmd = '1';
-  const ssize_t length =
-      TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
-          lpm_fd_.get(), &resume_cmd, sizeof(resume_cmd)));
-  if (length < 1) {
-    HAL_LOG(ERROR) << __func__ << ": Unable to wake up LPM:" << strerror(errno)
-                   << " (" << errno << ").";
-    return false;
-  }
-
-  std::this_thread::sleep_for(kLpmWakeupSettlementMs);
-  HAL_LOG(VERBOSE) << __func__ << ": Assert";
-  return true;
 }
 
 bool PowerManager::SuspendToLowPowerMode() {
-  if (!lpm_fd_.ok()) {
-    // LPM is not enabled.
+    if (!lpm_fd_.ok()) {
+        // LPM is not enabled.
+        return true;
+    }
+
+    constexpr char suspend_cmd = '0';
+    const ssize_t length = TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
+            lpm_fd_.get(), &suspend_cmd, sizeof(suspend_cmd)));
+    if (length < 1) {
+        HAL_LOG(ERROR) << __func__ << ": Unable to suspend LPM:" << strerror(errno) << " (" << errno
+                       << ").";
+        return false;
+    }
+
+    HAL_LOG(VERBOSE) << __func__ << ": Deassert";
     return true;
-  }
-
-  constexpr char suspend_cmd = '0';
-  const ssize_t length =
-      TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
-          lpm_fd_.get(), &suspend_cmd, sizeof(suspend_cmd)));
-  if (length < 1) {
-    HAL_LOG(ERROR) << __func__ << ": Unable to suspend LPM:" << strerror(errno)
-                   << " (" << errno << ").";
-    return false;
-  }
-
-  HAL_LOG(VERBOSE) << __func__ << ": Deassert";
-  return true;
 }
 
-bool PowerManager::IsLowPowerModeSetupCompleted() const { return lpm_fd_.ok(); }
+bool PowerManager::IsLowPowerModeSetupCompleted() const {
+    return lpm_fd_.ok();
+}
 
 bool PowerManager::ConfigRxWakelockTime(int duration) {
-  if (duration == 0) {
+    if (duration == 0) {
+        return true;
+    }
+
+    if (duration < 0) {
+        LOG(WARNING) << __func__ << ": Invalid value: " << duration;
+        return false;
+    }
+
+    LOG(INFO) << __func__ << ": config rx wakelock time: " << duration;
+
+    unique_fd wake_ctrl_fd(SystemCallWrapper::GetWrapper().Open(
+            HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode().c_str(), O_WRONLY));
+    if (!wake_ctrl_fd.ok()) {
+        LOG(WARNING) << __func__ << ": Unable to open Kernel Wakelock control port ("
+                     << HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode()
+                     << "): " << strerror(errno) << " (" << errno << ").";
+        return false;
+    }
+
+    const ssize_t length = TEMP_FAILURE_RETRY(
+            SystemCallWrapper::GetWrapper().Write(wake_ctrl_fd.get(), &duration, sizeof(duration)));
+    if (length < 1) {
+        LOG(ERROR) << __func__ << ": Unable to config kernel wakelock time:" << strerror(errno)
+                   << " (" << errno << ").";
+        return false;
+    }
+
     return true;
-  }
-
-  if (duration < 0) {
-    LOG(WARNING) << __func__ << ": Invalid value: " << duration;
-    return false;
-  }
-
-  LOG(INFO) << __func__ << ": config rx wakelock time: " << duration;
-
-  unique_fd wake_ctrl_fd(SystemCallWrapper::GetWrapper().Open(
-      HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode().c_str(),
-      O_WRONLY));
-  if (!wake_ctrl_fd.ok()) {
-    LOG(WARNING) << __func__
-                 << ": Unable to open Kernel Wakelock control port ("
-                 << HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode()
-                 << "): " << strerror(errno) << " (" << errno << ").";
-    return false;
-  }
-
-  const ssize_t length =
-      TEMP_FAILURE_RETRY(SystemCallWrapper::GetWrapper().Write(
-          wake_ctrl_fd.get(), &duration, sizeof(duration)));
-  if (length < 1) {
-    LOG(ERROR) << __func__
-               << ": Unable to config kernel wakelock time:" << strerror(errno)
-               << " (" << errno << ").";
-    return false;
-  }
-
-  return true;
 }
 
-}  // namespace transport
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::transport

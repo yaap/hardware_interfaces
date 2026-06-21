@@ -31,5 +31,6 @@ cc_test {
     srcs: ["VtsHalMediaOmxV1_0TargetComponentTest.cpp"],
     test_suites: [
         "vts",
+        "dts",
     ],
 }

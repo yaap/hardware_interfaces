@@ -20,11 +20,13 @@
 #include <array>
 #include <initializer_list>
 #include <regex>
+#include <string_view>
 #include <type_traits>
 
 #include <aidl/android/media/audio/common/AudioChannelLayout.h>
 #include <aidl/android/media/audio/common/AudioDeviceType.h>
 #include <aidl/android/media/audio/common/AudioFormatDescription.h>
+#include <aidl/android/media/audio/common/AudioGainMode.h>
 #include <aidl/android/media/audio/common/AudioInputFlags.h>
 #include <aidl/android/media/audio/common/AudioIoFlags.h>
 #include <aidl/android/media/audio/common/AudioMode.h>
@@ -108,8 +110,22 @@ constexpr size_t getChannelCount(
             return __builtin_popcount(layout.get<Tag::layoutMask>() & mask);
         case Tag::voiceMask:
             return __builtin_popcount(layout.get<Tag::voiceMask>() & mask);
+        case Tag::acnMask:
+            // acnMask specifies channel count.
+            return layout.get<Tag::acnMask>() &
+                   ::aidl::android::media::audio::common::AudioChannelLayout::
+                           ACN_CHANNEL_COUNT_BIT_MASK;
     }
     return 0;
+}
+
+constexpr bool isPcmFormat(
+        const ::aidl::android::media::audio::common::AudioFormatDescription& format) {
+    // TODO(b/447435551): Replace with MEDIA_MIMETYPE_AUDIO_IEC61937
+    constexpr std::string_view kMimeTypeIec61937 = "audio/x-iec61937";
+    using ::aidl::android::media::audio::common::AudioFormatType;
+    return format.type == AudioFormatType::PCM ||
+           (format.type == AudioFormatType::NON_PCM && format.encoding == kMimeTypeIec61937);
 }
 
 constexpr size_t getFrameSizeInBytes(
@@ -119,10 +135,9 @@ constexpr size_t getFrameSizeInBytes(
         // Unspecified format.
         return 0;
     }
-    using ::aidl::android::media::audio::common::AudioFormatType;
-    if (format.type == AudioFormatType::PCM) {
+    if (isPcmFormat(format)) {
         return getPcmSampleSizeInBytes(format.pcm) * getChannelCount(layout);
-    } else if (format.type == AudioFormatType::NON_PCM) {
+    } else if (format.type == ::aidl::android::media::audio::common::AudioFormatType::NON_PCM) {
         // For non-PCM formats always use the underlying PCM size. The default value for
         // PCM is "UINT_8_BIT", thus non-encapsulated streams have the frame size of 1.
         return getPcmSampleSizeInBytes(format.pcm);
@@ -149,6 +164,16 @@ constexpr bool isValidAudioMode(::aidl::android::media::audio::common::AudioMode
            kValidAudioModes.end();
 }
 
+constexpr ::aidl::android::media::audio::common::AudioChannelLayout makeAcnAudioChannelLayout(
+        ::aidl::android::media::audio::common::AudioChannelLayout::Ambisonics::SourceLayout layout,
+        int channelCount) {
+    using ::aidl::android::media::audio::common::AudioChannelLayout;
+    return AudioChannelLayout::make<AudioChannelLayout::Tag::acnMask>(
+            ((static_cast<int32_t>(layout) << AudioChannelLayout::ACN_SOURCE_LAYOUT_BIT_SHIFT) &
+             AudioChannelLayout::ACN_SOURCE_LAYOUT_BIT_MASK) |
+            (channelCount & AudioChannelLayout::ACN_CHANNEL_COUNT_BIT_MASK));
+}
+
 static inline bool maybeVendorExtension(const std::string& s) {
     // Only checks whether the string starts with the "vendor prefix".
     static const std::string vendorPrefix = "VX_";
@@ -167,7 +192,8 @@ static inline bool isVendorExtension(const std::string& s) {
 template <typename E>
 using is_bit_position_enum = std::integral_constant<
         bool, std::is_same_v<E, ::aidl::android::media::audio::common::AudioInputFlags> ||
-                      std::is_same_v<E, ::aidl::android::media::audio::common::AudioOutputFlags>>;
+                      std::is_same_v<E, ::aidl::android::media::audio::common::AudioOutputFlags> ||
+                      std::is_same_v<E, ::aidl::android::media::audio::common::AudioGainMode>>;
 
 template <typename E, typename U = std::underlying_type_t<E>,
           typename = std::enable_if_t<is_bit_position_enum<E>::value>>
@@ -203,6 +229,10 @@ constexpr bool isAnyBitPositionFlagSet(U mask, std::initializer_list<E> flags) {
     return (mask & makeBitPositionFlagMask<E>(flags)) != 0;
 }
 
+constexpr int32_t durationMsFromFrameCount(int32_t frameCount, int32_t sampleRateHz) {
+    return (frameCount * 1000) / sampleRateHz;
+}
+
 constexpr int32_t frameCountFromDurationUs(long durationUs, int32_t sampleRateHz) {
     return (static_cast<long long>(durationUs) * sampleRateHz) / 1000000LL;
 }
@@ -220,6 +250,27 @@ constexpr bool hasMmapFlag(const ::aidl::android::media::audio::common::AudioIoF
             isBitPositionFlagSet(
                     flags.get<::aidl::android::media::audio::common::AudioIoFlags::Tag::output>(),
                     ::aidl::android::media::audio::common::AudioOutputFlags::MMAP_NOIRQ));
+}
+
+constexpr bool isAudioMimeType(std::string_view mimeType) {
+    constexpr std::string_view audioPrefix = "audio/";
+    return mimeType.starts_with(audioPrefix) && mimeType.size() > audioPrefix.size();
+}
+
+constexpr bool hasNonblockingOffloadFlag(
+        const ::aidl::android::media::audio::common::AudioIoFlags& flags) {
+    return flags.getTag() == ::aidl::android::media::audio::common::AudioIoFlags::Tag::output &&
+           areAllBitPositionFlagsSet(
+                   flags.get<::aidl::android::media::audio::common::AudioIoFlags::Tag::output>(),
+                   {::aidl::android::media::audio::common::AudioOutputFlags::COMPRESS_OFFLOAD,
+                    ::aidl::android::media::audio::common::AudioOutputFlags::NON_BLOCKING});
+}
+
+constexpr bool isPcmOffload(
+        const ::aidl::android::media::audio::common::AudioFormatDescription& format,
+        const ::aidl::android::media::audio::common::AudioIoFlags& flags) {
+    return format.type == ::aidl::android::media::audio::common::AudioFormatType::PCM &&
+           hasNonblockingOffloadFlag(flags);
 }
 
 }  // namespace aidl::android::hardware::audio::common

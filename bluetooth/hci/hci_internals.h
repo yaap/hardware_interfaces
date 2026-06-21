@@ -22,12 +22,12 @@ namespace android::hardware::bluetooth::hci {
 
 // HCI UART transport packet types (Volume 4, Part A, 2)
 enum class PacketType : uint8_t {
-  UNKNOWN = 0,
-  COMMAND = 1,
-  ACL_DATA = 2,
-  SCO_DATA = 3,
-  EVENT = 4,
-  ISO_DATA = 5,
+    UNKNOWN = 0,
+    COMMAND = 1,
+    ACL_DATA = 2,
+    SCO_DATA = 3,
+    EVENT = 4,
+    ISO_DATA = 5,
 };
 
 // 2 bytes for opcode, 1 byte for parameter length (Volume 4, Part E, 5.4.1)

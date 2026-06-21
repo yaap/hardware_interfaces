@@ -48,4 +48,25 @@ parcelable BatteryHealthData {
      * Indicator for part originality of the battery.
      */
     BatteryPartStatus batteryPartStatus = BatteryPartStatus.UNSUPPORTED;
+    /**
+     * Name of the battery's manufacturer. Null if not supported. If supported, a string of at least
+     * 2 printable characters. Must only be used for diagnostics, not parsed by the Android
+     * framework.
+     */
+    @nullable String batteryManufacturer;
+    /**
+     * Battery's model name. Null if not supported. If supported, a string of at least 2 printable
+     * characters. Must only be used for diagnostics, not parsed by the Android framework.
+     */
+    @nullable String batteryModelName;
+    /**
+     * Minimum expected design voltage of the battery in micro-Volts, or 0 if not supported. If
+     * supported, at least 2 Volts.
+     *
+     * Many systems have a precise value for battery design voltage (specified by the manufacturer
+     * for a specific battery pack) which can be reported here, but this value may instead represent
+     * a design parameter (usually based on the battery chemistry and topology) if the pack's
+     * precise design voltage is not known.
+     */
+    long batteryVoltageMinDesignUv;
 }

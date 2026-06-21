@@ -19,7 +19,7 @@ aidl_interface {
     stability: "vintf",
     backend: {
         java: {
-            sdk_version: "module_current",
+            sdk_version: "system_current",
             apex_available: [
                 "//apex_available:anyapex",
                 "//apex_available:platform",
@@ -41,6 +41,7 @@ aidl_interface {
                 "//apex_available:platform",
                 "com.android.virt",
             ],
+            min_sdk_version: "35",
         },
     },
     frozen: true,

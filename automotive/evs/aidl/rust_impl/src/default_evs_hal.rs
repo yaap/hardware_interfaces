@@ -29,21 +29,21 @@ impl binder::Interface for DefaultEvsHal {}
 impl IEvsEnumerator for DefaultEvsHal {
     fn closeCamera(
         &self,
-        _: &binder::Strong<(dyn IEvsCamera + 'static)>,
+        _: &binder::Strong<dyn IEvsCamera + 'static>,
     ) -> std::result::Result<(), binder::Status> {
         Err(binder::StatusCode::UNKNOWN_ERROR.into())
     }
 
     fn closeDisplay(
         &self,
-        _: &binder::Strong<(dyn IEvsDisplay + 'static)>,
+        _: &binder::Strong<dyn IEvsDisplay + 'static>,
     ) -> std::result::Result<(), binder::Status> {
         Err(binder::StatusCode::UNKNOWN_ERROR.into())
     }
 
     fn closeUltrasonicsArray(
         &self,
-        _: &binder::Strong<(dyn IEvsUltrasonicsArray + 'static)>,
+        _: &binder::Strong<dyn IEvsUltrasonicsArray + 'static>,
     ) -> std::result::Result<(), binder::Status> {
         unimplemented!()
     }
@@ -81,28 +81,28 @@ impl IEvsEnumerator for DefaultEvsHal {
         &self,
         _: &str,
         _: &Stream,
-    ) -> std::result::Result<binder::Strong<(dyn IEvsCamera + 'static)>, binder::Status> {
+    ) -> std::result::Result<binder::Strong<dyn IEvsCamera + 'static>, binder::Status> {
         Err(binder::StatusCode::UNKNOWN_ERROR.into())
     }
 
     fn openDisplay(
         &self,
         _: i32,
-    ) -> std::result::Result<binder::Strong<(dyn IEvsDisplay + 'static)>, binder::Status> {
+    ) -> std::result::Result<binder::Strong<dyn IEvsDisplay + 'static>, binder::Status> {
         Err(binder::StatusCode::UNKNOWN_ERROR.into())
     }
 
     fn openUltrasonicsArray(
         &self,
         _: &str,
-    ) -> std::result::Result<binder::Strong<(dyn IEvsUltrasonicsArray + 'static)>, binder::Status>
+    ) -> std::result::Result<binder::Strong<dyn IEvsUltrasonicsArray + 'static>, binder::Status>
     {
         unimplemented!()
     }
 
     fn registerStatusCallback(
         &self,
-        _: &binder::Strong<(dyn IEvsEnumeratorStatusCallback + 'static)>,
+        _: &binder::Strong<dyn IEvsEnumeratorStatusCallback + 'static>,
     ) -> std::result::Result<(), binder::Status> {
         Err(binder::StatusCode::UNKNOWN_ERROR.into())
     }

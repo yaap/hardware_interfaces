@@ -113,3 +113,13 @@ ndk::ScopedAStatus RadioNetworkIndication::securityAlgorithmsUpdated(
         RadioIndicationType /*type*/, const SecurityAlgorithmUpdate& /*securityAlgorithmUpdate*/) {
     return ndk::ScopedAStatus::ok();
 }
+
+ndk::ScopedAStatus RadioNetworkIndication::prioritizedScanModeChanged(RadioIndicationType /*type*/,
+                                                                      bool /* prioritized */) {
+    return ndk::ScopedAStatus::ok();
+}
+
+ndk::ScopedAStatus RadioNetworkIndication::onNetworkSecurityEvents(
+        RadioIndicationType /*type*/, const std::vector<NetworkSecurityEvent>& /*events*/) {
+    return ndk::ScopedAStatus::ok();
+}

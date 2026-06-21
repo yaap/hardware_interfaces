@@ -85,6 +85,10 @@ aidl_interface {
             version: "4",
             imports: ["android.media.audio.common.types-V4"],
         },
+        {
+            version: "5",
+            imports: ["android.media.audio.common.types-V5"],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_common every time you
         // add the latest frozen version to versions_with_info
@@ -93,7 +97,7 @@ aidl_interface {
 }
 
 // Note: This should always be one version ahead of the last frozen version
-latest_android_hardware_audio_common = "android.hardware.audio.common-V4"
+latest_android_hardware_audio_common = "android.hardware.audio.common-V5"
 
 // Modules that depend on android.hardware.audio.common directly can include
 // the following cc_defaults to avoid explicitly managing dependency versions
@@ -209,11 +213,22 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "4",
+            imports: [
+                "android.media.audio.common.types-V5",
+                "android.hardware.audio.effect-V4",
+                "android.hardware.audio.core.sounddose-V4",
+                "android.hardware.audio.common-V5",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_core every time you
         // add the latest frozen version to versions_with_info
     ],
-    frozen: false,
+    frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version
@@ -282,6 +297,10 @@ aidl_interface {
             version: "3",
             imports: ["android.media.audio.common.types-V4"],
         },
+        {
+            version: "4",
+            imports: ["android.media.audio.common.types-V5"],
+        },
 
         // IMPORTANT: Update latest_android_hardware_audio_core_sounddose every time you
         // add the latest frozen version to versions_with_info
@@ -290,7 +309,7 @@ aidl_interface {
 }
 
 // Note: This should always be one version ahead of the last frozen version
-latest_android_hardware_audio_core_sounddose = "android.hardware.audio.core.sounddose-V3"
+latest_android_hardware_audio_core_sounddose = "android.hardware.audio.core.sounddose-V4"
 
 // Modules that depend on android.hardware.audio.core.sounddose directly can include
 // the following cc_defaults to avoid explicitly managing dependency versions
@@ -320,6 +339,13 @@ aidl_interface_defaults {
     name: "latest_android_hardware_audio_core_sounddose_import_interface",
     imports: [
         latest_android_hardware_audio_core_sounddose,
+    ],
+}
+
+rust_defaults {
+    name: "latest_android_hardware_audio_core_sounddose_rust",
+    rustlibs: [
+        latest_android_hardware_audio_core_sounddose + "-rust",
     ],
 }
 
@@ -404,13 +430,23 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "4",
+            imports: [
+                "android.media.audio.eraser.types-V2",
+                "android.media.audio.common.types-V5",
+                "android.hardware.audio.common-V5",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
     ],
     frozen: true,
 
 }
 
-latest_android_hardware_audio_effect = "android.hardware.audio.effect-V3"
+latest_android_hardware_audio_effect = "android.hardware.audio.effect-V4"
 
 cc_defaults {
     name: "latest_android_hardware_audio_effect_ndk_shared",
@@ -430,5 +466,12 @@ aidl_interface_defaults {
     name: "latest_android_hardware_audio_effect_import_interface",
     imports: [
         latest_android_hardware_audio_effect,
+    ],
+}
+
+rust_defaults {
+    name: "latest_android_hardware_audio_effect_rust",
+    rustlibs: [
+        latest_android_hardware_audio_effect + "-rust",
     ],
 }

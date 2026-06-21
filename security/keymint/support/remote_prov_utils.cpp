@@ -230,7 +230,7 @@ ErrMsgOr<cppbor::Array> constructCoseSign1(int32_t supportedEekCurve, const byte
     if (supportedEekCurve == RpcHardwareInfo::CURVE_P256) {
         return constructECDSACoseSign1(key, {} /* protectedParams */, payload, aad);
     } else {
-        return cppcose::constructCoseSign1(key, payload, aad);
+        return cppcose::constructEdDsaCoseSign1(key, {} /* protectedParams */, payload, aad);
     }
 }
 
@@ -845,11 +845,15 @@ ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyCsr(
     return std::unique_ptr<cppbor::Array>(csrPayloadDecoded.release()->asArray());
 }
 
-ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(
-        const cppbor::Array& keysToSign, const std::vector<uint8_t>& csr,
-        const RpcHardwareInfo& rpcHardwareInfo, const std::string& instanceName,
-        const std::vector<uint8_t>& challenge, bool allowDegenerate, bool requireUdsCerts) {
-    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, /*isFactory=*/true,
+ErrMsgOr<std::unique_ptr<cppbor::Array>> verifyFactoryCsr(const cppbor::Array& keysToSign,
+                                                          const std::vector<uint8_t>& csr,
+                                                          const RpcHardwareInfo& rpcHardwareInfo,
+                                                          const std::string& instanceName,
+                                                          const std::vector<uint8_t>& challenge,
+                                                          bool strict, bool allowDegenerate,
+                                                          bool requireUdsCerts) {
+    bool isFactory = !strict;
+    return verifyCsr(keysToSign, csr, rpcHardwareInfo, instanceName, challenge, isFactory,
                      /*allowAnyMode=*/false, allowDegenerate, requireUdsCerts);
 }
 
@@ -941,19 +945,28 @@ ErrMsgOr<bool> compareRootPublicKeysInDiceChains(const std::vector<uint8_t>& enc
     return *result;
 }
 
-ErrMsgOr<bool> verifyComponentNameInKeyMintDiceChain(const std::vector<uint8_t>& encodedCsr) {
-    auto diceChain = getDiceChain(encodedCsr, /*isFactory=*/false, /*allowAnyMode=*/true,
-                                  DEFAULT_INSTANCE_NAME);
+ErrMsgOr<std::string> getLeafComponentNameFromDiceChain(const std::vector<uint8_t>& encodedCsr,
+                                                        std::string_view instanceName) {
+    auto diceChain =
+            getDiceChain(encodedCsr, /*isFactory=*/false, /*allowAnyMode=*/true, instanceName);
     if (!diceChain) {
-        return diceChain.message();
+        return ErrMsgOr<std::string>::Err(diceChain.message());
     }
 
-    auto satisfied = diceChain->componentNameContains(kKeyMintComponentName);
-    if (!satisfied.ok()) {
-        return satisfied.error().message();
+    auto leafComponentName = diceChain->leafComponentName();
+    if (!leafComponentName.ok()) {
+        return ErrMsgOr<std::string>::Err(leafComponentName.error().message());
     }
 
-    return *satisfied;
+    return ErrMsgOr<std::string>::Ok(std::move(*leafComponentName));
+}
+
+ErrMsgOr<bool> verifyComponentNameInKeyMintDiceChain(const std::vector<uint8_t>& encodedCsr) {
+    auto componentName = getLeafComponentNameFromDiceChain(encodedCsr, DEFAULT_INSTANCE_NAME);
+    if (!componentName) {
+        return componentName.message();
+    }
+    return componentName->find(kKeyMintComponentName) != std::string::npos;
 }
 
 ErrMsgOr<bool> hasNonNormalModeInDiceChain(const std::vector<uint8_t>& encodedCsr,
@@ -970,6 +983,32 @@ ErrMsgOr<bool> hasNonNormalModeInDiceChain(const std::vector<uint8_t>& encodedCs
     }
 
     return *hasNonNormalModeInDiceChain;
+}
+
+ErrMsgOr<int> countTrailingRkpVmMarkersInCsr(const std::vector<uint8_t>& encodedCsr,
+                                             std::string_view instanceName) {
+    auto diceChainKind = getDiceChainKind();
+    if (!diceChainKind) {
+        return diceChainKind.message();
+    }
+
+    auto csr = hwtrust::Csr::validate(encodedCsr, *diceChainKind, /*isFactory=*/false,
+                                      /*allowAnyMode=*/true, deviceSuffix(instanceName));
+    if (!csr.ok()) {
+        return csr.error().message();
+    }
+
+    auto diceChain = csr->getDiceChain();
+    if (!diceChain.ok()) {
+        return diceChain.error().message();
+    }
+
+    auto result = diceChain->countTrailingRkpVmMarkers(deviceSuffix(instanceName));
+    if (!result.ok()) {
+        return result.error().message();
+    }
+
+    return *result;
 }
 
 }  // namespace aidl::android::hardware::security::keymint::remote_prov

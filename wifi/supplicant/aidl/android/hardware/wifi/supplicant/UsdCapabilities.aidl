@@ -56,4 +56,10 @@ parcelable UsdCapabilities {
      * Maximum number of allowed subscribe sessions.
      */
     int maxNumSubscribeSessions;
+
+    /**
+     * Whether this device supports using USD to discover other devices for
+     * Proximity Ranging.
+     */
+    boolean isProximityRangingSupported;
 }

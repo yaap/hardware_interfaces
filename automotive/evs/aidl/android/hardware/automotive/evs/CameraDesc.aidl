@@ -21,6 +21,13 @@ package android.hardware.automotive.evs;
  *
  * The HAL is responsible for filling out this structure for each
  * EVS camera in the system.
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use the Camera2 NDK API (<a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager_getcameracharacteristics">ACameraManager_getCameraCharacteristics</a>)
+ *             or the Camera2 Java API ({@link
+ *             android.hardware.camera2.CameraManager#getCameraCharacteristics}) to retrieve
+ *             individual camera details.
  */
 @VintfStability
 parcelable CameraDesc {
@@ -28,8 +35,7 @@ parcelable CameraDesc {
      * Unique identifier for camera devices.  This may be a path to detected
      * camera device; for example, "/dev/video0".
      */
-    @utf8InCpp
-    String id;
+    @utf8InCpp String id;
     /**
      * Opaque value from driver.  Vendor may use this field to store additional
      * information; for example, sensor and bridge chip id.

@@ -17,7 +17,7 @@
 #include <mutex>
 
 #define LOG_TAG "AHAL_SubmixRoute"
-#include <android-base/logging.h>
+#include <Log.h>
 #include <media/AidlConversionCppNdk.h>
 
 #include <Utils.h>

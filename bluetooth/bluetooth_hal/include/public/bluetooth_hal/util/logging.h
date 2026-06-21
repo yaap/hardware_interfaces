@@ -21,41 +21,45 @@
 /*
  * Helper mecro for LogHelper to print system log with a specific tag.
  */
-#define LOG_WITH_TAG(severity, tag)                                          \
-  ::android::base::LogMessage(__FILE__, __LINE__, SEVERITY_LAMBDA(severity), \
-                              tag, -1)                                       \
-      .stream()
+#define LOG_WITH_TAG(severity, tag) \
+    ::android::base::LogMessage(__FILE__, __LINE__, SEVERITY_LAMBDA(severity), tag, -1).stream()
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 class Logger {
- public:
-  /**
-   * @brief Generates a timestamp string suitable for log messages.
-   *
-   * The timestamp is formatted as HH:MM:SS:sss (hours, minutes, seconds,
-   * milliseconds). It represents the current local time with millisecond
-   * precision.
-   *
-   * @return A string representing the current local time in the format
-   * HH:MM:SS:sss.
-   *
-   */
-  static std::string GetLogFormatTimestamp();
+  public:
+    /**
+     * @brief Generates a timestamp string suitable for log messages.
+     *
+     * The timestamp is formatted as HH:MM:SS:sss (hours, minutes, seconds,
+     * milliseconds). It represents the current local time with millisecond
+     * precision.
+     *
+     * @return A string representing the current local time in the format
+     * HH:MM:SS:sss.
+     *
+     */
+    static std::string GetLogFormatTimestamp();
 
-  /**
-   * @brief Generates a timestamp string suitable for record creation.
-   *
-   * The timestamp is formatted as YYYY-MM-DD_HH-MM-SS (year, month, day, hours,
-   * minutes, seconds). It represents the current local time.
-   *
-   * @return A string representing the current local time in the format
-   * YYYY-MM-DD_HH-MM-SS.
-   *
-   */
-  static std::string GetFileFormatTimestamp();
+    /**
+     * @brief Generates a timestamp string suitable for record creation.
+     *
+     * The timestamp is formatted as YYYY-MM-DD_HH-MM-SS (year, month, day, hours,
+     * minutes, seconds). It represents the current local time.
+     *
+     * @return A string representing the current local time in the format
+     * YYYY-MM-DD_HH-MM-SS.
+     *
+     */
+    static std::string GetFileFormatTimestamp();
+
+    /**
+     * @brief Writes a message to the kernel log (/dev/kmsg).
+     *
+     * @param message The message to write.
+     *
+     */
+    static void WriteToKernelLog(const std::string& message);
 };
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

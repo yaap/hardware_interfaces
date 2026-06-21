@@ -77,7 +77,6 @@ cc_test {
         ":audio_policy_configuration_V2_0",
     ],
     // Use test_config for vts suite.
-    // TODO(b/146104851): Add auto-gen rules and remove it.
     test_config: "VtsHalAudioV2_0TargetTest.xml",
 }
 
@@ -109,7 +108,6 @@ cc_test {
         ":audio_policy_configuration_V4_0",
     ],
     // Use test_config for vts suite.
-    // TODO(b/146104851): Add auto-gen rules and remove it.
     test_config: "VtsHalAudioV4_0TargetTest.xml",
 }
 
@@ -138,7 +136,6 @@ cc_test {
         ":audio_policy_configuration_V5_0",
     ],
     // Use test_config for vts suite.
-    // TODO(b/146104851): Add auto-gen rules and remove it.
     test_config: "VtsHalAudioV5_0TargetTest.xml",
 }
 
@@ -171,7 +168,6 @@ cc_test {
         ":audio_policy_configuration_V6_0",
     ],
     // Use test_config for vts suite.
-    // TODO(b/146104851): Add auto-gen rules and remove it.
     test_config: "VtsHalAudioV6_0TargetTest.xml",
 }
 
@@ -204,7 +200,6 @@ cc_test {
         "data/sine882hz3s.mp3",
     ],
     // Use test_config for vts suite.
-    // TODO(b/146104851): Add auto-gen rules and remove it.
     test_config: "VtsHalAudioV7_0TargetTest.xml",
 }
 
@@ -238,7 +233,6 @@ cc_test {
         "data/sine882hz3s.mp3",
     ],
     // Use test_config for vts suite.
-    // TODO(b/146104851): Add auto-gen rules and remove it.
     test_config: "VtsHalAudioV7_1TargetTest.xml",
 }
 

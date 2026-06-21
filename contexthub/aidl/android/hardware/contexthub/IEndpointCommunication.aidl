@@ -16,6 +16,9 @@
 
 package android.hardware.contexthub;
 
+import android.hardware.contexthub.DataFlowId;
+import android.hardware.contexthub.DataFlowInfo;
+import android.hardware.contexthub.DataFlowSinkRegistrationParams;
 import android.hardware.contexthub.EndpointId;
 import android.hardware.contexthub.EndpointInfo;
 import android.hardware.contexthub.IEndpointCallback;
@@ -23,9 +26,15 @@ import android.hardware.contexthub.Message;
 import android.hardware.contexthub.MessageDeliveryStatus;
 import android.hardware.contexthub.Reason;
 import android.hardware.contexthub.Service;
+import android.hardware.contexthub.SharedDataCapabilities;
+import android.hardware.contexthub.SharedDataRegion;
+import android.hardware.contexthub.SharedDataRegionRequirements;
 
 @VintfStability
 interface IEndpointCommunication {
+    /** Invalid session id. */
+    const int SESSION_ID_INVALID = -1;
+
     /**
      * Publishes an endpoint from the calling side (e.g. Android). Endpoints must be registered
      * prior to starting a session.
@@ -151,4 +160,157 @@ interface IEndpointCommunication {
      * @throws EX_ILLEGAL_STATE if this interface was already unregistered.
      */
     void unregister();
+
+    // The following methods are used to create efficient data flows from host to offload endpoints
+    // within shared data regions. The following is the sequence of operations to create one or more
+    // data flows in a region:
+    // 1. Use allocateSharedDataRegion() to create a new region.
+    // 2. Use registerDataFlowHostSource() to register a data flow within the region. This can be
+    //    called multiple times to register multiple data flows within the same region.
+    // 3. Use registerDataFlowOffloadSink() to share a new sink context for that data flow with
+    //    an offload endpoint. This can be called multiple times to share the same data flow with
+    //    multiple offload endpoints.
+    // 4. Use unregisterDataFlowHostSource() to unregister a data flow.
+    // 5. Use freeSharedDataRegion() to release the region. The HAL will reject this request if any
+    //    data flows registered by host endpoints have not been unregistered.
+    //
+    // For data flows from offload to host endpoints, the host endpoint receives sink access to
+    // a data flow from the IEndpointCallback::onDataFlowHostSinkRegistered() callback, which
+    // includes the context needed to access the shared data region. When done with the data flow,
+    // the sink calls unregisterDataFlowHostSink() to release the HAL resources associated with the
+    // sink's access to the data flow.
+
+    /** Error codes for shared data region operations. */
+    @VintfStability
+    enum SharedDataErrors {
+        ERR_INSUFFICIENT_MEMORY = 1,
+        ERR_INVALID_CONFIGURATION = 2
+    }
+
+    /**
+     * Requests the allocation of a new shared data region writable by a host endpoint. This region
+     * can support data flows from a host source to offload sinks.
+     *
+     * @param requirements The requirements for the allocation, including size.
+     *
+     * @return The newly allocated region.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT if any of the requirements are invalid.
+     * @throws EX_UNSUPPORTED_OPERATION if shared data regions are not supported.
+     * @throws EX_SERVICE_SPECIFIC on other errors
+     *         - ERR_INSUFFICIENT_MEMORY if the request failed due to insufficient memory.
+     *         - ERR_INVALID_CONFIGURATION if the request failed due to invalid configuration, e.g.
+     *           the set of target hubs does not have a common shared memory region.
+     */
+    SharedDataRegion allocateSharedDataRegion(in SharedDataRegionRequirements requirements);
+
+    /**
+     * Frees a previously allocated shared data region.
+     *
+     * @param id A {@link SharedDataRegion#id} previously returned by {@code
+               allocateSharedDataRegion()}. Must not have been freed already.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT if the id wasn't previously successfully assigned to a region by
+     *         {@code allocateSharedDataRegion()}.
+     * @throws EX_ILLEGAL_STATE if the region is in use.
+     * @throws EX_UNSUPPORTED_OPERATION if shared data regions are not supported.
+     */
+    void freeSharedDataRegion(int id);
+
+    /**
+     * Registers a new data flow in the given shared data region. The HAL stores the DataFlowInfo
+     * to track shared data region usage, route notifications to the source, and share the data
+     * flow with sinks.
+     *
+     * @param endpoint The source endpoint for this data flow.
+     * @param info The information about the data flow to register.
+     *
+     * @return An id scoped to this message hub representing the new data flow.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT if the region doesn't exist or is not active, or if the data flow
+     *         metadata offset is invalid.
+     * @throws EX_UNSUPPORTED_OPERATION if shared data regions are not supported.
+     */
+    int registerDataFlowHostSource(in EndpointId endpoint, in DataFlowInfo info);
+
+    /**
+     * Unregisters the data flow with given id. The HAL releases its references to the associated
+     * shared data region(s) and eventfds. It sends a final notification to relevant offload message
+     * hubs indicating that the memory associated with the data flow will be repurposed.
+     *
+     * To ensure that sinks safely stop accessing the data flow before tear down, the source
+     * endpoint must alert sinks that the data flow is being stopped and wait for acknowledgement
+     * before calling this API. This can be done either through the data flow implementation (using
+     * shared memory and the alert eventfds) or an out-of-band mechanism like a session message.
+     *
+     * @param id An id previously returned by {@code registerDataFlowHostSource()}. Must not have
+               been unregistered already.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT if the id is unknown.
+     * @throws EX_UNSUPPORTED_OPERATION if shared data regions are not supported.
+     */
+    void unregisterDataFlowHostSource(int id);
+
+    /**
+     * Sends the context for a new sink on a data flow on this hub to an offload endpoint.
+     *
+     * The HAL will call {@link IRegisterOffloadSinkCallback#addSinkInRegion(SharedDataRegion)}
+     * from within the thread servicing this API i.e. it will be called before this API returns and
+     * Binder ensures that the calling thread will handle the nested transaction. The
+     * implementation of {@code addSinkInRegion()} will actually allocate the sink metadata and
+     * return its offset to the HAL.
+     *
+     * @param params The parameters for registering a new sink on a data flow.
+     * @param callback The callback to provide additional information to the HAL within this call.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT if the data flow doesn't exist or is not active, or if the
+     *         sink context is invalid.
+     * @throws EX_UNSUPPORTED_OPERATION if shared data regions are not supported.
+     * @throws EX_SERVICE_SPECIFIC on other errors
+     *         - ERR_INSUFFICIENT_MEMORY if the dedicated sink metadata region cannot be allocated.
+     */
+    void registerDataFlowOffloadSink(
+            in DataFlowSinkRegistrationParams params, in IRegisterOffloadSinkCallback callback);
+
+    /**
+     * Releases HAL resources associated with the calling endpoint reading from a data flow
+     * received via {@link IEndpointCallback#onDataFlowHostSinkRegistered()}. This will be called
+     * after the endpoint stops reading from the data flow. This API will not directly result in an
+     * alert to the source endpoint. If desired, the sink can alert the source via the data flow
+     * implementation or an out-of-band mechanism.
+     *
+     * The framework will also call this API to notify the HAL when a sink context cannot be passed
+     * to a host endpoint due to insufficient permissions.
+     *
+     * @param sinkId The endpoint reading from the data flow.
+     * @param dataFlowId The id of the data flow to release.
+     *
+     * @throws EX_ILLEGAL_ARGUMENT if the data flow doesn't exist.
+     * @throws EX_UNSUPPORTED_OPERATION if shared data regions are not supported.
+     */
+    void unregisterDataFlowHostSink(in EndpointId sinkId, in DataFlowId dataFlowId);
+
+    /**
+     * An interface for nesting callbacks from the HAL to the client within IEndpointCommunication
+     * calls. This is used to provide additional information to the HAL within a single RPC call.
+     */
+    @VintfStability
+    interface IRegisterOffloadSinkCallback {
+        /**
+         * Provides an optional region for allocating the sink metadata. This must only be called
+         * within the thread servicing registerDataFlowOffloadSink().
+         *
+         * NOTE: The returned offset is a {@code long} to allow for future support of regions larger
+         * than 4GB. That will necessitate a major version bump and new ABI structures defined in
+         * {@link SharedDataRegion}.
+         *
+         * @param region The shared data region to allocate the sink metadata from. If null,
+         *         the metadata will be allocated from the primary region returned by {@link
+         *         #allocateSharedDataRegion()}. Otherwise, the descriptor will be allocated in the
+         *         given region.
+         * @return The offset in bytes of the sink metadata from the start of the provided region if
+         *         not null or in the primary region.
+         */
+        long addSinkInRegion(in @nullable SharedDataRegion region);
+    }
 }

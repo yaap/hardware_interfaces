@@ -24,36 +24,37 @@
 #include "bluetooth_hal/config/firmware_config_loader.h"
 #include "gmock/gmock.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 
 class MockFirmwareConfigLoader : public FirmwareConfigLoader {
- public:
-  MOCK_METHOD(bool, LoadConfig, (), (override));
+  public:
+    MOCK_METHOD(bool, LoadConfig, (), (override));
 
-  MOCK_METHOD(bool, ResetFirmwareDataLoadingState, (), (override));
+    MOCK_METHOD(bool, SelectFirmwareConfiguration, (::bluetooth_hal::transport::TransportType),
+                (override));
 
-  MOCK_METHOD(std::optional<DataPacket>, GetNextFirmwareData, (), (override));
+    MOCK_METHOD(bool, ResetFirmwareDataLoadingState, (), (override));
 
-  MOCK_METHOD(std::optional<std::reference_wrapper<const SetupCommandPacket>>,
-              GetSetupCommandPacket, (SetupCommandType), (const, override));
+    MOCK_METHOD(std::optional<DataPacket>, GetNextFirmwareData, (), (override));
 
-  MOCK_METHOD(int, GetLoadMiniDrvDelayMs, (), (const, override));
+    MOCK_METHOD(std::optional<std::reference_wrapper<const SetupCommandPacket>>,
+                GetSetupCommandPacket, (SetupCommandType), (const, override));
 
-  MOCK_METHOD(int, GetLaunchRamDelayMs, (), (const, override));
+    MOCK_METHOD(int, GetLoadMiniDrvDelayMs, (), (const, override));
 
-  MOCK_METHOD(size_t, GetFirmwareFileCount, (), (const, override));
+    MOCK_METHOD(int, GetLaunchRamDelayMs, (), (const, override));
 
-  MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
+    MOCK_METHOD(size_t, GetFirmwareFileCount, (), (const, override));
 
-  static FirmwareConfigLoader& GetLoader();
+    MOCK_METHOD(std::string, DumpConfigToString, (), (const, override));
 
-  static void ResetLoader();
+    static FirmwareConfigLoader& GetLoader();
 
-  static void SetMockLoader(MockFirmwareConfigLoader* loader);
+    static void ResetLoader();
 
-  static inline MockFirmwareConfigLoader* mock_firmware_config_loader_{nullptr};
+    static void SetMockLoader(MockFirmwareConfigLoader* loader);
+
+    static inline MockFirmwareConfigLoader* mock_firmware_config_loader_{nullptr};
 };
 
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

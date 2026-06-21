@@ -322,45 +322,6 @@ int parseDigits(const char** s, int numDigits) {
     return result;
 }
 
-bool parseAsn1Time(const ASN1_TIME* asn1Time, time_t* outTime) {
-    struct tm tm;
-
-    memset(&tm, '\0', sizeof(tm));
-    const char* timeStr = (const char*)asn1Time->data;
-    const char* s = timeStr;
-    if (asn1Time->type == V_ASN1_UTCTIME) {
-        tm.tm_year = parseDigits(&s, 2);
-        if (tm.tm_year < 70) {
-            tm.tm_year += 100;
-        }
-    } else if (asn1Time->type == V_ASN1_GENERALIZEDTIME) {
-        tm.tm_year = parseDigits(&s, 4) - 1900;
-        tm.tm_year -= 1900;
-    } else {
-        LOG(ERROR) << "Unsupported ASN1_TIME type " << asn1Time->type;
-        return false;
-    }
-    tm.tm_mon = parseDigits(&s, 2) - 1;
-    tm.tm_mday = parseDigits(&s, 2);
-    tm.tm_hour = parseDigits(&s, 2);
-    tm.tm_min = parseDigits(&s, 2);
-    tm.tm_sec = parseDigits(&s, 2);
-    // This may need to be updated if someone create certificates using +/- instead of Z.
-    //
-    if (*s != 'Z') {
-        LOG(ERROR) << "Expected Z in string '" << timeStr << "' at offset " << (s - timeStr);
-        return false;
-    }
-
-    time_t t = timegm(&tm);
-    if (t == -1) {
-        LOG(ERROR) << "Error converting broken-down time to time_t";
-        return false;
-    }
-    *outTime = t;
-    return true;
-}
-
 optional<uint64_t> getCertificateExpiryAsMillis(const uint8_t* derCert, size_t derCertSize) {
     X509_Ptr x509Cert(d2i_X509(nullptr, &derCert, derCertSize));
     if (!x509Cert) {
@@ -369,7 +330,7 @@ optional<uint64_t> getCertificateExpiryAsMillis(const uint8_t* derCert, size_t d
     }
 
     time_t notAfter;
-    if (!parseAsn1Time(X509_get0_notAfter(x509Cert.get()), &notAfter)) {
+    if (!ASN1_TIME_to_time_t(X509_get0_notAfter(x509Cert.get()), &notAfter)) {
         LOG(ERROR) << "Error getting notAfter from batch certificate";
         return std::nullopt;
     }
@@ -1628,12 +1589,12 @@ optional<pair<time_t, time_t>> certificateGetValidity(const vector<uint8_t>& x50
 
     time_t notBefore;
     time_t notAfter;
-    if (!parseAsn1Time(X509_get0_notBefore(certs[0].get()), &notBefore)) {
+    if (!ASN1_TIME_to_time_t(X509_get0_notBefore(certs[0].get()), &notBefore)) {
         LOG(ERROR) << "Error parsing notBefore";
         return {};
     }
 
-    if (!parseAsn1Time(X509_get0_notAfter(certs[0].get()), &notAfter)) {
+    if (!ASN1_TIME_to_time_t(X509_get0_notAfter(certs[0].get()), &notAfter)) {
         LOG(ERROR) << "Error parsing notAfter";
         return {};
     }

@@ -18,14 +18,35 @@
 #include "VirtualRadio.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
+#include <chrono>
+#include <cinttypes>
+#include <thread>
 
 using ::aidl::android::hardware::broadcastradio::BroadcastRadio;
 using ::aidl::android::hardware::broadcastradio::VirtualRadio;
 
+namespace {
+
+constexpr const char* kInitDelayProperty = "persist.vendor.broadcastradio.mock.init_delay_ms";
+
+}
+
+void delayInitForTesting() {
+    // Read a system property for the delay in milliseconds
+    int64_t delay_ms = android::base::GetIntProperty<int64_t>(kInitDelayProperty, 0);
+    if (delay_ms > 0) {
+        LOG(INFO) << "Mock BroadcastRadio HAL delaying initialization by " << delay_ms << " ms";
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+        LOG(INFO) << "Mock BroadcastRadio HAL proceeding with initialization";
+    }
+}
+
 int main() {
     android::base::SetDefaultTag("BcRadioAidlDef");
+    delayInitForTesting();
     ABinderProcess_setThreadPoolMaxThreadCount(4);
     ABinderProcess_startThreadPool();
 

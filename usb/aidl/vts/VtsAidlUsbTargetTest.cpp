@@ -20,6 +20,8 @@
 #include <aidl/android/hardware/usb/IUsb.h>
 #include <aidl/android/hardware/usb/IUsbCallback.h>
 #include <aidl/android/hardware/usb/BnUsbCallback.h>
+#include <aidl/android/hardware/usb/ConnectorType.h>
+#include <aidl/android/hardware/usb/StaticPortInformation.h>
 #include <aidl/android/hardware/usb/PortDataRole.h>
 #include <aidl/android/hardware/usb/PortMode.h>
 #include <aidl/android/hardware/usb/PortPowerRole.h>
@@ -29,6 +31,7 @@
 #include <aidl/Vintf.h>
 #include <aidl/Gtest.h>
 
+#include <android-base/properties.h>
 #include <android/binder_auto_utils.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
@@ -38,13 +41,16 @@
 #include <stdlib.h>
 #include <chrono>
 #include <condition_variable>
+#include <limits>
 #include <mutex>
 
 #define TIMEOUT_PERIOD 10
 
 using ::aidl::android::hardware::usb::AltModeData;
+using ::aidl::android::hardware::usb::Bc12Type;
 using ::aidl::android::hardware::usb::BnUsbCallback;
 using ::aidl::android::hardware::usb::ComplianceWarning;
+using ::aidl::android::hardware::usb::ConnectorType;
 using ::aidl::android::hardware::usb::DisplayPortAltModePinAssignment;
 using ::aidl::android::hardware::usb::DisplayPortAltModeStatus;
 using ::aidl::android::hardware::usb::IUsb;
@@ -56,8 +62,17 @@ using ::aidl::android::hardware::usb::PortMode;
 using ::aidl::android::hardware::usb::PortPowerRole;
 using ::aidl::android::hardware::usb::PortRole;
 using ::aidl::android::hardware::usb::PortStatus;
+using ::aidl::android::hardware::usb::PowerProfile;
+using ::aidl::android::hardware::usb::PowerProfileMatchResult;
 using ::aidl::android::hardware::usb::Status;
+using ::aidl::android::hardware::usb::StaticPortInformation;
+using ::aidl::android::hardware::usb::TypecDefault;
 using ::aidl::android::hardware::usb::UsbDataStatus;
+using ::aidl::android::hardware::usb::UsbPdBattery;
+using ::aidl::android::hardware::usb::UsbPdFixed;
+using ::aidl::android::hardware::usb::UsbPdSprAvs;
+using ::aidl::android::hardware::usb::UsbPdSprPps;
+using ::aidl::android::hardware::usb::UsbPdVariable;
 
 using ::ndk::ScopedAStatus;
 using ::ndk::SpAIBinder;
@@ -92,6 +107,18 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
             currentPortStatus[0].currentPowerRole;
         parent_.usb_last_port_status.currentMode =
             currentPortStatus[0].currentMode;
+        parent_.usb_last_port_status.supportsPartnerBc12Type =
+                currentPortStatus[0].supportsPartnerBc12Type;
+        parent_.usb_last_port_status.partnerStatus = currentPortStatus[0].partnerStatus;
+        parent_.usb_last_port_status.supportsPowerProfiles =
+                currentPortStatus[0].supportsPowerProfiles;
+        parent_.usb_last_port_status.sinkPowerProfiles = currentPortStatus[0].sinkPowerProfiles;
+        parent_.usb_last_port_status.sourcePowerProfiles = currentPortStatus[0].sourcePowerProfiles;
+        parent_.usb_last_port_status.sinkMatchResults = currentPortStatus[0].sinkMatchResults;
+        parent_.usb_last_port_status.sourceMatchResults = currentPortStatus[0].sourceMatchResults;
+        parent_.usb_last_port_status.cableStatus = currentPortStatus[0].cableStatus;
+        parent_.usb_last_port_status.downstreamConnections =
+                currentPortStatus[0].downstreamConnections;
       }
       parent_.usb_last_cookie = cookie;
       return ScopedAStatus::ok();
@@ -141,9 +168,11 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
     }
 
     // Callback method for the status of queryPortStatus operation
-    ScopedAStatus notifyQueryPortStatus(const string& /*portName*/, Status /*retval*/,
+    ScopedAStatus notifyQueryPortStatus(const string& /*portName*/, Status retval,
                                         int64_t transactionId) override {
+      parent_.usb_last_status = retval;
       parent_.last_transactionId = transactionId;
+      parent_.query_port_status_done = true;
       parent_.notify();
       return ScopedAStatus::ok();
     }
@@ -167,6 +196,20 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
       parent_.reset_usb_port_done = true;
       parent_.notify();
       return ScopedAStatus::ok();
+    }
+
+    // Callback method for the status of queryStaticPortInformation operation.
+    ScopedAStatus notifyQueryStaticPortInformation(const string& /*portName*/,
+                                                   const StaticPortInformation& staticPortInfo,
+                                                   Status retval,
+                                                   int64_t transactionId) override {
+        parent_.usb_last_static_port_info = staticPortInfo;
+        parent_.usb_last_status = retval;
+        parent_.last_transactionId = transactionId;
+        parent_.usb_last_cookie = cookie;
+        parent_.query_static_port_info_done = true;
+        parent_.notify();
+        return ScopedAStatus::ok();
     }
   };
 
@@ -218,37 +261,46 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
 
   // The last conveyed status of the USB ports.
   // Stores information of currentt_data_role, power_role for all the USB ports
-  PortStatus usb_last_port_status;
+  PortStatus usb_last_port_status{};
 
   // Status of the last role switch operation.
-  Status usb_last_status;
+  Status usb_last_status = Status::ERROR;
 
   // Port role information of the last role switch operation.
-  PortRole usb_last_port_role;
+  PortRole usb_last_port_role{};
 
   // Flag to indicate the invocation of role switch callback.
-  bool usb_role_switch_done;
+  bool usb_role_switch_done = false;
 
   // Flag to indicate the invocation of notifyContaminantEnabledStatus callback.
-  bool enable_contaminant_done;
+  bool enable_contaminant_done = false;
 
   // Flag to indicate the invocation of notifyEnableUsbDataStatus callback.
-  bool enable_usb_data_done;
+  bool enable_usb_data_done = false;
 
   // Flag to indicate the invocation of notifyEnableUsbDataWhileDockedStatus callback.
-  bool enable_usb_data_while_docked_done;
+  bool enable_usb_data_while_docked_done = false;
 
   // Flag to indicate the invocation of notifyLimitPowerTransferStatus callback.
-  bool limit_power_transfer_done;
+  bool limit_power_transfer_done = false;
 
   // Flag to indicate the invocation of notifyResetUsbPort callback.
-  bool reset_usb_port_done;
+  bool reset_usb_port_done = false;
+
+  // Flag to indicate the invocation of queryPortStatus callback.
+  bool query_port_status_done = false;
+
+  // Stores static port information of the last queryStaticPortInformation operation.
+  StaticPortInformation usb_last_static_port_info;
+
+  // Flag to indicate the invocation of queryStaticPortInformation callback.
+  bool query_static_port_info_done = false;
 
   // Stores the cookie of the last invoked usb callback object.
-  int usb_last_cookie;
+  int usb_last_cookie = 0;
 
   // Last transaction ID that was recorded.
-  int64_t last_transactionId;
+  int64_t last_transactionId = 0;
   // synchronization primitives to coordinate between main test thread
   // and the callback thread.
   std::mutex usb_mtx;
@@ -256,8 +308,31 @@ class UsbAidlTest : public testing::TestWithParam<std::string> {
   int usb_count = 0;
 
   // Stores usb version
-  int32_t usb_version;
+  int32_t usb_version = 0;
 };
+
+/*
+ * Test to verify USB AIDL HAL version requirement.
+ * @VsrTest = VSR-5.4-009|VSR-5.4-016
+ * Devices with Vendor API level 202604 or higher MUST support AIDL HAL V3 or higher.
+ */
+TEST_P(UsbAidlTest, VerifyHalVersion) {
+    uint64_t vendorApiLevel = android::base::GetUintProperty<uint64_t>("ro.vendor.api_level", 0);
+
+    auto retVersion = usb->getInterfaceVersion(&usb_version);
+    ASSERT_TRUE(retVersion.isOk()) << retVersion;
+
+    if (vendorApiLevel >= 202604) {
+        ASSERT_GE(usb_version, 3) << "VSR-5.4-016: Vendor API level " << vendorApiLevel
+                                  << " requires USB AIDL HAL V3 or higher (got V" << usb_version
+                                  << ")";
+    } else if (vendorApiLevel >= 202504) {
+        // [VSR-5.4-009] requirement for previous year
+        ASSERT_GE(usb_version, 2) << "VSR-5.4-009: Vendor API level " << vendorApiLevel
+                                  << " requires USB AIDL HAL V2 or higher (got V" << usb_version
+                                  << ")";
+    }
+}
 
 /*
  * Test to see if setCallback succeeds.
@@ -353,6 +428,7 @@ TEST_P(UsbAidlTest, switchEmptyPort) {
  * to SOURCE is attempted for the port.
  * The callback parameters are checked to see if the transaction id
  * matches.
+ * @VsrTest = VSR-5.4-015
  */
 TEST_P(UsbAidlTest, switchPowerRole) {
   ALOGI("UsbAidlTest switchPowerRole start");
@@ -392,6 +468,7 @@ TEST_P(UsbAidlTest, switchPowerRole) {
  * to device is attempted for the port.
  * The callback parameters are checked to see if transaction id
  * matches.
+ * @VsrTest = VSR-5.4-015
  */
 TEST_P(UsbAidlTest, switchDataRole) {
   ALOGI("UsbAidlTest switchDataRole start");
@@ -468,6 +545,7 @@ TEST_P(UsbAidlTest, enableContaminantPresenceDetection) {
  * for the port.
  * The callback parameters are checked to see if transaction id
  * matches.
+ * @VsrTest = VSR-5.4-024.001
  */
 TEST_P(UsbAidlTest, enableUsbData) {
   ALOGI("UsbAidlTest enableUsbData start");
@@ -742,11 +820,388 @@ TEST_P(UsbAidlTest, dpAltModeValues) {
   ALOGI("UsbAidlTest dpAltModeValues end");
 }
 
+class UsbAidlTestV4 : public UsbAidlTest {
+  protected:
+    void SetUp() override {
+        UsbAidlTest::SetUp();
+        auto retVersion = usb->getInterfaceVersion(&usb_version);
+        ASSERT_TRUE(retVersion.isOk()) << retVersion;
+        if (usb_version < 4) {
+            GTEST_SKIP() << "Device interface version is expected to be >= 4";
+        }
+    }
+};
+
+/*
+ * Test to verify that reported BC 1.2 values are valid
+ */
+TEST_P(UsbAidlTestV4, bc12Values) {
+    ALOGI("UsbAidlTestV4 bc12Values start");
+    int64_t transactionId = rand() % 10000;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(2, usb_last_cookie);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    if (!usb_last_port_status.supportsPartnerBc12Type) {
+        ALOGI("UsbAidlTestV4 skipping bc12Values when local port does not support bc12 reporting");
+        GTEST_SKIP();
+    }
+
+    EXPECT_TRUE((int)usb_last_port_status.partnerStatus->bc12Type >= (int)Bc12Type::UNKNOWN);
+    EXPECT_TRUE((int)usb_last_port_status.partnerStatus->bc12Type <= (int)Bc12Type::DCP);
+}
+
+/*
+ * Test to verify the validity of created PowerProfileMatchResult objects. The following checks are
+ * verified:
+ *    1. Each PowerProfileMatchResult object's portIndex and partnerIndex point towards a
+ * PowerProfile object that exists.
+ *    2. Each PowerProfileMatchResult object's type matches the parents when both parents are a
+ * standardized type.
+ */
+TEST_P(UsbAidlTestV4, verifyPowerProfileMatchResults) {
+    ALOGI("UsbAidlTestV4 verifyPowerProfileMatchResults start");
+    int64_t transactionId = rand() % 10000;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(2, usb_last_cookie);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    if (!usb_last_port_status.supportsPowerProfiles) {
+        ALOGI("UsbAidlTestV4 skipping verifyPowerProfileMatchResults, supportsPowerProfiles is "
+              "false");
+        GTEST_SKIP();
+    }
+
+    EXPECT_TRUE(usb_last_port_status.sinkPowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.sourcePowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.partnerStatus->sinkPowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.partnerStatus->sourcePowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.sinkMatchResults.has_value());
+    EXPECT_TRUE(usb_last_port_status.sourceMatchResults.has_value());
+
+    std::vector<std::optional<PowerProfile>> portSinkProfiles =
+            usb_last_port_status.sinkPowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> portSourceProfiles =
+            usb_last_port_status.sourcePowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> partnerSinkProfiles =
+            usb_last_port_status.partnerStatus->sinkPowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> partnerSourceProfiles =
+            usb_last_port_status.partnerStatus->sourcePowerProfiles.value();
+    std::vector<std::optional<PowerProfileMatchResult>> sinkMatchResults =
+            usb_last_port_status.sinkMatchResults.value();
+    std::vector<std::optional<PowerProfileMatchResult>> sourceMatchResults =
+            usb_last_port_status.sourceMatchResults.value();
+
+    int numPortSinkPowerProfiles = portSinkProfiles.size();
+    int numPortSourcePowerProfiles = portSourceProfiles.size();
+    int numPartnerSinkPowerProfiles = partnerSinkProfiles.size();
+    int numPartnerSourcePowerProfiles = partnerSourceProfiles.size();
+    PowerProfile portProfile, partnerProfile;
+
+    for (std::optional<PowerProfileMatchResult> matchResult : sinkMatchResults) {
+        /* Verify that each matchResult is properly initialized */
+        EXPECT_TRUE(matchResult.has_value());
+
+        /* Verify that portIndex and partnerIndex point towards PowerProfile objects */
+        EXPECT_TRUE(matchResult->portIndex >= 0 &&
+                    matchResult->portIndex < numPortSinkPowerProfiles);
+        EXPECT_TRUE(matchResult->partnerIndex >= 0 &&
+                    matchResult->partnerIndex < numPartnerSourcePowerProfiles);
+        /*
+         * Validate that if neither local port nor partner port PowerProfile is a vendor profile,
+         * the PowerProfileMatchResult and two PowerProfile objects have the same type.
+         */
+        portProfile = portSinkProfiles[matchResult->portIndex].value();
+        partnerProfile = partnerSourceProfiles[matchResult->partnerIndex].value();
+        if (portProfile.getTag() == PowerProfile::vendorProfile ||
+            partnerProfile.getTag() == PowerProfile::vendorProfile) {
+            continue;
+        }
+        EXPECT_TRUE(matchResult->result.getTag() == portProfile.getTag() &&
+                    portProfile.getTag() == partnerProfile.getTag());
+    }
+
+    for (std::optional<PowerProfileMatchResult> matchResult : sourceMatchResults) {
+        /* Verify that each matchResult is properly initialized */
+        EXPECT_TRUE(matchResult.has_value());
+
+        /* Verify that portIndex and partnerIndex point towards PowerProfile objects */
+        EXPECT_TRUE(matchResult->portIndex >= 0 &&
+                    matchResult->portIndex < numPortSourcePowerProfiles);
+        EXPECT_TRUE(matchResult->partnerIndex >= 0 &&
+                    matchResult->partnerIndex < numPartnerSinkPowerProfiles);
+        /*
+         * Validate that if neither local port nor partner port PowerProfile is a vendor profile,
+         * the PowerProfileMatchResult and two PowerProfile objects have the same type.
+         */
+        portProfile = portSourceProfiles[matchResult->portIndex].value();
+        partnerProfile = partnerSinkProfiles[matchResult->partnerIndex].value();
+        if (portProfile.getTag() == PowerProfile::vendorProfile ||
+            partnerProfile.getTag() == PowerProfile::vendorProfile) {
+            continue;
+        }
+        EXPECT_TRUE(matchResult->result.getTag() == portProfile.getTag() &&
+                    portProfile.getTag() == partnerProfile.getTag());
+    }
+}
+
+void verifyPortUsbPd5vSupportHelper(std::vector<std::optional<PowerProfile>> profiles) {
+    bool supportsAnyPd = false, supports5vFixedPd = false;
+    UsbPdFixed fixedProfile;
+
+    if (profiles.size() == 0) {
+        return;
+    }
+
+    /*
+     * Go through each power profile. Record if any USB PD power profile is supported, record
+     * if a Fixed power profile rated for 5V is supported.
+     */
+    for (std::optional<PowerProfile> profile : profiles) {
+        /* Verify that each profile is properly initialized */
+        EXPECT_TRUE(profile.has_value());
+
+        switch (profile->getTag()) {
+            case PowerProfile::variableProfile:
+            case PowerProfile::batteryProfile:
+            case PowerProfile::sprPpsProfile:
+            case PowerProfile::sprAvsProfile:
+                supportsAnyPd = true;
+                break;
+            case PowerProfile::fixedProfile:
+                supportsAnyPd = true;
+                fixedProfile = profile->get<PowerProfile::fixedProfile>();
+                if (fixedProfile.voltageMv == 5000) {
+                    supports5vFixedPd = true;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    /*
+     * When USB PD power profiles are supported, the USB PD Fixed 5V profile is required.
+     */
+    if (supportsAnyPd) {
+        EXPECT_TRUE(supports5vFixedPd);
+    }
+}
+
+/*
+ * Test to verify that the local port supports a 5V fixed USB PD profile when the port supports
+ * at least one USB PD profile for both the source and sink power profiles.
+ * @VsrTest = VSR-5.4-014
+ */
+TEST_P(UsbAidlTestV4, verifyPortUsbPd5vSupport) {
+    ALOGI("UsbAidlTestV4 verifyPortUsbPd5vSupport start");
+    auto retVersion = usb->getInterfaceVersion(&usb_version);
+    ASSERT_TRUE(retVersion.isOk()) << retVersion;
+    int64_t transactionId = rand() % 10000;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    EXPECT_EQ(std::cv_status::no_timeout, wait());
+    EXPECT_EQ(2, usb_last_cookie);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    if (!usb_last_port_status.supportsPowerProfiles) {
+        ALOGI("UsbAidlTestV4 skipping verifyPortUsbPd5vSupport, supportsPowerProfiles is false");
+        GTEST_SKIP();
+    }
+
+    EXPECT_TRUE(usb_last_port_status.sinkPowerProfiles.has_value());
+    EXPECT_TRUE(usb_last_port_status.sourcePowerProfiles.has_value());
+
+    std::vector<std::optional<PowerProfile>> portSinkProfiles =
+            usb_last_port_status.sinkPowerProfiles.value();
+    std::vector<std::optional<PowerProfile>> portSourceProfiles =
+            usb_last_port_status.sourcePowerProfiles.value();
+
+    verifyPortUsbPd5vSupportHelper(portSinkProfiles);
+    verifyPortUsbPd5vSupportHelper(portSourceProfiles);
+}
+
+template <typename T>
+bool isValidEnumValue(const T& value) {
+    const auto range = ::ndk::enum_range<T>();
+    return std::find(range.begin(), range.end(), value) != range.end();
+}
+
+/*
+ * Test to verify the queryStaticPortInformation method.
+ * The test verifies that the static port information returned is valid:
+ *  - portName is the same as the input portName.
+ *  - sysfsPath is not empty.
+ *  - connectorType is valid.
+ *  - physical location enums are valid.
+ *  - capabilities are valid.
+ *  - usbRootHubSpeedsSupported are valid.
+ *  - usb4TbtSpeedsSupported are valid.
+ *  - displayLinkSpeedsSupported are valid.
+ *  - dataRole and powerRole are part of the supportedRoles.
+ *  - If connector type is Type-A, then power & data roles supported should be NONE only
+ *    and linked device USB port paths, linked display paths, linked power supply paths,
+ *    linked USB4 TBT paths, USB4 TBT speeds supported, and display link speeds supported
+ *    should be empty.
+ */
+TEST_P(UsbAidlTestV4, queryStaticPortInformation) {
+    ALOGI("UsbAidlTestV4 queryStaticPortInformation start");
+    int64_t transactionId = rand() % 10000;
+    query_port_status_done = false;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    std::cv_status waitStatus = wait();
+    while (waitStatus == std::cv_status::no_timeout && !query_port_status_done) waitStatus = wait();
+    EXPECT_EQ(std::cv_status::no_timeout, waitStatus);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    std::string portName = usb_last_port_status.portName;
+    if (portName.empty()) {
+        GTEST_SKIP() << "Skipping test: No USB ports found on device.";
+    }
+
+    transactionId = rand() % 10000;
+    query_static_port_info_done = false;
+    const auto& ret_static = usb->queryStaticPortInformation(portName, transactionId);
+    ASSERT_TRUE(ret_static.isOk());
+    waitStatus = wait();
+    while (waitStatus == std::cv_status::no_timeout && !query_static_port_info_done)
+        waitStatus = wait();
+    EXPECT_EQ(std::cv_status::no_timeout, waitStatus);
+    EXPECT_EQ(2, usb_last_cookie);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    if (usb_last_status != Status::SUCCESS) {
+        GTEST_SKIP() << "Skipping test: Query Static Port Information returned non-success status.";
+    }
+
+    const auto& staticPortInfo = usb_last_static_port_info;
+    EXPECT_EQ(portName, staticPortInfo.portName);
+    EXPECT_FALSE(staticPortInfo.sysfsPath.empty());
+
+    EXPECT_TRUE(std::find(staticPortInfo.powerRolesSupported.begin(),
+                          staticPortInfo.powerRolesSupported.end(),
+                          usb_last_port_status.currentPowerRole) !=
+                staticPortInfo.powerRolesSupported.end());
+    EXPECT_TRUE(std::find(staticPortInfo.dataRolesSupported.begin(),
+                          staticPortInfo.dataRolesSupported.end(),
+                          usb_last_port_status.currentDataRole) !=
+                staticPortInfo.dataRolesSupported.end());
+    EXPECT_TRUE(isValidEnumValue(staticPortInfo.connectorType));
+
+    if (staticPortInfo.connectorType == ConnectorType::A) {
+        EXPECT_EQ(1, staticPortInfo.dataRolesSupported.size());
+        EXPECT_EQ(PortDataRole::HOST, staticPortInfo.dataRolesSupported[0]);
+        EXPECT_EQ(1, staticPortInfo.powerRolesSupported.size());
+        EXPECT_EQ(PortPowerRole::SOURCE, staticPortInfo.powerRolesSupported[0]);
+        EXPECT_TRUE(staticPortInfo.linkedDeviceUSBPortPaths.empty());
+        EXPECT_TRUE(staticPortInfo.linkedDisplayPaths.empty());
+        EXPECT_TRUE(staticPortInfo.linkedUsb4TbtPaths.empty());
+        EXPECT_TRUE(staticPortInfo.linkedPowerSupplyPaths.empty());
+        EXPECT_TRUE(staticPortInfo.usb4TbtSpeedsSupported.empty());
+        EXPECT_TRUE(staticPortInfo.displayLinkSpeedsSupported.empty());
+    }
+
+    const auto& physicalLocation = staticPortInfo.physicalLocation;
+    EXPECT_TRUE(isValidEnumValue(physicalLocation.panel));
+    EXPECT_TRUE(isValidEnumValue(physicalLocation.horizontalPosition));
+    EXPECT_TRUE(isValidEnumValue(physicalLocation.verticalPosition));
+
+    for (const auto& cap : staticPortInfo.capabilities) {
+        EXPECT_TRUE(isValidEnumValue(cap));
+    }
+
+    for (const auto& speed : staticPortInfo.usbRootHubSpeedsSupported) {
+        EXPECT_TRUE(isValidEnumValue(speed));
+    }
+
+    for (const auto& speed : staticPortInfo.usb4TbtSpeedsSupported) {
+        EXPECT_TRUE(isValidEnumValue(speed));
+    }
+
+    for (const auto& speed : staticPortInfo.displayLinkSpeedsSupported) {
+        EXPECT_TRUE(isValidEnumValue(speed));
+    }
+    ALOGI("UsbAidlTestV4 queryStaticPortInformation end");
+}
+
+void verifyVendorAltModesSvid(const std::vector<AltModeData>& altModes) {
+    for (const auto& altMode : altModes) {
+        if (altMode.getTag() == AltModeData::vendorAltModeData) {
+            EXPECT_GT(altMode.get<AltModeData::vendorAltModeData>().svid, 0);
+        }
+    }
+}
+
+/*
+ * Test to verify the validity of fields in PortStatus that were added in V4.
+ *  - cableStatus
+ *  - partnerStatus updated version
+ *  - supportedAltModes updated version
+ *  - downstreamConnections
+ */
+TEST_P(UsbAidlTestV4, verifyUpdatedPortStatusValues) {
+    ALOGI("UsbAidlTestV4 verifyUpdatedPortStatusValues start");
+    int64_t transactionId = rand() % 10000;
+    const auto& ret = usb->queryPortStatus(transactionId);
+    ASSERT_TRUE(ret.isOk());
+    std::cv_status waitStatus = wait();
+    while (waitStatus == std::cv_status::no_timeout && !query_port_status_done) waitStatus = wait();
+    EXPECT_EQ(std::cv_status::no_timeout, waitStatus);
+    EXPECT_EQ(transactionId, last_transactionId);
+
+    std::string portName = usb_last_port_status.portName;
+    if (portName.empty()) {
+        GTEST_SKIP() << "Skipping test: No USB ports found on device.";
+    }
+
+    if (usb_last_status != Status::SUCCESS) {
+        GTEST_SKIP() << "Skipping test: Query Port Status returned non-success status.";
+    }
+
+    if (usb_last_port_status.cableStatus.has_value()) {
+        const auto& cableStatus = usb_last_port_status.cableStatus.value();
+        if (cableStatus.identity.has_value()) {
+            EXPECT_TRUE(isValidEnumValue(cableStatus.identity.value().pdRevision));
+        }
+        verifyVendorAltModesSvid(cableStatus.supportedAltModes);
+    }
+
+    if (usb_last_port_status.partnerStatus.has_value()) {
+        const auto& partnerStatus = usb_last_port_status.partnerStatus.value();
+        EXPECT_TRUE(isValidEnumValue(partnerStatus.bc12Type));
+        EXPECT_TRUE(isValidEnumValue(partnerStatus.activePowerRole));
+        EXPECT_TRUE(isValidEnumValue(partnerStatus.activeDataRole));
+        if (partnerStatus.identity.has_value()) {
+            EXPECT_TRUE(isValidEnumValue(partnerStatus.identity.value().pdRevision));
+        }
+        verifyVendorAltModesSvid(partnerStatus.supportedAltModes);
+    }
+
+    for (const auto& connection : usb_last_port_status.downstreamConnections) {
+        EXPECT_FALSE(connection.sysfsPath.empty());
+        EXPECT_GT(connection.busnum, 0);
+        EXPECT_GT(connection.devnum, 0);
+    }
+
+    verifyVendorAltModesSvid(usb_last_port_status.supportedAltModes);
+
+    ALOGI("UsbAidlTestV4 verifyUpdatedPortStatusValues end");
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UsbAidlTest);
 INSTANTIATE_TEST_SUITE_P(
         PerInstance, UsbAidlTest,
         testing::ValuesIn(::android::getAidlHalInstanceNames(IUsb::descriptor)),
         ::android::PrintInstanceNameToString);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UsbAidlTestV4);
+INSTANTIATE_TEST_SUITE_P(PerInstance, UsbAidlTestV4,
+                         testing::ValuesIn(::android::getAidlHalInstanceNames(IUsb::descriptor)),
+                         ::android::PrintInstanceNameToString);
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

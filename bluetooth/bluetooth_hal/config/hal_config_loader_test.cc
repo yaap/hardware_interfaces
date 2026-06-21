@@ -25,13 +25,11 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 #include "bluetooth_hal/test/mock/mock_android_base_wrapper.h"
-#include "bluetooth_hal/test/mock/mock_transport_interface.h"
-#include "bluetooth_hal/transport/transport_interface.h"
+#include "bluetooth_hal/test/mock/mock_transport_instance.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace bluetooth_hal {
-namespace config {
+namespace bluetooth_hal::config {
 namespace {
 
 using ::testing::_;
@@ -46,8 +44,7 @@ using ::testing::WithParamInterface;
 
 using ::bluetooth_hal::Property;
 using ::bluetooth_hal::hci::HalPacket;
-using ::bluetooth_hal::transport::MockTransportInterface;
-using ::bluetooth_hal::transport::TransportInterface;
+using ::bluetooth_hal::transport::MockTransportInstance;
 using ::bluetooth_hal::transport::TransportType;
 using ::bluetooth_hal::uart::BaudRate;
 using ::bluetooth_hal::util::MockAndroidBaseWrapper;
@@ -58,14 +55,11 @@ constexpr std::string_view kTestUartDevicePort = "/dev/ttySAC18";
 constexpr int kTestVendorTransportCrashIntervalSec = 3000;
 constexpr int kTestBtRegOnDelayMs = 500;
 constexpr int kTestKernelRxWakelockTimeMs = 200;
-constexpr std::string_view kTestLpmEnableProcNode =
-    "/test/proc/bluetooth/sleep/lpm";
-constexpr std::string_view kTestLpmWakingProcNode =
-    "/test/proc/bluetooth/sleep/btwrite";
+constexpr std::string_view kTestLpmEnableProcNode = "/test/proc/bluetooth/sleep/lpm";
+constexpr std::string_view kTestLpmWakingProcNode = "/test/proc/bluetooth/sleep/btwrite";
 constexpr std::string_view kTestLpmWakelockCtrlProcNode =
-    "/test/proc/bluetooth/sleep/wakelock_ctrl";
-constexpr std::string_view kTestRfkillFolderPrefix =
-    "/test/sys/class/rfkill/rfkill";
+        "/test/proc/bluetooth/sleep/wakelock_ctrl";
+constexpr std::string_view kTestRfkillFolderPrefix = "/test/sys/class/rfkill/rfkill";
 constexpr std::string_view kTestRfkillTypeBluetooth = "testbluetooth";
 
 constexpr std::string_view kValidContent = R"({
@@ -104,288 +98,265 @@ constexpr std::string_view kValidContent = R"({
 })";
 
 class ConfigLoaderTestBase : public Test {
- protected:
-  void SetUp() override {
-    MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
-    MockTransportInterface::SetMockTransport(&mock_transport_interface_);
+  protected:
+    void SetUp() override {
+        MockAndroidBaseWrapper::SetMockWrapper(&mock_android_base_wrapper_);
+        MockTransportInstance::SetMockTransport(&mock_transport_instance_);
 
-    HalConfigLoader::ResetLoader();
-  }
+        HalConfigLoader::ResetLoader();
+    }
 
-  void SetupSetPropertyExpectations(const std::string& name,
-                                    const std::string& value) {
-    EXPECT_CALL(mock_android_base_wrapper_, SetProperty(name, value))
-        .Times(1)
-        .WillOnce(Return(true));
-  }
+    void SetupSetPropertyExpectations(const std::string& name, const std::string& value) {
+        EXPECT_CALL(mock_android_base_wrapper_, SetProperty(name, value))
+                .Times(1)
+                .WillOnce(Return(true));
+    }
 
-  MockAndroidBaseWrapper mock_android_base_wrapper_;
-  MockTransportInterface mock_transport_interface_;
+    MockAndroidBaseWrapper mock_android_base_wrapper_;
+    MockTransportInstance mock_transport_instance_;
 };
 
 TEST_F(ConfigLoaderTestBase, IsFastDownloadEnabledOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsFastDownloadEnabled());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsFastDownloadEnabled());
 }
 
 TEST_F(ConfigLoaderTestBase, IsSarBackoffHighResolutionEnabledOnInit) {
-  EXPECT_FALSE(
-      HalConfigLoader::GetLoader().IsSarBackoffHighResolutionEnabled());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsSarBackoffHighResolutionEnabled());
 }
 
 TEST_F(ConfigLoaderTestBase, GetBtRegOnDelayMsOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetBtRegOnDelayMs(),
-            cfg_consts::kDefaultBtRegOnDelay);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetBtRegOnDelayMs(), cfg_consts::kDefaultBtRegOnDelay);
 }
 
 TEST_F(ConfigLoaderTestBase, GetBtUartDevicePortOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetBtUartDevicePort(),
-            cfg_consts::kDefaultBtUartDevicePort);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetBtUartDevicePort(),
+              cfg_consts::kDefaultBtUartDevicePort);
 }
 
 TEST_F(ConfigLoaderTestBase, GetTransportTypePriorityOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetTransportTypePriority(),
-            (std::vector<TransportType>{TransportType::kUartH4}));
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetTransportTypePriority(),
+              (std::vector<TransportType>{TransportType::kUartH4}));
 }
 
 TEST_F(ConfigLoaderTestBase, IsAcceleratedBtOnSupportedOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported());
 }
 
 TEST_F(ConfigLoaderTestBase, IsThreadDispatcherEnabledOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsThreadDispatcherEnabled());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsThreadDispatcherEnabled());
 }
 
 TEST_F(ConfigLoaderTestBase, IsBtPowerControlledByLppOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsBtPowerControlledByLpp());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsBtPowerControlledByLpp());
 }
 
 TEST_F(ConfigLoaderTestBase, GetHwStagesWithoutLppControlBtPowerPinOnInit) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader()
-                  .GetHwStagesWithoutLppControlBtPowerPin()
-                  .empty());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().GetHwStagesWithoutLppControlBtPowerPin().empty());
 }
 
 TEST_F(ConfigLoaderTestBase, GetUnsupportedHwStagesOnInit) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().GetUnsupportedHwStages().empty());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().GetUnsupportedHwStages().empty());
 }
 
 TEST_F(ConfigLoaderTestBase, GetVendorTransportCrashIntervalSecOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetVendorTransportCrashIntervalSec(),
-            cfg_consts::kDefaultVendorTransportCrashIntervalSec);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetVendorTransportCrashIntervalSec(),
+              cfg_consts::kDefaultVendorTransportCrashIntervalSec);
 }
 
 TEST_F(ConfigLoaderTestBase, IsHpUartSkipSuspendSupportedOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsHpUartSkipSuspendSupported());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsHpUartSkipSuspendSupported());
 }
 
 TEST_F(ConfigLoaderTestBase, IsEnergyControllerLoggingSupportedOnInit) {
-  EXPECT_FALSE(
-      HalConfigLoader::GetLoader().IsEnergyControllerLoggingSupported());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsEnergyControllerLoggingSupported());
 }
 
 TEST_F(ConfigLoaderTestBase, IsBtHalRestartRecoverySupportedOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsBtHalRestartRecoverySupported());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsBtHalRestartRecoverySupported());
 }
 
 TEST_F(ConfigLoaderTestBase, IsBleNonConnectionSarEnabledOnInit) {
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsBleNonConnectionSarEnabled());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsBleNonConnectionSarEnabled());
 }
 
 TEST_F(ConfigLoaderTestBase, GetKernelRxWakelockTimeMillisecondsOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetKernelRxWakelockTimeMilliseconds(),
-            0);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetKernelRxWakelockTimeMilliseconds(), 0);
 }
 
 TEST_F(ConfigLoaderTestBase, GetLpmEnableProcNodeOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmEnableProcNode(),
-            cfg_consts::kLpmEnableProcNode);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmEnableProcNode(), cfg_consts::kLpmEnableProcNode);
 }
 
 TEST_F(ConfigLoaderTestBase, GetLpmWakingProcNodeOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakingProcNode(),
-            cfg_consts::kLpmWakingProcNode);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakingProcNode(), cfg_consts::kLpmWakingProcNode);
 }
 
 TEST_F(ConfigLoaderTestBase, GetLpmWakelockCtrlProcNodeOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode(),
-            cfg_consts::kLpmWakelockCtrlProcNode);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode(),
+              cfg_consts::kLpmWakelockCtrlProcNode);
 }
 
 TEST_F(ConfigLoaderTestBase, GetRfkillFolderPrefixOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillFolderPrefix(),
-            cfg_consts::kRfkillFolderPrefix);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillFolderPrefix(),
+              cfg_consts::kRfkillFolderPrefix);
 }
 
 TEST_F(ConfigLoaderTestBase, GetRfkillTypeBluetoothOnInit) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillTypeBluetooth(),
-            cfg_consts::kRfkillTypeBluetooth);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillTypeBluetooth(),
+              cfg_consts::kRfkillTypeBluetooth);
 }
 
 TEST_F(ConfigLoaderTestBase, IsEnhancedPacketValidationSupported) {
-  EXPECT_FALSE(
-      HalConfigLoader::GetLoader().IsEnhancedPacketValidationSupported());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsEnhancedPacketValidationSupported());
 }
 
 class ConfigLoaderProtoTest : public ConfigLoaderTestBase {
- protected:
-  void SetUp() override {
-    ConfigLoaderTestBase::SetUp();
-    EXPECT_TRUE(
-        HalConfigLoader::GetLoader().LoadConfigFromString(kValidContent));
-  }
+  protected:
+    void SetUp() override {
+        ConfigLoaderTestBase::SetUp();
+        EXPECT_TRUE(HalConfigLoader::GetLoader().LoadConfigFromString(kValidContent));
+    }
 };
 
 TEST_F(ConfigLoaderProtoTest, IsFastDownloadEnabled) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsFastDownloadEnabled());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsFastDownloadEnabled());
 }
 
 TEST_F(ConfigLoaderProtoTest, IsSarBackoffHighResolutionEnabled) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsSarBackoffHighResolutionEnabled());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsSarBackoffHighResolutionEnabled());
 }
 
 TEST_F(ConfigLoaderProtoTest, GetBtRegOnDelayMs) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetBtRegOnDelayMs(),
-            kTestBtRegOnDelayMs);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetBtRegOnDelayMs(), kTestBtRegOnDelayMs);
 }
 
 TEST_F(ConfigLoaderProtoTest, GetBtUartDevicePort) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetBtUartDevicePort(),
-            kTestUartDevicePort);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetBtUartDevicePort(), kTestUartDevicePort);
 }
 
 TEST_F(ConfigLoaderProtoTest, GetTransportTypePriority) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetTransportTypePriority(),
-            (std::vector<TransportType>{TransportType::kUartH4}));
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetTransportTypePriority(),
+              (std::vector<TransportType>{TransportType::kUartH4}));
 }
 
 TEST_F(ConfigLoaderProtoTest, IsAcceleratedBtOnSupported) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsAcceleratedBtOnSupported());
 }
 
 TEST_F(ConfigLoaderProtoTest, IsThreadDispatcherEnabled) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsThreadDispatcherEnabled());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsThreadDispatcherEnabled());
 }
 
 TEST_F(ConfigLoaderProtoTest, IsBtPowerControlledByLpp) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsBtPowerControlledByLpp());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsBtPowerControlledByLpp());
 }
 
 TEST_F(ConfigLoaderProtoTest, GetHwStagesWithoutLppControlBtPowerPin) {
-  EXPECT_EQ(
-      HalConfigLoader::GetLoader().GetHwStagesWithoutLppControlBtPowerPin(),
-      (std::vector<std::string>{"stage1", "stage2"}));
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetHwStagesWithoutLppControlBtPowerPin(),
+              (std::vector<std::string>{"stage1", "stage2"}));
 }
 
 TEST_F(ConfigLoaderProtoTest, GetUnsupportedHwStages) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetUnsupportedHwStages(),
-            (std::vector<std::string>{"stage1", "stage2"}));
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetUnsupportedHwStages(),
+              (std::vector<std::string>{"stage1", "stage2"}));
 }
 
 TEST_F(ConfigLoaderProtoTest, GetVendorTransportCrashIntervalSec) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetVendorTransportCrashIntervalSec(),
-            kTestVendorTransportCrashIntervalSec);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetVendorTransportCrashIntervalSec(),
+              kTestVendorTransportCrashIntervalSec);
 }
 
 TEST_F(ConfigLoaderProtoTest, IsHpUartSkipSuspendSupported) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsHpUartSkipSuspendSupported());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsHpUartSkipSuspendSupported());
 }
 
 TEST_F(ConfigLoaderProtoTest, IsEnergyControllerLoggingSupported) {
-  EXPECT_TRUE(
-      HalConfigLoader::GetLoader().IsEnergyControllerLoggingSupported());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsEnergyControllerLoggingSupported());
 }
 
 TEST_F(ConfigLoaderProtoTest, IsBtHalRestartRecoverySupported) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsBtHalRestartRecoverySupported());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsBtHalRestartRecoverySupported());
 }
 
 TEST_F(ConfigLoaderProtoTest, IsBleNonConnectionSarEnabled) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsBleNonConnectionSarEnabled());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsBleNonConnectionSarEnabled());
 }
 
 TEST_F(ConfigLoaderProtoTest, GetKernelRxWakelockTimeMilliseconds) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetKernelRxWakelockTimeMilliseconds(),
-            kTestKernelRxWakelockTimeMs);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetKernelRxWakelockTimeMilliseconds(),
+              kTestKernelRxWakelockTimeMs);
 }
 
 TEST_F(ConfigLoaderProtoTest, IsLowPowerModeSupported) {
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsLowPowerModeSupported());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsLowPowerModeSupported());
 }
 
 TEST_F(ConfigLoaderProtoTest, GetLpmEnableProcNode) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmEnableProcNode(),
-            kTestLpmEnableProcNode);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmEnableProcNode(), kTestLpmEnableProcNode);
 }
 
 TEST_F(ConfigLoaderProtoTest, GetLpmWakingProcNode) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakingProcNode(),
-            kTestLpmWakingProcNode);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakingProcNode(), kTestLpmWakingProcNode);
 }
 
 TEST_F(ConfigLoaderProtoTest, GetLpmWakelockCtrlProcNode) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode(),
-            kTestLpmWakelockCtrlProcNode);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetLpmWakelockCtrlProcNode(),
+              kTestLpmWakelockCtrlProcNode);
 }
 
 TEST_F(ConfigLoaderProtoTest, GetRfkillFolderPrefix) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillFolderPrefix(),
-            kTestRfkillFolderPrefix);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillFolderPrefix(), kTestRfkillFolderPrefix);
 }
 
 TEST_F(ConfigLoaderProtoTest, GetRfkillTypeBluetooth) {
-  EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillTypeBluetooth(),
-            kTestRfkillTypeBluetooth);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetRfkillTypeBluetooth(), kTestRfkillTypeBluetooth);
 }
 
 TEST_F(ConfigLoaderProtoTest, IsEnhancedPacketValidationSupported) {
-  EXPECT_TRUE(
-      HalConfigLoader::GetLoader().IsEnhancedPacketValidationSupported());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsEnhancedPacketValidationSupported());
 }
 
 class ConfigLoaderUtilTest : public ConfigLoaderTestBase {};
 
 TEST_F(ConfigLoaderUtilTest, IsBtSnoopLogFullModeOnReturnsTrue) {
-  HalConfigLoader& config_loader = HalConfigLoader::GetLoader();
-  Mock::VerifyAndClearExpectations(&mock_android_base_wrapper_);
+    HalConfigLoader& config_loader = HalConfigLoader::GetLoader();
+    Mock::VerifyAndClearExpectations(&mock_android_base_wrapper_);
 
-  EXPECT_CALL(mock_android_base_wrapper_,
-              GetProperty(Property::kBtSnoopLogMode, _))
-      .Times(1)
-      .WillOnce(Return("full"));
-  EXPECT_TRUE(config_loader.IsBtSnoopLogFullModeOn());
+    EXPECT_CALL(mock_android_base_wrapper_, GetProperty(Property::kBtSnoopLogMode, _))
+            .Times(1)
+            .WillOnce(Return("full"));
+    EXPECT_TRUE(config_loader.IsBtSnoopLogFullModeOn());
 }
 
 TEST_F(ConfigLoaderUtilTest, GetUartBaudRateWithUartH4Interface) {
-  EXPECT_EQ(
-      HalConfigLoader::GetLoader().GetUartBaudRate(TransportType::kUartH4),
-      BaudRate::kRate4000000);
+    EXPECT_EQ(HalConfigLoader::GetLoader().GetUartBaudRate(TransportType::kUartH4),
+              BaudRate::kRate4000000);
 }
 
 TEST_F(ConfigLoaderUtilTest, IsUserDebugOrEngBuildReturnsTrue) {
-  ON_CALL(mock_android_base_wrapper_, GetProperty(Property::kBuildType, _))
-      .WillByDefault(Return("userdebug"));
+    ON_CALL(mock_android_base_wrapper_, GetProperty(Property::kBuildType, _))
+            .WillByDefault(Return("userdebug"));
 
-  EXPECT_TRUE(HalConfigLoader::GetLoader().IsUserDebugOrEngBuild());
+    EXPECT_TRUE(HalConfigLoader::GetLoader().IsUserDebugOrEngBuild());
 }
 
 TEST_F(ConfigLoaderUtilTest, IsUserDebugOrEngBuildReturnsFalse) {
-  ON_CALL(mock_android_base_wrapper_, GetProperty(Property::kBuildType, _))
-      .WillByDefault(Return("user"));
+    ON_CALL(mock_android_base_wrapper_, GetProperty(Property::kBuildType, _))
+            .WillByDefault(Return("user"));
 
-  EXPECT_FALSE(HalConfigLoader::GetLoader().IsUserDebugOrEngBuild());
+    EXPECT_FALSE(HalConfigLoader::GetLoader().IsUserDebugOrEngBuild());
 }
 
 TEST_F(ConfigLoaderUtilTest, TransportFallbackEnabled) {
-  SetupSetPropertyExpectations(Property::kIsAcceleratedBtOnEnabled, "false");
-  SetupSetPropertyExpectations(Property::kTransportFallbackEnabled, "true");
+    SetupSetPropertyExpectations(Property::kIsAcceleratedBtOnEnabled, "false");
+    SetupSetPropertyExpectations(Property::kTransportFallbackEnabled, "true");
 
-  EnableTransportFallback();
+    EnableTransportFallback();
 }
 
 TEST_F(ConfigLoaderUtilTest, IsSameSingleton) {
-  EXPECT_EQ(&HalConfigLoader::GetLoader(), &HalConfigLoader::GetLoader());
+    EXPECT_EQ(&HalConfigLoader::GetLoader(), &HalConfigLoader::GetLoader());
 }
 
 }  // namespace
-}  // namespace config
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::config

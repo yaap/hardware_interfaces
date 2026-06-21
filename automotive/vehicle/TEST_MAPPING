@@ -57,12 +57,17 @@
       "name": "VehicleHalProtoMessageConverterTest"
     },
     {
-      "name": "CtsCarTestCases"
+      "name": "VehicleHalE2eTest"
     }
   ],
   "postsubmit": [
     {
-      "name": "VehicleHalProtoMessageConverterTest"
+      "name": "VehicleHalProtoMessageConverterTest",
+      "options": [
+        {
+          "native-test-timeout": "300000"
+        }
+      ]
     }
   ]
 }

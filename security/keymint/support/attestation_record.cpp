@@ -72,6 +72,7 @@ typedef struct km_auth_list {
     ASN1_INTEGER_SET* digest;
     ASN1_INTEGER_SET* padding;
     ASN1_INTEGER* ec_curve;
+    ASN1_INTEGER* mldsa_variant;
     ASN1_INTEGER* rsa_public_exponent;
     ASN1_INTEGER_SET* mgf_digest;
     ASN1_NULL* rollback_resistance;
@@ -116,6 +117,7 @@ ASN1_SEQUENCE(KM_AUTH_LIST) = {
         ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, digest, ASN1_INTEGER, TAG_DIGEST.maskedTag()),
         ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, padding, ASN1_INTEGER, TAG_PADDING.maskedTag()),
         ASN1_EXP_OPT(KM_AUTH_LIST, ec_curve, ASN1_INTEGER, TAG_EC_CURVE.maskedTag()),
+        ASN1_EXP_OPT(KM_AUTH_LIST, mldsa_variant, ASN1_INTEGER, TAG_ML_DSA_VARIANT.maskedTag()),
         ASN1_EXP_OPT(KM_AUTH_LIST, rsa_public_exponent, ASN1_INTEGER,
                      TAG_RSA_PUBLIC_EXPONENT.maskedTag()),
         ASN1_EXP_SET_OF_OPT(KM_AUTH_LIST, mgf_digest, ASN1_INTEGER,
@@ -293,6 +295,9 @@ static ErrorCode extract_auth_list(const KM_AUTH_LIST* record, AuthorizationSet*
     copyAuthTag(record->digest, TAG_DIGEST, auth_list);
     copyAuthTag(record->padding, TAG_PADDING, auth_list);
     copyAuthTag(record->ec_curve, TAG_EC_CURVE, auth_list);
+#ifdef KEYMINT_HAL_V5
+    copyAuthTag(record->mldsa_variant, TAG_ML_DSA_VARIANT, auth_list);
+#endif
     copyAuthTag(record->rsa_public_exponent, TAG_RSA_PUBLIC_EXPONENT, auth_list);
     copyAuthTag(record->mgf_digest, TAG_RSA_OAEP_MGF_DIGEST, auth_list);
     copyAuthTag(record->rollback_resistance, TAG_ROLLBACK_RESISTANCE, auth_list);

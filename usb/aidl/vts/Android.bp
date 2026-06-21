@@ -33,9 +33,13 @@ cc_test {
     srcs: ["VtsAidlUsbTargetTest.cpp"],
     shared_libs: [
         "libbinder_ndk",
+        "libprotobuf-cpp-lite",
+        "server_configurable_flags",
+        "libaconfig_storage_read_api_cc",
     ],
     static_libs: [
-        "android.hardware.usb-V3-ndk",
+        "android.hardware.usb-V4-ndk",
+        "android.hardware.usb.flags-aconfig-cc-lib",
     ],
     test_suites: [
         "general-tests",

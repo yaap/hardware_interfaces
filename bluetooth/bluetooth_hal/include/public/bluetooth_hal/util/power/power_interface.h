@@ -14,33 +14,38 @@
  * limitations under the License.
  */
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+#pragma once
+
+#include "bluetooth_hal/util/provider_factory.h"
+
+namespace bluetooth_hal::util::power {
 
 class PowerInterface {
- public:
-  virtual ~PowerInterface() = default;
+  public:
+    using VendorFactory = ::bluetooth_hal::util::ProviderFactory<PowerInterface, PowerInterface>;
+    using FactoryFn = VendorFactory::FactoryFn;
 
-  /**
-   * @brief Acquire a partial system wakelock from hardware_legacy.
-   *
-   * @return true if the wakelock is acquired, otherwise false.
-   *
-   */
-  virtual bool AcquireWakelock();
+    static bool RegisterPowerInterface(FactoryFn factory);
 
-  /**
-   * @brief Release the system wakelock acquired from hardware_legacy.
-   *
-   * @return true if the wakelock is acquired, otherwise false.
-   *
-   */
-  virtual bool ReleaseWakelock();
+    virtual ~PowerInterface() = default;
 
-  static PowerInterface& GetInterface();
+    /**
+     * @brief Acquire a partial system wakelock from hardware_legacy.
+     *
+     * @return true if the wakelock is acquired, otherwise false.
+     *
+     */
+    virtual bool AcquireWakelock();
+
+    /**
+     * @brief Release the system wakelock acquired from hardware_legacy.
+     *
+     * @return true if the wakelock is acquired, otherwise false.
+     *
+     */
+    virtual bool ReleaseWakelock();
+
+    static PowerInterface& GetInterface();
 };
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

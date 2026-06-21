@@ -196,6 +196,11 @@
             "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
         },
         {
+            "property": "TestVendorProperty::VENDOR_PROPERTY_FOR_PROPERTY_STATUS_TESTING",
+            "access": "VehiclePropertyAccess::READ_WRITE",
+            "changeMode": "VehiclePropertyChangeMode::ON_CHANGE"
+        },
+        {
             "property": "VehicleProperty::SUPPORT_CUSTOMIZE_VENDOR_PERMISSION",
             "defaultValue": {
                 "int32Values": [

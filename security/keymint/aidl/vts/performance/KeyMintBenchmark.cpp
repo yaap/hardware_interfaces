@@ -582,6 +582,8 @@ static bool isValidSBKeySize(string transform, int keySize) {
             return (keySize == 2048);
         case Algorithm::EC:
             return (keySize == 256);
+        case Algorithm::ML_DSA:
+            return false;
     }
     return false;
 }

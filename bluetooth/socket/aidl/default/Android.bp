@@ -9,37 +9,19 @@ cc_binary {
     vintf_fragments: [":manifest_android.hardware.bluetooth.socket-service.default.xml"],
     vendor: true,
     srcs: [
-        "BluetoothSocket.cpp",
         "service.cpp",
     ],
     shared_libs: [
-        "android.hardware.bluetooth.socket-V1-ndk",
+        "android.hardware.bluetooth.socket-V2-ndk",
         "libbase",
         "libbinder_ndk",
         "libhidlbase",
         "libutils",
         "liblog",
     ],
-}
-
-cc_fuzz {
-    name: "android.hardware.bluetooth.socket-service_fuzzer",
-    team: "trendy_team_bluetooth",
-    defaults: ["service_fuzzer_defaults"],
-    srcs: [
-        "fuzzer.cpp",
-        "BluetoothSocket.cpp",
-    ],
     static_libs: [
-        "android.hardware.bluetooth.socket-V1-ndk",
-        "android.hardware.contexthub-V4-ndk",
-        "liblog",
+        "android.hardware.bluetooth.socket-V2-impl",
     ],
-    fuzz_config: {
-        cc: [
-            "jaydenk@google.com",
-        ],
-    },
 }
 
 filegroup {

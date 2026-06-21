@@ -19,19 +19,18 @@
 namespace aidl::android::hardware::bluetooth::finder::impl {
 
 ::ndk::ScopedAStatus BluetoothFinder::sendEids(const ::std::vector<Eid>& keys) {
-  keys_.assign(keys.begin(), keys.end());
-  return ::ndk::ScopedAStatus::ok();
+    keys_.assign(keys.begin(), keys.end());
+    return ::ndk::ScopedAStatus::ok();
 }
 
 ::ndk::ScopedAStatus BluetoothFinder::setPoweredOffFinderMode(bool enable) {
-  pof_enabled_ = enable;
-  return ::ndk::ScopedAStatus::ok();
+    pof_enabled_ = enable;
+    return ::ndk::ScopedAStatus::ok();
 }
 
-::ndk::ScopedAStatus BluetoothFinder::getPoweredOffFinderMode(
-    bool* _aidl_return) {
-  *_aidl_return = pof_enabled_;
-  return ::ndk::ScopedAStatus::ok();
+::ndk::ScopedAStatus BluetoothFinder::getPoweredOffFinderMode(bool* _aidl_return) {
+    *_aidl_return = pof_enabled_;
+    return ::ndk::ScopedAStatus::ok();
 }
 
 }  // namespace aidl::android::hardware::bluetooth::finder::impl

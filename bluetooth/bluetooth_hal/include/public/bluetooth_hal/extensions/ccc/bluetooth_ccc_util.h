@@ -18,78 +18,74 @@
 
 #include <cstdint>
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace ccc {
+namespace bluetooth_hal::extensions::ccc {
 
 enum class CccDirection : uint8_t {
-  kTx = 0x00,
-  kRx = 0x01,
-  kMax = 0x01,
-  kUndefined = 0xFF,
+    kTx = 0x00,
+    kRx = 0x01,
+    kMax = 0x01,
+    kUndefined = 0xFF,
 };
 
 struct CccTimestamp {
-  /**
-   * Timestamp in microsecond since system boot.
-   */
-  long system_time;
-  /**
-   * Timestamp in microsecond since Bluetooth controller power up.
-   */
-  long bluetooth_time;
+    /**
+     * Timestamp in microsecond since system boot.
+     */
+    uint64_t system_time;
+    /**
+     * Timestamp in microsecond since Bluetooth controller power up.
+     */
+    uint64_t bluetooth_time;
 };
 
 enum class CccLmpEventId : uint8_t {
-  kConnectInd = 0x00,
-  kLlPhyUpdateInd = 0x01,
-  kMax,
-  kUndefined = 0xFF,
+    kConnectInd = 0x00,
+    kLlPhyUpdateInd = 0x01,
+    kMax,
+    kUndefined = 0xFF,
 };
 
 enum class CccLmpEventIdByte : uint8_t {
-  kConnectInd = 0xFF,
-  kLlPhyUpdateInd = 0x18,
-  kUndefined = 0x00,
+    kConnectInd = 0xFF,
+    kLlPhyUpdateInd = 0x18,
+    kUndefined = 0x00,
 };
 
 // Define constants for the event offsets
 enum class TimesyncEventOffset : uint8_t {
-  kSubEventCode = 3,
-  kAddress = 4,
-  kAddressType = 10,
-  kDirection = 11,
-  kTimestamp = 12,
-  kEventId = 20,
-  kToggleCount = 21,
-  kTimesyncOffset = 22,
-  kEventCount = 24,
+    kSubEventCode = 3,
+    kAddress = 4,
+    kAddressType = 10,
+    kDirection = 11,
+    kTimestamp = 12,
+    kEventId = 20,
+    kToggleCount = 21,
+    kTimesyncOffset = 22,
+    kEventCount = 24,
 };
 
 enum class AddressType : uint8_t {
-  kPublic = 0x00,
-  kRandom = 0x01,
+    kPublic = 0x00,
+    kRandom = 0x01,
 };
 
 enum class TimesyncCommandType : uint8_t {
-  kUndefined = 0x00,
-  kAdd,
-  kRemove,
-  kClear,
+    kUndefined = 0x00,
+    kAdd,
+    kRemove,
+    kClear,
 };
 
 class TimesyncConstants {
- public:
-  static constexpr int kEventLength = 26;
-  static constexpr int kEventTimestampLength = 8;
-  static constexpr int kCommandCommandTypeLength = 1;
-  static constexpr int kCommandAddressTypeLength = 1;
-  static constexpr int kCommandDirectionLength = 1;
-  static constexpr uint8_t kSubEventCode = 0xD0;
-  static constexpr uint16_t kCommandOpCode = 0xFD63;
-  static constexpr int kUint64MaxDigitInDec = 20;
+  public:
+    static constexpr int kEventLength = 26;
+    static constexpr int kEventTimestampLength = 8;
+    static constexpr int kCommandCommandTypeLength = 1;
+    static constexpr int kCommandAddressTypeLength = 1;
+    static constexpr int kCommandDirectionLength = 1;
+    static constexpr uint8_t kSubEventCode = 0xD0;
+    static constexpr uint16_t kCommandOpCode = 0xFD63;
+    static constexpr int kUint64MaxDigitInDec = 20;
 };
 
-}  // namespace ccc
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::ccc

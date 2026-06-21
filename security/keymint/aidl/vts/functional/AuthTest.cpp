@@ -28,6 +28,8 @@
 #include <aidl/android/hardware/security/secureclock/ISecureClock.h>
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
+#include <keymint_support/key_param_output.h>
+#include <keymint_support/openssl_utils.h>
 #include <vendorsupport/api_level.h>
 
 using aidl::android::hardware::gatekeeper::GatekeeperEnrollResponse;
@@ -712,6 +714,164 @@ TEST_P(AuthTest, AuthPerOperationWrongAuthType) {
     string ciphertext;
     EXPECT_EQ(ErrorCode::KEY_USER_NOT_AUTHENTICATED,
               Finish(message, {} /* signature */, &ciphertext, hat.value()));
+}
+
+// Test use of a imported wrapped key that requires an auth token for each action on the operation,
+// with a per-operation challenge value included.
+TEST_P(AuthTest, ImportWrappedKeyAuthPerOperation) {
+    if (!GatekeeperAvailable()) {
+        GTEST_SKIP() << "No Gatekeeper available";
+    }
+    int vendor_api_level = get_vendor_api_level();
+    int last_unsupported_api_level = AVendorSupport_getVendorApiLevelOf(36);
+    if (vendor_api_level <= last_unsupported_api_level) {
+        GTEST_SKIP() << "This test applies only to vendor API level > "
+                     << last_unsupported_api_level
+                     << ", but the vendor API level on this device is: " << vendor_api_level;
+    }
+
+    vector<Algorithm> algorithms = {Algorithm::RSA, Algorithm::EC, Algorithm::HMAC, Algorithm::AES,
+                                    Algorithm::TRIPLE_DES};
+    for (auto alg : algorithms) {
+        SCOPED_TRACE(testing::Message() << "Algorithm-" << alg);
+        // This guide explains how to combine USER_SECURE_ID and USER_AUTH_TYPE in a KeyDescription
+        // for a WrappedKey.
+        //
+        // The USER_SECURE_ID tag determines which Secure ID (SID) to use, either the
+        // password SID or the biometric SID. The USER_AUTH_TYPE tag specifies the
+        // required authentication method to authorize the key's use.
+        //
+        // -------------------------------------------------------------------------------------
+        //
+        // Password or Biometric (Flex-Auth Key)
+        //
+        // A key that can be authenticated by either a password or a biometric scan. This is useful
+        // for maximum user flexibility.
+        // USER_SECURE_ID: HardwareAuthenticatorType::PASSWORD
+        // USER_AUTH_TYPE: HardwareAuthenticatorType::ANY
+        //
+        // -------------------------------------------------------------------------------------
+        //
+        // Biometric-Only (Persistent)
+        //
+        // A key that is authenticated by a biometric scan only and will NOT be invalidated if new
+        // biometric data is enrolled. This is achieved by linking the key to the password SID.
+        // USER_SECURE_ID: HardwareAuthenticatorType::PASSWORD
+        // USER_AUTH_TYPE: HardwareAuthenticatorType::FINGERPRINT
+        //
+        // -------------------------------------------------------------------------------------
+        //
+        // Biometric-Only (Invalidates on New Enrollment)
+        //
+        // A key that is authenticated by a biometric scan only and WILL be invalidated if new
+        // biometric data is enrolled. This is achieved by linking the key to the biometric SID.
+        // USER_SECURE_ID: HardwareAuthenticatorType::FINGERPRINT
+        // USER_AUTH_TYPE: HardwareAuthenticatorType::FINGERPRINT
+        //
+        // -------------------------------------------------------------------------------------
+        //
+        // Password-Only
+        //
+        // A key that can only be authenticated with a password.
+        // USER_SECURE_ID: HardwareAuthenticatorType::PASSWORD
+        // USER_AUTH_TYPE: HardwareAuthenticatorType::PASSWORD
+
+        // For this test we are testing only the first combination as we cannot test the biometric
+        // authentication in VTS.
+        auto wrapped_key_desc =
+                AuthorizationSetBuilder()
+                        .Padding(PaddingMode::NONE)
+                        .Authorization(TAG_USER_SECURE_ID,
+                                       static_cast<int64_t>(HardwareAuthenticatorType::PASSWORD))
+                        .Authorization(TAG_USER_AUTH_TYPE, HardwareAuthenticatorType::ANY)
+                        .SetDefaultValidity();
+        KeyFormat key_format;
+        std::vector<uint8_t> wrapped_key;
+
+        SCOPED_TRACE(testing::Message() << "Algorithm-" << alg);
+        switch (alg) {
+            case Algorithm::RSA:
+                wrapped_key_desc.RsaSigningKey(2048, 65537).Digest(Digest::NONE);
+                EXPECT_TRUE(generateRsa2048Pkcs8DerKey(wrapped_key));
+                key_format = KeyFormat::PKCS8;
+                break;
+            case Algorithm::EC:
+                wrapped_key_desc.EcdsaSigningKey(EcCurve::P_256).Digest(Digest::NONE);
+                EXPECT_TRUE(generateEc256Pkcs8DerKey(wrapped_key));
+                key_format = KeyFormat::PKCS8;
+                break;
+            case Algorithm::HMAC:
+                wrapped_key_desc.HmacKey(128)
+                        .Digest(Digest::SHA_2_256)
+                        .Authorization(TAG_MIN_MAC_LENGTH, 128);
+                wrapped_key = random_vector(16);
+                key_format = KeyFormat::RAW;
+                break;
+            case Algorithm::AES:
+                wrapped_key_desc.AesEncryptionKey(256).BlockMode(BlockMode::CBC);
+                wrapped_key = random_vector(32);
+                key_format = KeyFormat::RAW;
+                break;
+            case Algorithm::TRIPLE_DES:
+                wrapped_key_desc.TripleDesEncryptionKey(168).BlockMode(BlockMode::ECB);
+                wrapped_key = random_vector(24);
+                key_format = KeyFormat::RAW;
+                break;
+            default:
+                ADD_FAILURE() << "Invalid Algorithm " << uint32_t(alg);
+                continue;
+        }
+
+        WrappedKeyInfo info;
+        WrapKey(wrapped_key, key_format, wrapped_key_desc, &info);
+        int64_t biometric_sid = 24;
+        ASSERT_EQ(ErrorCode::OK, ImportWrappedKey(info, sid_, biometric_sid));
+
+        AuthorizationSet auths;
+        for (auto& entry : key_characteristics_) {
+            auths.push_back(AuthorizationSet(entry.authorizations));
+        }
+        // Tag::USER_SECURE_ID must be included in the key characteristics
+        ASSERT_TRUE(auths.Contains(TAG_USER_SECURE_ID, sid_));
+
+        // Block aligned input message
+        const string message = "1234567890123456";
+        auto begin_params = AuthorizationSetBuilder().Padding(PaddingMode::NONE);
+        AuthorizationSet out_params;
+        KeyPurpose key_purpose;
+        switch (alg) {
+            case Algorithm::RSA:
+                // fall through
+            case Algorithm::EC:
+                begin_params.Digest(Digest::NONE);
+                key_purpose = KeyPurpose::SIGN;
+                break;
+            case Algorithm::HMAC:
+                begin_params.Digest(Digest::SHA_2_256).Authorization(TAG_MAC_LENGTH, 160);
+                key_purpose = KeyPurpose::SIGN;
+                break;
+            case Algorithm::AES:
+                begin_params.BlockMode(BlockMode::CBC);
+                key_purpose = KeyPurpose::ENCRYPT;
+                break;
+            case Algorithm::TRIPLE_DES:
+                begin_params.BlockMode(BlockMode::ECB);
+                key_purpose = KeyPurpose::ENCRYPT;
+                break;
+            default:
+                ADD_FAILURE() << "Invalid Algorithm " << uint32_t(alg);
+                continue;
+        }
+        // The imported wrapped key is treated as 'auth-per-operation' because AUTH_TIMEOUT is not
+        // specified.
+        EXPECT_EQ(ErrorCode::OK, Begin(key_purpose, begin_params, &out_params));
+        const std::optional<HardwareAuthToken> hat = doVerify(uid_, challenge_, handle_, password_);
+        ASSERT_TRUE(hat.has_value());
+        EXPECT_EQ(hat->userId, sid_);
+        string ciphertext;
+        string signature;
+        EXPECT_EQ(ErrorCode::OK, Finish(message, signature, &ciphertext, hat.value()));
+    }
 }
 
 INSTANTIATE_KEYMINT_AIDL_TEST(AuthTest);

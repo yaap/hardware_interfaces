@@ -19,8 +19,11 @@
 // #define LOG_NDEBUG 0
 
 #include <utils/Trace.h>
+#include <aidl/android/hardware/graphics/common/PixelFormat.h>
 
 #include "CameraModule.h"
+
+using ::aidl::android::hardware::graphics::common::PixelFormat;
 
 namespace android {
 namespace hardware {
@@ -159,7 +162,8 @@ void CameraModule::deriveCameraCharacteristicsKeys(uint32_t deviceVersion, Camer
             }
             if (isInput == ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_OUTPUT &&
                 (format == HAL_PIXEL_FORMAT_RAW16 || format == HAL_PIXEL_FORMAT_RAW10 ||
-                 format == HAL_PIXEL_FORMAT_RAW12 || format == HAL_PIXEL_FORMAT_RAW_OPAQUE)) {
+                 format == HAL_PIXEL_FORMAT_RAW12 || format == HAL_PIXEL_FORMAT_RAW_OPAQUE ||
+                 format == static_cast<int>(PixelFormat::RAW14))) {
                 supportAnyRaw = true;
             }
         }

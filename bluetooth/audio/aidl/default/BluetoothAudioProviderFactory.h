@@ -18,7 +18,7 @@
 
 #include <aidl/android/hardware/bluetooth/audio/BnBluetoothAudioProviderFactory.h>
 
-#include "A2dpOffloadCodecFactory.h"
+#include "../../utils/aidl_session/a2dp/A2dpOffloadCodecFactory.h"
 
 namespace aidl {
 namespace android {
@@ -27,22 +27,20 @@ namespace bluetooth {
 namespace audio {
 
 class BluetoothAudioProviderFactory : public BnBluetoothAudioProviderFactory {
-  const A2dpOffloadCodecFactory a2dp_offload_codec_factory_;
+    const A2dpOffloadCodecFactory a2dp_offload_codec_factory_;
 
- public:
-  BluetoothAudioProviderFactory();
+  public:
+    BluetoothAudioProviderFactory();
 
-  ndk::ScopedAStatus openProvider(
-      const SessionType session_type,
-      std::shared_ptr<IBluetoothAudioProvider>* _aidl_return) override;
+    ndk::ScopedAStatus openProvider(
+            const SessionType session_type,
+            std::shared_ptr<IBluetoothAudioProvider>* _aidl_return) override;
 
-  ndk::ScopedAStatus getProviderCapabilities(
-      const SessionType session_type,
-      std::vector<AudioCapabilities>* _aidl_return) override;
+    ndk::ScopedAStatus getProviderCapabilities(
+            const SessionType session_type, std::vector<AudioCapabilities>* _aidl_return) override;
 
-  ndk::ScopedAStatus getProviderInfo(
-      SessionType in_sessionType,
-      std::optional<ProviderInfo>* _aidl_return) override;
+    ndk::ScopedAStatus getProviderInfo(SessionType in_sessionType,
+                                       std::optional<ProviderInfo>* _aidl_return) override;
 };
 
 }  // namespace audio

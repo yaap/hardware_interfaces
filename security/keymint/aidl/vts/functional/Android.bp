@@ -50,9 +50,13 @@ cc_defaults {
         "libcppcose_rkp",
         "libfs_mgr",
         "libjsoncpp",
+        "libkeymaster_messages",
+        "libkeymaster_portable",
         "libkeymint_remote_prov_support",
         "libkeymint_support",
+        "libkeymint_wrapped_key_support",
         "libvendorsupport",
+        "lib_android_keymaster_keymint_utils_fake_latest",
     ],
 }
 
@@ -71,14 +75,18 @@ cc_test {
         "DeviceUniqueAttestationTest.cpp",
         "KeyBlobUpgradeTest.cpp",
         "KeyMintTest.cpp",
+        "MlDsaTest.cpp",
         "SecureElementProvisioningTest.cpp",
     ],
     static_libs: [
         "libkeymint_vts_test_utils",
     ],
+    shared_libs: [
+    ],
     test_suites: [
         "general-tests",
         "vts",
+        "dts",
     ],
 }
 

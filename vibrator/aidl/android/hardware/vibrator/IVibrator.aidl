@@ -92,6 +92,8 @@ interface IVibrator {
      *
      * Cancel a previously-started vibration, if any. If a previously-started vibration is
      * associated with a callback, then onComplete should still be called on that callback.
+     * This also clears any vibration amplitude set by `setAmplitude` and disables external
+     * control, if enabled.
      */
     void off();
 
@@ -140,10 +142,12 @@ interface IVibrator {
     /**
      * Sets the motor's vibrational amplitude.
      *
-     * Changes the force being produced by the underlying motor. This may not be supported and
-     * this support is reflected in getCapabilities (CAP_AMPLITUDE_CONTROL). When this device
-     * is under external control (via setExternalControl), amplitude control may not be supported
-     * even though it is supported normally. This can be checked with
+     * Changes the force being produced by the underlying motor. This amplitude applies to
+     * ongoing and future vibrations triggered by the `on()` function and does not affect
+     * other vibration types. This may not be supported and this support is reflected in
+     * getCapabilities (CAP_AMPLITUDE_CONTROL). When this device is under external
+     * control (via setExternalControl), amplitude control may not be supported even
+     * though it is supported normally. This can be checked with
      * CAP_EXTERNAL_AMPLITUDE_CONTROL.
      *
      * @param amplitude The unitless force setting. Note that this number must
@@ -421,14 +425,16 @@ interface IVibrator {
      *
      * The platform does not impose specific requirements on map resolution which can vary
      * depending on the shape of device output curve. The values will be linearly interpolated
-     * during lookups. The platform will provide a simple API, defined by the first frequency range
-     * where output acceleration consistently exceeds a minimum threshold of 10 db SL.
-     *
+     * during lookups. The platform will provide a simple API, defined by a frequency range from
+     * where the output acceleration first exceeds a minimum threshold of 10 db SL, to where the
+     * output acceleration last exceeds that threshold.
      *
      * This may not be supported and this support is reflected in getCapabilities
      * (CAP_FREQUENCY_CONTROL). If this is supported, it's expected to be non-empty and
-     * describe a valid non-empty frequency range where the simple API can be defined
-     * (i.e. a range where the output acceleration is always above 10 db SL).
+     * describe a valid non-empty frequency range where the simple API can be defined.
+     *
+     * For devices that also support CAP_GET_RESONANT_FREQUENCY, the resonant frequency must be
+     * within the frequency range defined by the simple API.
      *
      * @return A list of map entries representing the frequency to max acceleration
      *         mapping.
@@ -483,8 +489,9 @@ interface IVibrator {
      * This may not be supported and this support is reflected in
      * getCapabilities (CAP_COMPOSE_PWLE_EFFECTS_V2).
      *
-     * Note: Devices reporting CAP_COMPOSE_PWLE_EFFECTS_V2 support MUST also have the
-     * CAP_FREQUENCY_CONTROL capability and provide a valid frequency to output acceleration map.
+     * Note: Devices reporting CAP_COMPOSE_PWLE_EFFECTS_V2 support must also have the
+     * CAP_FREQUENCY_CONTROL and CAP_GET_RESONANT_FREQUENCY capabilities, and provide a valid
+     * frequency to output acceleration map.
      *
      * Doing this operation while the vibrator is already on is undefined behavior. Clients should
      * explicitly call off. IVibratorCallback.onComplete() support is required for this API.

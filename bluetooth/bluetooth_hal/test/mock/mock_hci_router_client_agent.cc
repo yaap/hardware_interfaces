@@ -19,21 +19,19 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/hci_router_client_agent.h"
 
-namespace bluetooth_hal {
-namespace hci {
+namespace bluetooth_hal::hci {
 
 HciRouterClientAgent& HciRouterClientAgent::GetAgent() {
-  if (!MockHciRouterClientAgent::mock_agent_) {
-    LOG(FATAL) << __func__
-               << ": mock_agent_ is nullptr. Did you forget to call "
-                  "SetMockAgent in your test SetUp?";
-  }
-  return *MockHciRouterClientAgent::mock_agent_;
+    if (!MockHciRouterClientAgent::mock_agent_) {
+        LOG(FATAL) << __func__
+                   << ": mock_agent_ is nullptr. Did you forget to call "
+                      "SetMockAgent in your test SetUp?";
+    }
+    return *MockHciRouterClientAgent::mock_agent_;
 }
 
 void MockHciRouterClientAgent::SetMockAgent(MockHciRouterClientAgent* agent) {
-  mock_agent_ = agent;
+    mock_agent_ = agent;
 }
 
-}  // namespace hci
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::hci

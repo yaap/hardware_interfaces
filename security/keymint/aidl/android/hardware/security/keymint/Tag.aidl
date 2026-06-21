@@ -158,6 +158,14 @@ enum Tag {
     EC_CURVE = TagType.ENUM | 10,
 
     /**
+     * Tag::ML_DSA_VARIANT specifies an ML-DSA variant. Possible values are defined in the
+     * MlDsaVariant enumeration.
+     *
+     * Must be hardware-enforced.
+     */
+    ML_DSA_VARIANT = TagType.ENUM | 11,
+
+    /**
      * Tag::RSA_PUBLIC_EXPONENT specifies the value of the public exponent for an RSA key pair.
      * This tag is relevant only to RSA keys, and is required for all RSA keys.
      *
@@ -243,7 +251,8 @@ enum Tag {
     /**
      * Tag::ACTIVE_DATETIME specifies the date and time at which the key becomes active, in
      * milliseconds since Jan 1, 1970.  If a key with this tag is used prior to the specified date
-     * and time, IKeyMintDevice::begin() must return ErrorCode::KEY_NOT_YET_VALID;
+     * and time, IKeyMintDevice::begin() must return ErrorCode::KEY_NOT_YET_VALID (if the tag is
+     * hardware-enforced).
      *
      * Need not be hardware-enforced.
      */
@@ -253,7 +262,7 @@ enum Tag {
      * Tag::ORIGINATION_EXPIRE_DATETIME specifies the date and time at which the key expires for
      * signing and encryption purposes.  After this time, any attempt to use a key with
      * KeyPurpose::SIGN or KeyPurpose::ENCRYPT provided to begin() must fail with
-     * ErrorCode::KEY_EXPIRED.
+     * ErrorCode::KEY_EXPIRED (if the tag is hardware-enforced).
      *
      * The value is a 64-bit integer representing milliseconds since January 1, 1970.
      *
@@ -265,7 +274,7 @@ enum Tag {
      * Tag::USAGE_EXPIRE_DATETIME specifies the date and time at which the key expires for
      * verification and decryption purposes.  After this time, any attempt to use a key with
      * KeyPurpose::VERIFY or KeyPurpose::DECRYPT provided to begin() must fail with
-     * ErrorCode::KEY_EXPIRED.
+     * ErrorCode::KEY_EXPIRED (if the tag is hardware-enforced).
      *
      * The value is a 64-bit integer representing milliseconds since January 1, 1970.
      *
@@ -592,9 +601,12 @@ enum Tag {
      * getKeyCharacteristics() or exportKey() to return ErrorCode::KEY_REQUIRES_UPGRADE.  See
      * upgradeKey() for details.
      *
-     * The value of the tag is an integer of the form YYYYMM, where YYYY is the four-digit year of
-     * the last update and MM is the two-digit month of the last update.  For example, for a key
-     * generated on an Android device last updated in December 2015, the value would be 201512.
+     * The value of the tag is the Android security patch level, formatted as an integer
+     * with the version number and the dashes removed. For example, for a key generated on an
+     * Android device last updated to be compliant with either the 2026-01-01 or the 2026-01-05
+     * Android Security Bulletin, the value of the tag would be 202601. For information about
+     * what the patch level format itself means, see the Android Security Bulletin documentation
+     * at https://source.android.com/docs/security/bulletin.
      *
      * The IKeyMintDevice HAL must read the current system patchlevel from the system property
      * ro.build.version.security_patch and deliver it to the secure environment when the HAL is
@@ -732,7 +744,8 @@ enum Tag {
      * Tag::ATTESTATION_ID_IMEI provides the IMEI one of the radios on the device to attested key
      * generation/import operations.  This field must be set only when requesting attestation of the
      * device's identifiers. If the device has more than one IMEI, a second IMEI may be included
-     * by using the Tag::ATTESTATION_ID_SECOND_IMEI tag.
+     * by using the Tag::ATTESTATION_ID_SECOND_IMEI tag. For devices with multiple IMEIs, KeyMint
+     * validates any provided IMEI values against its unordered set of device IMEIs.
      *
      * If the device does not support ID attestation (or destroyAttestationIds() was previously
      * called and the device can no longer attest its IDs), any key attestation request that
@@ -789,10 +802,11 @@ enum Tag {
      * getKeyCharacteristics() or exportKey() to return ErrorCode::KEY_REQUIRES_UPGRADE.  See
      * upgradeKey() for details.
      *
-     * The value of the tag is an integer of the form YYYYMMDD, where YYYY is the four-digit year of
-     * the last update, MM is the two-digit month and DD is the two-digit day of the last
-     * update.  For example, for a key generated on an Android device last updated on June 5, 2018,
-     * the value would be 20180605.
+     * The value of the tag is the Android security patch level, formatted as an integer
+     * with the dashes removed. For example, for a key generated on an Android device last updated
+     * to be compliant with the Android Security Bulletin 2026-01-05 patch, the value of the tag
+     * would be 20260105. For information about what the patch level format itself means, see the
+     * Android Security Bulletin documentation at https://source.android.com/docs/security/bulletin.
      *
      * The IKeyMintDevice HAL must read the current vendor patchlevel from the system property
      * ro.vendor.build.security_patch and deliver it to the secure environment when the HAL is first
@@ -811,10 +825,11 @@ enum Tag {
      * cause begin(), getKeyCharacteristics() or exportKey() to return
      * ErrorCode::KEY_REQUIRES_UPGRADE.  See upgradeKey() for details.
      *
-     * The value of the tag is an integer of the form YYYYMMDD, where YYYY is the four-digit year of
-     * the last update, MM is the two-digit month and DD is the two-digit day of the last
-     * update.  For example, for a key generated on an Android device last updated on June 5, 2018,
-     * the value would be 20180605.  If the day is not known, 00 may be substituted.
+     * The value of the tag is the Android security patch level, formatted as an integer
+     * with the dashes removed. For example, for a key generated on an Android device last updated
+     * to be compliant with the Android Security Bulletin 2026-01-05 patch, the value of the tag
+     * would be 20260105. For information about what the patch level format itself means, see the
+     * Android Security Bulletin documentation at https://source.android.com/docs/security/bulletin.
      *
      * During each boot, the bootloader must provide the patch level of the boot image to the secure
      * environment (mechanism is implementation-defined).
@@ -889,8 +904,9 @@ enum Tag {
     /**
      * Tag::ATTESTATION_ID_SECOND_IMEI provides an additional IMEI of one of the radios on the
      * device to attested key generation/import operations. It should be used to convey an
-     * IMEI different to the one conveyed by the Tag::ATTESTATION_ID_IMEI tag. Like all other
-     * ID attestation flags, it may be included independently of other tags.
+     * IMEI different to the one conveyed by the Tag::ATTESTATION_ID_IMEI tag. When one or more
+     * IMEI tags are provided, KeyMint treats them as an unordered set for comparison purposes.
+     * Like all other ID attestation flags, it may be included independently of other tags.
      *
      * If the device does not support ID attestation (or destroyAttestationIds() was previously
      * called and the device can no longer attest its IDs), any key attestation request that

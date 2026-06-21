@@ -166,6 +166,25 @@ ndk::ScopedAStatus Health::getBatteryHealthData(BatteryHealthData* out) {
     }
     out->batteryPartStatus = static_cast<BatteryPartStatus>(part_status);
 
+    if (auto res = battery_monitor_.getManufacturer(); res.ok()) {
+        out->batteryManufacturer = *res;
+    } else {
+        LOG(WARNING) << "Cannot get Battery_manufacturer: " << res.error().code().print();
+    }
+
+    if (auto res = battery_monitor_.getModelName(); res.ok()) {
+        out->batteryModelName = *res;
+    } else {
+        LOG(WARNING) << "Cannot get Battery_model_name: " << res.error().code().print();
+    }
+
+    if (auto res = battery_monitor_.getVoltageMinDesign(); res.ok()) {
+        // Return 0 if voltage_min_design does not exist
+        out->batteryVoltageMinDesignUv = *res;
+    } else {
+        LOG(WARNING) << "Cannot get Battery_voltage_min_design: " << res.error().code().print();
+    }
+
     return ndk::ScopedAStatus::ok();
 }
 
@@ -269,6 +288,14 @@ void Health::UpdateHealthInfo(HealthInfo* /* health_info */) {
         // and implementation to operate on HealthInfo directly, then call:
         healthd_board_battery_update(health_info);
     */
+}
+
+int32_t Health::getFullChargeUah() const {
+    return battery_monitor_.getFullChargeUah();
+}
+
+int32_t Health::getFullChargeDesignCapacityUah() const {
+    return battery_monitor_.getFullChargeDesignCapacityUah();
 }
 
 //
@@ -404,5 +431,9 @@ void Health::OnInit(HalHealthLoop* hal_health_loop, struct healthd_config* confi
 
 // Unlike hwbinder, for binder, there's no need to explicitly call flushCommands()
 // in PrepareToWait(). See b/139697085.
+
+void Health::UpdateChargerPresence(const char* const device_name) {
+    battery_monitor_.updateChargerPresence(device_name);
+}
 
 }  // namespace aidl::android::hardware::health

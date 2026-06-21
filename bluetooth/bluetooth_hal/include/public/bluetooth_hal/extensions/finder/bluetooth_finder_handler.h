@@ -25,70 +25,62 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hci_router_client.h"
 
-namespace bluetooth_hal {
-namespace extensions {
-namespace finder {
+namespace bluetooth_hal::extensions::finder {
 
 class BluetoothFinderHandler : public ::bluetooth_hal::hci::HciRouterClient {
- public:
-  enum class State {
-    kIdle,
-    kReset,
-    kSendingKeys,
-    kStartingPof,
-    kStarted,
-  };
+  public:
+    enum class State {
+        kIdle,
+        kReset,
+        kSendingKeys,
+        kStartingPof,
+        kStarted,
+    };
 
-  bool SendEids(
-      const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>&
-          keys);
+    bool SendEids(const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>& keys);
 
-  bool SetPoweredOffFinderMode(bool enable);
-  bool GetPoweredOffFinderMode(bool* return_value);
+    bool SetPoweredOffFinderMode(bool enable);
+    bool GetPoweredOffFinderMode(bool* return_value);
 
-  bool IsPoweredOffFinderEnabled() const;
-  bool StartPoweredOffFinderMode();
+    bool IsPoweredOffFinderEnabled() const;
+    bool StartPoweredOffFinderMode();
 
-  static BluetoothFinderHandler& GetHandler();
+    static BluetoothFinderHandler& GetHandler();
+    static bool IsEnabled();
 
- protected:
-  BluetoothFinderHandler() = default;
+    BluetoothFinderHandler() = default;
 
-  void OnBluetoothChipReady() override {};
-  void OnBluetoothChipClosed() override {};
-  void OnBluetoothEnabled() override {};
-  void OnBluetoothDisabled() override {};
-  void OnCommandCallback(const bluetooth_hal::hci::HalPacket& packet) override;
-  void OnMonitorPacketCallback(
-      ::bluetooth_hal::hci::MonitorMode mode,
-      const bluetooth_hal::hci::HalPacket& packet) override;
+  protected:
+    void OnBluetoothChipReady() override {};
+    void OnBluetoothChipClosed() override {};
+    void OnBluetoothEnabled() override {};
+    void OnBluetoothDisabled() override {};
+    void OnCommandCallback(const bluetooth_hal::hci::HalPacket& packet) override;
+    void OnMonitorPacketCallback(::bluetooth_hal::hci::MonitorMode mode,
+                                 const bluetooth_hal::hci::HalPacket& packet) override;
 
-  ::bluetooth_hal::hci::HalPacket BuildFinderResetCommand();
-  ::bluetooth_hal::hci::HalPacket BuildPrecomputedKeyCommand(
-      const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>&
-          keys,
-      uint_t cur_key_idx);
-  ::bluetooth_hal::hci::HalPacket BuildStartPoweredOffFinderModeCommand(
-      int32_t cur_key_idx);
+    ::bluetooth_hal::hci::HalPacket BuildFinderResetCommand();
+    ::bluetooth_hal::hci::HalPacket BuildPrecomputedKeyCommand(
+            const std::vector<::aidl::android::hardware::bluetooth::finder::Eid>& keys,
+            uint_t cur_key_idx);
+    ::bluetooth_hal::hci::HalPacket BuildStartPoweredOffFinderModeCommand(int32_t cur_key_idx);
 
-  bool SendKeys();
-  bool StartPoweredOffFinderModeInternal();
+    bool SendKeys();
+    bool StartPoweredOffFinderModeInternal();
 
-  void HandleNextStep(State next_state);
-  bool SendCommandAndWait(const ::bluetooth_hal::hci::HalPacket& packet);
+    void HandleNextStep(State next_state);
+    bool SendCommandAndWait(const ::bluetooth_hal::hci::HalPacket& packet);
 
-  std::vector<::aidl::android::hardware::bluetooth::finder::Eid> keys_;
-  bool is_pof_enabled_{false};
-  std::atomic<State> state_{State::kIdle};
-  size_t current_key_index_{0};
+    std::vector<::aidl::android::hardware::bluetooth::finder::Eid> keys_;
+    static inline bool is_pof_enabled_{false};
+    std::atomic<State> state_{State::kIdle};
+    size_t current_key_index_{0};
 
-  std::mutex finder_mtx_;
+    std::mutex finder_mtx_;
 
-  // For synchronizing command sending.
-  std::promise<void> command_promise_;
-  bool command_success_{false};
+    // For synchronizing command sending.
+    std::promise<void> command_promise_;
+    bool command_success_{false};
 };
 
-}  // namespace finder
-}  // namespace extensions
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::extensions::finder

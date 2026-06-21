@@ -17,6 +17,7 @@
 package android.hardware.usb;
 
 import android.hardware.usb.AltModeData;
+import android.hardware.usb.CableStatus;
 import android.hardware.usb.ComplianceWarning;
 import android.hardware.usb.ContaminantDetectionStatus;
 import android.hardware.usb.ContaminantProtectionMode;
@@ -24,9 +25,13 @@ import android.hardware.usb.ContaminantProtectionStatus;
 import android.hardware.usb.PlugOrientation;
 import android.hardware.usb.PortDataRole;
 import android.hardware.usb.PortMode;
+import android.hardware.usb.PortPartnerStatus;
 import android.hardware.usb.PortPowerRole;
 import android.hardware.usb.PowerBrickStatus;
+import android.hardware.usb.PowerProfile;
+import android.hardware.usb.PowerProfileMatchResult;
 import android.hardware.usb.UsbDataStatus;
+import android.hardware.usb.UsbDeviceRef;
 
 @VintfStability
 parcelable PortStatus {
@@ -140,4 +145,47 @@ parcelable PortStatus {
      * current information.
      */
     AltModeData[] supportedAltModes = {};
+    /**
+     * Current status of the connected USB port partner (i.e. the USB charger, accessory, host) to
+     * which the local USB port is connected to.
+     */
+    @nullable PortPartnerStatus partnerStatus;
+    /**
+     * Indicates whether or not the port supports partner BC 1.2 type reporting
+     */
+    boolean supportsPartnerBc12Type = false;
+    /**
+     * Indicates whether or not the local port supports reporting USB power profiles and identifying
+     * partner power profiles. A local port that supports the feature is expected to populate
+     * {@code sinkPowerProfiles}, {@code sourcePowerProfiles}, {@code sinkMatchResults},
+     * and {@code sourceMatchResults} within PortStatus, as well as {@code sinkPowerProfiles}
+     * and {@code sourcePowerProfiles} within PortPartnerStatus.
+     */
+    boolean supportsPowerProfiles = false;
+    /**
+     * Lists the local port's sink power profiles
+     */
+    @nullable PowerProfile[] sinkPowerProfiles;
+    /**
+     * Lists the local port's source power profiles
+     */
+    @nullable PowerProfile[] sourcePowerProfiles;
+    /**
+     * Contains the match results of local port sink power profiles against partner port source
+     * power profiles.
+     */
+    @nullable PowerProfileMatchResult[] sinkMatchResults;
+    /**
+     * Contains the match results of local port source power profiles against partner port sink
+     * power profiles.
+     */
+    @nullable PowerProfileMatchResult[] sourceMatchResults;
+    /**
+     * The status of the connected cable, if any.
+     */
+    @nullable CableStatus cableStatus;
+    /**
+     * A list of references to downstream USB devices connected to this port.
+     */
+    UsbDeviceRef[] downstreamConnections = {};
 }

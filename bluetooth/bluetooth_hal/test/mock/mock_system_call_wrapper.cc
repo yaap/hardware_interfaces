@@ -19,21 +19,19 @@
 #include "android-base/logging.h"
 #include "bluetooth_hal/util/system_call_wrapper.h"
 
-namespace bluetooth_hal {
-namespace util {
+namespace bluetooth_hal::util {
 
 SystemCallWrapper& SystemCallWrapper::GetWrapper() {
-  if (!MockSystemCallWrapper::mock_system_call_wrapper_) {
-    LOG(FATAL) << __func__
-               << ": mock_system_call_wrapper_ is nullptr. Did you forget to "
-                  "call SetMockWrapper in your test SetUp?";
-  }
-  return *MockSystemCallWrapper::mock_system_call_wrapper_;
+    if (!MockSystemCallWrapper::mock_system_call_wrapper_) {
+        LOG(FATAL) << __func__
+                   << ": mock_system_call_wrapper_ is nullptr. Did you forget to "
+                      "call SetMockWrapper in your test SetUp?";
+    }
+    return *MockSystemCallWrapper::mock_system_call_wrapper_;
 }
 
 void MockSystemCallWrapper::SetMockWrapper(MockSystemCallWrapper* wrapper) {
-  mock_system_call_wrapper_ = wrapper;
+    mock_system_call_wrapper_ = wrapper;
 }
 
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util

@@ -45,6 +45,7 @@ cc_test {
     test_suites: [
         "general-tests",
         "vts",
+        "dts",
     ],
 }
 

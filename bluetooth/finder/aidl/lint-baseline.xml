@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.4.0-alpha01" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha01">
+<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
 
     <issue
         id="NewApi"
@@ -8,7 +8,7 @@
         errorLine2="                 ~~~~~~~~~~~~~~~">
         <location
             file="out/soong/.intermediates/hardware/interfaces/bluetooth/finder/aidl/android.hardware.bluetooth.finder-V1-java-source/gen/android/hardware/bluetooth/finder/Eid.java"
-            line="28"
+            line="31"
             column="18"/>
     </issue>
 
@@ -19,7 +19,7 @@
         errorLine2="                           ~~~~~~~~~~~~~~~~">
         <location
             file="out/soong/.intermediates/hardware/interfaces/bluetooth/finder/aidl/android.hardware.bluetooth.finder-V1-java-source/gen/android/hardware/bluetooth/finder/Eid.java"
-            line="41"
+            line="44"
             column="28"/>
     </issue>
 
@@ -30,7 +30,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~">
         <location
             file="out/soong/.intermediates/hardware/interfaces/bluetooth/finder/aidl/android.hardware.bluetooth.finder-V1-java-source/gen/android/hardware/bluetooth/finder/IBluetoothFinder.java"
-            line="67"
+            line="53"
             column="12"/>
     </issue>
 

@@ -18,66 +18,65 @@
 
 #include <cstdint>
 
-namespace bluetooth_hal {
-namespace debug {
+namespace bluetooth_hal::debug {
 
 enum class AnchorType : uint8_t {
-  kNone = 0,
+    kNone = 0,
 
-  // HciProxy
-  kStartHci,
+    // HciProxy
+    kStartHci,
 
-  // BluetoothHci
-  kInitialize,
-  kClose,
-  kServiceDied,
-  kSendHciCommand,
-  kSendAclData,
-  kSendScoData,
-  kSendIsoData,
-  kCallbackHciEvent,
-  kCallbackAclData,
-  kCallbackScoData,
-  kCallbackIsoData,
+    // BluetoothHci
+    kInitialize,
+    kClose,
+    kServiceDied,
+    kSendHciCommand,
+    kSendAclData,
+    kSendScoData,
+    kSendIsoData,
+    kCallbackHciEvent,
+    kCallbackAclData,
+    kCallbackScoData,
+    kCallbackIsoData,
 
-  // HciRouter
-  kRouterInitialize,
-  kTxTask,
-  kRxTask,
+    // HciRouter
+    kRouterInitialize,
+    kTxTask,
+    kRxTask,
+    kRouterTask,
 
-  // Thread
-  kThreadAcceptClient,
-  kThreadDaemonClosed,
-  kThreadSocketFileDeleted,
-  kThreadClientError,
-  kThreadClientConnect,
-  kThreadHardwareReset,
+    // Thread
+    kThreadAcceptClient,
+    kThreadDaemonClosed,
+    kThreadSocketFileDeleted,
+    kThreadClientError,
+    kThreadClientConnect,
+    kThreadHardwareReset,
 
-  // H4 UART
-  kUserialOpen,
-  kUserialClose,
-  kUserialTtyOpen,
+    // H4 UART
+    kUserialOpen,
+    kUserialClose,
+    kUserialTtyOpen,
 
-  // PowerManager
-  kPowerControl,
-  kLowPowerMode,
+    // PowerManager
+    kPowerControl,
+    kLowPowerMode,
 
-  // WakelockWatchdog
-  kWatchdog,
+    // WakelockWatchdog
+    kWatchdog,
 };
 
 enum class CoredumpErrorCode : uint8_t {
-  // Error codes for controller errors.
-  kForceCollectCoredump,
-  kControllerHwError,
-  kControllerRootInflammed,
-  kControllerDebugDumpWithoutRootInflammed,
-  kControllerDebugInfo,
-  kControllerUnimplementedPacketType,
+    // Error codes for controller errors.
+    kForceCollectCoredump,
+    kControllerHwError,
+    kControllerRootInflamed,
+    kControllerDebugDumpWithoutRootInflamed,
+    kControllerDebugInfo,
+    kControllerUnimplementedPacketType,
 
-  // Vendor specific error code for external implementations.
-  kVendor = 0xFF,
+    // Vendor specific error code for external implementations.
+    kVendor = 0xFF,
 };
 
-}  // namespace debug
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::debug

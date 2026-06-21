@@ -51,3 +51,9 @@ ndk::ScopedAStatus RadioMessagingIndication::newSmsStatusReport(
 ndk::ScopedAStatus RadioMessagingIndication::simSmsStorageFull(RadioIndicationType /*type*/) {
     return ndk::ScopedAStatus::ok();
 }
+
+ndk::ScopedAStatus RadioMessagingIndication::newSecureSms(RadioIndicationType /*type*/,
+                                                          const std::vector<uint8_t>& /*pdu*/,
+                                                          const aidl::android::hardware::radio::network::NetworkSecurityEvent& /*event*/) {
+    return ndk::ScopedAStatus::ok();
+}

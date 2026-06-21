@@ -25,22 +25,21 @@ namespace bluetooth {
 namespace audio {
 
 class HearingAidAudioProvider : public BluetoothAudioProvider {
- public:
-  HearingAidAudioProvider();
+  public:
+    HearingAidAudioProvider();
 
-  bool isValid(const SessionType& sessionType) override;
+    bool isValid(const SessionType& sessionType) override;
 
-  ndk::ScopedAStatus startSession(
-      const std::shared_ptr<IBluetoothAudioPort>& host_if,
-      const AudioConfiguration& audio_config,
-      const std::vector<LatencyMode>& latency_modes,
-      DataMQDesc* _aidl_return);
+    ndk::ScopedAStatus startSession(const std::shared_ptr<IBluetoothAudioPort>& host_if,
+                                    const AudioConfiguration& audio_config,
+                                    const std::vector<LatencyMode>& latency_modes,
+                                    DataMQDesc* _aidl_return);
 
- private:
-  // audio data queue for software encoding
-  std::unique_ptr<DataMQ> data_mq_;
+  private:
+    // audio data queue for software encoding
+    std::unique_ptr<DataMQ> data_mq_;
 
-  ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
+    ndk::ScopedAStatus onSessionReady(DataMQDesc* _aidl_return) override;
 };
 
 }  // namespace audio

@@ -128,7 +128,8 @@ void GnssHalTest::TearDown() {
 }
 
 void GnssHalTest::CheckLocation(const GnssLocation& location, bool check_speed) {
-    Utils::checkLocation(location, check_speed, /* check_more_accuracies= */ true);
+    Utils::checkLocation(location, check_speed, /* check_more_accuracies= */ true,
+                         aidl_gnss_hal_->getInterfaceVersion());
 }
 
 void GnssHalTest::SetPositionMode(const int min_interval_msec, const bool low_power_mode) {
@@ -459,7 +460,7 @@ GnssConstellationType GnssHalTest::startLocationAndGetBlockableConstellation(
 }
 
 void GnssHalTest::checkGnssMeasurementClockFields(const GnssData& measurement) {
-    Utils::checkElapsedRealtime(measurement.elapsedRealtime);
+    Utils::checkElapsedRealtime(measurement.elapsedRealtime, aidl_gnss_hal_->getInterfaceVersion());
     ASSERT_TRUE(measurement.clock.gnssClockFlags >= 0 &&
                 measurement.clock.gnssClockFlags <=
                         (GnssClock::HAS_LEAP_SECOND | GnssClock::HAS_TIME_UNCERTAINTY |

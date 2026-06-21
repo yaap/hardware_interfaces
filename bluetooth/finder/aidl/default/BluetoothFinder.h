@@ -24,16 +24,16 @@ using ::aidl::android::hardware::bluetooth::finder::BnBluetoothFinder;
 using ::aidl::android::hardware::bluetooth::finder::Eid;
 
 class BluetoothFinder : public BnBluetoothFinder {
- public:
-  BluetoothFinder() = default;
+  public:
+    BluetoothFinder() = default;
 
-  ::ndk::ScopedAStatus sendEids(const ::std::vector<Eid>& keys) override;
-  ::ndk::ScopedAStatus setPoweredOffFinderMode(bool enable) override;
-  ::ndk::ScopedAStatus getPoweredOffFinderMode(bool* _aidl_return) override;
+    ::ndk::ScopedAStatus sendEids(const ::std::vector<Eid>& keys) override;
+    ::ndk::ScopedAStatus setPoweredOffFinderMode(bool enable) override;
+    ::ndk::ScopedAStatus getPoweredOffFinderMode(bool* _aidl_return) override;
 
- private:
-  bool pof_enabled_;
-  std::vector<Eid> keys_;
+  private:
+    bool pof_enabled_;
+    std::vector<Eid> keys_;
 };
 
 }  // namespace aidl::android::hardware::bluetooth::finder::impl

@@ -378,6 +378,8 @@
             <xs:enumeration value="AUDIO_USAGE_VEHICLE_STATUS" />
             <xs:enumeration value="AUDIO_USAGE_ANNOUNCEMENT" />
             <xs:enumeration value="AUDIO_USAGE_SPEAKER_CLEANUP" />
+            <xs:enumeration value="AUDIO_USAGE_NOTIFICATION_VIBRATION" />
+            <xs:enumeration value="AUDIO_USAGE_RINGTONE_VIBRATION" />
         </xs:restriction>
     </xs:simpleType>
 

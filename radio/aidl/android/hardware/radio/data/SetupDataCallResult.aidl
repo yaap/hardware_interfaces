@@ -155,6 +155,9 @@ parcelable SetupDataCallResult {
     /**
      * TrafficDescriptors for which this data call must be used. It only includes the TDs for which
      * a data call has been requested so far; it is not an exhaustive list.
+     * This array can contain multiple TrafficDescriptors to represent support for multiple
+     * ConnectionCapabilities on this session. After CID reuse, HAL must send the complete list of
+     * TrafficDescriptors via dataCallListChanged.
      */
     TrafficDescriptor[] trafficDescriptors;
 }

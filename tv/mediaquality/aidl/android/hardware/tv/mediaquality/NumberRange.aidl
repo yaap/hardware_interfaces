@@ -32,4 +32,13 @@ union NumberRange {
     @nullable long[] longValuesSupported;
     /** An array of supported double values. */
     @nullable double[] doubleValuesSupported;
+
+    /** Min value and max value of a float parameter. Inclusive. */
+    @nullable float[2] floatMinMax;
+    /** An array of supported float values. */
+    @nullable float[] floatValuesSupported;
+    /** Min value and max value of a byte parameter. Inclusive. */
+    @nullable byte[2] byteMinMax;
+    /** An array of supported byte values. */
+    @nullable byte[] byteValuesSupported;
 }

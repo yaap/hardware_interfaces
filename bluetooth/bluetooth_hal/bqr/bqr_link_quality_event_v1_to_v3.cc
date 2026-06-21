@@ -22,30 +22,30 @@
 #include "bluetooth_hal/bqr/bqr_types.h"
 #include "bluetooth_hal/hal_packet.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 
 using ::bluetooth_hal::hci::HalPacket;
 
 BqrLinkQualityEventV1ToV3::BqrLinkQualityEventV1ToV3(const HalPacket& packet)
     : BqrLinkQualityEventBase(packet) {
-  if (is_valid_) {
-    version_ = BqrVersion::kV1ToV3;
-  }
+    if (is_valid_) {
+        version_ = BqrVersion::kV1ToV3;
+    }
 }
 
-bool BqrLinkQualityEventV1ToV3::IsValid() const { return is_valid_; }
+bool BqrLinkQualityEventV1ToV3::IsValid() const {
+    return is_valid_;
+}
 
 std::string BqrLinkQualityEventV1ToV3::ToString() const {
-  if (!is_valid_) {
-    return "BqrLinkQualityEventV1ToV3(Invalid)";
-  }
-  return "BqrLinkQualityEventV1ToV3: " + ToBqrString();
+    if (!is_valid_) {
+        return "BqrLinkQualityEventV1ToV3(Invalid)";
+    }
+    return "BqrLinkQualityEventV1ToV3: " + ToBqrString();
 }
 
 std::string BqrLinkQualityEventV1ToV3::ToBqrString() const {
-  return BqrLinkQualityEventBase::ToBqrString();
+    return BqrLinkQualityEventBase::ToBqrString();
 }
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

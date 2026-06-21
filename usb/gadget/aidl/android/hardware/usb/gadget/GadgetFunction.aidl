@@ -55,6 +55,10 @@ parcelable GadgetFunction {
      */
     const long UVC = 1 << 7;
     /**
+     * CTRL - Vendor specific control interface.
+     */
+    const long CTRL = 1 << 8;
+    /**
      * NCM - NCM function.
      */
     const long NCM = 1 << 10;

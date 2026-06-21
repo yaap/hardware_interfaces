@@ -36,6 +36,7 @@ cc_test {
     test_config: "VtsHalMediaOmxV1_0TargetVideoDecTest.xml",
     test_suites: [
         "vts",
+        "dts",
     ],
 }
 
@@ -54,5 +55,6 @@ cc_test {
     test_config: "VtsHalMediaOmxV1_0TargetVideoEncTest.xml",
     test_suites: [
         "vts",
+        "dts",
     ],
 }

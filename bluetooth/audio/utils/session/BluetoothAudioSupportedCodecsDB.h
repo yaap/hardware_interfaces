@@ -28,8 +28,7 @@ using ::android::hardware::bluetooth::audio::V2_0::PcmParameters;
 using ::android::hardware::bluetooth::audio::V2_0::SessionType;
 
 std::vector<PcmParameters> GetSoftwarePcmCapabilities();
-std::vector<CodecCapabilities> GetOffloadCodecCapabilities(
-    const SessionType& session_type);
+std::vector<CodecCapabilities> GetOffloadCodecCapabilities(const SessionType& session_type);
 
 bool IsSoftwarePcmConfigurationValid(const PcmParameters& pcm_config);
 bool IsOffloadCodecConfigurationValid(const SessionType& session_type,

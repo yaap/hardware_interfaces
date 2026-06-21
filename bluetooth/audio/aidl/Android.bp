@@ -94,13 +94,21 @@ aidl_interface {
                 "android.hardware.common.fmq-V1",
             ],
         },
+        {
+            version: "6",
+            imports: [
+                "android.hardware.audio.common-V5",
+                "android.hardware.common-V2",
+                "android.hardware.common.fmq-V1",
+            ],
+        },
 
     ],
     frozen: true,
 }
 
 // Note: This should always be one version ahead of the last frozen version
-latest_android_hardware_bluetooth_audio = "android.hardware.bluetooth.audio-V5"
+latest_android_hardware_bluetooth_audio = "android.hardware.bluetooth.audio-V6"
 
 cc_defaults {
     name: "latest_android_hardware_bluetooth_audio_ndk_shared",
@@ -136,4 +144,25 @@ cc_defaults {
             ],
         },
     },
+}
+
+aidl_interface_defaults {
+    name: "latest_android_hardware_bluetooth_audio_import_interface",
+    imports: [
+        latest_android_hardware_bluetooth_audio,
+    ],
+}
+
+rust_defaults {
+    name: "latest_android_hardware_bluetooth_audio_rust",
+    rustlibs: [
+        latest_android_hardware_bluetooth_audio + "-rust",
+    ],
+}
+
+rust_defaults {
+    name: "latest_android_hardware_bluetooth_audio_rust_ndk_shared",
+    shared_libs: [
+        latest_android_hardware_bluetooth_audio + "-ndk",
+    ],
 }

@@ -21,6 +21,7 @@ import android.hardware.wifi.supplicant.INonStandardCertCallback;
 import android.hardware.wifi.supplicant.ISupplicantCallback;
 import android.hardware.wifi.supplicant.ISupplicantP2pIface;
 import android.hardware.wifi.supplicant.ISupplicantStaIface;
+import android.hardware.wifi.supplicant.ISupplicantWifiRttController;
 import android.hardware.wifi.supplicant.IfaceInfo;
 import android.hardware.wifi.supplicant.IfaceType;
 
@@ -181,4 +182,17 @@ interface ISupplicant {
      *         |SupplicantStatusCode.FAILURE_UNKNOWN|
      */
     void setCurrentUserIdentity(in int userId);
+
+    /**
+     * Create an RTTController instance in supplicant.
+     *
+     * @param ifName Name of the interface (e.g wlan0).
+     * @return |ISupplicantWifiRttController| object to perform RTT operations if successful,
+     *         null otherwise.
+     *
+     * @throws ServiceSpecificException with one of the following values:
+     *         |SupplicantStatusCode.FAILURE_UNKNOWN|,
+     *         |SupplicantStatusCode.FAILURE_IFACE_UNKNOWN|
+     */
+    @PropagateAllowBlocking ISupplicantWifiRttController createRttController(in String ifName);
 }

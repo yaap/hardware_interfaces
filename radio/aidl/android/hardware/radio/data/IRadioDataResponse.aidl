@@ -16,6 +16,7 @@
 
 package android.hardware.radio.data;
 
+import android.hardware.radio.RadioIndicationType;
 import android.hardware.radio.RadioResponseInfo;
 import android.hardware.radio.data.KeepaliveStatus;
 import android.hardware.radio.data.SetupDataCallResult;
@@ -54,7 +55,7 @@ oneway interface IRadioDataResponse {
      * @param dcResponse Attributes of data call
      *
      * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.ims is not defined
+     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.data is not defined
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
      *   RadioError:INTERNAL_ERR
@@ -111,7 +112,7 @@ oneway interface IRadioDataResponse {
      * @param info Response info struct containing response type, serial no. and error
      *
      * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.ims is not defined
+     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.data is not defined
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
      *   RadioError:INTERNAL_ERR
@@ -201,6 +202,8 @@ oneway interface IRadioDataResponse {
      *   RadioError:INTERNAL_ERR
      *   RadioError:NO_RESOURCES if the vendor is unable to handle due to resources being full.
      *   RadioError:SIM_ABSENT
+     * HAL Notes for ConnectionCapability:
+     * - HAL can return dcResponse.cause = DataCallFailCause.DUPLICATE_CID (0x10007) for CID reuse.
      */
     void setupDataCallResponse(in RadioResponseInfo info, in SetupDataCallResult dcResponse);
 
@@ -208,7 +211,7 @@ oneway interface IRadioDataResponse {
      * @param info Response info struct containing response type, serial no. and error
      *
      * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.ims is not defined
+     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.data is not defined
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
      *   RadioError:INTERNAL_ERR
@@ -245,12 +248,11 @@ oneway interface IRadioDataResponse {
      * @param info Response info struct containing response type, serial no. and error
      *
      * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.ims is not defined
+     *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:SIM_ABSENT
      *   RadioError:INTERNAL_ERR
-     *   RadioError:NO_RESOURCES
-     *   RadioError:INVALID_CALL_ID
      */
     void setUserDataEnabledResponse(in RadioResponseInfo info);
 
@@ -258,12 +260,11 @@ oneway interface IRadioDataResponse {
      * @param info Response info struct containing response type, serial no. and error
      *
      * Valid errors returned:
-     *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.ims is not defined
+     *   RadioError:REQUEST_NOT_SUPPORTED
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:SIM_ABSENT
      *   RadioError:INTERNAL_ERR
-     *   RadioError:NO_RESOURCES
-     *   RadioError:INVALID_CALL_ID
      */
     void setUserDataRoamingEnabledResponse(in RadioResponseInfo info);
 
@@ -274,9 +275,30 @@ oneway interface IRadioDataResponse {
      *   RadioError:REQUEST_NOT_SUPPORTED when android.hardware.telephony.data is not defined
      *   RadioError:NONE
      *   RadioError:RADIO_NOT_AVAILABLE
+     *   RadioError:SIM_ABSENT
+     *   RadioError:INVALID_ARGUMENTS
      *   RadioError:INTERNAL_ERR
-     *   RadioError:NO_RESOURCES
-     *   RadioError:INVALID_CALL_ID
      */
     void notifyImsDataNetworkResponse(in RadioResponseInfo info);
+
+    /**
+     * Indicates data call contexts have changed.
+     *
+     * @param type Type of radio indication
+     * @param dcList Array of SetupDataCallResult identical to that returned by
+     *        IRadioData.getDataCallList(). It is the complete list of current data contexts
+     *        including new contexts that have been activated. A data call is only removed from
+     *        this list when any of the below conditions is matched:
+     *        - The framework sends a IRadioData.deactivateDataCall().
+     *        - The radio is powered off/on.
+     *        - Unsolicited disconnect from either modem or network side.
+     *        Note that A data call's status needs to be changed to inactive before it can be
+     *        removed from the list. Directly removing it from the list would result in a
+     *        dangling data call.
+     *
+     * HAL Notes for ConnectionCapability: When setupDataCall results in the reuse CID, this event
+     * MUST be triggered. The trafficDescriptors in each SetupDataCallResult in dcList
+     * MUST reflect the full set of ConnectionCapabilities for that session.
+     */
+    void dataCallListUpdated(in RadioIndicationType type, in SetupDataCallResult[] dcList);
 }

@@ -28,6 +28,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "data_flow/host/region_manager.h"
+#include "data_flow/queue.h"
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -89,6 +92,20 @@ class ContextHub : public BnContextHub {
         ::ndk::ScopedAStatus closeEndpointSession(int32_t in_sessionId, Reason in_reason) override;
         ::ndk::ScopedAStatus endpointSessionOpenComplete(int32_t in_sessionId) override;
         ::ndk::ScopedAStatus unregister() override;
+        ::ndk::ScopedAStatus allocateSharedDataRegion(
+                const SharedDataRegionRequirements& in_requirements,
+                SharedDataRegion* _aidl_return) override;
+        ::ndk::ScopedAStatus freeSharedDataRegion(int32_t in_id) override;
+        ::ndk::ScopedAStatus registerDataFlowHostSource(const EndpointId& in_endpoint,
+                                                        const DataFlowInfo& in_info,
+                                                        int32_t* _aidl_return) override;
+        ::ndk::ScopedAStatus unregisterDataFlowHostSource(int32_t in_id) override;
+        ::ndk::ScopedAStatus registerDataFlowOffloadSink(
+                const DataFlowSinkRegistrationParams& in_params,
+                const std::shared_ptr<IEndpointCommunication::IRegisterOffloadSinkCallback>&
+                        in_callback) override;
+        ::ndk::ScopedAStatus unregisterDataFlowHostSink(const EndpointId& in_sinkId,
+                                                        const DataFlowId& in_dataFlowId) override;
 
       private:
         friend class ContextHub;
@@ -98,6 +115,28 @@ class ContextHub : public BnContextHub {
             EndpointId initiator;
             EndpointId peer;
             std::optional<std::string> serviceDescriptor;
+        };
+
+        struct AllocatedRegion {
+            SharedDataRegion region;
+            int32_t size;
+            std::vector<std::string> permissions;
+            std::vector<int64_t> targetHubIds;
+            std::unordered_set<int32_t> publishedDataFlowIds;
+        };
+
+        struct DataFlow {
+            int32_t id;
+            EndpointId sourceId;
+            DataFlowInfo info;
+            std::unordered_set<uint64_t> offloadSinkIds;
+        };
+
+        struct EchoDataFlow {
+            int32_t id;
+            EndpointId offloadSourceId;
+            EndpointId hostSinkId;
+            int stopFd;
         };
 
         //! Finds an endpoint in the range defined by the endpoints
@@ -124,6 +163,27 @@ class ContextHub : public BnContextHub {
         std::vector<EndpointSession> mEndpointSessions;
         uint16_t mBaseSessionId;
         uint16_t mMaxSessionId;
+
+        //! SharedDataRegion storage and information
+        std::mutex mSharedDataMutex;
+        std::unordered_map<int32_t, AllocatedRegion> mAllocatedRegions;
+        std::atomic<int32_t> mNextRegionId{1};
+
+        //! DataFlow storage
+        std::unordered_map<int32_t, DataFlow> mDataFlows;
+        std::mutex mEchoDataFlowMutex;
+        std::unordered_map<int32_t, EchoDataFlow> mEchoDataFlows;
+        std::atomic<int32_t> mNextDataFlowId{1};
+        ::android::contexthub::data_flow::DataNotifier mDataNotifier;
+
+        ::android::contexthub::data_flow::RegionManager mRegionManager;
+
+        // Helper function to create the echo data flow in echo service thread
+        void createEchoDataFlow(const DataFlowSinkContext& in_context, int64_t sinkMetadataOffset,
+                                const EndpointId& in_sinkId, const EndpointId& hostSourceId,
+                                const AllocatedRegion& allocatedRegion, const DataFlow& dataFlow,
+                                const std::optional<SharedDataRegion>& metadataRegion,
+                                const std::optional<Message>& in_msg, int32_t in_sessionId);
     };
 
     static constexpr uint32_t kMockHubId = 0;

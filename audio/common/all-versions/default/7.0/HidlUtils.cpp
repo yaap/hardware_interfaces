@@ -87,6 +87,9 @@ status_t HidlUtils::audioChannelMaskFromHal(audio_channel_mask_t halChannelMask,
                 case AUDIO_CHANNEL_REPRESENTATION_INDEX:
                     // Index masks do not have direction.
                     return audioIndexChannelMaskFromHal(halChannelMask, channelMask);
+                case AUDIO_CHANNEL_REPRESENTATION_ACN:
+                    // not supported in HIDL, return an error.
+                    break;
                     // no default
             }
         }

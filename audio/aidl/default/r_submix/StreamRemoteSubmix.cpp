@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "AHAL_StreamRemoteSubmix"
-#include <android-base/logging.h>
+#include <Log.h>
 #include <audio_utils/clock.h>
 #include <error/Result.h>
 #include <error/expected_utils.h>

@@ -18,7 +18,7 @@ rust_binary {
         "liblogger",
         "liblog_rust",
         "libbinder_rs",
-        "android.hardware.tv.mediaquality-V1-rust",
+        "android.hardware.tv.mediaquality-V2-rust",
     ],
     srcs: ["main.rs"],
 }

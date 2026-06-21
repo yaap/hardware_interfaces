@@ -23,8 +23,7 @@
 #include "bluetooth_hal/hal_packet.h"
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace bqr {
+namespace bluetooth_hal::bqr {
 namespace {
 
 using ::bluetooth_hal::hci::GoogleEventSubCode;
@@ -32,10 +31,10 @@ using ::bluetooth_hal::hci::HalPacket;
 using ::bluetooth_hal::hci::HciPacketType;
 
 enum class Offset : uint8_t {
-  // The 3 bytes are for the HCI event header
-  // H4 packet type(1) + event code(1) + length(1)
-  kSubEvent = 3,
-  kReportId,
+    // The 3 bytes are for the HCI event header
+    // H4 packet type(1) + event code(1) + length(1)
+    kSubEvent = 3,
+    kReportId,
 };
 
 // H4 packet type(1) + event code(1) + length(1) + sub event(1) + report id(1)
@@ -44,38 +43,42 @@ constexpr size_t kBqrEventHeaderLength = 5;
 
 BqrEvent::BqrEvent(const HalPacket& packet)
     : HalPacket(packet),
-      is_valid_(size() >= kBqrEventHeaderLength &&
-                GetType() == HciPacketType::kEvent && IsVendorEvent() &&
-                At(Offset::kSubEvent) ==
-                    static_cast<uint8_t>(GoogleEventSubCode::kBqrEvent)),
+      is_valid_(size() >= kBqrEventHeaderLength && GetType() == HciPacketType::kEvent &&
+                IsVendorEvent() &&
+                At(Offset::kSubEvent) == static_cast<uint8_t>(GoogleEventSubCode::kBqrEvent)),
       report_id_(BqrReportId::kNone),
       bqr_event_type_(BqrEventType::kNone) {
-  if (is_valid_) {
-    ParseData();
-  }
+    if (is_valid_) {
+        ParseData();
+    }
 }
 
-bool BqrEvent::IsValid() const { return is_valid_; }
+bool BqrEvent::IsValid() const {
+    return is_valid_;
+}
 
-BqrReportId BqrEvent::GetBqrReportId() const { return report_id_; }
+BqrReportId BqrEvent::GetBqrReportId() const {
+    return report_id_;
+}
 
-BqrEventType BqrEvent::GetBqrEventType() const { return bqr_event_type_; }
+BqrEventType BqrEvent::GetBqrEventType() const {
+    return bqr_event_type_;
+}
 
 void BqrEvent::ParseData() {
-  report_id_ = static_cast<BqrReportId>(At(Offset::kReportId));
-  bqr_event_type_ = GetBqrEventTypeFromReportId(report_id_);
+    report_id_ = static_cast<BqrReportId>(At(Offset::kReportId));
+    bqr_event_type_ = GetBqrEventTypeFromReportId(report_id_);
 }
 
 std::string BqrEvent::ToString() const {
-  if (!is_valid_) {
-    return "BqrEvent(Invalid)";
-  }
-  return "BqrEvent: " + ToBqrString();
+    if (!is_valid_) {
+        return "BqrEvent(Invalid)";
+    }
+    return "BqrEvent: " + ToBqrString();
 }
 
 std::string BqrEvent::ToBqrString() const {
-  return BqrReportIdToString(report_id_);
+    return BqrReportIdToString(report_id_);
 }
 
-}  // namespace bqr
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::bqr

@@ -16,12 +16,9 @@
 
 #pragma once
 
-#include <renderengine/RenderEngine.h>
 #include "ComposerClientWrapper.h"
 
 namespace aidl::android::hardware::graphics::composer3::libhwc_aidl_test {
-
-using ::android::renderengine::LayerSettings;
 
 class TestLayer {
   public:
@@ -41,7 +38,6 @@ class TestLayer {
     virtual ~TestLayer() {};
 
     virtual void write(ComposerClientWriter& writer);
-    virtual LayerSettings toRenderEngineLayerSettings();
 
     void setDisplayFrame(Rect frame) { mDisplayFrame = frame; }
     void setSourceCrop(FRect crop) { mSourceCrop = crop; }

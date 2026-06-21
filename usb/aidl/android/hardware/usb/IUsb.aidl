@@ -113,4 +113,14 @@ oneway interface IUsb {
      * @param transactionId ID to be used when invoking the callback.
      */
     void resetUsbPort(in String portName, long transactionId);
+
+    /**
+     * This function is used to request the hal for the static information
+     * about the specified USB port. The result is returned via
+     * {@link IUsbCallback#notifyQueryStaticPortInformation}
+     *
+     * @param portName name of the port.
+     * @param transactionId ID to be used when invoking the callback.
+     */
+    void queryStaticPortInformation(in String portName, long transactionId);
 }

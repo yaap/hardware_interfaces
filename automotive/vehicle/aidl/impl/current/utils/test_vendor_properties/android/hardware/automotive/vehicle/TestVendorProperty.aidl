@@ -109,6 +109,15 @@ enum TestVendorProperty {
     VENDOR_PROPERTY_FOR_ERROR_CODE_TESTING = 0x2A13 + 0x20000000 + 0x01000000 + 0x00400000,
 
     /**
+     * This property is used for testing property system and vendor statuses end to end.
+     *
+     * VehiclePropertyGroup.VENDOR | VehicleArea.GLOBAL | VehiclePropertyType.INT32
+     *
+     * 0x21402A14
+     */
+    VENDOR_PROPERTY_FOR_PROPERTY_STATUS_TESTING = 0x2A14 + 0x20000000 + 0x01000000 + 0x00400000,
+
+    /**
      * This property is used for test purpose. End to end tests use this property to test set and
      * get method for MIXED type properties.
      *

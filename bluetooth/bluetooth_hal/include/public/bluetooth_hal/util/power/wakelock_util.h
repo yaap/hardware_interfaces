@@ -20,33 +20,29 @@
 
 #include "bluetooth_hal/hal_types.h"
 
-namespace bluetooth_hal {
-namespace util {
-namespace power {
+namespace bluetooth_hal::util::power {
 
 class WakelockUtil {
- public:
-  static std::string WakeSourceToString(WakeSource source) {
-    switch (source) {
-      case WakeSource::kTx:
-        return "TX";
-      case WakeSource::kRx:
-        return "RX";
-      case WakeSource::kHciBusy:
-        return "HciBusy";
-      case WakeSource::kRouterTask:
-        return "RouterTask";
-      case WakeSource::kTransport:
-        return "Transport";
-      case WakeSource::kInitialize:
-        return "Initialize";
-      case WakeSource::kClose:
-        return "Close";
+  public:
+    static std::string WakeSourceToString(WakeSource source) {
+        switch (source) {
+            case WakeSource::kTx:
+                return "TX";
+            case WakeSource::kRx:
+                return "RX";
+            case WakeSource::kHciBusy:
+                return "HciBusy";
+            case WakeSource::kRouterTask:
+                return "RouterTask";
+            case WakeSource::kTransport:
+                return "Transport";
+            case WakeSource::kInitialize:
+                return "Initialize";
+            case WakeSource::kClose:
+                return "Close";
+        }
+        return "Unknown";
     }
-    return "Unknown";
-  }
 };
 
-}  // namespace power
-}  // namespace util
-}  // namespace bluetooth_hal
+}  // namespace bluetooth_hal::util::power

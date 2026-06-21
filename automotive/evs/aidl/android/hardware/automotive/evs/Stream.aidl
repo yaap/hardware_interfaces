@@ -25,6 +25,21 @@ import android.hardware.graphics.common.PixelFormat;
  * Stream:
  *
  * Structure that describes a EVS Camera stream
+ *
+ * @deprecated EVS functionality and APIs are deprecated.
+ *             Use either the Camera2 NDK APIs or the Camera2 Java APIs instead.
+ *             For the NDK:
+ *             <a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acameramanager_getcameracharacteristics">ACameraManager_getCameraCharacteristics</a>
+ *             and read the <a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acamera_metadata_tag">ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS</a>
+ *             tag from <a
+ *             href="https://developer.android.com/ndk/reference/group/camera#acamerametadata">ACameraMetadata</a>.
+ *             For Java:
+ *             {@link android.hardware.camera2.CameraManager#getCameraCharacteristics} and get the
+ *             {@link
+ *             android.hardware.camera2.CameraCharacteristics#SCALER_STREAM_CONFIGURATION_MAP}
+ *             property.
  */
 @VintfStability
 parcelable Stream {

@@ -16,12 +16,7 @@ applies to all
 
 On pixel devicse (non-CF), by default (after manufacture reset), Face VHAL is <br/>
 not enabled. Therefore real Face HAL is used. Face VHAL enabling is gated by the<br/>
-following two AND conditions:<br/>
-1. The Face VHAL feature flag (as part ofTrunk-development strategy) must be<br/>
-   turned on until the flags life-cycle ends.
-2. The Face VHAL must be enabled via sysprop.
-
-See the adb commands below
+following sysprop.
 
 ## Getting Stared
 
@@ -32,7 +27,6 @@ exmple below.
 
 ```shell
 $ adb root
-$ adb shell device_config put biometrics_framework com.android.server.biometrics.face_vhal_feature true
 $ adb shell settings put secure biometric_virtual_enabled 1
 $ adb shell setprop persist.vendor.face.virtual.strength strong
 $ adb shell setprop persist.vendor.face.virtual.type RGB

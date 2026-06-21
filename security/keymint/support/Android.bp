@@ -28,14 +28,15 @@ cc_defaults {
     vendor_available: true,
     cflags: [
         "-Wall",
-        "-Wextra",
         "-Werror",
+        "-Wextra",
     ],
     srcs: [
         "attestation_record.cpp",
         "authorization_set.cpp",
-        "keymint_utils.cpp",
         "key_param_output.cpp",
+        "keymint_utils.cpp",
+        "openssl_utils.cpp",
     ],
     export_include_dirs: [
         "include",
@@ -46,15 +47,21 @@ cc_defaults {
     shared_libs: [
         "libbase",
         "libcrypto",
-        "libutils",
         "libhardware",
+        "libutils",
     ],
 }
 
+// KeyMint support library, including support for the latest version of the HAL.
+//
+// Clients of the library should define the same flags when including header
+// files to ensure that all the entrypoints needed for supporting the latest
+// version are declared.
 cc_library {
     name: "libkeymint_support",
     cflags: [
         "-DKEYMINT_HAL_V4",
+        "-DKEYMINT_HAL_V5",
     ],
     defaults: [
         "keymint_use_latest_hal_aidl_ndk_shared",
@@ -109,8 +116,8 @@ cc_library {
         "libcppbor",
         "libcppcose_rkp",
         "libcrypto",
-        "libkeymaster_portable",
         "libjsoncpp",
+        "libkeymaster_portable",
     ],
 }
 
